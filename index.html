@@ -1418,6 +1418,12 @@ function showNewForm(m) {
   if (typeof renderDraftAttList === 'function') renderDraftAttList();
   if (typeof onDeptChange === 'function') onDeptChange();
   if (typeof toggleExpenseDetail === 'function') toggleExpenseDetail();
+  // Reset expense detail visibility based on current selection
+  var expEl = document.getElementById('expenseDetail');
+  var typeEl = document.getElementById('docType');
+  if (expEl && typeEl) {
+    expEl.style.display = typeEl.value.includes('지출결의서') ? 'block' : 'none';
+  }
 }
 
 function toggleBankType() {
