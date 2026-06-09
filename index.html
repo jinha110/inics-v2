@@ -1651,89 +1651,103 @@ function editDoc(id, wrapId) {
   var doc = state.docs.find(function(d){ return d.id === id; });
   if(!doc) return;
 
-  // Go to new page and populate form
-  showPage('new');
+  // Get user
+  var uid = mineUserId || newAuthId || parseInt(sessionStorage.getItem('inics_uid')||'0');
+  var gu = MEMBERS.find(function(m){ return m.id === uid; }) || window._gateUser;
+  if(!gu){ showToast('로그인 필요'); return; }
 
-  // Wait for form to be visible
-  setTimeout(function(){
-    // Make sure form is showing - check all possible sources for current user
-    var gu = window._gateUser;
-    if(!gu && newAuthId) gu = MEMBERS.find(function(m){ return m.id === newAuthId; });
-    if(!gu && mineUserId) gu = MEMBERS.find(function(m){ return m.id === mineUserId; });
-    if(!gu) {
-      var uid = parseInt(sessionStorage.getItem('inics_uid')||'0');
-      if(uid) gu = MEMBERS.find(function(m){ return m.id === uid; });
+  // Set editing flag BEFORE switching page
+  window._editingDocId = id;
+  newAuthId = gu.id;
+
+  // Switch to new page manually (avoid auto-form-reset in showPage)
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-new').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('pageTitle').textContent = 'Edit · 수정 중';
+
+  // Show form
+  document.getElementById('newAuthWrap').style.display = 'none';
+  document.getElementById('newFormWrap').style.display = 'block';
+  document.getElementById('newAuthLabel').textContent = '[수정 모드] ' + gu.name + ' (' + gu.role + ')';
+
+  // Show session chip
+  var chip = document.getElementById('sessionChip');
+  if(chip){ chip.style.display='flex'; document.getElementById('sessionName').textContent=gu.name; }
+  var av = document.getElementById('sessionAvatarChip');
+  if(av) av.innerHTML = getAvatar(gu.id,'sm');
+
+  // Populate dept/type selects first
+  populateDeptTypeSelects();
+
+  // Fill all fields
+  var deptEl = document.getElementById('docDept');
+  if(deptEl){ deptEl.value = doc.dept; onDeptChange(); }
+
+  var typeEl = document.getElementById('docType');
+  if(typeEl){ typeEl.value = doc.type; toggleExpenseDetail(); }
+
+  var titleEl = document.getElementById('docTitle');
+  var amtEl = document.getElementById('docAmount');
+  var curEl = document.getElementById('docCurrency');
+  var contentEl = document.getElementById('docContent');
+  if(titleEl) titleEl.value = doc.title || '';
+  if(amtEl) amtEl.value = doc.amount || '';
+  if(curEl) curEl.value = doc.currency || 'VND';
+  if(contentEl) contentEl.value = doc.content || '';
+
+  // Payment radio
+  var payYes = document.querySelector('input[name="needPayment"][value="yes"]');
+  var payNo = document.querySelector('input[name="needPayment"][value="no"]');
+  if(doc.needPayment && payYes) payYes.checked = true;
+  else if(payNo) payNo.checked = true;
+
+  // Attachments
+  draftAtts = doc.draftAtts ? doc.draftAtts.slice() : [];
+  renderDraftAttList();
+
+  // Desc image
+  if(doc.descImage){
+    descImageData = doc.descImage;
+    var dp = document.getElementById('descImagePreview');
+    if(dp) dp.innerHTML = '<img src="'+doc.descImage+'" style="max-width:100%;max-height:200px;border-radius:var(--radius);border:1px solid var(--border);margin-top:4px">';
+  }
+
+  // Expense data
+  if(doc.expenseData){
+    var e = doc.expenseData;
+    function sv(eid, val){ var el=document.getElementById(eid); if(el) el.value=val||''; }
+    sv('expVendorName', e.vendorName);
+    sv('expVendorReg', e.vendorReg);
+    sv('expPO', e.poNumber);
+    sv('expInvoice', e.invoiceNumber);
+    sv('expPayDate', e.payDate);
+    sv('expPurpose', e.purpose);
+    sv('expVendorReason', e.vendorReason);
+    sv('expRemarks', e.remarks);
+
+    var bankType = e.bankType || 'vn';
+    var bankRadio = document.querySelector('input[name="bankType"][value="'+bankType+'"]');
+    if(bankRadio){ bankRadio.checked = true; toggleBankType(); }
+
+    if(bankType === 'vn'){
+      var bankSel = document.getElementById('expBankVN');
+      if(bankSel) bankSel.value = e.bankVN || '';
+      sv('expBankVNAcct', e.bankVNAcct);
+      sv('expBankVNHolder', e.bankVNHolder);
+      sv('expBankVNBranch', e.bankVNBranch);
+    } else {
+      sv('expBankForeignName', e.bankForeignName);
+      sv('expBankSwift', e.bankSwift);
+      sv('expBankForeignAcct', e.bankForeignAcct);
+      sv('expBankForeignHolder', e.bankForeignHolder);
+      sv('expBankForeignAddr', e.bankForeignAddr);
     }
-    if(gu) {
-      newAuthId = gu.id;
-      showNewForm(gu);
-    }
+  }
 
-    setTimeout(function(){
-      // Populate fields
-      var deptEl = document.getElementById('docDept');
-      var typeEl = document.getElementById('docType');
-      if(deptEl) { populateDeptTypeSelects(); deptEl.value = doc.dept; onDeptChange(); }
-      if(typeEl) { typeEl.value = doc.type; toggleExpenseDetail(); }
-
-      var titleEl = document.getElementById('docTitle');
-      var amtEl = document.getElementById('docAmount');
-      var curEl = document.getElementById('docCurrency');
-      var contentEl = document.getElementById('docContent');
-      if(titleEl) titleEl.value = doc.title || '';
-      if(amtEl) amtEl.value = doc.amount || '';
-      if(curEl) curEl.value = doc.currency || 'VND';
-      if(contentEl) contentEl.value = doc.content || '';
-
-      // Payment radio
-      var payYes = document.querySelector('input[name="needPayment"][value="yes"]');
-      var payNo = document.querySelector('input[name="needPayment"][value="no"]');
-      if(doc.needPayment && payYes) payYes.checked = true;
-      else if(payNo) payNo.checked = true;
-
-      // Restore attachments
-      draftAtts = doc.draftAtts ? doc.draftAtts.slice() : [];
-      renderDraftAttList();
-
-      // Restore expense data
-      if(doc.expenseData) {
-        var e = doc.expenseData;
-        function setVal(id, val){ var el=document.getElementById(id); if(el) el.value=val||''; }
-        setVal('expVendorName', e.vendorName);
-        setVal('expVendorReg', e.vendorReg);
-        setVal('expPO', e.poNumber);
-        setVal('expInvoice', e.invoiceNumber);
-        setVal('expPayDate', e.payDate);
-        setVal('expPurpose', e.purpose);
-        setVal('expVendorReason', e.vendorReason);
-        setVal('expRemarks', e.remarks);
-
-        // Bank type
-        var bankType = e.bankType || 'vn';
-        var bankRadio = document.querySelector('input[name="bankType"][value="'+bankType+'"]');
-        if(bankRadio) { bankRadio.checked = true; toggleBankType(); }
-
-        if(bankType === 'vn') {
-          var bankSel = document.getElementById('expBankVN');
-          if(bankSel) bankSel.value = e.bankVN || '';
-          setVal('expBankVNAcct', e.bankVNAcct);
-          setVal('expBankVNHolder', e.bankVNHolder);
-          setVal('expBankVNBranch', e.bankVNBranch);
-        } else {
-          setVal('expBankForeignName', e.bankForeignName);
-          setVal('expBankSwift', e.bankSwift);
-          setVal('expBankForeignAcct', e.bankForeignAcct);
-          setVal('expBankForeignHolder', e.bankForeignHolder);
-          setVal('expBankForeignAddr', e.bankForeignAddr);
-        }
-      }
-
-      // Mark this as editing existing doc - override submitDoc behavior
-      window._editingDocId = id;
-      showToast('수정 모드 · Edit mode — 수정 후 결재 상신하세요');
-    }, 100);
-  }, 100);
+  showToast('수정 모드 · 내용을 수정 후 결재 상신하세요');
 }
+
 
 function recallDoc(id, wrapId) {
   if(!confirm('회수하면 초안으로 돌아갑니다. 계속하시겠습니까?\nRecall document to draft?')) return;
