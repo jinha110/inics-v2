@@ -335,6 +335,36 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .login-btn:hover { opacity: .85; }
 .login-footer { font-size: 10px; color: #9a9a92; text-align: center; margin-top: 16px; }
 
+
+/* ── PROFILE PHOTOS ── */
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  object-fit: cover; border: 1.5px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+.avatar-lg {
+  width: 48px; height: 48px; border-radius: 50%;
+  object-fit: cover; border: 2px solid var(--border);
+  background: var(--surface-2);
+}
+.avatar-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: var(--text-3);
+  background: var(--surface-2); border-radius: 50%;
+}
+.photo-upload-btn {
+  position: relative; cursor: pointer; display: inline-flex;
+  align-items: center; justify-content: center;
+}
+.photo-upload-btn input { display: none; }
+.photo-upload-overlay {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: rgba(0,0,0,.45); display: none;
+  align-items: center; justify-content: center;
+  color: white; font-size: 13px;
+}
+.photo-upload-btn:hover .photo-upload-overlay { display: flex; }
+
 </style>
 </head>
 <body>
@@ -397,7 +427,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div class="topbar-right">
       <div id="sessionChip" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
-        <i class="ti ti-user-check" style="color:var(--success)"></i>
+        <span id="sessionAvatarChip"></span>
         <span id="sessionName"></span>
         <span id="sessionAdminBadge" class="badge b-admin" style="display:none">Admin · 관리자</span>
         <button class="btn btn-outline" onclick="globalLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
@@ -764,7 +794,7 @@ let MEMBERS = [
 const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}};
 const ADMIN_EXTRA_PW = '#Seoul1989#'; // Admin panel extra password · 관리자 패널 추가 비밀번호
 
-let state = {docs:[], nextId:1, docSeq:{}, memberPasswords:{}};
+let state = {docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{}};
 let curPage='dashboard', curFilter='all', curDocId=null;
 let mineUserId=null, mineFilter='all', mineDocId=null;
 let newAuthId=null, sessionIsAdmin=false;
@@ -1071,8 +1101,8 @@ function showDetail(id,wrapId='detailWrap'){
     const col={done:'color:var(--success)',active:'color:var(--warning)',reject:'color:var(--danger)',pay:'color:var(--payment)'}[st]||'color:var(--text-3)';
     return`<div class="fcircle ${cls}"><i class="ti ti-${icon}" style="font-size:14px;${col}"></i></div>`;
   }
-  let flow=`<div class="fnode">${circle(stepSt('drafter'),'pencil')}<div class="flabel">${drafter?.name||'—'}</div><div class="fsub">Draft · 기안</div></div>`;
-  flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('a1'),'user-check')}<div class="flabel">${a1?.name||'—'}</div><div class="fsub">1st · 1차</div></div>`;
+  let flow=`<div class="fnode">${getAvatar(doc.drafterId,'sm')}<div class="flabel" style="margin-top:3px">${drafter?.name||'—'}</div><div class="fsub">Draft · 기안</div></div>`;
+  flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${getAvatar(doc.a1Id,'sm')}<div class="flabel" style="margin-top:3px">${a1?.name||'—'}</div><div class="fsub">1st · 1차</div></div>`;
   if(a2)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('a2'),'user-check')}<div class="flabel">${a2.name}</div><div class="fsub">2nd · 2차</div></div>`;
   if(doc.needPayment)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('pay'),'credit-card')}<div class="flabel">PAYMENT</div><div class="fsub">결제</div></div>`;
   flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('done'),'circle-check')}<div class="flabel">Done · 완료</div></div>`;
@@ -1165,7 +1195,18 @@ function logoutAdmin(){document.getElementById('adminAuthWrap').style.display='b
 // ═══════════════════════════════════════════
 function renderAdmin(){
   const ml=document.getElementById('adminMemberList');
-  if(ml){ml.innerHTML=MEMBERS.map(m=>`<div class="member-row"><div class="member-info"><div class="member-name">${m.name}${m.isAdmin?` <span class="badge b-admin" style="font-size:9px">Admin</span>`:''}</div><div class="member-role">${m.role} · ${m.dept}</div></div><div class="pw-dot">●●●●</div></div>`).join('');}
+  if(ml){ml.innerHTML=MEMBERS.map(m=>`<div class="member-row">
+    <label class="photo-upload-btn" title="Click to upload photo · 클릭하여 사진 업로드">
+      ${getAvatar(m.id,'sm')}
+      <div class="photo-upload-overlay"><i class="ti ti-camera" style="font-size:14px"></i></div>
+      <input type="file" accept="image/*" onchange="handlePhotoUpload(${m.id},this.files[0])">
+    </label>
+    <div class="member-info">
+      <div class="member-name">${m.name}${m.isAdmin?` <span class="badge b-admin" style="font-size:9px">Admin</span>`:''}</div>
+      <div class="member-role">${m.role} · ${m.dept}</div>
+    </div>
+    <div class="pw-dot">●●●●</div>
+  </div>`).join('');}
   const as=document.getElementById('adminStats');
   if(as){
     const c={draft:0,pending1:0,pending2:0,payment:0,done:0,rejected:0};
@@ -1274,6 +1315,36 @@ function printPDF(id){
   pdf.save(`${doc.docNo||'doc'}_${(doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24)}.pdf`);showToast('PDF saved · PDF 저장 완료');
 }
 
+
+
+// ═══════════════════════════════════════════
+// AVATAR HELPERS
+// ═══════════════════════════════════════════
+function getAvatar(memberId, size='sm') {
+  var photo = state.memberPhotos && state.memberPhotos[memberId];
+  var m = gm(memberId);
+  var initials = m ? m.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2) : '?';
+  var sz = size === 'lg' ? '48px' : '32px';
+  var fs = size === 'lg' ? '16px' : '11px';
+  if (photo) {
+    return '<img src="' + photo + '" style="width:' + sz + ';height:' + sz + ';border-radius:50%;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0" alt="' + (m?m.name:'') + '">';
+  }
+  return '<div style="width:' + sz + ';height:' + sz + ';border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:' + fs + ';font-weight:600;color:var(--text-3);flex-shrink:0">' + initials + '</div>';
+}
+
+function handlePhotoUpload(memberId, file) {
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('Photo must be under 2MB · 2MB 이하 사진만 가능'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    if (!state.memberPhotos) state.memberPhotos = {};
+    state.memberPhotos[memberId] = e.target.result;
+    saveState();
+    renderAdmin();
+    showToast('Photo updated · 사진 업데이트 완료');
+  };
+  reader.readAsDataURL(file);
+}
 
 // ═══════════════════════════════════════════
 // EXPENSE DETAIL TOGGLE
@@ -1408,7 +1479,12 @@ function applyGateSession(memberId) {
 
   // Session chip in topbar
   const chip = document.getElementById('sessionChip');
-  if (chip) { chip.style.display = 'flex'; document.getElementById('sessionName').textContent = m.name; }
+  if (chip) {
+    chip.style.display = 'flex';
+    document.getElementById('sessionName').textContent = m.name;
+    var avatarChip = document.getElementById('sessionAvatarChip');
+    if (avatarChip) avatarChip.innerHTML = getAvatar(m.id, 'sm');
+  }
   if (m.isAdmin) {
     sessionIsAdmin = true;
     const badge = document.getElementById('sessionAdminBadge');
