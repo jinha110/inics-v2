@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<!-- saved from url=(0045)file:///C:/Users/jinha/Downloads/index_5.html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INICS — Electronic Approval System 전자결재 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="./index.html_files/css2" rel="stylesheet">
+<link rel="stylesheet" href="./index.html_files/tabler-icons.min.css">
+<script src="./index.html_files/jspdf.umd.min.js.다운로드"></script>
+
+<!-- ════════════════════════════════════════════════
+     FIREBASE CONFIG
+     아래 7개 값을 Firebase Console에서 복사해서 교체하세요
+     Replace the 7 values below with your Firebase project config
+     ════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDU8DTaqZuG1CZTO6TJprqq7NV9WrAjzio",
+  authDomain:        "inics-approval.firebaseapp.com",
+  databaseURL:       "https://inics-approval-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "inics-approval",
+  storageBucket:     "inics-approval.firebasestorage.app",
+  messagingSenderId: "54538003603",
+  appId:             "1:54538003603:web:2bea49acefa466bf785966"
+};
+
+try {
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const DB_PATH = "inics_approval/state";
+
+  window._fbSave = async function(state) {
+    try {
+      await set(ref(db, DB_PATH), state);
+    } catch(e) {
+      console.error("Firebase save error:", e);
+      try { localStorage.setItem("inics_local", JSON.stringify(state)); } catch(_){}
+    }
+  };
+
+  window._fbLoad = async function() {
+    try {
+      const snap = await get(ref(db, DB_PATH));
+      if (snap.exists()) return snap.val();
+      return null;
+    } catch(e) {
+      console.error("Firebase load error:", e);
+      return null;
+    }
+  };
+
+  window._fbListen = function(cb) {
+    onValue(ref(db, DB_PATH), snap => {
+      if (snap.exists()) cb(snap.val());
+    });
+  };
+
+  window._firebaseReady = true;
+
+  // Directly call loadState if it's already defined, otherwise dispatch event
+  if (typeof window._onFirebaseReady === 'function') {
+    window._onFirebaseReady();
+  } else {
+    document.dispatchEvent(new Event("firebaseReady"));
+  }
+
+} catch(e) {
+  console.error("Firebase init error:", e);
+  document.dispatchEvent(new Event("firebaseReady"));
+}
+</script>
+
+<style>
+:root {
+  --bg:#f7f7f5;--surface:#ffffff;--surface-2:#f2f2ef;--border:#e4e4e0;--border-strong:#c8c8c2;
+  --text:#1a1a18;--text-2:#5a5a54;--text-3:#9a9a92;
+  --furniture:#1d4ed8;--furniture-bg:#eff6ff;
+  --sourcing:#15803d;--sourcing-bg:#f0fdf4;
+  --warning:#b45309;--warning-bg:#fffbeb;
+  --danger:#b91c1c;--danger-bg:#fef2f2;
+  --success:#166534;--success-bg:#f0fdf4;
+  --payment:#92400e;--payment-bg:#fef3c7;
+  --admin:#7c3aed;--admin-bg:#f5f3ff;
+  --radius:8px;--radius-lg:12px;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',-apple-system,sans-serif;
+  --sidebar:228px;--topbar:56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:16px 18px 14px;border-bottom:1px solid var(--border)}
+.logo-text{font-size:15px;font-weight:600;letter-spacing:-.02em}
+.logo-sub{font-size:9px;color:var(--text-3);margin-top:2px;letter-spacing:.03em;line-height:1.5}
+.sidebar-section{padding:14px 14px 5px;font-size:9px;font-weight:700;color:var(--text-3);letter-spacing:.09em;text-transform:uppercase}
+.sidebar-nav{flex:1;padding:4px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:12px;color:var(--text-2);cursor:pointer;border:none;background:none;width:100%;text-align:left;position:relative;transition:background .1s,color .1s}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{background:var(--bg);color:var(--text);font-weight:500}
+.nav-item.active::before{content:'';position:absolute;left:0;top:5px;bottom:5px;width:2px;background:var(--text);border-radius:0 2px 2px 0}
+.nav-item i{font-size:16px;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;background:var(--warning-bg);color:var(--warning);padding:1px 6px;border-radius:20px}
+.nav-badge.red{background:var(--danger-bg);color:var(--danger)}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text-3);line-height:1.6}
+
+/* MAIN */
+.main-wrap{margin-left:var(--sidebar);flex:1;min-height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:var(--topbar);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:50;flex-shrink:0}
+.page-title{font-size:14px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.content{flex:1;padding:22px;overflow-y:auto;max-height:calc(100vh - var(--topbar))}
+.page{display:none}.page.active{display:block}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.stat-label{font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;line-height:1.4}
+.stat-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.stat-num{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.stat-sub{font-size:10px;color:var(--text-3);margin-top:3px}
+
+/* FILTER */
+.filter-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filter-chip{padding:4px 12px;font-size:11px;border-radius:20px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text-2);transition:all .1s;font-family:var(--sans)}
+.filter-chip:hover{border-color:var(--border-strong);color:var(--text)}
+.filter-chip.active{background:var(--text);color:white;border-color:var(--text)}
+.filter-spacer{flex:1}
+
+/* DOC LIST */
+.doc-list{display:flex;flex-direction:column;gap:7px}
+.doc-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;cursor:pointer;transition:border-color .1s;display:flex;align-items:center;gap:12px}
+.doc-row:hover{border-color:var(--border-strong)}
+.doc-row.selected{border-color:var(--text)}
+.doc-main{flex:1;min-width:0}
+.doc-title-row{font-size:13px;font-weight:500;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.doc-meta{font-size:11px;color:var(--text-3);display:flex;gap:10px;flex-wrap:wrap}
+.docno{font-family:var(--mono);font-size:9px;color:var(--text-3)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.b-draft{background:var(--surface-2);color:var(--text-2)}
+.b-p1{background:var(--warning-bg);color:var(--warning)}
+.b-p2{background:#eff6ff;color:#1d4ed8}
+.b-payment{background:var(--payment-bg);color:var(--payment)}
+.b-done{background:var(--success-bg);color:var(--success)}
+.b-rejected{background:var(--danger-bg);color:var(--danger)}
+.b-furniture{background:var(--furniture-bg);color:var(--furniture);font-size:9px}
+.b-sourcing{background:var(--sourcing-bg);color:var(--sourcing);font-size:9px}
+.b-admin{background:var(--admin-bg);color:var(--admin);font-size:9px}
+
+/* DETAIL */
+.detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-top:10px;overflow:hidden}
+.detail-hdr{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.detail-title{font-size:15px;font-weight:600;margin-bottom:5px}
+.detail-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.detail-body{padding:18px}
+
+/* FLOW */
+.flow-track{display:flex;align-items:center;gap:5px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px}
+.fnode{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:58px}
+.fcircle{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface-2);font-size:14px}
+.fc-done{background:var(--success-bg);border-color:#86efac}
+.fc-active{background:var(--warning-bg);border-color:#fcd34d}
+.fc-reject{background:var(--danger-bg);border-color:#fca5a5}
+.fc-pay{background:var(--payment-bg);border-color:#fcd34d}
+.flabel{font-size:9px;color:var(--text-2);text-align:center;line-height:1.3;max-width:58px}
+.fsub{font-size:8px;color:var(--text-3);text-align:center}
+.farrow{color:var(--text-3);font-size:12px;flex-shrink:0}
+
+/* INFO GRID */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.ifield .lbl{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.ifield .val{font-size:13px}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* COMMENTS */
+.cmt-list{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.cmt{background:var(--surface-2);border-radius:var(--radius);padding:9px 12px;border-left:2px solid var(--border-strong)}
+.cmt.approve{border-left-color:#86efac}
+.cmt.reject-cmt{border-left-color:#fca5a5}
+.cmt-top{display:flex;justify-content:space-between;margin-bottom:2px}
+.cmt-who{font-size:11px;font-weight:600}
+.cmt-role{font-size:10px;color:var(--text-3);font-weight:400;margin-left:5px}
+.cmt-time{font-size:10px;color:var(--text-3);font-family:var(--mono)}
+.cmt-txt{font-size:12px;color:var(--text-2)}
+
+/* ATTACHMENTS */
+.att-section{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:14px}
+.att-hdr{background:var(--surface-2);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.att-hdr-title{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
+.att-body{padding:10px 13px}
+.att-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;background:var(--surface)}
+.att-item:last-child{margin-bottom:0}
+.att-icon{font-size:17px;flex-shrink:0;color:#3b82f6}
+.att-name{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att-size{font-size:10px;color:var(--text-3);font-family:var(--mono)}
+.att-del{background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;border-radius:4px;display:flex;align-items:center}
+.att-del:hover{color:var(--danger);background:var(--danger-bg)}
+.cnt-badge{background:#dbeafe;color:#1d4ed8;font-size:10px;padding:1px 7px;border-radius:20px;font-weight:600}
+.upload-zone{border:1px dashed var(--border-strong);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;color:var(--text-3);font-size:12px;transition:border-color .1s,background .1s}
+.upload-zone:hover{border-color:var(--text-2);background:var(--surface-2)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;font-size:12px;font-weight:500;border-radius:var(--radius);cursor:pointer;transition:all .1s;white-space:nowrap;font-family:var(--sans)}
+.btn-dark{background:var(--text);color:white;border:1px solid var(--text)}.btn-dark:hover{opacity:.85}
+.btn-outline{background:white;color:var(--text);border:1px solid var(--border)}.btn-outline:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.btn-success{background:white;color:var(--success);border:1px solid #86efac}.btn-success:hover{background:var(--success-bg)}
+.btn-danger{background:white;color:var(--danger);border:1px solid #fca5a5}.btn-danger:hover{background:var(--danger-bg)}
+.btn-payment{background:white;color:var(--payment);border:1px solid #fcd34d}.btn-payment:hover{background:var(--payment-bg)}
+.btn-admin{background:white;color:var(--admin);border:1px solid #c4b5fd}.btn-admin:hover{background:var(--admin-bg)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-row{display:flex;gap:7px;flex-wrap:wrap}
+
+/* FORMS */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:14px}
+.form-card-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:5px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.span2{grid-column:span 2}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em}
+.fg label span{font-weight:400;font-size:10px;color:var(--text-3);text-transform:none;letter-spacing:0;margin-left:3px}
+.fg input,.fg select,.fg textarea{font-family:var(--sans);font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;width:100%;outline:none;transition:border-color .1s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--text)}
+.fg textarea{resize:vertical;min-height:68px}
+.currency-row{display:grid;grid-template-columns:90px 1fr;gap:10px}
+.radio-row{display:flex;gap:14px;margin-top:4px}
+.radio-label{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
+.line-preview{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 13px;font-size:12px;color:var(--text-2);margin-top:8px}
+
+/* ACTION */
+.action-box{background:var(--surface-2);border-radius:var(--radius);padding:13px 15px;margin-top:14px}
+.action-box-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.action-comment{width:100%;min-height:50px;font-family:var(--sans);font-size:13px;color:var(--text);background:white;border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;resize:none;outline:none;margin-bottom:9px}
+.action-comment:focus{border-color:var(--text)}
+
+/* PAY BOX */
+.pay-box{background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--radius-lg);padding:14px 16px;margin-top:14px}
+.pay-box-title{font-size:13px;font-weight:600;color:var(--payment);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+
+/* ADMIN PANEL */
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.admin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.admin-card-hdr{background:var(--surface-2);padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px}
+.admin-card-body{padding:14px}
+.member-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.member-row:last-child{border-bottom:none}
+.member-info{flex:1}
+.member-name{font-size:13px;font-weight:500}
+.member-role{font-size:11px;color:var(--text-3)}
+.pw-dot{font-size:14px;letter-spacing:2px;color:var(--text-3)}
+.sync-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--success-bg);border:1px solid #86efac;border-radius:var(--radius);margin-bottom:14px;font-size:12px;color:var(--success)}
+.sync-bar.offline{background:var(--warning-bg);border-color:#fcd34d;color:var(--warning)}
+.sync-bar.error{background:var(--danger-bg);border-color:#fca5a5;color:var(--danger)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:var(--radius-lg);padding:24px 26px;width:350px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-title{font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.modal-sub{font-size:12px;color:var(--text-2);margin-bottom:14px}
+.modal input{width:100%;font-size:14px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none;margin-bottom:8px}
+.modal input:focus{border-color:var(--text)}
+.modal-err{font-size:11px;color:var(--danger);margin-bottom:8px;display:none}
+.modal-btns{display:flex;gap:7px;margin-top:4px}
+
+/* AUTH CARD */
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:26px;max-width:340px}
+.auth-card-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.auth-card-sub{font-size:12px;color:var(--text-3);margin-bottom:16px}
+
+/* MISC */
+.empty-state{text-align:center;padding:44px 20px;color:var(--text-3)}
+.empty-state i{font-size:30px;display:block;margin-bottom:8px}
+.empty-state p{font-size:13px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--text);color:white;padding:8px 18px;border-radius:40px;font-size:12px;font-weight:500;opacity:0;transition:opacity .25s;pointer-events:none;z-index:2000;white-space:nowrap}
+.toast.show{opacity:1}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:10px}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);transition:transform .2s}
+  .sidebar.open{transform:none}
+  .main-wrap{margin-left:0}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .info-grid,.fgrid,.admin-grid{grid-template-columns:1fr}
+  .span2{grid-column:span 1}
+}
+
+/* ── LOGIN GATE ── */
+.login-gate {
+  position: fixed; inset: 0;
+  background: #f7f7f5;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+.login-gate.hidden { display: none; }
+.login-box {
+  background: white;
+  border: 1px solid #e4e4e0;
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 360px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.08);
+}
+.login-logo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: #1a1a18;
+  margin-bottom: 4px;
+}
+.login-sub {
+  font-size: 12px;
+  color: #9a9a92;
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+.login-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.login-field label { font-size: 11px; font-weight: 600; color: #5a5a54; text-transform: uppercase; letter-spacing: .04em; }
+.login-field input {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; color: #1a1a18;
+  background: white; border: 1px solid #e4e4e0;
+  border-radius: 8px; padding: 9px 12px;
+  outline: none; transition: border-color .1s; width: 100%;
+}
+.login-field input:focus { border-color: #1a1a18; }
+.login-err { font-size: 11px; color: #b91c1c; margin-bottom: 10px; display: none; }
+.login-btn {
+  width: 100%; padding: 10px; font-size: 13px; font-weight: 600;
+  background: #1a1a18; color: white; border: none;
+  border-radius: 8px; cursor: pointer; margin-top: 4px;
+  font-family: 'Inter', sans-serif;
+  transition: opacity .1s;
+}
+.login-btn:hover { opacity: .85; }
+.login-footer { font-size: 10px; color: #9a9a92; text-align: center; margin-top: 16px; }
+
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN GATE ── -->
+<div class="login-gate" id="loginGate">
+  <div class="login-box">
+    <div class="login-logo">INICS VINA</div>
+    <div class="login-sub">Electronic Approval System · 전자결재 시스템<br>FURNITURE &amp; SOURCING Division</div>
+    <div class="login-field">
+      <label>ID · 아이디</label>
+      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key===&#39;Enter&#39;)document.getElementById(&#39;gatePw&#39;).focus()">
+    </div>
+    <div class="login-field">
+      <label>Password · 비밀번호</label>
+      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)gateLogin()">
+    </div>
+    <div class="login-err" id="gateErr">Incorrect ID or password · 아이디 또는 비밀번호 오류</div>
+    <button class="login-btn" onclick="gateLogin()">Sign in · 로그인</button>
+    <div class="login-footer">INICS Vietnam · FURNITURE &amp; SOURCING · 2025</div>
+  </div>
+</div>
+
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">INICS</div>
+    <div class="logo-sub">Electronic Approval · 전자결재 시스템<br>FURNITURE &amp; SOURCING</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section">Main · 메인</div>
+    <button class="nav-item active" onclick="showPage(&#39;dashboard&#39;)"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
+
+    <div class="sidebar-section">Approval · 결재</div>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;)"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage(&#39;mine&#39;)"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
+    <button class="nav-item" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
+
+    <div class="sidebar-section">Quick Filter · 빠른 필터</div>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;pending1&#39;,null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;payment&#39;,null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;done&#39;,null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
+
+    <div class="sidebar-section">Admin · 관리자</div>
+    <button class="nav-item" id="nav-admin" onclick="showPage(&#39;admin&#39;)" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
+    <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
+  </nav>
+  <div class="sidebar-footer">
+    v6.0 · Firebase Realtime DB<br>
+    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Connecting · 연결 중...</span>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="page-title" id="pageTitle">Dashboard · 대시보드</div>
+    </div>
+    <div class="topbar-right">
+      <div id="sessionChip" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <i class="ti ti-user-check" style="color:var(--success)"></i>
+        <span id="sessionName"></span>
+        <span id="sessionAdminBadge" class="badge b-admin" style="display:none">Admin · 관리자</span>
+        <button class="btn btn-outline" onclick="globalLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div id="syncBar" class="sync-bar offline" style="margin-bottom:16px">
+        <i class="ti ti-cloud-off"></i>
+        <span id="syncMsg">Connecting to Firebase · Firebase 연결 중...</span>
+      </div>
+      <div class="stats-grid" id="dashStats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
+          <div id="dashPending"></div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
+          <div id="dashRecent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL DOCS -->
+    <div class="page" id="page-list">
+      <div class="filter-bar" id="listFilterBar">
+        <button class="filter-chip active" onclick="setFilter(&#39;all&#39;,this)">All · 전체</button>
+        <button class="filter-chip" onclick="setFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
+        <button class="filter-chip" onclick="setFilter(&#39;pending1&#39;,this)">1st · 1차 대기</button>
+        <button class="filter-chip" onclick="setFilter(&#39;pending2&#39;,this)">2nd · 2차 대기</button>
+        <button class="filter-chip" onclick="setFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
+        <button class="filter-chip" onclick="setFilter(&#39;done&#39;,this)">Done · 완료</button>
+        <button class="filter-chip" onclick="setFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
+        <div class="filter-spacer"></div>
+        <button class="btn btn-dark" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i> New · 기안</button>
+      </div>
+      <div class="doc-list" id="docList"></div>
+      <div id="detailWrap"></div>
+    </div>
+
+    <!-- MY DOCS -->
+    <div class="page" id="page-mine">
+      <div id="mineAuthWrap">
+        <div class="auth-card">
+          <div class="auth-card-title">My Documents · 내 문서함</div>
+          <div class="auth-card-sub">Sign in to view your documents · 본인 인증 후 이용</div>
+          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginMine()"></div>
+          <div class="modal-err" id="mineErr">Incorrect password · 비밀번호 오류</div>
+          <button class="btn btn-dark" onclick="loginMine()"><i class="ti ti-login"></i> Sign in · 확인</button>
+        </div>
+      </div>
+      <div id="mineContentWrap" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div><div style="font-size:14px;font-weight:600" id="mineTitle"></div><div style="font-size:11px;color:var(--text-3);margin-top:1px">Documents related to you · 관련 문서</div></div>
+          <button class="btn btn-outline" onclick="logoutMine()"><i class="ti ti-x"></i> Close · 닫기</button>
+        </div>
+        <div class="filter-bar" id="mineFilterBar">
+          <button class="filter-chip active" onclick="setMineFilter(&#39;all&#39;,this)">All · 전체</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;pending1&#39;,this)">Pending · 승인 대기</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;done&#39;,this)">완료 · Done</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
+        </div>
+        <div class="doc-list" id="mineList"></div>
+        <div id="mineDetailWrap"></div>
+      </div>
+    </div>
+
+    <!-- NEW DOC -->
+    <div class="page" id="page-new">
+      <div id="newAuthWrap">
+        <div class="auth-card">
+          <div class="auth-card-title">New Draft · 기안하기</div>
+          <div class="auth-card-sub">Authenticate to proceed · 기안자 인증 후 진행</div>
+          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginNew()"></div>
+          <div class="modal-err" id="newErr">Incorrect password · 비밀번호 오류</div>
+          <button class="btn btn-dark" onclick="loginNew()"><i class="ti ti-login"></i> Confirm · 확인</button>
+        </div>
+      </div>
+      <div id="newFormWrap" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:7px;font-size:13px"><i class="ti ti-user-check" style="color:var(--success);font-size:16px"></i><span id="newAuthLabel"></span></div>
+          <button class="btn btn-outline" onclick="logoutNew()"><i class="ti ti-x"></i> Cancel · 취소</button>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title"><i class="ti ti-file-description"></i> Document Info · 문서 정보</div>
+          <div class="fgrid">
+            <div class="fg"><label>Department · 소속 <span>(결재선 자동)</span></label><select id="docDept" onchange="onDeptChange()"><option value="FURNITURE">FURNITURE</option><option value="SOURCING">SOURCING</option></select></div>
+            <div class="fg"><label>Type · 유형</label><select id="docType" onchange="toggleExpenseDetail()"><option>지출결의서 · Expense Report</option><option>구매요청서 · Purchase Request</option><option>휴가신청서 · Leave Request</option><option>업무보고서 · Work Report</option><option>기타 · Other</option></select></div>
+            <div class="fg span2"><label>Title · 제목</label><input type="text" id="docTitle" placeholder="Enter title · 결재 제목 입력"></div>
+            <div class="fg span2">
+              <label>Currency &amp; Amount · 화폐 &amp; 금액 <span>(optional · 선택)</span></label>
+              <div class="currency-row">
+                <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">화폐 · Currency</label><select id="docCurrency"><option value="USD">USD</option><option value="VND">VND</option></select></div>
+                <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">금액 · Amount</label><input type="text" id="docAmount" placeholder="예: 5,000,000"></div>
+              </div>
+            </div>
+            <div class="fg span2"><label>Description · 내용/사유</label><textarea id="docContent" placeholder="Enter details · 결재 내용 및 사유"></textarea></div>
+
+            <!-- ── EXPENSE DETAIL (지출결의서 only) ── -->
+            <div id="expenseDetail" class="span2" style="display:none">
+              <div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:4px">
+
+                <!-- 거래처 정보 -->
+                <div style="background:var(--surface-2);padding:9px 14px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                  <i class="ti ti-building"></i> Vendor Info · 거래처 정보
+                </div>
+                <div class="fgrid" style="padding:14px;gap:11px">
+                  <div class="fg">
+                    <label>Vendor Name · 업체명</label>
+                    <input type="text" id="expVendorName" placeholder="업체명 입력">
+                  </div>
+                  <div class="fg">
+                    <label>Business Reg. No · 사업자등록번호</label>
+                    <input type="text" id="expVendorReg" placeholder="예: 0123456789">
+                  </div>
+                </div>
+
+                <!-- 은행 정보 -->
+                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                  <i class="ti ti-building-bank"></i> Bank Info · 은행 정보
+                </div>
+                <div style="padding:14px">
+                  <div class="fg" style="margin-bottom:11px">
+                    <label>Bank Location · 은행 소재지</label>
+                    <div class="radio-row">
+                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked="" onchange="toggleBankType()"> Vietnam · 베트남</label>
+                      <label class="radio-label"><input type="radio" name="bankType" value="foreign" onchange="toggleBankType()"> Foreign · 해외</label>
+                    </div>
+                  </div>
+                  <!-- Vietnam bank -->
+                  <div id="bankVN" class="fgrid" style="gap:11px">
+                    <div class="fg">
+                      <label>Bank Name · 은행명</label>
+                      <select id="expBankVN">
+                        <option value="">Select bank · 은행 선택</option>
+                        <option>Vietcombank (VCB)</option>
+                        <option>VietinBank (CTG)</option>
+                        <option>BIDV</option>
+                        <option>Agribank</option>
+                        <option>Techcombank (TCB)</option>
+                        <option>MB Bank</option>
+                        <option>ACB (Asia Commercial Bank)</option>
+                        <option>Sacombank</option>
+                        <option>VPBank</option>
+                        <option>HDBank</option>
+                        <option>SHB (Saigon-Hanoi Bank)</option>
+                        <option>TPBank</option>
+                        <option>OCB (Orient Commercial Bank)</option>
+                        <option>SeABank</option>
+                        <option>LPBank</option>
+                        <option>Eximbank</option>
+                        <option>MSB (Maritime Bank)</option>
+                        <option>VIB (Vietnam International Bank)</option>
+                        <option>Nam A Bank</option>
+                        <option>BaoViet Bank</option>
+                        <option>PVcomBank</option>
+                        <option>Shinhan Bank Vietnam</option>
+                        <option>HSBC Vietnam</option>
+                        <option>ANZ Vietnam</option>
+                        <option>Standard Chartered Vietnam</option>
+                        <option>Citibank Vietnam</option>
+                        <option>Woori Bank Vietnam</option>
+                        <option>Kookmin Bank Vietnam</option>
+                        <option>기타 · Other</option>
+                      </select>
+                    </div>
+                    <div class="fg">
+                      <label>Account No · 계좌번호</label>
+                      <input type="text" id="expBankVNAcct" placeholder="계좌번호 입력">
+                    </div>
+                    <div class="fg">
+                      <label>Account Holder · 예금주</label>
+                      <input type="text" id="expBankVNHolder" placeholder="예금주명 입력">
+                    </div>
+                    <div class="fg">
+                      <label>Branch · 지점</label>
+                      <input type="text" id="expBankVNBranch" placeholder="지점명 입력 (선택)">
+                    </div>
+                  </div>
+                  <!-- Foreign bank -->
+                  <div id="bankForeign" style="display:none" class="fgrid">
+                    <div class="fg">
+                      <label>Bank Name · 은행명</label>
+                      <input type="text" id="expBankForeignName" placeholder="Bank name · 은행명">
+                    </div>
+                    <div class="fg">
+                      <label>Swift Code</label>
+                      <input type="text" id="expBankSwift" placeholder="예: HNBKHKHHXXX">
+                    </div>
+                    <div class="fg">
+                      <label>Account No · 계좌번호</label>
+                      <input type="text" id="expBankForeignAcct" placeholder="Account number">
+                    </div>
+                    <div class="fg">
+                      <label>Account Holder · 예금주</label>
+                      <input type="text" id="expBankForeignHolder" placeholder="Account holder name">
+                    </div>
+                    <div class="fg span2">
+                      <label>Bank Address · 은행 주소</label>
+                      <input type="text" id="expBankForeignAddr" placeholder="Bank address (optional)">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 문서 정보 -->
+                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                  <i class="ti ti-receipt"></i> Document Reference · 문서 참조
+                </div>
+                <div class="fgrid" style="padding:14px;gap:11px">
+                  <div class="fg">
+                    <label>PO Number · PO 번호</label>
+                    <input type="text" id="expPO" placeholder="예: PO-2025-001">
+                  </div>
+                  <div class="fg">
+                    <label>Invoice Number · 인보이스 번호</label>
+                    <input type="text" id="expInvoice" placeholder="예: INV-2025-001">
+                  </div>
+                  <div class="fg">
+                    <label>Payment Due Date · 지급 예정일</label>
+                    <input type="date" id="expPayDate">
+                  </div>
+                </div>
+
+                <!-- 구매 목적 & 사유 -->
+                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                  <i class="ti ti-clipboard-text"></i> Purchase Justification · 구매 목적 및 사유
+                </div>
+                <div style="padding:14px" class="fgrid">
+                  <div class="fg span2">
+                    <label>Purchase Purpose · 구매 목적</label>
+                    <textarea id="expPurpose" placeholder="구매 목적을 입력하세요" style="min-height:60px"></textarea>
+                  </div>
+                  <div class="fg span2">
+                    <label>Vendor Selection Reason · 해당 업체 선정 사유</label>
+                    <textarea id="expVendorReason" placeholder="해당 업체를 선정한 이유를 입력하세요" style="min-height:60px"></textarea>
+                  </div>
+                  <div class="fg">
+                    <label>Budget Reflected · 예산 반영 여부</label>
+                    <div class="radio-row" style="margin-top:6px">
+                      <label class="radio-label"><input type="radio" name="expBudget" value="yes"> Yes · 예</label>
+                      <label class="radio-label"><input type="radio" name="expBudget" value="no" checked=""> No · 아니오</label>
+                    </div>
+                  </div>
+                  <div class="fg">
+                    <label>Remarks · 기타</label>
+                    <textarea id="expRemarks" placeholder="기타 사항 입력 (선택)" style="min-height:60px"></textarea>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked=""> Not required · 불필요</label></div></div>
+          </div>
+          <div class="line-preview" id="linePreview"></div>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title" style="justify-content:space-between;display:flex">
+            <span><i class="ti ti-paperclip"></i> Attachments · 첨부 파일 <span id="draftAttCnt" class="cnt-badge" style="margin-left:5px">0</span></span>
+            <button class="btn btn-outline" onclick="triggerDraftFile()" style="font-size:11px;padding:3px 9px"><i class="ti ti-plus"></i> Add · 추가</button>
+          </div>
+          <div id="draftAttList">
+            <div class="upload-zone" onclick="triggerDraftFile()">
+              <i class="ti ti-cloud-upload" style="font-size:22px;display:block;margin-bottom:6px;color:var(--text-3)"></i>
+              <strong style="display:block;margin-bottom:2px;color:var(--text-2)">Invoice, Quote, Contract · 인보이스, 견적서, 계약서</strong>
+              <span style="font-size:11px">PDF · Excel · Word · Image supported</span>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="saveDraft()"><i class="ti ti-device-floppy"></i> Save Draft · 임시저장</button>
+          <button class="btn btn-dark" onclick="submitDoc()"><i class="ti ti-send"></i> Submit · 결재 상신</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN PAGE -->
+    <div class="page" id="page-admin">
+      <div id="adminAuthWrap">
+        <div class="auth-card">
+          <div class="auth-card-title" style="display:flex;align-items:center;gap:7px"><i class="ti ti-shield-check" style="color:var(--admin)"></i> Admin Login · 관리자 로그인</div>
+          <div class="auth-card-sub">JINHA LEE administrator access · JINHA LEE 관리자 전용</div>
+          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key===&#39;Enter&#39;)loginAdmin()"></div>
+          <div class="modal-err" id="adminErr">Incorrect password · 비밀번호 오류</div>
+          <button class="btn btn-dark" onclick="loginAdmin()"><i class="ti ti-login"></i> Login · 로그인</button>
+        </div>
+      </div>
+      <div id="adminContent" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px"><i class="ti ti-shield-check" style="font-size:18px;color:var(--admin)"></i><div><div style="font-size:14px;font-weight:600">Admin Panel · 관리자 패널</div><div style="font-size:11px;color:var(--text-3)">JINHA LEE — Full access · 전체 권한</div></div></div>
+          <button class="btn btn-outline" onclick="logoutAdmin()"><i class="ti ti-x"></i> Exit · 나가기</button>
+        </div>
+        <div class="admin-grid">
+          <!-- Members -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-users"></i> Members · 구성원</div>
+            <div class="admin-card-body" id="adminMemberList"></div>
+          </div>
+          <!-- Change Password -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-key"></i> Change Password · 비밀번호 변경</div>
+            <div class="admin-card-body">
+              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"></select></div>
+              <div class="fg" style="margin-bottom:10px"><label>New Password · 새 비밀번호</label><input type="text" id="pwNew" placeholder="New password · 새 비밀번호"></div>
+              <button class="btn btn-admin" onclick="changePassword()"><i class="ti ti-check"></i> Save · 저장</button>
+            </div>
+          </div>
+          <!-- Stats -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-chart-bar"></i> Document Stats · 문서 통계</div>
+            <div class="admin-card-body" id="adminStats"></div>
+          </div>
+          <!-- Danger Zone -->
+          <div class="admin-card">
+            <div class="admin-card-hdr" style="color:var(--danger)"><i class="ti ti-alert-triangle"></i> Danger Zone · 주의</div>
+            <div class="admin-card-body">
+              <p style="font-size:12px;color:var(--text-2);margin-bottom:12px">Permanently delete all completed and rejected documents · 완료/반려 문서 일괄 삭제</p>
+              <button class="btn btn-danger" onclick="clearDone()"><i class="ti ti-trash"></i> Clear Done/Rejected · 완료·반려 삭제</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PIN MODAL -->
+<div class="modal-overlay" id="pinModal">
+  <div class="modal-box">
+    <div class="modal-title"><i class="ti ti-lock" style="font-size:17px"></i><span id="pinTitle">Authentication · 인증</span></div>
+    <div class="modal-sub" id="pinSub"></div>
+    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key===&#39;Enter&#39;)confirmPin()">
+    <div class="modal-err" id="pinErr">Incorrect password · 비밀번호 오류</div>
+    <div class="modal-btns">
+      <button class="btn btn-dark" onclick="confirmPin()"><i class="ti ti-check"></i> Confirm · 확인</button>
+      <button class="btn btn-outline" onclick="cancelPin()">Cancel · 취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple="" onchange="handleDraftFile(event)">
+<input type="file" id="payFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.docx" onchange="handlePayFile(event)">
+
+<script>
+// ═══════════════════════════════════════════
+// MEMBERS — JINHA LEE is ADMIN
+// ═══════════════════════════════════════════
+let MEMBERS = [
+  {id:1, name:'JINHA LEE',    role:'GENERAL MANAGER', dept:'SOURCING',  pw:'#Seoul1989#',  isAdmin:true},
+  {id:2, name:'HWAN SHIN YU', role:'MANAGER',          dept:'FURNITURE', pw:'HWAN SHIN YU', isAdmin:false},
+  {id:3, name:'HANA',         role:'PROJECT MANAGER',  dept:'FURNITURE', pw:'HANA',         isAdmin:false},
+  {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',         isAdmin:false},
+];
+const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}};
+const ADMIN_EXTRA_PW = '#Seoul1989#'; // Admin panel extra password · 관리자 패널 추가 비밀번호
+
+let state = {docs:[], nextId:1, docSeq:{}, memberPasswords:{}};
+let curPage='dashboard', curFilter='all', curDocId=null;
+let mineUserId=null, mineFilter='all', mineDocId=null;
+let newAuthId=null, sessionIsAdmin=false;
+let pinCb=null, pendingPayFileDocId=null;
+let draftAtts=[], fbReady=false;
+
+// ═══════════════════════════════════════════
+// FIREBASE BRIDGE
+// ═══════════════════════════════════════════
+function setSyncStatus(status, msg) {
+  const bar = document.getElementById('syncBar');
+  const foot = document.getElementById('syncStatusText');
+  if (!bar) return;
+  if(status==='ok'){
+    bar.className='sync-bar';
+    bar.innerHTML=`<i class="ti ti-cloud-check"></i><span>${msg}</span>`;
+  } else if(status==='error'){
+    bar.className='sync-bar error';
+    bar.innerHTML=`<i class="ti ti-cloud-off"></i><span>${msg}</span>`;
+  } else {
+    bar.className='sync-bar offline';
+    bar.innerHTML=`<i class="ti ti-cloud-off"></i><span>${msg}</span>`;
+  }
+  if(foot) foot.textContent = status==='ok'?'Online · 연결됨':'Offline · 오프라인';
+}
+
+async function saveState() {
+  // apply any password overrides from admin
+  if(state.memberPasswords) {
+    Object.entries(state.memberPasswords).forEach(([id,pw])=>{
+      const m = MEMBERS.find(m=>m.id==id); if(m) m.pw=pw;
+    });
+  }
+  if(fbReady && window._fbSave) {
+    try { await window._fbSave(state); setSyncStatus('ok','Synced · 동기화 완료'); }
+    catch(e){ setSyncStatus('error','Sync failed · 동기화 실패 (local fallback)'); localStorage.setItem('inics_local',JSON.stringify(state)); }
+  } else {
+    localStorage.setItem('inics_local', JSON.stringify(state));
+  }
+}
+
+async function loadState() {
+  let loaded = null;
+  if(fbReady && window._fbLoad) {
+    loaded = await window._fbLoad();
+    if(loaded){ setSyncStatus('ok','Connected · Firebase 연결됨'); }
+    else { setSyncStatus('ok','Connected · Firebase 연결됨 (new database)'); }
+  }
+  if(!loaded) {
+    try{ const s=localStorage.getItem('inics_local'); if(s) loaded=JSON.parse(s); }catch(_){}
+    if(!loaded) setSyncStatus('error','Firebase not configured · Firebase 설정 필요');
+  }
+  if(loaded){ state=loaded; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={}; }
+  // apply saved passwords
+  if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
+  populateSelects(); render();
+  // realtime listener
+  if(fbReady && window._fbListen){
+    window._fbListen(remote=>{
+      state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
+      if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
+      render(); setSyncStatus('ok','Live sync · 실시간 동기화');
+    });
+  }
+}
+
+// Wait for Firebase module to load
+// Firebase init handled by _onFirebaseReady callback below
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function gm(id){return MEMBERS.find(m=>m.id==id)||null;}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function today(){const d=new Date();return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;}
+function nowStr(){const d=new Date();return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+function genDocNo(dept){const ym=new Date();const p=dept==='FURNITURE'?'FUR':'SRC';const k=`${p}${ym.getFullYear()}${String(ym.getMonth()+1).padStart(2,'0')}`;state.docSeq[k]=(state.docSeq[k]||0)+1;return`${k}-${String(state.docSeq[k]).padStart(3,'0')}`;}
+function fmtSize(b){if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return(b/1048576).toFixed(1)+'MB';}
+function fileIcon(n){const e=(n||'').split('.').pop().toLowerCase();return{pdf:'ti-file-type-pdf',xlsx:'ti-file-type-xls',xls:'ti-file-type-xls',docx:'ti-file-type-doc',doc:'ti-file-type-doc',jpg:'ti-photo',jpeg:'ti-photo',png:'ti-photo'}[e]||'ti-file';}
+function getRadio(name){const r=document.querySelector(`input[name="${name}"]:checked`);return r?r.value:null;}
+function sLabel(s){return{draft:'Draft · 임시저장',pending1:'1st Pending · 1차 대기',pending2:'2nd Pending · 2차 대기',payment:'Payment · 결제 중',done:'Done · 완료',rejected:'Rejected · 반려'}[s]||s;}
+function sBadge(s){return{draft:'b-draft',pending1:'b-p1',pending2:'b-p2',payment:'b-payment',done:'b-done',rejected:'b-rejected'}[s]||'b-draft';}
+
+function populateSelects(){
+  ['newWho','mineWho','pwChangeWho'].forEach(sid=>{
+    const el=document.getElementById(sid);if(!el)return;
+    el.innerHTML='';MEMBERS.forEach(m=>{el.innerHTML+=`<option value="${m.id}">${m.name} · ${m.role}</option>`;});
+  });
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function showPage(name){
+  curPage=name;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(`'${name}'`))n.classList.add('active');});
+  const titles={dashboard:'Dashboard · 대시보드',list:'All Documents · 전체 문서',mine:'My Documents · 내 문서함',new:'New Draft · 기안하기',admin:'Admin Panel · 관리자 패널'};
+  document.getElementById('pageTitle').textContent=titles[name]||'';
+  if(name==='dashboard')renderDashboard();
+  if(name==='list')renderList();
+  if(name==='admin')renderAdmin();
+  if(name!=='list')curDocId=null;
+}
+
+function showAdminLogin(){showPage('admin');}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function render(){renderDashboard();renderList();renderMineList();updateNavBadges();}
+
+function updateNavBadges(){
+  const pending=state.docs.filter(d=>['pending1','pending2'].includes(d.status)).length;
+  const payment=state.docs.filter(d=>d.status==='payment').length;
+  ['nb-pending','nb-pend2'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=pending;el.style.display=pending?'':'none';}});
+  const nbPay=document.getElementById('nb-pay');if(nbPay){nbPay.textContent=payment;nbPay.style.display=payment?'':'none';}
+}
+
+function renderDashboard(){
+  const c={draft:0,pending1:0,pending2:0,payment:0,done:0,rejected:0};
+  state.docs.forEach(d=>c[d.status]=(c[d.status]||0)+1);
+  const stats=[
+    {label:'Total · 전체',    sub:'All documents',        num:state.docs.length,              icon:'ti-files',        color:'#1a1a18',bg:'#f0f0ec'},
+    {label:'Pending · 대기',  sub:'Awaiting approval',    num:(c.pending1||0)+(c.pending2||0), icon:'ti-clock',        color:'#b45309',bg:'#fffbeb'},
+    {label:'Payment · 결제',  sub:'In payment process',   num:c.payment||0,                   icon:'ti-credit-card',  color:'#92400e',bg:'#fef3c7'},
+    {label:'Done · 완료',     sub:'Fully approved',        num:c.done||0,                      icon:'ti-circle-check', color:'#166534',bg:'#f0fdf4'},
+    {label:'Rejected · 반려', sub:'Returned',              num:c.rejected||0,                  icon:'ti-x',            color:'#b91c1c',bg:'#fef2f2'},
+  ];
+  document.getElementById('dashStats').innerHTML=stats.map(s=>`<div class="stat-card"><div class="stat-top"><div class="stat-label">${s.label}</div><div class="stat-icon" style="background:${s.bg};color:${s.color}"><i class="ti ${s.icon}"></i></div></div><div class="stat-num" style="color:${s.color}">${s.num}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
+  const pending=state.docs.filter(d=>['pending1','pending2'].includes(d.status)).slice(-5).reverse();
+  const pEl=document.getElementById('dashPending');
+  pEl.innerHTML=pending.length?pending.map(d=>miniCard(d)).join(''):'<div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No pending · 대기 없음</p></div>';
+  const recent=state.docs.slice(-6).reverse();
+  const rEl=document.getElementById('dashRecent');
+  rEl.innerHTML=recent.length?recent.map(d=>miniCard(d)).join(''):'<div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No documents yet · 문서 없음</p></div>';
+  updateNavBadges();
+}
+
+function miniCard(doc){
+  return`<div class="doc-row" onclick="showPage('list');setTimeout(()=>showDetail(${doc.id},'detailWrap'),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        ${doc.docNo?`<span class="docno">${doc.docNo}</span>`:''}
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${doc.title}</span>
+        <span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>
+      </div>
+      <div class="doc-meta"><span>${gm(doc.drafterId)?.name||'—'}</span><span>${doc.createdAt}</span>${doc.amount?`<span>${doc.currency} ${doc.amount}</span>`:''}</div>
+    </div>
+    <span class="badge ${sBadge(doc.status)}">${sLabel(doc.status).split('·')[0].trim()}</span>
+  </div>`;
+}
+
+function docRowHTML(doc,selId,wrap){
+  const attCnt=(doc.draftAtts?.length||0)+(doc.payAtts?.length||0);
+  return`<div class="doc-row${selId===doc.id?' selected':''}" onclick="showDetail(${doc.id},'${wrap}')">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        ${doc.docNo?`<span class="docno">${doc.docNo}</span>`:''}
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${doc.title}</span>
+        <span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> ${doc.type}</span>
+        ${doc.amount?`<span><i class="ti ti-coin" style="font-size:10px"></i> ${doc.currency} ${doc.amount}</span>`:''}
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> ${doc.createdAt}</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> ${gm(doc.drafterId)?.name||'—'}</span>
+        ${attCnt?`<span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> ${attCnt}</span>`:''}
+        ${doc.needPayment?`<span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>`:''}
+      </div>
+    </div>
+    <span class="badge ${sBadge(doc.status)}">${sLabel(doc.status)}</span>
+  </div>`;
+}
+
+function renderList(){
+  updateNavBadges();
+  const el=document.getElementById('docList');
+  let docs=state.docs.slice().reverse();
+  if(curFilter!=='all')docs=docs.filter(d=>d.status===curFilter);
+  if(!docs.length){el.innerHTML='<div class="empty-state"><i class="ti ti-inbox"></i><p>No documents · 문서 없음</p></div>';if(!curDocId)document.getElementById('detailWrap').innerHTML='';return;}
+  el.innerHTML=docs.map(d=>docRowHTML(d,curDocId,'detailWrap')).join('');
+  if(curDocId)showDetail(curDocId,'detailWrap');
+}
+
+function setFilter(f,btn){
+  curFilter=f;
+  document.querySelectorAll('#listFilterBar .filter-chip').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  else document.querySelectorAll('#listFilterBar .filter-chip').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes(`'${f}'`))b.classList.add('active');});
+  renderList();
+}
+
+function renderMineList(){
+  const el=document.getElementById('mineList');if(!el||!mineUserId)return;
+  let docs=state.docs.filter(d=>d.drafterId==mineUserId||d.a1Id==mineUserId||d.a2Id==mineUserId).slice().reverse();
+  if(mineFilter==='pending1')docs=docs.filter(d=>['pending1','pending2'].includes(d.status));
+  else if(mineFilter!=='all')docs=docs.filter(d=>d.status===mineFilter);
+  if(!docs.length){el.innerHTML='<div class="empty-state"><i class="ti ti-inbox"></i><p>No documents · 문서 없음</p></div>';document.getElementById('mineDetailWrap').innerHTML='';return;}
+  el.innerHTML=docs.map(d=>docRowHTML(d,mineDocId,'mineDetailWrap')).join('');
+  if(mineDocId)showDetail(mineDocId,'mineDetailWrap');
+}
+
+function setMineFilter(f,btn){mineFilter=f;document.querySelectorAll('#mineFilterBar .filter-chip').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderMineList();}
+
+
+// ═══════════════════════════════════════════
+// EXPENSE DETAIL HTML (for detail panel)
+// ═══════════════════════════════════════════
+function expenseDetailHTML(e) {
+  if (!e) return '';
+  const bankInfo = e.bankType === 'vn'
+    ? `<div class="ifield"><div class="lbl">Bank · 은행</div><div class="val">${e.bankVN||'—'}</div></div>
+       <div class="ifield"><div class="lbl">Account No · 계좌번호</div><div class="val">${e.bankVNAcct||'—'}</div></div>
+       <div class="ifield"><div class="lbl">Holder · 예금주</div><div class="val">${e.bankVNHolder||'—'}</div></div>
+       <div class="ifield"><div class="lbl">Branch · 지점</div><div class="val">${e.bankVNBranch||'—'}</div></div>`
+    : `<div class="ifield"><div class="lbl">Bank · 은행</div><div class="val">${e.bankForeignName||'—'}</div></div>
+       <div class="ifield"><div class="lbl">Swift Code</div><div class="val" style="font-family:var(--mono)">${e.bankSwift||'—'}</div></div>
+       <div class="ifield"><div class="lbl">Account No · 계좌번호</div><div class="val">${e.bankForeignAcct||'—'}</div></div>
+       <div class="ifield"><div class="lbl">Holder · 예금주</div><div class="val">${e.bankForeignHolder||'—'}</div></div>
+       <div class="ifield"><div class="lbl">Bank Address · 은행주소</div><div class="val">${e.bankForeignAddr||'—'}</div></div>`;
+
+  return `<div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px">
+    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border)">
+      <i class="ti ti-building" style="margin-right:5px"></i>Vendor · 거래처
+    </div>
+    <div class="info-grid" style="padding:12px 14px">
+      <div class="ifield"><div class="lbl">Vendor · 업체명</div><div class="val">${e.vendorName||'—'}</div></div>
+      <div class="ifield"><div class="lbl">Reg. No · 사업자번호</div><div class="val">${e.vendorReg||'—'}</div></div>
+    </div>
+    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+      <i class="ti ti-building-bank" style="margin-right:5px"></i>Bank · 은행정보 <span style="font-weight:400;text-transform:none;font-size:10px">(${e.bankType==='vn'?'Vietnam · 베트남':'Foreign · 해외'})</span>
+    </div>
+    <div class="info-grid" style="padding:12px 14px">${bankInfo}</div>
+    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+      <i class="ti ti-receipt" style="margin-right:5px"></i>Reference · 문서참조
+    </div>
+    <div class="info-grid" style="padding:12px 14px">
+      <div class="ifield"><div class="lbl">PO Number</div><div class="val" style="font-family:var(--mono)">${e.poNumber||'—'}</div></div>
+      <div class="ifield"><div class="lbl">Invoice No · 인보이스</div><div class="val" style="font-family:var(--mono)">${e.invoiceNumber||'—'}</div></div>
+      <div class="ifield"><div class="lbl">Payment Due · 지급예정일</div><div class="val">${e.payDate||'—'}</div></div>
+      <div class="ifield"><div class="lbl">Budget · 예산반영</div><div class="val">${e.budget==='yes'?'Yes · 예':'No · 아니오'}</div></div>
+    </div>
+    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+      <i class="ti ti-clipboard-text" style="margin-right:5px"></i>Justification · 구매사유
+    </div>
+    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+      ${e.purpose?`<div class="ifield"><div class="lbl">Purpose · 구매목적</div><div class="val" style="white-space:pre-wrap">${e.purpose}</div></div>`:''}
+      ${e.vendorReason?`<div class="ifield"><div class="lbl">Vendor Reason · 업체선정사유</div><div class="val" style="white-space:pre-wrap">${e.vendorReason}</div></div>`:''}
+      ${e.remarks?`<div class="ifield"><div class="lbl">Remarks · 기타</div><div class="val" style="white-space:pre-wrap">${e.remarks}</div></div>`:''}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════════════
+function showDetail(id,wrapId='detailWrap'){
+  if(wrapId==='detailWrap')curDocId=id;else mineDocId=id;
+  const doc=state.docs.find(d=>d.id===id);if(!doc)return;
+  const listId=wrapId==='detailWrap'?'docList':'mineList';
+  document.querySelectorAll(`#${listId} .doc-row`).forEach(r=>{const m=r.getAttribute('onclick')?.match(/\d+/);if(m)r.classList.toggle('selected',parseInt(m[0])===id);});
+  const drafter=gm(doc.drafterId),a1=gm(doc.a1Id),a2=doc.a2Id?gm(doc.a2Id):null,s=doc.status;
+  function stepSt(role){
+    if(role==='drafter')return s==='draft'?'active':'done';
+    if(role==='a1'){if(s==='draft')return'wait';if(s==='pending1')return'active';if(s==='rejected'&&doc.rejectedBy===1)return'reject';return'done';}
+    if(role==='a2'){if(!a2)return'none';if(['draft','pending1'].includes(s))return'wait';if(s==='pending2')return'active';if(s==='rejected'&&doc.rejectedBy===2)return'reject';return'done';}
+    if(role==='pay'){if(!doc.needPayment)return'none';if(['draft','pending1','pending2'].includes(s))return'wait';if(s==='payment')return'pay';return s==='done'?'done':'wait';}
+    if(role==='done')return s==='done'?'done':s==='rejected'?'reject':'wait';
+    return'wait';
+  }
+  function circle(st,icon){
+    const cls={done:'fc-done',active:'fc-active',reject:'fc-reject',pay:'fc-pay'}[st]||'';
+    const col={done:'color:var(--success)',active:'color:var(--warning)',reject:'color:var(--danger)',pay:'color:var(--payment)'}[st]||'color:var(--text-3)';
+    return`<div class="fcircle ${cls}"><i class="ti ti-${icon}" style="font-size:14px;${col}"></i></div>`;
+  }
+  let flow=`<div class="fnode">${circle(stepSt('drafter'),'pencil')}<div class="flabel">${drafter?.name||'—'}</div><div class="fsub">Draft · 기안</div></div>`;
+  flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('a1'),'user-check')}<div class="flabel">${a1?.name||'—'}</div><div class="fsub">1st · 1차</div></div>`;
+  if(a2)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('a2'),'user-check')}<div class="flabel">${a2.name}</div><div class="fsub">2nd · 2차</div></div>`;
+  if(doc.needPayment)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('pay'),'credit-card')}<div class="flabel">PAYMENT</div><div class="fsub">결제</div></div>`;
+  flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('done'),'circle-check')}<div class="flabel">Done · 완료</div></div>`;
+
+  const cmts=doc.comments?.length?doc.comments.map(c=>{const isApp=c.text==='승인';const isRej=c.text==='반려';return`<div class="cmt ${isApp?'approve':isRej?'reject-cmt':''}"><div class="cmt-top"><span class="cmt-who">${c.who}<span class="cmt-role">${c.role}</span></span><span class="cmt-time">${c.time}</span></div><div class="cmt-txt">${c.text}</div></div>`;}).join(''):'<div style="font-size:11px;color:var(--text-3)">No comments · 의견 없음</div>';
+
+  const draftAttHTML=`<div class="att-section"><div class="att-hdr"><div class="att-hdr-title"><i class="ti ti-paperclip" style="font-size:13px"></i> Attachments · 기안 첨부 ${doc.draftAtts?.length?`<span class="cnt-badge">${doc.draftAtts.length}</span>`:''}</div>${s==='draft'?`<button class="btn btn-outline" onclick="triggerAddAtt(${id})" style="font-size:11px;padding:3px 9px"><i class="ti ti-plus"></i> Add · 추가</button>`:''}</div><div class="att-body">${attListHTML(doc.draftAtts,s==='draft',id,'draft')}</div></div>`;
+
+  let actionHTML='';
+  if(s==='pending1'||s==='pending2'){
+    const step=s==='pending1'?1:2;
+    actionHTML=`<div class="action-box"><div class="action-box-title"><i class="ti ti-stamp"></i> ${step}${step===1?'st':'nd'} Approval · ${step}차 결재 처리</div><textarea class="action-comment" id="actionComment" placeholder="Comment (optional) · 의견 선택 입력"></textarea><div class="btn-row"><button class="btn btn-success" onclick="doApproval(${id},${step},'approve','${wrapId}')"><i class="ti ti-check"></i> Approve · 승인</button><button class="btn btn-danger" onclick="doApproval(${id},${step},'reject','${wrapId}')"><i class="ti ti-x"></i> Reject · 반려</button></div></div>`;
+  }
+  if(s==='payment'){
+    const pa=doc.payAtts||[];
+    actionHTML=`<div class="pay-box"><div class="pay-box-title"><i class="ti ti-credit-card" style="font-size:16px"></i> Payment Processing · PAYMENT — 결제 증빙 첨부</div>${attListHTML(pa,true,id,'pay')}<div class="upload-zone" style="margin-top:10px" onclick="triggerPayFile(${id})"><i class="ti ti-upload" style="font-size:20px;display:block;margin-bottom:5px"></i>Upload receipt · 결제 증빙 첨부</div><button class="btn btn-payment" style="margin-top:10px" onclick="completePayment(${id},'${wrapId}')" ${!pa.length?'disabled':''}><i class="ti ti-circle-check"></i> Complete Payment · 결제 완료 처리</button></div>`;
+  }
+  if(s==='draft'){
+    actionHTML=`<div class="btn-row" style="margin-top:14px"><button class="btn btn-dark" onclick="resubmit(${id},'${wrapId}')"><i class="ti ti-send"></i> Submit · 결재 상신</button><button class="btn btn-danger" onclick="deleteDoc(${id})"><i class="ti ti-trash"></i> Delete · 삭제</button></div>`;
+  }
+
+  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${doc.amount}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content?`<div class="ifield" style="margin-bottom:14px"><div class="lbl">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.7;white-space:pre-wrap;font-size:13px">${doc.content}</div></div>`:''}
+      ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
+      ${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${actionHTML}</div></div>`;
+  document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function closeDetail(wrapId){
+  if(wrapId==='detailWrap')curDocId=null;else mineDocId=null;
+  document.getElementById(wrapId).innerHTML='';
+  document.querySelectorAll(`#${wrapId==='detailWrap'?'docList':'mineList'} .doc-row`).forEach(r=>r.classList.remove('selected'));
+}
+
+function attListHTML(atts,deletable,docId,type){
+  if(!atts||!atts.length)return'<div style="font-size:11px;color:var(--text-3);padding:3px 0">No attachments · 첨부 없음</div>';
+  return atts.map((a,i)=>`<div class="att-item"><i class="ti ${fileIcon(a.name)} att-icon"></i><span class="att-name" title="${a.name}">${a.name}</span><span class="att-size">${a.size}</span>${deletable?`<button class="att-del" onclick="removeAtt(${docId},'${type}',${i})"><i class="ti ti-x" style="font-size:13px"></i></button>`:''}</div>`).join('');
+}
+
+function removeAtt(docId,type,idx){const doc=state.docs.find(d=>d.id===docId);if(!doc)return;if(type==='draft')doc.draftAtts.splice(idx,1);else doc.payAtts.splice(idx,1);saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();}
+
+// ═══════════════════════════════════════════
+// PIN MODAL
+// ═══════════════════════════════════════════
+function showPin(title,sub,cb){pinCb=cb;document.getElementById('pinTitle').textContent=title;document.getElementById('pinSub').textContent=sub;document.getElementById('pinInput').value='';document.getElementById('pinErr').style.display='none';document.getElementById('pinModal').classList.add('open');setTimeout(()=>document.getElementById('pinInput').focus(),80);}
+function confirmPin(){const v=document.getElementById('pinInput').value;if(pinCb&&pinCb(v)){document.getElementById('pinModal').classList.remove('open');pinCb=null;}else document.getElementById('pinErr').style.display='block';}
+function cancelPin(){document.getElementById('pinModal').classList.remove('open');pinCb=null;}
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+function loginNew(){
+  const id=parseInt(document.getElementById('newWho').value);const pw=document.getElementById('newPw').value;
+  const m=MEMBERS.find(m=>m.id===id);
+  if(!m||pw!==m.pw){document.getElementById('newErr').style.display='block';return;}
+  document.getElementById('newErr').style.display='none';document.getElementById('newPw').value='';
+  newAuthId=id;draftAtts=[];
+  document.getElementById('newAuthWrap').style.display='none';document.getElementById('newFormWrap').style.display='block';
+  document.getElementById('newAuthLabel').textContent=`Authenticated · 인증: ${m.name} (${m.role})`;
+  const chip=document.getElementById('sessionChip');chip.style.display='flex';document.getElementById('sessionName').textContent=m.name;
+  if(m.isAdmin){sessionIsAdmin=true;document.getElementById('sessionAdminBadge').style.display='';document.getElementById('nav-admin').style.display='';}
+  renderDraftAttList();onDeptChange();
+}
+function logoutNew(){newAuthId=null;draftAtts=[];sessionIsAdmin=false;document.getElementById('newAuthWrap').style.display='block';document.getElementById('newFormWrap').style.display='none';document.getElementById('sessionChip').style.display='none';document.getElementById('nav-admin').style.display='none';}
+function globalLogout(){newAuthId=null;sessionIsAdmin=false;document.getElementById('sessionChip').style.display='none';document.getElementById('newAuthWrap').style.display='block';document.getElementById('newFormWrap').style.display='none';document.getElementById('nav-admin').style.display='none';document.getElementById('sessionAdminBadge').style.display='none';}
+
+function loginMine(){
+  const id=parseInt(document.getElementById('mineWho').value);const pw=document.getElementById('minePw').value;
+  const m=MEMBERS.find(m=>m.id===id);
+  if(!m||pw!==m.pw){document.getElementById('mineErr').style.display='block';return;}
+  document.getElementById('mineErr').style.display='none';document.getElementById('minePw').value='';
+  mineUserId=id;
+  document.getElementById('mineAuthWrap').style.display='none';document.getElementById('mineContentWrap').style.display='block';
+  document.getElementById('mineTitle').textContent=`${m.name}'s Documents · ${m.name}의 문서함`;
+  renderMineList();
+}
+function logoutMine(){mineUserId=null;mineDocId=null;document.getElementById('mineAuthWrap').style.display='block';document.getElementById('mineContentWrap').style.display='none';}
+
+function loginAdmin(){
+  const pw=document.getElementById('adminPw').value;
+  if(pw!==ADMIN_EXTRA_PW){document.getElementById('adminErr').style.display='block';return;}
+  document.getElementById('adminErr').style.display='none';document.getElementById('adminPw').value='';
+  document.getElementById('adminAuthWrap').style.display='none';document.getElementById('adminContent').style.display='block';
+  document.getElementById('nav-admin').style.display='';
+  renderAdmin();
+}
+function logoutAdmin(){document.getElementById('adminAuthWrap').style.display='block';document.getElementById('adminContent').style.display='none';}
+
+// ═══════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════
+function renderAdmin(){
+  const ml=document.getElementById('adminMemberList');
+  if(ml){ml.innerHTML=MEMBERS.map(m=>`<div class="member-row"><div class="member-info"><div class="member-name">${m.name}${m.isAdmin?` <span class="badge b-admin" style="font-size:9px">Admin</span>`:''}</div><div class="member-role">${m.role} · ${m.dept}</div></div><div class="pw-dot">●●●●</div></div>`).join('');}
+  const as=document.getElementById('adminStats');
+  if(as){
+    const c={draft:0,pending1:0,pending2:0,payment:0,done:0,rejected:0};
+    state.docs.forEach(d=>c[d.status]=(c[d.status]||0)+1);
+    const furn=state.docs.filter(d=>d.dept==='FURNITURE').length;
+    const src=state.docs.filter(d=>d.dept==='SOURCING').length;
+    as.innerHTML=Object.entries({...c,'FURNITURE':furn,'SOURCING':src}).map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text-2)">${k}</span><strong>${v}</strong></div>`).join('');
+  }
+}
+
+function changePassword(){
+  const id=parseInt(document.getElementById('pwChangeWho').value);
+  const newPw=document.getElementById('pwNew').value.trim();
+  if(!newPw){showToast('Enter a new password · 새 비밀번호를 입력하세요');return;}
+  const m=MEMBERS.find(m=>m.id===id);if(!m)return;
+  m.pw=newPw;
+  if(!state.memberPasswords)state.memberPasswords={};
+  state.memberPasswords[id]=newPw;
+  saveState();document.getElementById('pwNew').value='';
+  showToast(`${m.name} password updated · 비밀번호 변경 완료`);
+  renderAdmin();
+}
+
+function clearDone(){
+  if(!confirm('Delete all Done and Rejected documents?\n완료·반려 문서를 모두 삭제할까요?'))return;
+  state.docs=state.docs.filter(d=>!['done','rejected'].includes(d.status));
+  saveState();render();renderAdmin();showToast('Cleared · 삭제 완료');
+}
+
+// ═══════════════════════════════════════════
+// FORM
+// ═══════════════════════════════════════════
+function onDeptChange(){
+  const dept=document.getElementById('docDept').value;const line=LINES[dept];const a1=gm(line.a1),a2=line.a2?gm(line.a2):null;
+  document.getElementById('linePreview').innerHTML=`<i class="ti ti-route" style="margin-right:5px"></i><strong>Approval Line · 결재선</strong> &nbsp; Drafter · 기안자 → 1st · 1차: ${a1?.name||'—'} (${a1?.role||''})${a2?' → 2nd · 2차: '+a2.name+' ('+a2.role+')':' → 2nd · 2차: None (Final · 최종)'}`;
+}
+
+function triggerDraftFile(){document.getElementById('draftFileInput').click();}
+function handleDraftFile(e){Array.from(e.target.files).forEach(f=>draftAtts.push({name:f.name,size:fmtSize(f.size),addedAt:nowStr()}));renderDraftAttList();e.target.value='';showToast(`${e.target.files.length} file(s) attached · 첨부됨`);}
+function removeDraftAtt(idx){draftAtts.splice(idx,1);renderDraftAttList();}
+function renderDraftAttList(){
+  document.getElementById('draftAttCnt').textContent=draftAtts.length;
+  const el=document.getElementById('draftAttList');
+  if(!draftAtts.length){el.innerHTML=`<div class="upload-zone" onclick="triggerDraftFile()"><i class="ti ti-cloud-upload" style="font-size:22px;display:block;margin-bottom:6px;color:var(--text-3)"></i><strong style="display:block;margin-bottom:2px;color:var(--text-2)">Invoice, Quote, Contract · 인보이스, 견적서, 계약서</strong><span style="font-size:11px">Click to attach · 클릭하여 선택 (PDF · Excel · Word · Image)</span></div>`;return;}
+  el.innerHTML=draftAtts.map((a,i)=>`<div class="att-item"><i class="ti ${fileIcon(a.name)} att-icon"></i><span class="att-name">${a.name}</span><span class="att-size">${a.size}</span><button class="att-del" onclick="removeDraftAtt(${i})"><i class="ti ti-x" style="font-size:13px"></i></button></div>`).join('')+`<div class="upload-zone" style="margin-top:7px;padding:9px" onclick="triggerDraftFile()"><i class="ti ti-plus" style="font-size:15px"></i> Add more · 추가</div>`;
+}
+
+function triggerAddAtt(docId){const inp=document.createElement('input');inp.type='file';inp.accept='image/*,.pdf,.xlsx,.xls,.docx,.doc';inp.multiple=true;inp.onchange=e=>{const doc=state.docs.find(d=>d.id===docId);if(!doc)return;doc.draftAtts=doc.draftAtts||[];Array.from(e.target.files).forEach(f=>doc.draftAtts.push({name:f.name,size:fmtSize(f.size),addedAt:nowStr()}));saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();showToast('Attached · 첨부 완료');};inp.click();}
+function triggerPayFile(id){pendingPayFileDocId=id;document.getElementById('payFileInput').click();}
+function handlePayFile(e){const file=e.target.files[0];if(!file||pendingPayFileDocId===null)return;const doc=state.docs.find(d=>d.id===pendingPayFileDocId);if(!doc)return;doc.payAtts=doc.payAtts||[];doc.payAtts.push({name:file.name,size:fmtSize(file.size),addedAt:nowStr()});saveState();const wrap=curDocId===doc.id?'detailWrap':mineDocId===doc.id?'mineDetailWrap':null;if(wrap){if(wrap==='detailWrap')renderList();else renderMineList();}e.target.value='';showToast(`"${file.name}" attached · 첨부 완료`);}
+
+function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept];const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[]};}
+function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
+function submitDoc(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast(`Submitted · 결재 상신 — ${doc.docNo}`);showPage('list');}
+function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');document.getElementById('docCurrency').value='USD';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
+function resubmit(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.docNo)doc.docNo=genDocNo(doc.dept);doc.status='pending1';saveState();if(wrapId==='detailWrap')renderList();else renderMineList();showToast('Submitted · 결재 상신 완료');}
+function doApproval(id,step,action,wrapId){
+  const doc=state.docs.find(d=>d.id===id);if(!doc)return;
+  const approverId=step===1?doc.a1Id:doc.a2Id;const approver=gm(approverId);if(!approver)return;
+  // Option A — no password re-entry, just check logged-in user is the approver
+  const uid = parseInt(sessionStorage.getItem('inics_uid')||'0');
+  if(uid !== approverId){
+    showToast(`Only ${approver.name} can approve this · ${approver.name}만 승인 가능`);return;
+  }
+  const comment=document.getElementById('actionComment')?.value.trim();
+  doc.comments=doc.comments||[];
+  doc.comments.push({who:approver.name,role:`${step}${step===1?'st':'nd'} Approver · ${step}차 승인자`,text:comment||(action==='approve'?'승인':'반려'),time:nowStr()});
+  if(action==='approve'){if(step===1&&doc.a2Id){doc.status='pending2';showToast('1st approved · 1차 승인 → 2nd pending · 2차 대기');}else{if(doc.needPayment){doc.status='payment';showToast('Approved · 승인 → Payment · 결제 단계');}else{doc.status='done';doc.doneAt=today();showToast('Fully approved · 결재 완료');}}}
+  else{doc.status='rejected';doc.rejectedBy=step;showToast(`Rejected at step ${step} · ${step}차 반려`);}
+  saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();
+}
+function completePayment(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.payAtts?.length){showToast('Attach proof · 증빙 파일 첨부 필요');return;}doc.status='done';doc.doneAt=today();saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();showToast('Payment done · 결제 완료 — Fully approved · 결재 최종 완료');}
+function deleteDoc(id){state.docs=state.docs.filter(d=>d.id!==id);saveState();curDocId=null;mineDocId=null;document.getElementById('detailWrap').innerHTML='';document.getElementById('mineDetailWrap').innerHTML='';renderList();renderMineList();renderDashboard();showToast('Deleted · 삭제 완료');}
+
+// ═══════════════════════════════════════════
+// PDF
+// ═══════════════════════════════════════════
+function printPDF(id){
+  const doc=state.docs.find(d=>d.id===id);if(!doc)return;
+  const{jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,ml=18,mr=18,cw=W-ml-mr;let y=20;
+  function chk(n){if(y+n>278){pdf.addPage();y=20;}}
+  function hl(c='#ddd'){pdf.setDrawColor(c);pdf.line(ml,y,W-mr,y);}
+  function fr(x,ry,w,h,c){pdf.setFillColor(c);pdf.rect(x,ry,w,h,'F');}
+  fr(ml,y,cw,14,'#1a1a18');pdf.setFont('helvetica','bold');pdf.setFontSize(12);pdf.setTextColor('#fff');pdf.text('INICS — APPROVAL DOCUMENT · 전자결재',ml+4,y+9);y+=18;
+  pdf.setFont('helvetica','bold');pdf.setFontSize(10);pdf.setTextColor('#1a1a18');pdf.text((doc.title||'').substring(0,55),ml,y);y+=5;
+  pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor('#777');if(doc.docNo)pdf.text(`No: ${doc.docNo}`,ml,y);pdf.text(`Status: ${sLabel(doc.status)}`,W-mr,y,{align:'right'});y+=7;hl();y+=6;
+  function row(l,v,bold=false){chk(7);pdf.setFontSize(8);pdf.setFont('helvetica','normal');pdf.setTextColor('#888');pdf.text(l,ml,y);pdf.setFont('helvetica',bold?'bold':'normal');pdf.setTextColor('#1a1a18');pdf.text(String(v||'—'),ml+34,y);y+=6;}
+  pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('DOCUMENT INFO · 문서 정보',ml,y);y+=5;
+  row('Type · 유형',doc.type);row('Dept · 소속',doc.dept);row('Drafter · 기안자',gm(doc.drafterId)?.name||'—');
+  if(doc.amount)row('Amount · 금액',`${doc.currency} ${doc.amount}`,true);
+  row('Created · 기안일',doc.createdAt);if(doc.doneAt)row('Completed · 완료일',doc.doneAt);
+  row('Payment · 결제',doc.needPayment?'Required · 필요':'Not required · 불필요');
+  y+=2;hl('#eee');y+=6;
+  if(doc.content){chk(12);pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('DESCRIPTION · 내용',ml,y);y+=5;pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor('#333');pdf.splitTextToSize(doc.content,cw).forEach(l=>{chk(6);pdf.text(l,ml,y);y+=5;});y+=2;hl('#eee');y+=6;}
+  chk(18);pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('APPROVAL FLOW · 결재 흐름',ml,y);y+=5;
+  const dr=gm(doc.drafterId),a1=gm(doc.a1Id),a2=doc.a2Id?gm(doc.a2Id):null;
+  const fi=[{l:'Draft\n기안',m:dr},{l:'1st Approval\n1차 승인',m:a1}];
+  if(a2)fi.push({l:'2nd Approval\n2차 승인',m:a2});if(doc.needPayment)fi.push({l:'Payment\n결제',m:null});fi.push({l:'Done\n완료',m:null});
+  const fw=cw/fi.length;
+  fi.forEach((f,i)=>{const fx=ml+i*fw;const done=(()=>{if(i===0)return doc.status!=='draft';if(i===1)return['pending2','payment','done'].includes(doc.status);if(i===2&&a2)return['payment','done'].includes(doc.status);if(f.l.includes('Payment'))return doc.status==='done';if(f.l.includes('Done'))return doc.status==='done';return false;})();fr(fx+1,y-1,fw-2,16,done?'#d4edda':'#f4f4f4');pdf.setFont('helvetica','bold');pdf.setFontSize(6.5);pdf.setTextColor('#333');const ll=f.l.split('\n');pdf.text(ll[0],fx+fw/2,y+5,{align:'center'});if(ll[1]){pdf.setFont('helvetica','normal');pdf.setFontSize(6);pdf.setTextColor('#888');pdf.text(ll[1],fx+fw/2,y+9,{align:'center'});}if(f.m){pdf.setFontSize(6);pdf.setTextColor('#555');pdf.text(f.m.name,fx+fw/2,y+13,{align:'center'});}});y+=20;
+  if(doc.comments?.length){chk(14);hl('#eee');y+=6;pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('APPROVAL HISTORY · 결재 이력',ml,y);y+=5;doc.comments.forEach((c,i)=>{chk(14);fr(ml,y-3,cw,14,i%2===0?'#fafafa':'#f5f5f5');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor('#111');pdf.text(c.who,ml+2,y+1);pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.setTextColor('#888');pdf.text(c.role,ml+2,y+6);pdf.text(c.time,W-mr-2,y+1,{align:'right'});pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor('#333');pdf.text((pdf.splitTextToSize(c.text,cw-36))[0]||'',ml+42,y+1);y+=14;});}
+  const allAtts=[...(doc.draftAtts||[]).map(a=>({...a,tp:'Draft · 기안'})),...(doc.payAtts||[]).map(a=>({...a,tp:'Payment · 결제'}))];
+  if(allAtts.length){hl('#eee');y+=6;pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('ATTACHMENTS · 첨부 파일',ml,y);y+=5;allAtts.forEach(a=>{chk(6);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor('#555');pdf.text(`• [${a.tp}]  ${a.name}  (${a.size})`,ml+2,y);y+=5;});}
+  const total=pdf.getNumberOfPages();for(let p=1;p<=total;p++){pdf.setPage(p);pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.setTextColor('#aaa');pdf.text(`INICS Electronic Approval · 전자결재  |  ${p}/${total}`,W/2,292,{align:'center'});pdf.text(`Generated · 출력: ${nowStr()}`,W-mr,292,{align:'right'});}
+  pdf.save(`${doc.docNo||'doc'}_${(doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24)}.pdf`);showToast('PDF saved · PDF 저장 완료');
+}
+</script>
+
+// ═══════════════════════════════════════════
+// FIREBASE INIT — single clean entry point
+// ═══════════════════════════════════════════
+window._onFirebaseReady = function() {
+  fbReady = true;
+  loadState();
+};
+
+// Case 1: Firebase module already ran before this script
+if (window._firebaseReady) {
+  fbReady = true;
+  loadState();
+} else {
+  // Case 2: Firebase module runs after — listen for event
+  document.addEventListener('firebaseReady', function() {
+    fbReady = true;
+    loadState();
+  }, { once: true });
+
+  // Case 3: Firebase never loads (network block, ad blocker etc)
+  setTimeout(function() {
+    if (!fbReady) {
+      console.warn('Firebase unavailable — using localStorage fallback');
+      loadState();
+    }
+  }, 10000);
+}
+
+<script>
+// ═══════════════════════════════════════════
+// LOGIN GATE (global scope)
+// ═══════════════════════════════════════════
+const GATE_USERS = [
+  {id:'JINHA',      pw:'#Seoul1989#',  name:'JINHA LEE',    memberId:1},
+  {id:'HWANSHINYU', pw:'HWAN SHIN YU', name:'HWAN SHIN YU', memberId:2},
+  {id:'HANA',       pw:'HANA',         name:'HANA',         memberId:3},
+  {id:'KMON',       pw:'KMON',         name:'KMON',         memberId:4},
+];
+
+function gateLogin() {
+  const id   = document.getElementById('gateId').value.trim().toUpperCase();
+  const pw   = document.getElementById('gatePw').value;
+  const user = GATE_USERS.find(u => u.id === id && u.pw === pw);
+  if (!user) { document.getElementById('gateErr').style.display = 'block'; return; }
+  document.getElementById('gateErr').style.display = 'none';
+  document.getElementById('loginGate').classList.add('hidden');
+  sessionStorage.setItem('inics_gate', '1');
+  sessionStorage.setItem('inics_uid', String(user.memberId));
+  // apply session after main script loads
+  setTimeout(() => applyGateSession(user.memberId), 200);
+}
+
+function applyGateSession(memberId) {
+  if (!memberId) return;
+  if (typeof MEMBERS === 'undefined') { setTimeout(() => applyGateSession(memberId), 300); return; }
+  const m = MEMBERS.find(m => m.id == memberId);
+  if (!m) return;
+
+  // Store globally
+  newAuthId = m.id;
+  window._gateUser = m;
+
+  // Session chip in topbar
+  const chip = document.getElementById('sessionChip');
+  if (chip) { chip.style.display = 'flex'; document.getElementById('sessionName').textContent = m.name; }
+  if (m.isAdmin) {
+    sessionIsAdmin = true;
+    const badge = document.getElementById('sessionAdminBadge');
+    const navAdmin = document.getElementById('nav-admin');
+    if (badge) badge.style.display = '';
+    if (navAdmin) navAdmin.style.display = '';
+  }
+
+  // If currently on new page, show form
+  if (document.getElementById('page-new').classList.contains('active')) {
+    showNewForm(m);
+  }
+}
+
+function showNewForm(m) {
+  if (!m && window._gateUser) m = window._gateUser;
+  if (!m) return;
+  newAuthId = m.id;
+  document.getElementById('newAuthWrap').style.display = 'none';
+  document.getElementById('newFormWrap').style.display = 'block';
+  if (document.getElementById('newAuthLabel'))
+    document.getElementById('newAuthLabel').textContent = 'Authenticated · 인증: ' + m.name + ' (' + m.role + ')';
+  if (typeof renderDraftAttList === 'function') renderDraftAttList();
+  if (typeof onDeptChange === 'function') onDeptChange();
+  if (typeof toggleExpenseDetail === 'function') toggleExpenseDetail();
+}
+
+function toggleBankType() {
+  const val = document.querySelector('input[name="bankType"]:checked')?.value;
+  const vn = document.getElementById('bankVN');
+  const foreign = document.getElementById('bankForeign');
+  if (vn) vn.style.display = val === 'vn' ? 'grid' : 'none';
+  if (foreign) foreign.style.display = val === 'foreign' ? 'grid' : 'none';
+}
+
+// Auto-login if session exists
+(function checkSession() {
+  if (sessionStorage.getItem('inics_gate') === '1') {
+    const uid = parseInt(sessionStorage.getItem('inics_uid') || '0');
+    document.getElementById('loginGate').classList.add('hidden');
+    if (uid) setTimeout(() => applyGateSession(uid), 600);
+  }
+})();
+</script>
+
+
+
+</body></html>
