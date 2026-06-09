@@ -1194,20 +1194,11 @@ function closeDetail(wrapId){
 }
 
 function attListHTML(atts,deletable,docId,type){
-  if(!atts||!atts.length)return '<div style="font-size:11px;color:var(--text-3);padding:3px 0">No attachments · 첨부 없음</div>';
+  if(!atts||!atts.length)return '<div style="font-size:11px;color:var(--text-3);padding:3px 0">No attachments</div>';
   return atts.map(function(a,i){
-    var html = '<div class="att-item">';
-    html += '<i class="ti ' + fileIcon(a.name) + ' att-icon"></i>';
-    html += '<span class="att-name" title="' + a.name + '">' + a.name + '</span>';
-    html += '<span class="att-size">' + a.size + '</span>';
-    if(a.data){
-      html += '<button class="att-del" style="color:var(--success)" onclick="downloadAtt(' + docId + ','' + type + '',' + i + ')" title="Download"><i class="ti ti-download" style="font-size:13px"></i></button>';
-    }
-    if(deletable){
-      html += '<button class="att-del" onclick="removeAtt(' + docId + ','' + type + '',' + i + ')" title="Delete"><i class="ti ti-x" style="font-size:13px"></i></button>';
-    }
-    html += '</div>';
-    return html;
+    var dlBtn = a.data ? '<button class="att-del" style="color:var(--success)" onclick="downloadAtt('+String(docId)+String(",")+JSON.stringify(type)+String(",")+String(i)+')" title="DL"><i class="ti ti-download" style="font-size:13px"></i></button>' : '';
+    var delBtn = deletable ? '<button class="att-del" onclick="removeAtt('+String(docId)+String(",")+JSON.stringify(type)+String(",")+String(i)+')" title="Del"><i class="ti ti-x" style="font-size:13px"></i></button>' : '';
+    return '<div class="att-item"><i class="ti '+fileIcon(a.name)+' att-icon"></i><span class="att-name">'+a.name+'</span><span class="att-size">'+a.size+'</span>'+dlBtn+delBtn+'</div>';
   }).join('');
 }
 
@@ -1216,14 +1207,14 @@ function downloadAtt(docId, type, idx){
   if(!doc) return;
   var atts = type === 'draft' ? doc.draftAtts : doc.payAtts;
   var att = atts && atts[idx];
-  if(!att || !att.data){ showToast('No file data · 파일 없음 (새로 첨부 필요)'); return; }
+  if(!att || !att.data){ showToast('No file data - re-attach file'); return; }
   var a = document.createElement('a');
   a.href = att.data;
   a.download = att.name;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  showToast('Downloading · 다운로드: ' + att.name);
+  showToast('Downloading: ' + att.name);
 }
 
 function removeAtt(docId,type,idx){const doc=state.docs.find(d=>d.id===docId);if(!doc)return;if(type==='draft')doc.draftAtts.splice(idx,1);else doc.payAtts.splice(idx,1);saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();}
