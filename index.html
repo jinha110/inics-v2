@@ -563,7 +563,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="form-card">
           <div class="form-card-title"><i class="ti ti-file-description"></i> Document Info · 문서 정보</div>
           <div class="fgrid">
-            <div class="fg"><label>Department · 소속 <span>(결재선 자동)</span></label><select id="docDept" onchange="onDeptChange()" id="docDept"></select></div>
+            <div class="fg"><label>Department · 소속 <span>(결재선 자동)</span></label><select id="docDept" onchange="onDeptChange()"></select></div>
             <div class="fg"><label>Type · 유형</label><select id="docType" onchange="toggleExpenseDetail()"></select></div>
             <div class="fg span2"><label>Title · 제목</label><input type="text" id="docTitle" placeholder="Enter title · 결재 제목 입력"></div>
             <div class="fg span2">
@@ -1470,7 +1470,7 @@ function handlePayFile(e){
   e.target.value='';
 }
 
-function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept];const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
+function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
 function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
 function submitDoc(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast(`Submitted · 결재 상신 — ${doc.docNo}`);showPage('list');}
 function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');document.getElementById('docCurrency').value='USD';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
