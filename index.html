@@ -933,6 +933,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
               <button class="btn btn-admin" onclick="changePassword()"><i class="ti ti-check"></i> Save · 저장</button>
             </div>
           </div>
+          <!-- Add Member -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-user-plus"></i> Add Member · 구성원 추가</div>
+            <div class="admin-card-body">
+              <div class="fg" style="margin-bottom:8px"><label>Name · 이름</label><input type="text" id="newMemberName" placeholder="e.g. JOHN LEE"></div>
+              <div class="fg" style="margin-bottom:8px"><label>ID · 아이디 (login)</label><input type="text" id="newMemberId" placeholder="e.g. JOHNLEE"></div>
+              <div class="fg" style="margin-bottom:8px"><label>Password · 비밀번호</label><input type="text" id="newMemberPw" placeholder="Initial password"></div>
+              <div class="fg" style="margin-bottom:8px"><label>Role · 직책</label><input type="text" id="newMemberRole" placeholder="e.g. MANAGER"></div>
+              <div class="fg" style="margin-bottom:10px"><label>Department · 부서</label><select id="newMemberDept"></select></div>
+              <div style="display:flex;gap:7px">
+                <button class="btn btn-dark" onclick="addMember()" style="flex:1"><i class="ti ti-user-plus"></i> Add · 추가</button>
+              </div>
+              <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+                <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Remove Member · 구성원 삭제</div>
+                <div style="display:flex;gap:7px">
+                  <select id="removeMemberWho" style="flex:1;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none"></select>
+                  <button class="btn btn-danger" onclick="removeMember()"><i class="ti ti-trash"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
           <!-- Stats -->
           <div class="admin-card">
             <div class="admin-card-hdr"><i class="ti ti-chart-bar"></i> Document Stats · 문서 통계</div>
@@ -1002,6 +1023,7 @@ let MEMBERS = [
   {id:2, name:'HWAN SHIN YU', role:'MANAGER',          dept:'FURNITURE', pw:'HWANSHINYU', isAdmin:false},
   {id:3, name:'HANA',         role:'PROJECT MANAGER',  dept:'FURNITURE', pw:'HANA',       isAdmin:false},
   {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',       isAdmin:false},
+  {id:5, name:'JACOB',        role:'CEO',              dept:'COMMON',    pw:'JACOB',      isAdmin:false},
 ];
 const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}, COMMON:{a1:1,a2:null}};
 const ADMIN_EXTRA_PW = 'JINHA'; // Admin panel extra password · 관리자 패널 추가 비밀번호
@@ -1074,6 +1096,14 @@ async function loadState() {
   }
   // apply saved passwords
   if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
+  // restore extra members added by admin
+  if(state.extraMembers){
+    state.extraMembers.forEach(function(u){
+      if(!MEMBERS.find(function(m){ return m.id===u.memberId; })){
+        // re-add if missing (e.g. page reload)
+      }
+    });
+  }
   populateSelects(); render();
   // realtime listener
   if(fbReady && window._fbListen){
@@ -1559,6 +1589,54 @@ function removeDocType(idx) {
   showToast('Removed · 삭제 완료');
 }
 
+
+function addMember() {
+  var name = document.getElementById('newMemberName').value.trim().toUpperCase();
+  var loginId = document.getElementById('newMemberId').value.trim().toUpperCase();
+  var pw = document.getElementById('newMemberPw').value.trim();
+  var role = document.getElementById('newMemberRole').value.trim().toUpperCase();
+  var dept = document.getElementById('newMemberDept').value;
+
+  if(!name||!loginId||!pw||!role){ showToast('모든 필드를 입력하세요 · Fill all fields'); return; }
+  if(MEMBERS.find(function(m){ return m.name===name; })){ showToast('이미 존재합니다 · Already exists'); return; }
+
+  // New member id
+  var newId = Math.max.apply(null, MEMBERS.map(function(m){ return m.id; })) + 1;
+  MEMBERS.push({id:newId, name:name, role:role, dept:dept, pw:pw, isAdmin:false});
+
+  // Add to gate users (stored in state for persistence)
+  if(!state.extraMembers) state.extraMembers = [];
+  state.extraMembers.push({id:loginId, pw:pw, name:name, memberId:newId});
+
+  saveState();
+  populateSelects();
+  renderAdmin();
+  renderApproverLines();
+
+  // Clear form
+  ['newMemberName','newMemberId','newMemberPw','newMemberRole'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  showToast('Added · 추가 완료: ' + name);
+}
+
+function removeMember() {
+  var id = parseInt(document.getElementById('removeMemberWho').value);
+  var m = MEMBERS.find(function(m){ return m.id === id; });
+  if(!m){ showToast('Member not found'); return; }
+  if(m.isAdmin){ showToast('Admin cannot be removed · 관리자는 삭제 불가'); return; }
+  if(!confirm(m.name + ' 을 삭제하시겠습니까?\nRemove this member?')) return;
+
+  MEMBERS = MEMBERS.filter(function(m){ return m.id !== id; });
+  if(state.extraMembers) state.extraMembers = state.extraMembers.filter(function(u){ return u.memberId !== id; });
+
+  saveState();
+  populateSelects();
+  renderAdmin();
+  renderApproverLines();
+  showToast('Removed · 삭제 완료: ' + m.name);
+}
+
 function renderAdmin(){
   const ml=document.getElementById('adminMemberList');
   if(ml){ml.innerHTML=MEMBERS.map(m=>`<div class="member-row">
@@ -1575,6 +1653,12 @@ function renderAdmin(){
   </div>`).join('');}
   renderApproverLines();
   renderDeptTypeAdmin();
+  // Populate add member dept select
+  var nmd = document.getElementById('newMemberDept');
+  if(nmd){ nmd.innerHTML = (state.departments||['FURNITURE','SOURCING','COMMON']).map(function(d){ return '<option>'+d+'</option>'; }).join(''); }
+  // Populate remove member select
+  var rmw = document.getElementById('removeMemberWho');
+  if(rmw){ rmw.innerHTML = MEMBERS.filter(function(m){ return !m.isAdmin; }).map(function(m){ return '<option value="'+m.id+'">'+m.name+' ('+m.role+')</option>'; }).join(''); }
   const as=document.getElementById('adminStats');
   if(as){
     const c={draft:0,pending1:0,pending2:0,payment:0,done:0,rejected:0};
@@ -2220,6 +2304,7 @@ const GATE_USERS = [
   {id:'HWANSHINYU', pw:'HWANSHINYU', name:'HWAN SHIN YU', memberId:2},
   {id:'HANA',       pw:'HANA',       name:'HANA',         memberId:3},
   {id:'KMON',       pw:'KMON',       name:'KMON',         memberId:4},
+  {id:'JACOB',      pw:'JACOB',      name:'JACOB',        memberId:5},
 ];
 
 function gateLogin() {
