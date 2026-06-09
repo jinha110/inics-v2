@@ -823,13 +823,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 // MEMBERS — JINHA LEE is ADMIN
 // ═══════════════════════════════════════════
 let MEMBERS = [
-  {id:1, name:'JINHA LEE',    role:'GENERAL MANAGER', dept:'SOURCING',  pw:'#Seoul1989#',  isAdmin:true},
-  {id:2, name:'HWAN SHIN YU', role:'MANAGER',          dept:'FURNITURE', pw:'HWAN SHIN YU', isAdmin:false},
-  {id:3, name:'HANA',         role:'PROJECT MANAGER',  dept:'FURNITURE', pw:'HANA',         isAdmin:false},
-  {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',         isAdmin:false},
+  {id:1, name:'JINHA LEE',    role:'GENERAL MANAGER', dept:'SOURCING',  pw:'JINHA',      isAdmin:true},
+  {id:2, name:'HWAN SHIN YU', role:'MANAGER',          dept:'FURNITURE', pw:'HWANSHINYU', isAdmin:false},
+  {id:3, name:'HANA',         role:'PROJECT MANAGER',  dept:'FURNITURE', pw:'HANA',       isAdmin:false},
+  {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',       isAdmin:false},
 ];
 const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}};
-const ADMIN_EXTRA_PW = '#Seoul1989#'; // Admin panel extra password · 관리자 패널 추가 비밀번호
+const ADMIN_EXTRA_PW = 'JINHA'; // Admin panel extra password · 관리자 패널 추가 비밀번호
 
 let state = {docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{}};
 let curPage='dashboard', curFilter='all', curDocId=null;
@@ -1618,10 +1618,10 @@ var _fbPoll = setInterval(function() {
 // LOGIN GATE (global scope)
 // ═══════════════════════════════════════════
 const GATE_USERS = [
-  {id:'JINHA',      pw:'#Seoul1989#',  name:'JINHA LEE',    memberId:1},
-  {id:'HWANSHINYU', pw:'HWAN SHIN YU', name:'HWAN SHIN YU', memberId:2},
-  {id:'HANA',       pw:'HANA',         name:'HANA',         memberId:3},
-  {id:'KMON',       pw:'KMON',         name:'KMON',         memberId:4},
+  {id:'JINHA',      pw:'JINHA',      name:'JINHA LEE',    memberId:1},
+  {id:'HWANSHINYU', pw:'HWANSHINYU', name:'HWAN SHIN YU', memberId:2},
+  {id:'HANA',       pw:'HANA',       name:'HANA',         memberId:3},
+  {id:'KMON',       pw:'KMON',       name:'KMON',         memberId:4},
 ];
 
 function gateLogin() {
