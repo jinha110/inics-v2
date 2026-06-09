@@ -563,13 +563,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="form-card">
           <div class="form-card-title"><i class="ti ti-file-description"></i> Document Info · 문서 정보</div>
           <div class="fgrid">
-            <div class="fg"><label>Department · 소속 <span>(결재선 자동)</span></label><select id="docDept" onchange="onDeptChange()"><option value="FURNITURE">FURNITURE</option><option value="SOURCING">SOURCING</option></select></div>
-            <div class="fg"><label>Type · 유형</label><select id="docType" onchange="toggleExpenseDetail()"><option>지출결의서 · Expense Report</option><option>구매요청서 · Purchase Request</option><option>휴가신청서 · Leave Request</option><option>업무보고서 · Work Report</option><option>기타 · Other</option></select></div>
+            <div class="fg"><label>Department · 소속 <span>(결재선 자동)</span></label><select id="docDept" onchange="onDeptChange()" id="docDept"></select></div>
+            <div class="fg"><label>Type · 유형</label><select id="docType" onchange="toggleExpenseDetail()"></select></div>
             <div class="fg span2"><label>Title · 제목</label><input type="text" id="docTitle" placeholder="Enter title · 결재 제목 입력"></div>
             <div class="fg span2">
               <label>Currency &amp; Amount · 화폐 &amp; 금액 <span>(optional · 선택)</span></label>
               <div class="currency-row">
-                <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">화폐 · Currency</label><select id="docCurrency"><option value="USD">USD</option><option value="VND">VND</option></select></div>
+                <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">화폐 · Currency</label><select id="docCurrency"><option value="VND">VND</option><option value="USD">USD</option></select></div>
                 <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">금액 · Amount</label><input type="text" id="docAmount" placeholder="예: 5,000,000"></div>
               </div>
             </div>
@@ -788,6 +788,28 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
             <div class="admin-card-hdr"><i class="ti ti-chart-bar"></i> Document Stats · 문서 통계</div>
             <div class="admin-card-body" id="adminStats"></div>
           </div>
+          <!-- Dept Management -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-building"></i> Departments · 소속 관리</div>
+            <div class="admin-card-body">
+              <div id="adminDeptList" style="margin-bottom:10px"></div>
+              <div style="display:flex;gap:6px">
+                <input type="text" id="newDeptInput" placeholder="New dept · 소속명" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none">
+                <button class="btn btn-dark" onclick="addDept()" style="padding:6px 12px"><i class="ti ti-plus"></i></button>
+              </div>
+            </div>
+          </div>
+          <!-- Type Management -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-file-text"></i> Document Types · 문서 유형 관리</div>
+            <div class="admin-card-body">
+              <div id="adminTypeList" style="margin-bottom:10px"></div>
+              <div style="display:flex;gap:6px">
+                <input type="text" id="newTypeInput" placeholder="New type · 유형명" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none">
+                <button class="btn btn-dark" onclick="addDocType()" style="padding:6px 12px"><i class="ti ti-plus"></i></button>
+              </div>
+            </div>
+          </div>
           <!-- Danger Zone -->
           <div class="admin-card">
             <div class="admin-card-hdr" style="color:var(--danger)"><i class="ti ti-alert-triangle"></i> Danger Zone · 주의</div>
@@ -834,7 +856,11 @@ let MEMBERS = [
 const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}};
 const ADMIN_EXTRA_PW = 'JINHA'; // Admin panel extra password · 관리자 패널 추가 비밀번호
 
-let state = {docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{}};
+let state = {
+  docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{},
+  departments:['FURNITURE','SOURCING'],
+  docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other']
+};
 let curPage='dashboard', curFilter='all', curDocId=null;
 let mineUserId=null, mineFilter='all', mineDocId=null;
 let newAuthId=null, sessionIsAdmin=false;
@@ -1269,6 +1295,63 @@ function logoutAdmin(){document.getElementById('adminAuthWrap').style.display='b
 // ═══════════════════════════════════════════
 // ADMIN PANEL
 // ═══════════════════════════════════════════
+
+function renderDeptTypeAdmin() {
+  var depts = state.departments || ['FURNITURE','SOURCING'];
+  var types = state.docTypes || ['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other'];
+  
+  var deptEl = document.getElementById('adminDeptList');
+  if(deptEl) deptEl.innerHTML = depts.map(function(d,i){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'
+      +'<span>'+d+'</span>'
+      +(depts.length>1?'<button class="att-del" onclick="removeDept('+i+')" style="color:var(--danger)"><i class="ti ti-x" style="font-size:13px"></i></button>':'')
+      +'</div>';
+  }).join('');
+
+  var typeEl = document.getElementById('adminTypeList');
+  if(typeEl) typeEl.innerHTML = types.map(function(t,i){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+      +'<span>'+t+'</span>'
+      +(types.length>1?'<button class="att-del" onclick="removeDocType('+i+')" style="color:var(--danger)"><i class="ti ti-x" style="font-size:13px"></i></button>':'')
+      +'</div>';
+  }).join('');
+}
+
+function addDept() {
+  var val = document.getElementById('newDeptInput').value.trim().toUpperCase();
+  if(!val) return;
+  if(!state.departments) state.departments = ['FURNITURE','SOURCING'];
+  if(state.departments.includes(val)){showToast('Already exists · 이미 존재');return;}
+  state.departments.push(val);
+  document.getElementById('newDeptInput').value = '';
+  saveState(); renderDeptTypeAdmin(); populateDeptTypeSelects();
+  showToast('Added · 추가: '+val);
+}
+
+function removeDept(idx) {
+  if(!state.departments || state.departments.length <= 1) return;
+  state.departments.splice(idx,1);
+  saveState(); renderDeptTypeAdmin(); populateDeptTypeSelects();
+  showToast('Removed · 삭제 완료');
+}
+
+function addDocType() {
+  var val = document.getElementById('newTypeInput').value.trim();
+  if(!val) return;
+  if(!state.docTypes) state.docTypes = [];
+  state.docTypes.push(val);
+  document.getElementById('newTypeInput').value = '';
+  saveState(); renderDeptTypeAdmin(); populateDeptTypeSelects();
+  showToast('Added · 추가: '+val);
+}
+
+function removeDocType(idx) {
+  if(!state.docTypes || state.docTypes.length <= 1) return;
+  state.docTypes.splice(idx,1);
+  saveState(); renderDeptTypeAdmin(); populateDeptTypeSelects();
+  showToast('Removed · 삭제 완료');
+}
+
 function renderAdmin(){
   const ml=document.getElementById('adminMemberList');
   if(ml){ml.innerHTML=MEMBERS.map(m=>`<div class="member-row">
@@ -1283,6 +1366,7 @@ function renderAdmin(){
     </div>
     <div class="pw-dot">●●●●</div>
   </div>`).join('');}
+  renderDeptTypeAdmin();
   const as=document.getElementById('adminStats');
   if(as){
     const c={draft:0,pending1:0,pending2:0,payment:0,done:0,rejected:0};
@@ -1316,8 +1400,10 @@ function clearDone(){
 // FORM
 // ═══════════════════════════════════════════
 function onDeptChange(){
-  const dept=document.getElementById('docDept').value;const line=LINES[dept];const a1=gm(line.a1),a2=line.a2?gm(line.a2):null;
-  document.getElementById('linePreview').innerHTML=`<i class="ti ti-route" style="margin-right:5px"></i><strong>Approval Line · 결재선</strong> &nbsp; Drafter · 기안자 → 1st · 1차: ${a1?.name||'—'} (${a1?.role||''})${a2?' → 2nd · 2차: '+a2.name+' ('+a2.role+')':' → 2nd · 2차: None (Final · 최종)'}`;
+  const dept=document.getElementById('docDept').value;
+  const line=LINES[dept]||{a1:1,a2:null};
+  const a1=gm(line.a1),a2=line.a2?gm(line.a2):null;
+  document.getElementById('linePreview').innerHTML='<i class="ti ti-route" style="margin-right:5px"></i><strong>Approval Line · 결재선</strong> &nbsp; Drafter · 기안자 → 1st · 1차: '+(a1?a1.name+' ('+a1.role+')':'—')+(a2?' → 2nd · 2차: '+a2.name+' ('+a2.role+')':' → 2nd · 2차: None (Final · 최종)');
 }
 
 function triggerDraftFile(){document.getElementById('draftFileInput').click();}
@@ -1520,6 +1606,26 @@ function handlePhotoUpload(memberId, file) {
   reader.readAsDataURL(file);
 }
 
+
+function populateDeptTypeSelects() {
+  var depts = state.departments || ['FURNITURE','SOURCING'];
+  var types = state.docTypes || ['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other'];
+  
+  var deptEl = document.getElementById('docDept');
+  if(deptEl) {
+    var curDept = deptEl.value;
+    deptEl.innerHTML = depts.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
+    if(curDept && depts.includes(curDept)) deptEl.value = curDept;
+  }
+  
+  var typeEl = document.getElementById('docType');
+  if(typeEl) {
+    var curType = typeEl.value;
+    typeEl.innerHTML = types.map(function(t){ return '<option>'+t+'</option>'; }).join('');
+    if(curType && types.includes(curType)) typeEl.value = curType;
+  }
+}
+
 // ═══════════════════════════════════════════
 // EXPENSE DETAIL TOGGLE
 // ═══════════════════════════════════════════
@@ -1681,6 +1787,7 @@ function showNewForm(m) {
   document.getElementById('newFormWrap').style.display = 'block';
   if (document.getElementById('newAuthLabel'))
     document.getElementById('newAuthLabel').textContent = 'Authenticated · 인증: ' + m.name + ' (' + m.role + ')';
+  if (typeof populateDeptTypeSelects === 'function') populateDeptTypeSelects();
   if (typeof renderDraftAttList === 'function') renderDraftAttList();
   if (typeof onDeptChange === 'function') onDeptChange();
   if (typeof toggleExpenseDetail === 'function') toggleExpenseDetail();
