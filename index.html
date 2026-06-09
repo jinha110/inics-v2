@@ -571,7 +571,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
               <label>Currency &amp; Amount · 화폐 &amp; 금액 <span>(optional · 선택)</span></label>
               <div class="currency-row">
                 <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">화폐 · Currency</label><select id="docCurrency"><option value="VND">VND</option><option value="USD">USD</option></select></div>
-                <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">금액 · Amount</label><input type="text" id="docAmount" placeholder="예: 5,000,000"></div>
+                <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">금액 · Amount</label><input type="text" id="docAmount" placeholder="예: 5,000,000" oninput="fmtAmountInput(this)"></div>
               </div>
             </div>
             <div class="fg span2">
@@ -1212,7 +1212,11 @@ function showDetail(id,wrapId='detailWrap'){
     actionHTML=`<div class="pay-box"><div class="pay-box-title"><i class="ti ti-credit-card" style="font-size:16px"></i> Payment Processing · PAYMENT — 결제 증빙 첨부</div>${attListHTML(pa,true,id,'pay')}<div class="upload-zone" style="margin-top:10px" onclick="triggerPayFile(${id})"><i class="ti ti-upload" style="font-size:20px;display:block;margin-bottom:5px"></i>Upload receipt · 결제 증빙 첨부</div><button class="btn btn-payment" style="margin-top:10px" onclick="completePayment(${id},'${wrapId}')" ${!pa.length?'disabled':''}><i class="ti ti-circle-check"></i> Complete Payment · 결제 완료 처리</button></div>`;
   }
   if(s==='draft'){
-    actionHTML=`<div class="btn-row" style="margin-top:14px"><button class="btn btn-dark" onclick="resubmit(${id},'${wrapId}')"><i class="ti ti-send"></i> Submit · 결재 상신</button><button class="btn btn-danger" onclick="deleteDoc(${id})"><i class="ti ti-trash"></i> Delete · 삭제</button></div>`;
+    actionHTML=`<div class="btn-row" style="margin-top:14px">
+      <button class="btn btn-outline" onclick="editDoc(${id},'${wrapId}')"><i class="ti ti-edit"></i> Edit · 수정</button>
+      <button class="btn btn-dark" onclick="resubmit(${id},'${wrapId}')"><i class="ti ti-send"></i> Submit · 결재 상신</button>
+      <button class="btn btn-danger" onclick="deleteDoc(${id})"><i class="ti ti-trash"></i> Delete · 삭제</button>
+    </div>`;
   }
   // Drafter can recall and edit if still pending1
   var currentUid = parseInt(sessionStorage.getItem('inics_uid')||'0');
@@ -1233,7 +1237,7 @@ function showDetail(id,wrapId='detailWrap'){
     </div>`;
   }
 
-  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${doc.amount}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?'<img src="'+doc.descImage+'" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px">':''}` + '</div>':''}
+  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?'<img src="'+doc.descImage+'" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px">':''}` + '</div>':''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
       ${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${actionHTML}</div></div>`;
   document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -1293,7 +1297,7 @@ function loginNew(){
   if(m.isAdmin){sessionIsAdmin=true;document.getElementById('sessionAdminBadge').style.display='';document.getElementById('nav-admin').style.display='';}
   renderDraftAttList();onDeptChange();
 }
-function logoutNew(){newAuthId=null;draftAtts=[];sessionIsAdmin=false;document.getElementById('newAuthWrap').style.display='block';document.getElementById('newFormWrap').style.display='none';document.getElementById('sessionChip').style.display='none';document.getElementById('nav-admin').style.display='none';}
+function logoutNew(){newAuthId=null;draftAtts=[];sessionIsAdmin=false;window._editingDocId=null;document.getElementById('newAuthWrap').style.display='block';document.getElementById('newFormWrap').style.display='none';document.getElementById('sessionChip').style.display='none';document.getElementById('nav-admin').style.display='none';}
 function globalLogout(){newAuthId=null;sessionIsAdmin=false;document.getElementById('sessionChip').style.display='none';document.getElementById('newAuthWrap').style.display='block';document.getElementById('newFormWrap').style.display='none';document.getElementById('nav-admin').style.display='none';document.getElementById('sessionAdminBadge').style.display='none';}
 
 function loginMine(){
@@ -1498,7 +1502,38 @@ function handlePayFile(e){
 
 function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),descImage:descImageData||null,needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
 function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
-function submitDoc(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast(`Submitted · 결재 상신 — ${doc.docNo}`);showPage('list');}
+function submitDoc(){
+  if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}
+  if(window._editingDocId) {
+    // Update existing doc
+    var idx = state.docs.findIndex(function(d){ return d.id === window._editingDocId; });
+    if(idx >= 0) {
+      var existing = state.docs[idx];
+      var dept = document.getElementById('docDept').value;
+      var line = LINES[dept]||{a1:1,a2:null};
+      existing.title = document.getElementById('docTitle').value.trim();
+      existing.dept = dept;
+      existing.type = document.getElementById('docType').value;
+      existing.currency = document.getElementById('docCurrency').value;
+      existing.amount = document.getElementById('docAmount').value.trim();
+      existing.content = document.getElementById('docContent').value.trim();
+      existing.needPayment = getRadio('needPayment')==='yes';
+      existing.a1Id = line.a1; existing.a2Id = line.a2;
+      existing.draftAtts = [...draftAtts];
+      existing.expenseData = getExpenseData();
+      if(descImageData) existing.descImage = descImageData;
+      existing.status = 'pending1';
+      if(!existing.docNo) existing.docNo = genDocNo(dept);
+      window._editingDocId = null;
+      curDocId = existing.id;
+      saveState(); clearForm();
+      showToast('Submitted · 결재 상신 — ' + existing.docNo);
+      showPage('list');
+      return;
+    }
+  }
+  const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast('Submitted · 결재 상신 — '+doc.docNo);showPage('list');
+}
 function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');descImageData=null;var dp=document.getElementById('descImagePreview');if(dp)dp.innerHTML='';var dn=document.getElementById('descImageName');if(dn)dn.textContent='';document.getElementById('docCurrency').value='VND';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
 function resubmit(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.docNo)doc.docNo=genDocNo(doc.dept);doc.status='pending1';saveState();if(wrapId==='detailWrap')renderList();else renderMineList();showToast('Submitted · 결재 상신 완료');}
 function doApproval(id,step,action,wrapId){
@@ -1557,6 +1592,95 @@ function printPDF(id){
 
 
 
+
+
+
+function fmtAmountInput(el) {
+  var raw = el.value.replace(/[^0-9.]/g, '');
+  var parts = raw.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  el.value = parts.join('.');
+}
+
+function editDoc(id, wrapId) {
+  var doc = state.docs.find(function(d){ return d.id === id; });
+  if(!doc) return;
+
+  // Go to new page and populate form
+  showPage('new');
+
+  // Wait for form to be visible
+  setTimeout(function(){
+    // Make sure form is showing
+    var gu = window._gateUser;
+    if(!gu && newAuthId) gu = MEMBERS.find(function(m){ return m.id === newAuthId; });
+    if(gu) showNewForm(gu);
+
+    setTimeout(function(){
+      // Populate fields
+      var deptEl = document.getElementById('docDept');
+      var typeEl = document.getElementById('docType');
+      if(deptEl) { populateDeptTypeSelects(); deptEl.value = doc.dept; onDeptChange(); }
+      if(typeEl) { typeEl.value = doc.type; toggleExpenseDetail(); }
+
+      var titleEl = document.getElementById('docTitle');
+      var amtEl = document.getElementById('docAmount');
+      var curEl = document.getElementById('docCurrency');
+      var contentEl = document.getElementById('docContent');
+      if(titleEl) titleEl.value = doc.title || '';
+      if(amtEl) amtEl.value = doc.amount || '';
+      if(curEl) curEl.value = doc.currency || 'VND';
+      if(contentEl) contentEl.value = doc.content || '';
+
+      // Payment radio
+      var payYes = document.querySelector('input[name="needPayment"][value="yes"]');
+      var payNo = document.querySelector('input[name="needPayment"][value="no"]');
+      if(doc.needPayment && payYes) payYes.checked = true;
+      else if(payNo) payNo.checked = true;
+
+      // Restore attachments
+      draftAtts = doc.draftAtts ? doc.draftAtts.slice() : [];
+      renderDraftAttList();
+
+      // Restore expense data
+      if(doc.expenseData) {
+        var e = doc.expenseData;
+        function setVal(id, val){ var el=document.getElementById(id); if(el) el.value=val||''; }
+        setVal('expVendorName', e.vendorName);
+        setVal('expVendorReg', e.vendorReg);
+        setVal('expPO', e.poNumber);
+        setVal('expInvoice', e.invoiceNumber);
+        setVal('expPayDate', e.payDate);
+        setVal('expPurpose', e.purpose);
+        setVal('expVendorReason', e.vendorReason);
+        setVal('expRemarks', e.remarks);
+
+        // Bank type
+        var bankType = e.bankType || 'vn';
+        var bankRadio = document.querySelector('input[name="bankType"][value="'+bankType+'"]');
+        if(bankRadio) { bankRadio.checked = true; toggleBankType(); }
+
+        if(bankType === 'vn') {
+          var bankSel = document.getElementById('expBankVN');
+          if(bankSel) bankSel.value = e.bankVN || '';
+          setVal('expBankVNAcct', e.bankVNAcct);
+          setVal('expBankVNHolder', e.bankVNHolder);
+          setVal('expBankVNBranch', e.bankVNBranch);
+        } else {
+          setVal('expBankForeignName', e.bankForeignName);
+          setVal('expBankSwift', e.bankSwift);
+          setVal('expBankForeignAcct', e.bankForeignAcct);
+          setVal('expBankForeignHolder', e.bankForeignHolder);
+          setVal('expBankForeignAddr', e.bankForeignAddr);
+        }
+      }
+
+      // Mark this as editing existing doc - override submitDoc behavior
+      window._editingDocId = id;
+      showToast('수정 모드 · Edit mode — 수정 후 결재 상신하세요');
+    }, 100);
+  }, 100);
+}
 
 function recallDoc(id, wrapId) {
   if(!confirm('회수하면 초안으로 돌아갑니다. 계속하시겠습니까?\nRecall document to draft?')) return;
