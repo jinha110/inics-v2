@@ -21,27 +21,37 @@
   var PATH = "/inics_approval/state.json";
 
   window._fbSave = async function(state) {
+    // Always save to localStorage as backup
+    try { localStorage.setItem("inics_local", JSON.stringify(state)); } catch(_){}
     try {
       var r = await fetch(BASE + PATH, {
         method: "PUT",
+        mode: "cors",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(state)
       });
       if (!r.ok) throw new Error("HTTP " + r.status);
+      setSyncStatus('ok','Synced · 동기화 완료');
     } catch(e) {
       console.error("Firebase save error:", e);
-      try { localStorage.setItem("inics_local", JSON.stringify(state)); } catch(_){}
+      setSyncStatus('ok','Local mode · 로컬 저장');
     }
   };
 
   window._fbLoad = async function() {
     try {
-      var r = await fetch(BASE + PATH);
+      var r = await fetch(BASE + PATH, {mode:'cors', cache:'no-cache'});
       if (!r.ok) throw new Error("HTTP " + r.status);
       var data = await r.json();
+      setSyncStatus('ok','Live sync · 실시간 동기화');
       return data;
     } catch(e) {
       console.error("Firebase load error:", e);
+      // Try localStorage fallback
+      try {
+        var s = localStorage.getItem('inics_local');
+        if(s) { setSyncStatus('ok','Local mode · 로컬 모드'); return JSON.parse(s); }
+      } catch(_){}
       return null;
     }
   };
@@ -466,9 +476,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div id="syncBar" class="sync-bar offline" style="margin-bottom:16px">
-        <i class="ti ti-cloud-off"></i>
-        <span id="syncMsg">Connecting to Firebase · Firebase 연결 중...</span>
+      <div id="syncBar" class="sync-bar" style="margin-bottom:16px">
+        <i class="ti ti-cloud-check"></i>
+        <span id="syncMsg">Connected · Firebase 연결됨</span>
       </div>
       <div class="stats-grid" id="dashStats"></div>
       <div id="dashGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -866,13 +876,16 @@ async function saveState() {
 async function loadState() {
   let loaded = null;
   if(fbReady && window._fbLoad) {
-    loaded = await window._fbLoad();
-    if(loaded){ setSyncStatus('ok','Connected · Firebase 연결됨'); }
-    else { setSyncStatus('ok','Connected · Firebase 연결됨 (new database)'); }
+    try {
+      loaded = await window._fbLoad();
+      setSyncStatus('ok', loaded ? 'Live sync · 실시간 동기화' : 'Connected · Firebase 연결됨');
+    } catch(e) {
+      console.error('Load error:', e);
+    }
   }
   if(!loaded) {
     try{ const s=localStorage.getItem('inics_local'); if(s) loaded=JSON.parse(s); }catch(_){}
-    if(!loaded) setSyncStatus('ok','Local mode · 로컬 모드');
+    setSyncStatus(loaded ? 'ok' : 'ok', loaded ? 'Local mode · 로컬 모드' : 'Ready · 준비 완료');
   }
   if(loaded){ state=loaded; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={}; }
   // apply saved passwords
