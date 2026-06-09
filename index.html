@@ -451,7 +451,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </nav>
   <div class="sidebar-footer">
     v6.0 · Firebase Realtime DB<br>
-    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Connecting · 연결 중...</span>
+    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Online · 연결됨</span>
   </div>
 </aside>
 
@@ -855,7 +855,7 @@ function setSyncStatus(status, msg) {
     bar.className='sync-bar offline';
     bar.innerHTML=`<i class="ti ti-cloud-off"></i><span>${msg}</span>`;
   }
-  if(foot) foot.textContent = status==='ok'?'Online · 연결됨':'Offline · 오프라인';
+  if(foot) foot.textContent = status==='ok'?'Online · 연결됨 ✓':'Offline · 오프라인';
 }
 
 async function saveState() {
