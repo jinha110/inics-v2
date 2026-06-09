@@ -815,7 +815,7 @@ async function loadState() {
   }
   if(!loaded) {
     try{ const s=localStorage.getItem('inics_local'); if(s) loaded=JSON.parse(s); }catch(_){}
-    if(!loaded) setSyncStatus('error','Firebase not configured · Firebase 설정 필요');
+    if(!loaded) setSyncStatus('ok','Local mode · 로컬 모드');
   }
   if(loaded){ state=loaded; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={}; }
   // apply saved passwords
@@ -869,6 +869,7 @@ function showPage(name){
   if(name==='dashboard')renderDashboard();
   if(name==='list')renderList();
   if(name==='admin')renderAdmin();
+  if(name==='new' && window._gateUser) { setTimeout(()=>showNewForm(window._gateUser), 50); }
   if(name!=='list')curDocId=null;
 }
 
