@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- saved from url=(0045)file:///C:/Users/jinha/Downloads/index_6.html -->
-<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INICS — Electronic Approval System 전자결재 시스템</title>
-<link rel="preconnect" href="https://fonts.googleapis.com/">
-<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="./index_files/css2" rel="stylesheet">
-<link rel="stylesheet" href="./index_files/tabler-icons.min.css">
-<script src="./index_files/jspdf.umd.min.js.다운로드"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <!-- ════════════════════════════════════════════════
      FIREBASE CONFIG
@@ -62,16 +62,18 @@ try {
 
   window._firebaseReady = true;
 
-  // Directly call loadState if it's already defined, otherwise dispatch event
+  // Try all methods to notify main script
   if (typeof window._onFirebaseReady === 'function') {
     window._onFirebaseReady();
-  } else {
-    document.dispatchEvent(new Event("firebaseReady"));
   }
+  document.dispatchEvent(new Event("firebaseReady"));
+  // Belt-and-suspenders: also set a flag and retry
+  window._fbInitDone = true;
 
 } catch(e) {
   console.error("Firebase init error:", e);
   document.dispatchEvent(new Event("firebaseReady"));
+  window._fbInitDone = true;
 }
 </script>
 
@@ -355,11 +357,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="login-sub">Electronic Approval System · 전자결재 시스템<br>FURNITURE &amp; SOURCING Division</div>
     <div class="login-field">
       <label>ID · 아이디</label>
-      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key===&#39;Enter&#39;)document.getElementById(&#39;gatePw&#39;).focus()">
+      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key==='Enter')document.getElementById('gatePw').focus()">
     </div>
     <div class="login-field">
       <label>Password · 비밀번호</label>
-      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)gateLogin()">
+      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')gateLogin()">
     </div>
     <div class="login-err" id="gateErr">Incorrect ID or password · 아이디 또는 비밀번호 오류</div>
     <button class="login-btn" onclick="gateLogin()">Sign in · 로그인</button>
@@ -376,25 +378,25 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </div>
   <nav class="sidebar-nav">
     <div class="sidebar-section">Main · 메인</div>
-    <button class="nav-item active" onclick="showPage(&#39;dashboard&#39;)"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
+    <button class="nav-item active" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
 
     <div class="sidebar-section">Approval · 결재</div>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;)"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage(&#39;mine&#39;)"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
-    <button class="nav-item" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
+    <button class="nav-item" onclick="showPage('list')"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage('mine')"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
+    <button class="nav-item" onclick="showPage('new')"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
 
     <div class="sidebar-section">Quick Filter · 빠른 필터</div>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;pending1&#39;,null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;payment&#39;,null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;done&#39;,null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
+    <button class="nav-item" onclick="showPage('list');setFilter('pending1',null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage('list');setFilter('payment',null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage('list');setFilter('done',null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
 
     <div class="sidebar-section">Admin · 관리자</div>
-    <button class="nav-item" id="nav-admin" onclick="showPage(&#39;admin&#39;)" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
+    <button class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
     <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
   </nav>
   <div class="sidebar-footer">
     v6.0 · Firebase Realtime DB<br>
-    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Offline · 오프라인</span>
+    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Connecting · 연결 중...</span>
   </div>
 </aside>
 
@@ -418,16 +420,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div id="syncBar" class="sync-bar error" style="margin-bottom:16px"><i class="ti ti-cloud-off"></i><span>Firebase not configured · Firebase 설정 필요</span></div>
-      <div class="stats-grid" id="dashStats"><div class="stat-card"><div class="stat-top"><div class="stat-label">Total · 전체</div><div class="stat-icon" style="background:#f0f0ec;color:#1a1a18"><i class="ti ti-files"></i></div></div><div class="stat-num" style="color:#1a1a18">0</div><div class="stat-sub">All documents</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Pending · 대기</div><div class="stat-icon" style="background:#fffbeb;color:#b45309"><i class="ti ti-clock"></i></div></div><div class="stat-num" style="color:#b45309">0</div><div class="stat-sub">Awaiting approval</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Payment · 결제</div><div class="stat-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div></div><div class="stat-num" style="color:#92400e">0</div><div class="stat-sub">In payment process</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Done · 완료</div><div class="stat-icon" style="background:#f0fdf4;color:#166534"><i class="ti ti-circle-check"></i></div></div><div class="stat-num" style="color:#166534">0</div><div class="stat-sub">Fully approved</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Rejected · 반려</div><div class="stat-icon" style="background:#fef2f2;color:#b91c1c"><i class="ti ti-x"></i></div></div><div class="stat-num" style="color:#b91c1c">0</div><div class="stat-sub">Returned</div></div></div>
+      <div id="syncBar" class="sync-bar offline" style="margin-bottom:16px">
+        <i class="ti ti-cloud-off"></i>
+        <span id="syncMsg">Connecting to Firebase · Firebase 연결 중...</span>
+      </div>
+      <div class="stats-grid" id="dashStats"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
-          <div id="dashPending"><div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No pending · 대기 없음</p></div></div>
+          <div id="dashPending"></div>
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
-          <div id="dashRecent"><div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No documents yet · 문서 없음</p></div></div>
+          <div id="dashRecent"></div>
         </div>
       </div>
     </div>
@@ -435,17 +440,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <!-- ALL DOCS -->
     <div class="page" id="page-list">
       <div class="filter-bar" id="listFilterBar">
-        <button class="filter-chip active" onclick="setFilter(&#39;all&#39;,this)">All · 전체</button>
-        <button class="filter-chip" onclick="setFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
-        <button class="filter-chip" onclick="setFilter(&#39;pending1&#39;,this)">1st · 1차 대기</button>
-        <button class="filter-chip" onclick="setFilter(&#39;pending2&#39;,this)">2nd · 2차 대기</button>
-        <button class="filter-chip" onclick="setFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
-        <button class="filter-chip" onclick="setFilter(&#39;done&#39;,this)">Done · 완료</button>
-        <button class="filter-chip" onclick="setFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
+        <button class="filter-chip active" onclick="setFilter('all',this)">All · 전체</button>
+        <button class="filter-chip" onclick="setFilter('draft',this)">Draft · 임시저장</button>
+        <button class="filter-chip" onclick="setFilter('pending1',this)">1st · 1차 대기</button>
+        <button class="filter-chip" onclick="setFilter('pending2',this)">2nd · 2차 대기</button>
+        <button class="filter-chip" onclick="setFilter('payment',this)">Payment · 결제 중</button>
+        <button class="filter-chip" onclick="setFilter('done',this)">Done · 완료</button>
+        <button class="filter-chip" onclick="setFilter('rejected',this)">Rejected · 반려</button>
         <div class="filter-spacer"></div>
-        <button class="btn btn-dark" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i> New · 기안</button>
+        <button class="btn btn-dark" onclick="showPage('new')"><i class="ti ti-plus"></i> New · 기안</button>
       </div>
-      <div class="doc-list" id="docList"><div class="empty-state"><i class="ti ti-inbox"></i><p>No documents · 문서 없음</p></div></div>
+      <div class="doc-list" id="docList"></div>
       <div id="detailWrap"></div>
     </div>
 
@@ -455,8 +460,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">My Documents · 내 문서함</div>
           <div class="auth-card-sub">Sign in to view your documents · 본인 인증 후 이용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginMine()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginMine()"></div>
           <div class="modal-err" id="mineErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginMine()"><i class="ti ti-login"></i> Sign in · 확인</button>
         </div>
@@ -467,12 +472,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <button class="btn btn-outline" onclick="logoutMine()"><i class="ti ti-x"></i> Close · 닫기</button>
         </div>
         <div class="filter-bar" id="mineFilterBar">
-          <button class="filter-chip active" onclick="setMineFilter(&#39;all&#39;,this)">All · 전체</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;pending1&#39;,this)">Pending · 승인 대기</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;done&#39;,this)">완료 · Done</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
+          <button class="filter-chip active" onclick="setMineFilter('all',this)">All · 전체</button>
+          <button class="filter-chip" onclick="setMineFilter('draft',this)">Draft · 임시저장</button>
+          <button class="filter-chip" onclick="setMineFilter('pending1',this)">Pending · 승인 대기</button>
+          <button class="filter-chip" onclick="setMineFilter('payment',this)">Payment · 결제 중</button>
+          <button class="filter-chip" onclick="setMineFilter('done',this)">완료 · Done</button>
+          <button class="filter-chip" onclick="setMineFilter('rejected',this)">Rejected · 반려</button>
         </div>
         <div class="doc-list" id="mineList"></div>
         <div id="mineDetailWrap"></div>
@@ -485,8 +490,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">New Draft · 기안하기</div>
           <div class="auth-card-sub">Authenticate to proceed · 기안자 인증 후 진행</div>
-          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginNew()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginNew()"></div>
           <div class="modal-err" id="newErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginNew()"><i class="ti ti-login"></i> Confirm · 확인</button>
         </div>
@@ -538,7 +543,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                   <div class="fg" style="margin-bottom:11px">
                     <label>Bank Location · 은행 소재지</label>
                     <div class="radio-row">
-                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked="" onchange="toggleBankType()"> Vietnam · 베트남</label>
+                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked onchange="toggleBankType()"> Vietnam · 베트남</label>
                       <label class="radio-label"><input type="radio" name="bankType" value="foreign" onchange="toggleBankType()"> Foreign · 해외</label>
                     </div>
                   </div>
@@ -653,7 +658,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                     <label>Budget Reflected · 예산 반영 여부</label>
                     <div class="radio-row" style="margin-top:6px">
                       <label class="radio-label"><input type="radio" name="expBudget" value="yes"> Yes · 예</label>
-                      <label class="radio-label"><input type="radio" name="expBudget" value="no" checked=""> No · 아니오</label>
+                      <label class="radio-label"><input type="radio" name="expBudget" value="no" checked> No · 아니오</label>
                     </div>
                   </div>
                   <div class="fg">
@@ -664,7 +669,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
               </div>
             </div>
-            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked=""> Not required · 불필요</label></div></div>
+            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked> Not required · 불필요</label></div></div>
           </div>
           <div class="line-preview" id="linePreview"></div>
         </div>
@@ -694,7 +699,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title" style="display:flex;align-items:center;gap:7px"><i class="ti ti-shield-check" style="color:var(--admin)"></i> Admin Login · 관리자 로그인</div>
           <div class="auth-card-sub">JINHA LEE administrator access · JINHA LEE 관리자 전용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key===&#39;Enter&#39;)loginAdmin()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
           <div class="modal-err" id="adminErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginAdmin()"><i class="ti ti-login"></i> Login · 로그인</button>
         </div>
@@ -714,7 +719,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="admin-card">
             <div class="admin-card-hdr"><i class="ti ti-key"></i> Change Password · 비밀번호 변경</div>
             <div class="admin-card-body">
-              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option></select></div>
+              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"></select></div>
               <div class="fg" style="margin-bottom:10px"><label>New Password · 새 비밀번호</label><input type="text" id="pwNew" placeholder="New password · 새 비밀번호"></div>
               <button class="btn btn-admin" onclick="changePassword()"><i class="ti ti-check"></i> Save · 저장</button>
             </div>
@@ -744,7 +749,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <div class="modal-box">
     <div class="modal-title"><i class="ti ti-lock" style="font-size:17px"></i><span id="pinTitle">Authentication · 인증</span></div>
     <div class="modal-sub" id="pinSub"></div>
-    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key===&#39;Enter&#39;)confirmPin()">
+    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key==='Enter')confirmPin()">
     <div class="modal-err" id="pinErr">Incorrect password · 비밀번호 오류</div>
     <div class="modal-btns">
       <button class="btn btn-dark" onclick="confirmPin()"><i class="ti ti-check"></i> Confirm · 확인</button>
@@ -754,7 +759,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <div class="toast" id="toast"></div>
-<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple="" onchange="handleDraftFile(event)">
+<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple onchange="handleDraftFile(event)">
 <input type="file" id="payFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.docx" onchange="handlePayFile(event)">
 
 <script>
@@ -1271,13 +1276,24 @@ if (window._firebaseReady) {
     loadState();
   }, { once: true });
 
-  // Case 3: Firebase never loads
+  // Case 3: Firebase never loads - shorter timeout
   setTimeout(function() {
     if (!fbReady) {
       loadState();
     }
-  }, 10000);
+  }, 5000);
 }
+
+// Extra safety: poll for firebase ready
+var _fbPoll = setInterval(function() {
+  if (window._fbInitDone && !fbReady) {
+    clearInterval(_fbPoll);
+    fbReady = true;
+    loadState();
+  } else if (fbReady) {
+    clearInterval(_fbPoll);
+  }
+}, 200);
 </script>
 
 <script>
@@ -1362,6 +1378,5 @@ function toggleBankType() {
 })();
 </script>
 
-
-
-</body></html>
+</body>
+</html>
