@@ -1654,10 +1654,18 @@ function editDoc(id, wrapId) {
 
   // Wait for form to be visible
   setTimeout(function(){
-    // Make sure form is showing
+    // Make sure form is showing - check all possible sources for current user
     var gu = window._gateUser;
     if(!gu && newAuthId) gu = MEMBERS.find(function(m){ return m.id === newAuthId; });
-    if(gu) showNewForm(gu);
+    if(!gu && mineUserId) gu = MEMBERS.find(function(m){ return m.id === mineUserId; });
+    if(!gu) {
+      var uid = parseInt(sessionStorage.getItem('inics_uid')||'0');
+      if(uid) gu = MEMBERS.find(function(m){ return m.id === uid; });
+    }
+    if(gu) {
+      newAuthId = gu.id;
+      showNewForm(gu);
+    }
 
     setTimeout(function(){
       // Populate fields
