@@ -1201,7 +1201,7 @@ function triggerAddAtt(docId){const inp=document.createElement('input');inp.type
 function triggerPayFile(id){pendingPayFileDocId=id;document.getElementById('payFileInput').click();}
 function handlePayFile(e){const file=e.target.files[0];if(!file||pendingPayFileDocId===null)return;const doc=state.docs.find(d=>d.id===pendingPayFileDocId);if(!doc)return;doc.payAtts=doc.payAtts||[];doc.payAtts.push({name:file.name,size:fmtSize(file.size),addedAt:nowStr()});saveState();const wrap=curDocId===doc.id?'detailWrap':mineDocId===doc.id?'mineDetailWrap':null;if(wrap){if(wrap==='detailWrap')renderList();else renderMineList();}e.target.value='';showToast(`"${file.name}" attached · 첨부 완료`);}
 
-function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept];const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[]};}
+function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept];const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
 function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
 function submitDoc(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast(`Submitted · 결재 상신 — ${doc.docNo}`);showPage('list');}
 function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');document.getElementById('docCurrency').value='USD';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
@@ -1256,6 +1256,65 @@ function printPDF(id){
   if(allAtts.length){hl('#eee');y+=6;pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('ATTACHMENTS · 첨부 파일',ml,y);y+=5;allAtts.forEach(a=>{chk(6);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor('#555');pdf.text(`• [${a.tp}]  ${a.name}  (${a.size})`,ml+2,y);y+=5;});}
   const total=pdf.getNumberOfPages();for(let p=1;p<=total;p++){pdf.setPage(p);pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.setTextColor('#aaa');pdf.text(`INICS Electronic Approval · 전자결재  |  ${p}/${total}`,W/2,292,{align:'center'});pdf.text(`Generated · 출력: ${nowStr()}`,W-mr,292,{align:'right'});}
   pdf.save(`${doc.docNo||'doc'}_${(doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24)}.pdf`);showToast('PDF saved · PDF 저장 완료');
+}
+
+
+// ═══════════════════════════════════════════
+// EXPENSE DETAIL TOGGLE
+// ═══════════════════════════════════════════
+function toggleExpenseDetail() {
+  var type = document.getElementById('docType') ? document.getElementById('docType').value : '';
+  var el = document.getElementById('expenseDetail');
+  if (el) el.style.display = type.includes('지출결의서') ? 'block' : 'none';
+}
+
+function toggleBankType() {
+  var val = document.querySelector('input[name="bankType"]:checked');
+  val = val ? val.value : 'vn';
+  var vn = document.getElementById('bankVN');
+  var foreign = document.getElementById('bankForeign');
+  if (vn) vn.style.display = val === 'vn' ? 'grid' : 'none';
+  if (foreign) foreign.style.display = val === 'foreign' ? 'grid' : 'none';
+}
+
+function getExpenseData() {
+  var type = document.getElementById('docType') ? document.getElementById('docType').value : '';
+  if (!type.includes('지출결의서')) return null;
+  var bankType = document.querySelector('input[name="bankType"]:checked');
+  bankType = bankType ? bankType.value : 'vn';
+  var budget = document.querySelector('input[name="expBudget"]:checked');
+  budget = budget ? budget.value : 'no';
+  function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  return {
+    vendorName: val('expVendorName'), vendorReg: val('expVendorReg'),
+    bankType: bankType,
+    bankVN: bankType==='vn' ? (document.getElementById('expBankVN') ? document.getElementById('expBankVN').value : '') : '',
+    bankVNAcct: bankType==='vn' ? val('expBankVNAcct') : '',
+    bankVNHolder: bankType==='vn' ? val('expBankVNHolder') : '',
+    bankVNBranch: bankType==='vn' ? val('expBankVNBranch') : '',
+    bankForeignName: bankType==='foreign' ? val('expBankForeignName') : '',
+    bankSwift: bankType==='foreign' ? val('expBankSwift') : '',
+    bankForeignAcct: bankType==='foreign' ? val('expBankForeignAcct') : '',
+    bankForeignHolder: bankType==='foreign' ? val('expBankForeignHolder') : '',
+    bankForeignAddr: bankType==='foreign' ? val('expBankForeignAddr') : '',
+    poNumber: val('expPO'), invoiceNumber: val('expInvoice'),
+    payDate: val('expPayDate'), purpose: val('expPurpose'),
+    vendorReason: val('expVendorReason'), budget: budget, remarks: val('expRemarks')
+  };
+}
+
+function clearExpenseForm() {
+  ['expVendorName','expVendorReg','expBankVNAcct','expBankVNHolder','expBankVNBranch',
+   'expBankForeignName','expBankSwift','expBankForeignAcct','expBankForeignHolder','expBankForeignAddr',
+   'expPO','expInvoice','expPayDate','expPurpose','expVendorReason','expRemarks'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var vn = document.querySelector('input[name="bankType"][value="vn"]');
+  if (vn) { vn.checked = true; toggleBankType(); }
+  var no = document.querySelector('input[name="expBudget"][value="no"]');
+  if (no) no.checked = true;
+  var bankSel = document.getElementById('expBankVN');
+  if (bankSel) bankSel.selectedIndex = 0;
 }
 
 // ═══════════════════════════════════════════
