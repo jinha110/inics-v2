@@ -1953,7 +1953,7 @@ function renderVendorDB() {
     var docLinks = v.docs.map(function(d){ return '<span class="docno">'+d.no+'</span> '+d.title+(d.inv?' [INV:'+d.inv+']':'')+(d.po?' [PO:'+d.po+']':''); }).join('<br>');
     return '<div class="detail-panel" style="margin-bottom:10px">'
       +'<div class="detail-hdr"><div style="flex:1"><div class="detail-title">'+v.name+'</div>'
-      +'<div class="detail-badges"><span class="badge b-sourcing">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">'+v.reg+'</span>':'')+'</div></div></div>'
+      +'<div class="detail-badges"><span class="badge b-draft">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">'+v.reg+'</span>':'')+'</div></div></div>'
       +'<div class="detail-body">'
       +'<div class="info-grid">'
       +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+'</div></div>'
