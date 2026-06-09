@@ -103,7 +103,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .sidebar-logo{padding:16px 18px 14px;border-bottom:1px solid var(--border)}
 .logo-text{font-size:15px;font-weight:600;letter-spacing:-.02em}
 .logo-sub{font-size:9px;color:var(--text-3);margin-top:2px;letter-spacing:.03em;line-height:1.5}
-.sidebar-section{padding:14px 14px 5px;font-size:9px;font-weight:700;color:#1d4ed8;letter-spacing:.09em;text-transform:uppercase}
+.sidebar-section{padding:14px 14px 5px;font-size:9px;font-weight:700;color:var(--text-3);letter-spacing:.09em;text-transform:uppercase}
 .sidebar-nav{flex:1;padding:4px 0;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:12px;color:var(--text-2);cursor:pointer;border:none;background:none;width:100%;text-align:left;position:relative;transition:background .1s,color .1s}
 .nav-item:hover{background:var(--surface-2);color:var(--text)}
@@ -126,7 +126,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px}
 .stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.stat-label{font-size:9px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.06em;line-height:1.4}
+.stat-label{font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;line-height:1.4}
 .stat-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px}
 .stat-num{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1}
 .stat-sub{font-size:10px;color:var(--text-3);margin-top:3px}
@@ -198,7 +198,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 /* ATTACHMENTS */
 .att-section{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:14px}
-.att-hdr{background:#dbeafe;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfdbfe}
+.att-hdr{background:var(--surface-2);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
 .att-hdr-title{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
 .att-body{padding:10px 13px}
 .att-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;background:var(--surface)}
@@ -225,7 +225,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 /* FORMS */
 .form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:14px}
-.form-card-title{font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:5px;background:#dbeafe;padding:8px 12px;border-radius:6px;margin:-2px -2px 12px -2px}
+.form-card-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:5px}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .span2{grid-column:span 2}
 .fg{display:flex;flex-direction:column;gap:4px}
@@ -241,7 +241,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 /* ACTION */
 .action-box{background:var(--surface-2);border-radius:var(--radius);padding:13px 15px;margin-top:14px}
-.action-box-title{font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.action-box-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;display:flex;align-items:center;gap:5px}
 .action-comment{width:100%;min-height:50px;font-family:var(--sans);font-size:13px;color:var(--text);background:white;border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;resize:none;outline:none;margin-bottom:9px}
 .action-comment:focus{border-color:var(--text)}
 
@@ -252,7 +252,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 /* ADMIN PANEL */
 .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .admin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-.admin-card-hdr{background:#dbeafe;padding:10px 14px;border-bottom:1px solid #bfdbfe;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;color:#1d4ed8}
+.admin-card-hdr{background:var(--surface-2);padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px}
 .admin-card-body{padding:14px}
 .member-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
 .member-row:last-child{border-bottom:none}
@@ -487,11 +487,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="stats-grid" id="dashStats"></div>
       <div id="dashGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
-          <div style="font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
           <div id="dashPending"></div>
         </div>
         <div>
-          <div style="font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
           <div id="dashRecent"></div>
         </div>
       </div>
@@ -592,7 +592,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
               <div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:4px">
 
                 <!-- 거래처 정보 -->
-                <div style="background:#dbeafe;padding:9px 14px;border-bottom:1px solid #bfdbfe;font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                <div style="background:#dbeafe;padding:9px 14px;border-bottom:1px solid #bfdbfe;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
                   <i class="ti ti-building"></i> Vendor Info · 거래처 정보
                 </div>
                 <div class="fgrid" style="padding:14px;gap:11px">
@@ -607,7 +607,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                 </div>
 
                 <!-- 은행 정보 -->
-                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
                   <i class="ti ti-building-bank"></i> Bank Info · 은행 정보
                 </div>
                 <div style="padding:14px">
@@ -694,7 +694,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                 </div>
 
                 <!-- 문서 정보 -->
-                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
                   <i class="ti ti-receipt"></i> Document Reference · 문서 참조
                 </div>
                 <div class="fgrid" style="padding:14px;gap:11px">
@@ -713,7 +713,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                 </div>
 
                 <!-- 구매 목적 & 사유 -->
-                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                <div style="background:var(--surface-2);padding:9px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
                   <i class="ti ti-clipboard-text"></i> Purchase Justification · 구매 목적 및 사유
                 </div>
                 <div style="padding:14px" class="fgrid">
@@ -1139,18 +1139,18 @@ function expenseDetailHTML(e) {
        <div class="ifield"><div class="lbl">Bank Address · 은행주소</div><div class="val">${e.bankForeignAddr||'—'}</div></div>`;
 
   return `<div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px">
-    <div style="background:#dbeafe;padding:8px 13px;font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #bfdbfe">
+    <div style="background:#dbeafe;padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #bfdbfe">
       <i class="ti ti-building" style="margin-right:5px"></i>Vendor · 거래처
     </div>
     <div class="info-grid" style="padding:12px 14px">
       <div class="ifield"><div class="lbl">Vendor · 업체명</div><div class="val">${e.vendorName||'—'}</div></div>
       <div class="ifield"><div class="lbl">Reg. No · 사업자번호</div><div class="val">${e.vendorReg||'—'}</div></div>
     </div>
-    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
       <i class="ti ti-building-bank" style="margin-right:5px"></i>Bank · 은행정보 <span style="font-weight:400;text-transform:none;font-size:10px">(${e.bankType==='vn'?'Vietnam · 베트남':'Foreign · 해외'})</span>
     </div>
     <div class="info-grid" style="padding:12px 14px">${bankInfo}</div>
-    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
       <i class="ti ti-receipt" style="margin-right:5px"></i>Reference · 문서참조
     </div>
     <div class="info-grid" style="padding:12px 14px">
@@ -1159,7 +1159,7 @@ function expenseDetailHTML(e) {
       <div class="ifield"><div class="lbl">Payment Due · 지급예정일</div><div class="val">${e.payDate||'—'}</div></div>
       <div class="ifield"><div class="lbl">Budget · 예산반영</div><div class="val">${e.budget==='yes'?'Yes · 예':'No · 아니오'}</div></div>
     </div>
-    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
       <i class="ti ti-clipboard-text" style="margin-right:5px"></i>Justification · 구매사유
     </div>
     <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
@@ -1240,7 +1240,7 @@ function showDetail(id,wrapId='detailWrap'){
 
   document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?'<img src="'+doc.descImage+'" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px">':''}` + '</div>':''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
-      ${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;background:#dbeafe;padding:7px 10px;border-radius:6px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${actionHTML}</div></div>`;
+      ${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${actionHTML}</div></div>`;
   document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
