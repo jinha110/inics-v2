@@ -592,7 +592,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
               <div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:4px">
 
                 <!-- 거래처 정보 -->
-                <div style="background:var(--surface-2);padding:9px 14px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
+                <div style="background:#dbeafe;padding:9px 14px;border-bottom:1px solid #bfdbfe;font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:5px">
                   <i class="ti ti-building"></i> Vendor Info · 거래처 정보
                 </div>
                 <div class="fgrid" style="padding:14px;gap:11px">
@@ -869,7 +869,7 @@ let MEMBERS = [
   {id:3, name:'HANA',         role:'PROJECT MANAGER',  dept:'FURNITURE', pw:'HANA',       isAdmin:false},
   {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',       isAdmin:false},
 ];
-const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}};
+const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}, COMMON:{a1:1,a2:null}};
 const ADMIN_EXTRA_PW = 'JINHA'; // Admin panel extra password · 관리자 패널 추가 비밀번호
 
 let state = {
@@ -1139,7 +1139,7 @@ function expenseDetailHTML(e) {
        <div class="ifield"><div class="lbl">Bank Address · 은행주소</div><div class="val">${e.bankForeignAddr||'—'}</div></div>`;
 
   return `<div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px">
-    <div style="background:var(--surface-2);padding:8px 13px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border)">
+    <div style="background:#dbeafe;padding:8px 13px;font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #bfdbfe">
       <i class="ti ti-building" style="margin-right:5px"></i>Vendor · 거래처
     </div>
     <div class="info-grid" style="padding:12px 14px">
@@ -1326,6 +1326,47 @@ function logoutAdmin(){document.getElementById('adminAuthWrap').style.display='b
 // ADMIN PANEL
 // ═══════════════════════════════════════════
 
+
+function renderApproverLines() {
+  var el = document.getElementById('adminApproverLines');
+  if(!el) return;
+  var depts = state.departments || ['FURNITURE','SOURCING','COMMON'];
+  var lines = state.approverLines || {};
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">';
+  depts.forEach(function(dept) {
+    var line = lines[dept] || LINES[dept] || {a1:1,a2:null};
+    var opts1 = MEMBERS.map(function(m){
+      return '<option value="' + m.id + '"' + (line.a1 == m.id ? ' selected' : '') + '>' + m.name + ' (' + m.role + ')</option>';
+    }).join('');
+    var opts2 = '<option value=""' + (line.a2 == null ? ' selected' : '') + '>None · 없음 (1차 최종)</option>'
+      + MEMBERS.map(function(m){
+        return '<option value="' + m.id + '"' + (line.a2 == m.id ? ' selected' : '') + '>' + m.name + ' (' + m.role + ')</option>';
+      }).join('');
+    html += '<div style="background:var(--surface-2);border-radius:var(--radius);padding:12px;border:1px solid var(--border)">'
+      + '<div style="font-size:12px;font-weight:600;margin-bottom:8px">' + dept + '</div>'
+      + '<div class="fg" style="margin-bottom:8px"><label style="font-size:10px">1st Approver · 1차</label>'
+      + '<select data-dept="' + dept + '" data-pos="a1" onchange="saveApproverLine(this)">' + opts1 + '</select></div>'
+      + '<div class="fg"><label style="font-size:10px">2nd Approver · 2차 (선택)</label>'
+      + '<select data-dept="' + dept + '" data-pos="a2" onchange="saveApproverLine(this)">' + opts2 + '</select></div>'
+      + '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function saveApproverLine(selectEl) {
+  var dept = selectEl.getAttribute('data-dept');
+  var pos = selectEl.getAttribute('data-pos');
+  var val = selectEl.value;
+  if(!state.approverLines) state.approverLines = {};
+  var cur = state.approverLines[dept] || LINES[dept] || {a1:1, a2:null};
+  if(pos === 'a1') cur = {a1: parseInt(val), a2: cur.a2};
+  else cur = {a1: cur.a1, a2: (val === '' ? null : parseInt(val))};
+  state.approverLines[dept] = cur;
+  saveState();
+  showToast(dept + ' 결재선 저장 완료');
+}
+
 function renderDeptTypeAdmin() {
   var depts = state.departments || ['FURNITURE','SOURCING'];
   var types = state.docTypes || ['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other'];
@@ -1396,6 +1437,7 @@ function renderAdmin(){
     </div>
     <div class="pw-dot">●●●●</div>
   </div>`).join('');}
+  renderApproverLines();
   renderDeptTypeAdmin();
   const as=document.getElementById('adminStats');
   if(as){
@@ -1431,7 +1473,8 @@ function clearDone(){
 // ═══════════════════════════════════════════
 function onDeptChange(){
   const dept=document.getElementById('docDept').value;
-  const line=LINES[dept]||{a1:1,a2:null};
+  var savedLine = state.approverLines && state.approverLines[dept];
+  const line = savedLine || LINES[dept] || {a1:1,a2:null};
   const a1=gm(line.a1),a2=line.a2?gm(line.a2):null;
   document.getElementById('linePreview').innerHTML='<i class="ti ti-route" style="margin-right:5px"></i><strong>Approval Line · 결재선</strong> &nbsp; Drafter · 기안자 → 1st · 1차: '+(a1?a1.name+' ('+a1.role+')':'—')+(a2?' → 2nd · 2차: '+a2.name+' ('+a2.role+')':' → 2nd · 2차: None (Final · 최종)');
 }
@@ -1500,7 +1543,7 @@ function handlePayFile(e){
   e.target.value='';
 }
 
-function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),descImage:descImageData||null,needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
+function buildDoc(status){const dept=document.getElementById('docDept').value;const line=(state.approverLines&&state.approverLines[dept])||LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),descImage:descImageData||null,needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
 function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
 function submitDoc(){
   if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}
