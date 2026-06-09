@@ -15,28 +15,19 @@
      아래 7개 값을 Firebase Console에서 복사해서 교체하세요
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey:            "AIzaSyDU8DTaqZuG1CZTO6TJprqq7NV9WrAjzio",
-  authDomain:        "inics-approval.firebaseapp.com",
-  databaseURL:       "https://inics-approval-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:         "inics-approval",
-  storageBucket:     "inics-approval.firebasestorage.app",
-  messagingSenderId: "54538003603",
-  appId:             "1:54538003603:web:2bea49acefa466bf785966"
-};
-
-try {
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
-  const DB_PATH = "inics_approval/state";
+<script>
+(function() {
+  var BASE = "https://inics-approval-default-rtdb.asia-southeast1.firebasedatabase.app";
+  var PATH = "/inics_approval/state.json";
 
   window._fbSave = async function(state) {
     try {
-      await set(ref(db, DB_PATH), state);
+      var r = await fetch(BASE + PATH, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(state)
+      });
+      if (!r.ok) throw new Error("HTTP " + r.status);
     } catch(e) {
       console.error("Firebase save error:", e);
       try { localStorage.setItem("inics_local", JSON.stringify(state)); } catch(_){}
@@ -45,9 +36,10 @@ try {
 
   window._fbLoad = async function() {
     try {
-      const snap = await get(ref(db, DB_PATH));
-      if (snap.exists()) return snap.val();
-      return null;
+      var r = await fetch(BASE + PATH);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      var data = await r.json();
+      return data;
     } catch(e) {
       console.error("Firebase load error:", e);
       return null;
@@ -55,26 +47,23 @@ try {
   };
 
   window._fbListen = function(cb) {
-    onValue(ref(db, DB_PATH), snap => {
-      if (snap.exists()) cb(snap.val());
-    });
+    setInterval(async function() {
+      try {
+        var r = await fetch(BASE + PATH);
+        if (r.ok) { var d = await r.json(); if (d) cb(d); }
+      } catch(e) {}
+    }, 5000);
   };
 
   window._firebaseReady = true;
+  window._fbInitDone = true;
 
-  // Try all methods to notify main script
   if (typeof window._onFirebaseReady === 'function') {
     window._onFirebaseReady();
+  } else {
+    document.dispatchEvent(new Event("firebaseReady"));
   }
-  document.dispatchEvent(new Event("firebaseReady"));
-  // Belt-and-suspenders: also set a flag and retry
-  window._fbInitDone = true;
-
-} catch(e) {
-  console.error("Firebase init error:", e);
-  document.dispatchEvent(new Event("firebaseReady"));
-  window._fbInitDone = true;
-}
+})();
 </script>
 
 <style>
