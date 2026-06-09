@@ -948,6 +948,8 @@ function docRowHTML(doc,selId,wrap){
         <span><i class="ti ti-user" style="font-size:10px"></i> ${gm(doc.drafterId)?.name||'—'}</span>
         ${attCnt?`<span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> ${attCnt}</span>`:''}
         ${doc.needPayment?`<span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>`:''}
+        ${doc.status==='pending1'?`<span style="color:var(--warning);font-weight:500"><i class="ti ti-clock" style="font-size:10px"></i> 대기: ${gm(doc.a1Id)?.name||'—'}</span>`:''}
+        ${doc.status==='pending2'?`<span style="color:#1d4ed8;font-weight:500"><i class="ti ti-clock" style="font-size:10px"></i> 대기: ${gm(doc.a2Id)?.name||'—'}</span>`:''}
       </div>
     </div>
     <span class="badge ${sBadge(doc.status)}">${sLabel(doc.status)}</span>
