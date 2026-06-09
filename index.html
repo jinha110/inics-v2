@@ -59,8 +59,11 @@
   window._fbListen = function(cb) {
     setInterval(async function() {
       try {
-        var r = await fetch(BASE + PATH);
-        if (r.ok) { var d = await r.json(); if (d) cb(d); }
+        var r = await fetch(BASE + PATH, {mode:'cors', cache:'no-cache'});
+        if (r.ok) {
+          var d = await r.json();
+          if (d && d.docs) cb(d);
+        }
       } catch(e) {}
     }, 5000);
   };
@@ -887,7 +890,12 @@ async function loadState() {
     try{ const s=localStorage.getItem('inics_local'); if(s) loaded=JSON.parse(s); }catch(_){}
     setSyncStatus(loaded ? 'ok' : 'ok', loaded ? 'Local mode · 로컬 모드' : 'Ready · 준비 완료');
   }
-  if(loaded){ state=loaded; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={}; }
+  if(loaded && loaded.docs !== undefined){ 
+    state=loaded; 
+    if(!state.docSeq)state.docSeq={}; 
+    if(!state.memberPasswords)state.memberPasswords={};
+    if(!state.memberPhotos)state.memberPhotos={};
+  }
   // apply saved passwords
   if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
   populateSelects(); render();
