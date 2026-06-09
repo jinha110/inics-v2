@@ -282,6 +282,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .info-grid,.fgrid,.admin-grid{grid-template-columns:1fr}
   .span2{grid-column:span 1}
+  #dashGrid{grid-template-columns:1fr !important}
+  .doc-row{padding:12px 14px}
+  .filter-bar{gap:4px}
+  .filter-chip{padding:4px 9px;font-size:10px}
+  .content{padding:14px}
+  .topbar{padding:0 14px}
+  .detail-body{padding:14px}
+  .flow-track{gap:3px}
+  .fnode{min-width:44px}
+  .flabel{font-size:8px;max-width:44px}
 }
 
 /* ── LOGIN GATE ── */
@@ -365,6 +375,22 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 }
 .photo-upload-btn:hover .photo-upload-overlay { display: flex; }
 
+
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.3);
+  z-index: 99;
+}
+@media(max-width:768px) {
+  .sidebar.open ~ .main-wrap::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.3);
+    z-index: 99;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -423,6 +449,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 <div class="main-wrap">
   <header class="topbar">
     <div style="display:flex;align-items:center;gap:8px">
+      <button id="menuBtn" class="btn btn-outline" onclick="toggleSidebar()" style="padding:6px 9px;display:none"><i class="ti ti-menu-2"></i></button>
       <div class="page-title" id="pageTitle">Dashboard · 대시보드</div>
     </div>
     <div class="topbar-right">
@@ -444,7 +471,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <span id="syncMsg">Connecting to Firebase · Firebase 연결 중...</span>
       </div>
       <div class="stats-grid" id="dashStats"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div id="dashGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
           <div id="dashPending"></div>
@@ -1316,6 +1343,42 @@ function printPDF(id){
 }
 
 
+
+
+// ═══════════════════════════════════════════
+// MOBILE SIDEBAR
+// ═══════════════════════════════════════════
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+function checkMobile() {
+  var btn = document.getElementById('menuBtn');
+  if (btn) btn.style.display = window.innerWidth <= 768 ? '' : 'none';
+  // Close sidebar overlay on nav item click (mobile)
+  if (window.innerWidth <= 768) {
+    document.querySelectorAll('.nav-item').forEach(function(n) {
+      n.addEventListener('click', function() {
+        document.getElementById('sidebar').classList.remove('open');
+      }, {once: false});
+    });
+  }
+}
+
+window.addEventListener('resize', checkMobile);
+document.addEventListener('DOMContentLoaded', checkMobile);
+setTimeout(checkMobile, 100);
+
+// Overlay to close sidebar on mobile
+document.addEventListener('click', function(e) {
+  var sb = document.getElementById('sidebar');
+  var btn = document.getElementById('menuBtn');
+  if (window.innerWidth <= 768 && sb && sb.classList.contains('open')) {
+    if (!sb.contains(e.target) && (!btn || !btn.contains(e.target))) {
+      sb.classList.remove('open');
+    }
+  }
+});
 
 // ═══════════════════════════════════════════
 // AVATAR HELPERS
