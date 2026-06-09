@@ -869,6 +869,20 @@ function showPage(name){
   if(name==='dashboard')renderDashboard();
   if(name==='list')renderList();
   if(name==='admin')renderAdmin();
+  if(name==='mine') {
+    var gu2 = window._gateUser;
+    if (!gu2) {
+      var uid2 = parseInt(sessionStorage.getItem('inics_uid')||'0');
+      if (uid2 && typeof MEMBERS !== 'undefined') gu2 = MEMBERS.find(function(m){ return m.id==uid2; });
+    }
+    if (gu2 && !mineUserId) {
+      mineUserId = gu2.id;
+      document.getElementById('mineAuthWrap').style.display = 'none';
+      document.getElementById('mineContentWrap').style.display = 'block';
+      document.getElementById('mineTitle').textContent = gu2.name + "'s Documents · " + gu2.name + "의 문서함";
+      setTimeout(function(){ renderMineList(); }, 50);
+    }
+  }
   if(name==='new') {
     // Try _gateUser first, then check sessionStorage
     var gu = window._gateUser;
