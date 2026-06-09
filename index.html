@@ -1150,6 +1150,15 @@ function showDetail(id,wrapId='detailWrap'){
   if(s==='draft'){
     actionHTML=`<div class="btn-row" style="margin-top:14px"><button class="btn btn-dark" onclick="resubmit(${id},'${wrapId}')"><i class="ti ti-send"></i> Submit · 결재 상신</button><button class="btn btn-danger" onclick="deleteDoc(${id})"><i class="ti ti-trash"></i> Delete · 삭제</button></div>`;
   }
+  // Admin can delete any document
+  var isAdmin = sessionIsAdmin || (typeof window._gateUser !== 'undefined' && window._gateUser && window._gateUser.isAdmin);
+  if(s!=='draft' && isAdmin){
+    actionHTML += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <button class="btn btn-danger" onclick="adminDeleteDoc(${id},'${wrapId}')" style="font-size:11px">
+        <i class="ti ti-shield-x"></i> Admin Delete · 관리자 삭제
+      </button>
+    </div>`;
+  }
 
   document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${doc.amount}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content?`<div class="ifield" style="margin-bottom:14px"><div class="lbl">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.7;white-space:pre-wrap;font-size:13px">${doc.content}</div></div>`:''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
@@ -1272,7 +1281,20 @@ function onDeptChange(){
 }
 
 function triggerDraftFile(){document.getElementById('draftFileInput').click();}
-function handleDraftFile(e){Array.from(e.target.files).forEach(f=>draftAtts.push({name:f.name,size:fmtSize(f.size),addedAt:nowStr()}));renderDraftAttList();e.target.value='';showToast(`${e.target.files.length} file(s) attached · 첨부됨`);}
+function handleDraftFile(e){
+  var files = Array.from(e.target.files);
+  var loaded = 0;
+  files.forEach(function(f){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      draftAtts.push({name:f.name, size:fmtSize(f.size), addedAt:nowStr(), data:ev.target.result, type:f.type});
+      loaded++;
+      if(loaded===files.length){ renderDraftAttList(); showToast(files.length+' file(s) attached · 첨부됨'); }
+    };
+    reader.readAsDataURL(f);
+  });
+  e.target.value='';
+}
 function removeDraftAtt(idx){draftAtts.splice(idx,1);renderDraftAttList();}
 function renderDraftAttList(){
   document.getElementById('draftAttCnt').textContent=draftAtts.length;
@@ -1281,9 +1303,46 @@ function renderDraftAttList(){
   el.innerHTML=draftAtts.map((a,i)=>`<div class="att-item"><i class="ti ${fileIcon(a.name)} att-icon"></i><span class="att-name">${a.name}</span><span class="att-size">${a.size}</span><button class="att-del" onclick="removeDraftAtt(${i})"><i class="ti ti-x" style="font-size:13px"></i></button></div>`).join('')+`<div class="upload-zone" style="margin-top:7px;padding:9px" onclick="triggerDraftFile()"><i class="ti ti-plus" style="font-size:15px"></i> Add more · 추가</div>`;
 }
 
-function triggerAddAtt(docId){const inp=document.createElement('input');inp.type='file';inp.accept='image/*,.pdf,.xlsx,.xls,.docx,.doc';inp.multiple=true;inp.onchange=e=>{const doc=state.docs.find(d=>d.id===docId);if(!doc)return;doc.draftAtts=doc.draftAtts||[];Array.from(e.target.files).forEach(f=>doc.draftAtts.push({name:f.name,size:fmtSize(f.size),addedAt:nowStr()}));saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();showToast('Attached · 첨부 완료');};inp.click();}
+function triggerAddAtt(docId){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*,.pdf,.xlsx,.xls,.docx,.doc';inp.multiple=true;
+  inp.onchange=function(e){
+    const doc=state.docs.find(d=>d.id===docId);if(!doc)return;
+    doc.draftAtts=doc.draftAtts||[];
+    var files=Array.from(e.target.files), loaded=0;
+    files.forEach(function(f){
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        doc.draftAtts.push({name:f.name,size:fmtSize(f.size),addedAt:nowStr(),data:ev.target.result,type:f.type});
+        loaded++;
+        if(loaded===files.length){
+          saveState();
+          const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';
+          if(wrap==='detailWrap')renderList();else renderMineList();
+          showToast('Attached · 첨부 완료');
+        }
+      };
+      reader.readAsDataURL(f);
+    });
+  };
+  inp.click();
+}
 function triggerPayFile(id){pendingPayFileDocId=id;document.getElementById('payFileInput').click();}
-function handlePayFile(e){const file=e.target.files[0];if(!file||pendingPayFileDocId===null)return;const doc=state.docs.find(d=>d.id===pendingPayFileDocId);if(!doc)return;doc.payAtts=doc.payAtts||[];doc.payAtts.push({name:file.name,size:fmtSize(file.size),addedAt:nowStr()});saveState();const wrap=curDocId===doc.id?'detailWrap':mineDocId===doc.id?'mineDetailWrap':null;if(wrap){if(wrap==='detailWrap')renderList();else renderMineList();}e.target.value='';showToast(`"${file.name}" attached · 첨부 완료`);}
+function handlePayFile(e){
+  const file=e.target.files[0];if(!file||pendingPayFileDocId===null)return;
+  const doc=state.docs.find(d=>d.id===pendingPayFileDocId);if(!doc)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    doc.payAtts=doc.payAtts||[];
+    doc.payAtts.push({name:file.name,size:fmtSize(file.size),addedAt:nowStr(),data:ev.target.result,type:file.type});
+    saveState();
+    const wrap=curDocId===doc.id?'detailWrap':mineDocId===doc.id?'mineDetailWrap':null;
+    if(wrap){if(wrap==='detailWrap')renderList();else renderMineList();}
+    showToast('"'+file.name+'" attached · 첨부 완료');
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
 
 function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept];const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
 function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
@@ -1344,6 +1403,18 @@ function printPDF(id){
 
 
 
+
+
+function adminDeleteDoc(id, wrapId) {
+  if(!confirm('관리자 권한으로 삭제하시겠습니까?\nDelete this document as admin?')) return;
+  state.docs = state.docs.filter(d => d.id !== id);
+  saveState();
+  curDocId = null; mineDocId = null;
+  document.getElementById('detailWrap').innerHTML = '';
+  if(document.getElementById('mineDetailWrap')) document.getElementById('mineDetailWrap').innerHTML = '';
+  renderList(); renderMineList(); renderDashboard();
+  showToast('Document deleted by admin · 관리자 삭제 완료');
+}
 
 // ═══════════════════════════════════════════
 // MOBILE SIDEBAR
