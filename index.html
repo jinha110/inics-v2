@@ -869,7 +869,18 @@ function showPage(name){
   if(name==='dashboard')renderDashboard();
   if(name==='list')renderList();
   if(name==='admin')renderAdmin();
-  if(name==='new' && window._gateUser) { setTimeout(()=>showNewForm(window._gateUser), 50); }
+  if(name==='new') {
+    // Try _gateUser first, then check sessionStorage
+    var gu = window._gateUser;
+    if (!gu) {
+      var uid = parseInt(sessionStorage.getItem('inics_uid')||'0');
+      if (uid && typeof MEMBERS !== 'undefined') {
+        gu = MEMBERS.find(function(m){ return m.id == uid; });
+        if (gu) window._gateUser = gu;
+      }
+    }
+    if (gu) { setTimeout(function(){ showNewForm(gu); }, 50); }
+  }
   if(name!=='list')curDocId=null;
 }
 
@@ -1361,9 +1372,14 @@ function toggleBankType() {
 // Auto-login if session exists
 (function checkSession() {
   if (sessionStorage.getItem('inics_gate') === '1') {
-    const uid = parseInt(sessionStorage.getItem('inics_uid') || '0');
+    var uid = parseInt(sessionStorage.getItem('inics_uid') || '0');
     document.getElementById('loginGate').classList.add('hidden');
-    if (uid) setTimeout(() => applyGateSession(uid), 600);
+    if (uid) {
+      // Try immediately and retry
+      applyGateSession(uid);
+      setTimeout(function(){ applyGateSession(uid); }, 300);
+      setTimeout(function(){ applyGateSession(uid); }, 800);
+    }
   }
 })();
 </script>
