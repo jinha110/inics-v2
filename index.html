@@ -1218,15 +1218,16 @@ function showDetail(id,wrapId='detailWrap'){
       <button class="btn btn-danger" onclick="deleteDoc(${id})"><i class="ti ti-trash"></i> Delete · 삭제</button>
     </div>`;
   }
-  // Drafter can recall and edit if still pending1
-  var currentUid = parseInt(sessionStorage.getItem('inics_uid')||'0');
-  if(s==='pending1' && doc.drafterId === currentUid){
+  // Also show recall button for pending1 docs where current user is drafter
+  var currentUid2 = mineUserId || parseInt(sessionStorage.getItem('inics_uid')||'0') || newAuthId;
+  if(s==='pending1' && doc.drafterId && doc.drafterId === currentUid2){
     actionHTML += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
       <button class="btn btn-outline" onclick="recallDoc(${id},'${wrapId}')">
         <i class="ti ti-arrow-back-up"></i> Recall & Edit · 회수 후 수정
       </button>
     </div>`;
   }
+
   // Admin can delete any document
   var isAdmin = sessionIsAdmin || (typeof window._gateUser !== 'undefined' && window._gateUser && window._gateUser.isAdmin);
   if(s!=='draft' && isAdmin){
@@ -1306,6 +1307,7 @@ function loginMine(){
   if(!m||pw!==m.pw){document.getElementById('mineErr').style.display='block';return;}
   document.getElementById('mineErr').style.display='none';document.getElementById('minePw').value='';
   mineUserId=id;
+  sessionStorage.setItem('inics_uid', String(id));
   document.getElementById('mineAuthWrap').style.display='none';document.getElementById('mineContentWrap').style.display='block';
   document.getElementById('mineTitle').textContent=`${m.name}'s Documents · ${m.name}의 문서함`;
   renderMineList();
