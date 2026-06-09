@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- saved from url=(0045)file:///C:/Users/jinha/Downloads/index_5.html -->
+<!-- saved from url=(0045)file:///C:/Users/jinha/Downloads/index_6.html -->
 <html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INICS — Electronic Approval System 전자결재 시스템</title>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="./index.html_files/css2" rel="stylesheet">
-<link rel="stylesheet" href="./index.html_files/tabler-icons.min.css">
-<script src="./index.html_files/jspdf.umd.min.js.다운로드"></script>
+<link href="./index_files/css2" rel="stylesheet">
+<link rel="stylesheet" href="./index_files/tabler-icons.min.css">
+<script src="./index_files/jspdf.umd.min.js.다운로드"></script>
 
 <!-- ════════════════════════════════════════════════
      FIREBASE CONFIG
@@ -394,7 +394,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </nav>
   <div class="sidebar-footer">
     v6.0 · Firebase Realtime DB<br>
-    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Connecting · 연결 중...</span>
+    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Offline · 오프라인</span>
   </div>
 </aside>
 
@@ -418,19 +418,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div id="syncBar" class="sync-bar offline" style="margin-bottom:16px">
-        <i class="ti ti-cloud-off"></i>
-        <span id="syncMsg">Connecting to Firebase · Firebase 연결 중...</span>
-      </div>
-      <div class="stats-grid" id="dashStats"></div>
+      <div id="syncBar" class="sync-bar error" style="margin-bottom:16px"><i class="ti ti-cloud-off"></i><span>Firebase not configured · Firebase 설정 필요</span></div>
+      <div class="stats-grid" id="dashStats"><div class="stat-card"><div class="stat-top"><div class="stat-label">Total · 전체</div><div class="stat-icon" style="background:#f0f0ec;color:#1a1a18"><i class="ti ti-files"></i></div></div><div class="stat-num" style="color:#1a1a18">0</div><div class="stat-sub">All documents</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Pending · 대기</div><div class="stat-icon" style="background:#fffbeb;color:#b45309"><i class="ti ti-clock"></i></div></div><div class="stat-num" style="color:#b45309">0</div><div class="stat-sub">Awaiting approval</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Payment · 결제</div><div class="stat-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div></div><div class="stat-num" style="color:#92400e">0</div><div class="stat-sub">In payment process</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Done · 완료</div><div class="stat-icon" style="background:#f0fdf4;color:#166534"><i class="ti ti-circle-check"></i></div></div><div class="stat-num" style="color:#166534">0</div><div class="stat-sub">Fully approved</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Rejected · 반려</div><div class="stat-icon" style="background:#fef2f2;color:#b91c1c"><i class="ti ti-x"></i></div></div><div class="stat-num" style="color:#b91c1c">0</div><div class="stat-sub">Returned</div></div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
-          <div id="dashPending"></div>
+          <div id="dashPending"><div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No pending · 대기 없음</p></div></div>
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
-          <div id="dashRecent"></div>
+          <div id="dashRecent"><div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No documents yet · 문서 없음</p></div></div>
         </div>
       </div>
     </div>
@@ -448,7 +445,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="filter-spacer"></div>
         <button class="btn btn-dark" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i> New · 기안</button>
       </div>
-      <div class="doc-list" id="docList"></div>
+      <div class="doc-list" id="docList"><div class="empty-state"><i class="ti ti-inbox"></i><p>No documents · 문서 없음</p></div></div>
       <div id="detailWrap"></div>
     </div>
 
@@ -458,7 +455,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">My Documents · 내 문서함</div>
           <div class="auth-card-sub">Sign in to view your documents · 본인 인증 후 이용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option></select></div>
           <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginMine()"></div>
           <div class="modal-err" id="mineErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginMine()"><i class="ti ti-login"></i> Sign in · 확인</button>
@@ -488,7 +485,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">New Draft · 기안하기</div>
           <div class="auth-card-sub">Authenticate to proceed · 기안자 인증 후 진행</div>
-          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option></select></div>
           <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginNew()"></div>
           <div class="modal-err" id="newErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginNew()"><i class="ti ti-login"></i> Confirm · 확인</button>
@@ -717,7 +714,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="admin-card">
             <div class="admin-card-hdr"><i class="ti ti-key"></i> Change Password · 비밀번호 변경</div>
             <div class="admin-card-body">
-              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"></select></div>
+              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option></select></div>
               <div class="fg" style="margin-bottom:10px"><label>New Password · 새 비밀번호</label><input type="text" id="pwNew" placeholder="New password · 새 비밀번호"></div>
               <button class="btn btn-admin" onclick="changePassword()"><i class="ti ti-check"></i> Save · 저장</button>
             </div>
@@ -1254,7 +1251,6 @@ function printPDF(id){
   const total=pdf.getNumberOfPages();for(let p=1;p<=total;p++){pdf.setPage(p);pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.setTextColor('#aaa');pdf.text(`INICS Electronic Approval · 전자결재  |  ${p}/${total}`,W/2,292,{align:'center'});pdf.text(`Generated · 출력: ${nowStr()}`,W-mr,292,{align:'right'});}
   pdf.save(`${doc.docNo||'doc'}_${(doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24)}.pdf`);showToast('PDF saved · PDF 저장 완료');
 }
-</script>
 
 // ═══════════════════════════════════════════
 // FIREBASE INIT — single clean entry point
@@ -1275,14 +1271,14 @@ if (window._firebaseReady) {
     loadState();
   }, { once: true });
 
-  // Case 3: Firebase never loads (network block, ad blocker etc)
+  // Case 3: Firebase never loads
   setTimeout(function() {
     if (!fbReady) {
-      console.warn('Firebase unavailable — using localStorage fallback');
       loadState();
     }
   }, 10000);
 }
+</script>
 
 <script>
 // ═══════════════════════════════════════════
