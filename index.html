@@ -163,7 +163,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 /* DETAIL */
 .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-top:10px;overflow:hidden}
 .detail-hdr{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.detail-title{font-size:15px;font-weight:600;margin-bottom:5px}
+.detail-title{font-size:16px;font-weight:700;margin-bottom:8px;letter-spacing:-.01em}
 .detail-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
 .detail-body{padding:18px}
 
@@ -450,6 +450,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <div class="sidebar-section">Admin · 관리자</div>
     <button class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
+    <button class="nav-item" onclick="showPage('vendors')"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
     <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
   </nav>
   <div class="sidebar-footer">
@@ -573,7 +574,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                 <div class="fg"><label style="font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">금액 · Amount</label><input type="text" id="docAmount" placeholder="예: 5,000,000"></div>
               </div>
             </div>
-            <div class="fg span2"><label>Description · 내용/사유</label><textarea id="docContent" placeholder="Enter details · 결재 내용 및 사유"></textarea></div>
+            <div class="fg span2">
+  <label>Description · 내용/사유</label>
+  <textarea id="docContent" placeholder="Enter details · 결재 내용 및 사유" style="min-height:200px"></textarea>
+  <div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+    <label style="font-size:11px;color:var(--text-3);font-weight:400;text-transform:none;cursor:pointer;display:flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:var(--radius);padding:4px 10px;background:var(--surface)">
+      <i class="ti ti-photo" style="font-size:14px;color:#3b82f6"></i> Add image · 이미지 첨부
+      <input type="file" id="descImageInput" accept="image/*" style="display:none" onchange="handleDescImage(event)">
+    </label>
+    <span id="descImageName" style="font-size:11px;color:var(--text-3)"></span>
+  </div>
+  <div id="descImagePreview" style="margin-top:8px"></div>
+</div>
 
             <!-- ── EXPENSE DETAIL (지출결의서 only) ── -->
             <div id="expenseDetail" class="span2" style="display:none">
@@ -750,6 +762,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <button class="btn btn-dark" onclick="submitDoc()"><i class="ti ti-send"></i> Submit · 결재 상신</button>
         </div>
       </div>
+    </div>
+
+    <!-- VENDOR DB PAGE -->
+    <div class="page" id="page-vendors">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:600">Vendors · 거래처 DB</div>
+        <div class="fg" style="max-width:260px">
+          <input type="text" id="vendorSearch" placeholder="Search · 검색..." oninput="renderVendorDB()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none;width:100%">
+        </div>
+      </div>
+      <div id="vendorDBList"></div>
     </div>
 
     <!-- ADMIN PAGE -->
@@ -968,11 +991,12 @@ function showPage(name){
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(`'${name}'`))n.classList.add('active');});
-  const titles={dashboard:'Dashboard · 대시보드',list:'All Documents · 전체 문서',mine:'My Documents · 내 문서함',new:'New Draft · 기안하기',admin:'Admin Panel · 관리자 패널'};
+  const titles={dashboard:'Dashboard · 대시보드',list:'All Documents · 전체 문서',mine:'My Documents · 내 문서함',new:'New Draft · 기안하기',admin:'Admin Panel · 관리자 패널',vendors:'Vendors · 거래처 DB'};
   document.getElementById('pageTitle').textContent=titles[name]||'';
   if(name==='dashboard')renderDashboard();
   if(name==='list')renderList();
   if(name==='admin')renderAdmin();
+  if(name==='vendors')renderVendorDB();
   if(name==='mine') {
     var gu2 = window._gateUser;
     if (!gu2) {
@@ -1197,6 +1221,15 @@ function showDetail(id,wrapId='detailWrap'){
   if(s==='draft'){
     actionHTML=`<div class="btn-row" style="margin-top:14px"><button class="btn btn-dark" onclick="resubmit(${id},'${wrapId}')"><i class="ti ti-send"></i> Submit · 결재 상신</button><button class="btn btn-danger" onclick="deleteDoc(${id})"><i class="ti ti-trash"></i> Delete · 삭제</button></div>`;
   }
+  // Drafter can recall and edit if still pending1
+  var currentUid = parseInt(sessionStorage.getItem('inics_uid')||'0');
+  if(s==='pending1' && doc.drafterId === currentUid){
+    actionHTML += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <button class="btn btn-outline" onclick="recallDoc(${id},'${wrapId}')">
+        <i class="ti ti-arrow-back-up"></i> Recall & Edit · 회수 후 수정
+      </button>
+    </div>`;
+  }
   // Admin can delete any document
   var isAdmin = sessionIsAdmin || (typeof window._gateUser !== 'undefined' && window._gateUser && window._gateUser.isAdmin);
   if(s!=='draft' && isAdmin){
@@ -1207,7 +1240,7 @@ function showDetail(id,wrapId='detailWrap'){
     </div>`;
   }
 
-  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${doc.amount}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content?`<div class="ifield" style="margin-bottom:14px"><div class="lbl">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.7;white-space:pre-wrap;font-size:13px">${doc.content}</div></div>`:''}
+  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${doc.amount}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?'<img src="'+doc.descImage+'" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px">':''}` + '</div>':''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
       ${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${actionHTML}</div></div>`;
   document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -1470,10 +1503,10 @@ function handlePayFile(e){
   e.target.value='';
 }
 
-function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
+function buildDoc(status){const dept=document.getElementById('docDept').value;const line=LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),descImage:descImageData||null,needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
 function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
 function submitDoc(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast(`Submitted · 결재 상신 — ${doc.docNo}`);showPage('list');}
-function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');document.getElementById('docCurrency').value='USD';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
+function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');descImageData=null;var dp=document.getElementById('descImagePreview');if(dp)dp.innerHTML='';var dn=document.getElementById('descImageName');if(dn)dn.textContent='';document.getElementById('docCurrency').value='VND';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
 function resubmit(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.docNo)doc.docNo=genDocNo(doc.dept);doc.status='pending1';saveState();if(wrapId==='detailWrap')renderList();else renderMineList();showToast('Submitted · 결재 상신 완료');}
 function doApproval(id,step,action,wrapId){
   const doc=state.docs.find(d=>d.id===id);if(!doc)return;
@@ -1531,6 +1564,19 @@ function printPDF(id){
 
 
 
+
+function recallDoc(id, wrapId) {
+  if(!confirm('회수하면 초안으로 돌아갑니다. 계속하시겠습니까?\nRecall document to draft?')) return;
+  var doc = state.docs.find(function(d){ return d.id === id; });
+  if(!doc) return;
+  doc.status = 'draft';
+  doc.comments = doc.comments || [];
+  doc.comments.push({who: gm(doc.drafterId)?.name||'', role:'Drafter · 기안자', text:'기안자 회수 · Recalled by drafter', time:nowStr()});
+  saveState();
+  if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}
+  showToast('Recalled · 회수 완료 — 수정 후 재상신하세요');
+}
+
 function adminDeleteDoc(id, wrapId) {
   if(!confirm('관리자 권한으로 삭제하시겠습니까?\nDelete this document as admin?')) return;
   state.docs = state.docs.filter(d => d.id !== id);
@@ -1540,6 +1586,62 @@ function adminDeleteDoc(id, wrapId) {
   if(document.getElementById('mineDetailWrap')) document.getElementById('mineDetailWrap').innerHTML = '';
   renderList(); renderMineList(); renderDashboard();
   showToast('Document deleted by admin · 관리자 삭제 완료');
+}
+
+
+// ═══════════════════════════════════════════
+// VENDOR DB
+// ═══════════════════════════════════════════
+function renderVendorDB() {
+  var el = document.getElementById('vendorDBList');
+  if(!el) return;
+  var q = (document.getElementById('vendorSearch')||{}).value || '';
+  q = q.toLowerCase().trim();
+
+  // Collect unique vendors from all docs with expense data
+  var vendors = {};
+  state.docs.forEach(function(doc){
+    if(!doc.expenseData || !doc.expenseData.vendorName) return;
+    var e = doc.expenseData;
+    var key = e.vendorName.trim();
+    if(!key) return;
+    if(!vendors[key]) vendors[key] = {name:key, reg:e.vendorReg||'', bank:{}, docs:[]};
+    // Update bank info (latest wins)
+    vendors[key].bank = {
+      type: e.bankType,
+      bankVN: e.bankVN||'', acctVN: e.bankVNAcct||'', holderVN: e.bankVNHolder||'', branchVN: e.bankVNBranch||'',
+      bankForeign: e.bankForeignName||'', swift: e.bankSwift||'', acctForeign: e.bankForeignAcct||'', holderForeign: e.bankForeignHolder||''
+    };
+    vendors[key].docs.push({no:doc.docNo, title:doc.title, po:e.poNumber||'', inv:e.invoiceNumber||''});
+  });
+
+  var list = Object.values(vendors);
+  if(q) list = list.filter(function(v){
+    return v.name.toLowerCase().includes(q) || v.reg.toLowerCase().includes(q) ||
+      v.bank.bankVN.toLowerCase().includes(q) || v.bank.bankForeign.toLowerCase().includes(q) ||
+      v.docs.some(function(d){ return d.no.toLowerCase().includes(q) || d.inv.toLowerCase().includes(q) || d.po.toLowerCase().includes(q); });
+  });
+
+  if(!list.length){
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-building-store"></i><p>No vendors · 거래처 없음</p></div>';
+    return;
+  }
+
+  el.innerHTML = list.map(function(v){
+    var bankInfo = v.bank.type === 'vn'
+      ? (v.bank.bankVN||'—') + ' | ' + (v.bank.acctVN||'—') + ' | ' + (v.bank.holderVN||'—') + (v.bank.branchVN?' ('+v.bank.branchVN+')':'')
+      : (v.bank.bankForeign||'—') + ' | SWIFT: ' + (v.bank.swift||'—') + ' | ' + (v.bank.acctForeign||'—') + ' | ' + (v.bank.holderForeign||'—');
+    var bankLabel = v.bank.type === 'vn' ? 'Vietnam · 베트남' : 'Foreign · 해외';
+    var docLinks = v.docs.map(function(d){ return '<span class="docno">'+d.no+'</span> '+d.title+(d.inv?' [INV:'+d.inv+']':'')+(d.po?' [PO:'+d.po+']':''); }).join('<br>');
+    return '<div class="detail-panel" style="margin-bottom:10px">'
+      +'<div class="detail-hdr"><div style="flex:1"><div class="detail-title">'+v.name+'</div>'
+      +'<div class="detail-badges"><span class="badge b-sourcing">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">'+v.reg+'</span>':'')+'</div></div></div>'
+      +'<div class="detail-body">'
+      +'<div class="info-grid">'
+      +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+'</div></div>'
+      +'<div class="ifield"><div class="lbl">Related Docs · 관련 문서</div><div class="val" style="font-size:12px;line-height:1.8">'+docLinks+'</div></div>'
+      +'</div></div></div>';
+  }).join('');
 }
 
 // ═══════════════════════════════════════════
@@ -1629,6 +1731,22 @@ function populateDeptTypeSelects() {
 // ═══════════════════════════════════════════
 // EXPENSE DETAIL TOGGLE
 // ═══════════════════════════════════════════
+
+var descImageData = null;
+
+function handleDescImage(e) {
+  var file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 5*1024*1024){ showToast('Image must be under 5MB'); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    descImageData = ev.target.result;
+    document.getElementById('descImageName').textContent = file.name;
+    document.getElementById('descImagePreview').innerHTML = '<img src="'+ev.target.result+'" style="max-width:100%;max-height:200px;border-radius:var(--radius);border:1px solid var(--border);margin-top:4px">';
+  };
+  reader.readAsDataURL(file);
+}
+
 function toggleExpenseDetail() {
   var type = document.getElementById('docType') ? document.getElementById('docType').value : '';
   var el = document.getElementById('expenseDetail');
