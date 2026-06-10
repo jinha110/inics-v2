@@ -1,14 +1,15 @@
+
 <!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0049)file:///C:/Users/jinha/Downloads/index%20(1).html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INICS — Electronic Approval System 전자결재 시스템</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="./INICS — Electronic Approval System 전자결재 시스템_files/css2" rel="stylesheet">
+<link rel="stylesheet" href="./INICS — Electronic Approval System 전자결재 시스템_files/tabler-icons.min.css">
+<script src="./INICS — Electronic Approval System 전자결재 시스템_files/jspdf.umd.min.js.다운로드"></script>
 
 <!-- ════════════════════════════════════════════════
      FIREBASE CONFIG
@@ -482,11 +483,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="login-sub">Electronic Approval System · 전자결재 시스템<br>FURNITURE &amp; SOURCING Division</div>
     <div class="login-field">
       <label>ID · 아이디</label>
-      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key==='Enter')document.getElementById('gatePw').focus()">
+      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key===&#39;Enter&#39;)document.getElementById(&#39;gatePw&#39;).focus()">
     </div>
     <div class="login-field">
       <label>Password · 비밀번호</label>
-      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')gateLogin()">
+      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)gateLogin()">
     </div>
     <div class="login-err" id="gateErr">Incorrect ID or password · 아이디 또는 비밀번호 오류</div>
     <button class="login-btn" onclick="gateLogin()">Sign in · 로그인</button>
@@ -514,7 +515,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="hub-grid">
 
       <!-- 전자결재 Electronic Approval -->
-      <div class="hub-card active-module" onclick="enterModule('approval')">
+      <div class="hub-card active-module" onclick="enterModule(&#39;approval&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#eff6ff;color:#1d4ed8">
           <i class="ti ti-file-check"></i>
@@ -527,7 +528,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
 
       <!-- 거래처 DB Vendor Database -->
-      <div class="hub-card active-module" onclick="enterModule('vendors')">
+      <div class="hub-card active-module" onclick="enterModule(&#39;vendors&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d">
           <i class="ti ti-building-store"></i>
@@ -561,34 +562,33 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <!-- SIDEBAR -->
-<aside class="sidebar"
- id="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-text" onclick="showHub()" style="cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-home-2" style="font-size:16px;color:var(--text-3)"></i>INICS VINA</div>
     <div class="logo-sub">Electronic Approval · 전자결재 시스템<br>FURNITURE &amp; SOURCING</div>
   </div>
   <nav class="sidebar-nav">
     <div class="sidebar-section">Main · 메인</div>
-    <button class="nav-item active" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
+    <button class="nav-item active" onclick="showPage(&#39;dashboard&#39;)"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
 
     <div class="sidebar-section">Approval · 결재</div>
-    <button class="nav-item" onclick="showPage('list')"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage('mine')"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
-    <button class="nav-item" onclick="showPage('new')"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;)"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage(&#39;mine&#39;)"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
+    <button class="nav-item" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
 
     <div class="sidebar-section">Quick Filter · 빠른 필터</div>
-    <button class="nav-item" onclick="showPage('list');setFilter('pending1',null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage('list');setFilter('payment',null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage('list');setFilter('done',null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;pending1&#39;,null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;payment&#39;,null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="">1</span></button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;done&#39;,null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
 
     <div class="sidebar-section">Admin · 관리자</div>
-    <button class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
-    <button class="nav-item" onclick="showPage('vendors')"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
+    <button class="nav-item" id="nav-admin" onclick="showPage(&#39;admin&#39;)" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
+    <button class="nav-item" onclick="showPage(&#39;vendors&#39;)"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
     <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
   </nav>
   <div class="sidebar-footer">
     v6.0 · Firebase Realtime DB<br>
-    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Online · 연결됨</span>
+    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Online · 연결됨 ✓</span>
   </div>
 </aside>
 
@@ -614,19 +614,36 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div id="syncBar" class="sync-bar" style="margin-bottom:16px">
-        <i class="ti ti-cloud-check"></i>
-        <span id="syncMsg">Connected · Firebase 연결됨</span>
-      </div>
-      <div class="stats-grid" id="dashStats"></div>
+      <div id="syncBar" class="sync-bar" style="margin-bottom:16px"><i class="ti ti-cloud-check"></i><span>Live sync · 실시간 동기화</span></div>
+      <div class="stats-grid" id="dashStats"><div class="stat-card"><div class="stat-top"><div class="stat-label">Total · 전체</div><div class="stat-icon" style="background:#f0f0ec;color:#1a1a18"><i class="ti ti-files"></i></div></div><div class="stat-num" style="color:#1a1a18">2</div><div class="stat-sub">All documents</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Pending · 대기</div><div class="stat-icon" style="background:#fffbeb;color:#b45309"><i class="ti ti-clock"></i></div></div><div class="stat-num" style="color:#b45309">0</div><div class="stat-sub">Awaiting approval</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Payment · 결제</div><div class="stat-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div></div><div class="stat-num" style="color:#92400e">1</div><div class="stat-sub">In payment process</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Done · 완료</div><div class="stat-icon" style="background:#f0fdf4;color:#166534"><i class="ti ti-circle-check"></i></div></div><div class="stat-num" style="color:#166534">1</div><div class="stat-sub">Fully approved</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Rejected · 반려</div><div class="stat-icon" style="background:#fef2f2;color:#b91c1c"><i class="ti ti-x"></i></div></div><div class="stat-num" style="color:#b91c1c">0</div><div class="stat-sub">Returned</div></div></div>
       <div id="dashGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
-          <div id="dashPending"></div>
+          <div id="dashPending"><div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No pending · 대기 없음</p></div></div>
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
-          <div id="dashRecent"></div>
+          <div id="dashRecent"><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(15,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-011</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[VISA/ISIRIUS] VISA and purchase of INV</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>JINHA LEE</span><span>2026.06.10</span><span>VND 90,380,800</span></div>
+    </div>
+    <span class="badge b-payment">Payment</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(14,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">FUR202606-001</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Balace payment for company incorporation. 사업자 설립 잔금</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>JINHA LEE</span><span>2026.06.09</span><span>VND 29052000</span></div>
+    </div>
+    <span class="badge b-done">Done</span>
+  </div></div>
         </div>
       </div>
     </div>
@@ -634,17 +651,55 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <!-- ALL DOCS -->
     <div class="page" id="page-list">
       <div class="filter-bar" id="listFilterBar">
-        <button class="filter-chip active" onclick="setFilter('all',this)">All · 전체</button>
-        <button class="filter-chip" onclick="setFilter('draft',this)">Draft · 임시저장</button>
-        <button class="filter-chip" onclick="setFilter('pending1',this)">1st · 1차 대기</button>
-        <button class="filter-chip" onclick="setFilter('pending2',this)">2nd · 2차 대기</button>
-        <button class="filter-chip" onclick="setFilter('payment',this)">Payment · 결제 중</button>
-        <button class="filter-chip" onclick="setFilter('done',this)">Done · 완료</button>
-        <button class="filter-chip" onclick="setFilter('rejected',this)">Rejected · 반려</button>
+        <button class="filter-chip active" onclick="setFilter(&#39;all&#39;,this)">All · 전체</button>
+        <button class="filter-chip" onclick="setFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
+        <button class="filter-chip" onclick="setFilter(&#39;pending1&#39;,this)">1st · 1차 대기</button>
+        <button class="filter-chip" onclick="setFilter(&#39;pending2&#39;,this)">2nd · 2차 대기</button>
+        <button class="filter-chip" onclick="setFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
+        <button class="filter-chip" onclick="setFilter(&#39;done&#39;,this)">Done · 완료</button>
+        <button class="filter-chip" onclick="setFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
         <div class="filter-spacer"></div>
-        <button class="btn btn-dark" onclick="showPage('new')"><i class="ti ti-plus"></i> New · 기안</button>
+        <button class="btn btn-dark" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i> New · 기안</button>
       </div>
-      <div class="doc-list" id="docList"></div>
+      <div class="doc-list" id="docList"><div class="doc-row" onclick="showDetail(15,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-011</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[VISA/ISIRIUS] VISA and purchase of INV</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 90,380,800</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.10</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> JINHA LEE</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 1</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-payment">Payment · 결제 중</span>
+  </div><div class="doc-row" onclick="showDetail(14,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">FUR202606-001</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">Balace payment for company incorporation. 사업자 설립 잔금</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 29052000</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.09</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> JINHA LEE</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 2</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div></div>
       <div id="detailWrap"></div>
     </div>
 
@@ -654,8 +709,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">My Documents · 내 문서함</div>
           <div class="auth-card-sub">Sign in to view your documents · 본인 인증 후 이용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginMine()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginMine()"></div>
           <div class="modal-err" id="mineErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginMine()"><i class="ti ti-login"></i> Sign in · 확인</button>
         </div>
@@ -666,12 +721,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <button class="btn btn-outline" onclick="logoutMine()"><i class="ti ti-x"></i> Close · 닫기</button>
         </div>
         <div class="filter-bar" id="mineFilterBar">
-          <button class="filter-chip active" onclick="setMineFilter('all',this)">All · 전체</button>
-          <button class="filter-chip" onclick="setMineFilter('draft',this)">Draft · 임시저장</button>
-          <button class="filter-chip" onclick="setMineFilter('pending1',this)">Pending · 승인 대기</button>
-          <button class="filter-chip" onclick="setMineFilter('payment',this)">Payment · 결제 중</button>
-          <button class="filter-chip" onclick="setMineFilter('done',this)">완료 · Done</button>
-          <button class="filter-chip" onclick="setMineFilter('rejected',this)">Rejected · 반려</button>
+          <button class="filter-chip active" onclick="setMineFilter(&#39;all&#39;,this)">All · 전체</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;pending1&#39;,this)">Pending · 승인 대기</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;done&#39;,this)">완료 · Done</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
         </div>
         <div class="doc-list" id="mineList"></div>
         <div id="mineDetailWrap"></div>
@@ -684,8 +739,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">New Draft · 기안하기</div>
           <div class="auth-card-sub">Authenticate to proceed · 기안자 인증 후 진행</div>
-          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginNew()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginNew()"></div>
           <div class="modal-err" id="newErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginNew()"><i class="ti ti-login"></i> Confirm · 확인</button>
         </div>
@@ -700,7 +755,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="fgrid">
             <div class="fg"><label>Department · 소속 <span>(결재선 자동)</span></label><select id="docDept" onchange="onDeptChange()"></select></div>
             <div class="fg"><label>Type · 유형</label><select id="docType" onchange="toggleExpenseDetail()"></select></div>
-            <div class="fg span2"><label>Title · 제목</label><input type="text" id="docTitle" placeholder="Enter title · 결재 제목 입력"></div>
+            <div class="fg span2"><label>Title · 제목</label><input type="text" id="docTitle" placeholder="[Contents / Provider] Detail   ·   예: [의자 구매 / Fursys] 회의실 의자 20EA"></div>
             <div class="fg span2">
               <label>Currency &amp; Amount · 화폐 &amp; 금액 <span>(optional · 선택)</span></label>
               <div class="currency-row">
@@ -731,12 +786,22 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                 </div>
                 <div class="fgrid" style="padding:14px;gap:11px">
                   <div class="fg">
-                    <label>Vendor Name · 업체명</label>
-                    <input type="text" id="expVendorName" placeholder="업체명 입력">
+                    <label>Vendor Name · 업체명 <span style="color:var(--text-3);font-weight:400">— Search · 검색·유사검색</span></label>
+                    <div style="position:relative">
+                      <input type="text" id="expVendorName" placeholder="업체명 입력 또는 기존 거래처 검색 · type to search" autocomplete="off" oninput="onVendorInput(this.value)" onfocus="onVendorInput(this.value)" onkeydown="onVendorKeydown(event)" onblur="setTimeout(hideVendorSuggest,180)" onchange="onVendorPick(this.value)">
+                      <div id="vendorSuggest" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.13);max-height:240px;overflow-y:auto;margin-top:3px"></div>
+                    </div>
+                    <div id="vendorPickHint" style="font-size:10px;color:var(--text-3);margin-top:3px">기존 거래처 선택 시 사업자번호 · 은행정보 자동입력 · Select existing vendor to auto-fill</div>
                   </div>
                   <div class="fg">
                     <label>Business Reg. No · 사업자등록번호</label>
                     <input type="text" id="expVendorReg" placeholder="예: 0123456789">
+                  </div>
+                  <div class="fg span2" id="vendorActionRow" style="display:none;flex-direction:row;gap:8px;align-items:center;flex-wrap:wrap">
+                    <button type="button" id="vendorAddBtn" class="btn btn-dark" style="display:none;font-size:11px;padding:5px 11px" onclick="addVendorFromDraft()"><i class="ti ti-plus"></i> 거래처 추가 · Add vendor</button>
+                    <button type="button" id="vendorReqBtn" class="btn btn-outline" style="display:none;font-size:11px;padding:5px 11px" onclick="requestVendorChange()"><i class="ti ti-lock-open"></i> 은행정보 변경 요청 · Request change</button>
+                    <button type="button" id="vendorReqSubmit" class="btn btn-dark" style="display:none;font-size:11px;padding:5px 11px" onclick="submitVendorChange()"><i class="ti ti-send"></i> 변경 요청 제출 · Submit</button>
+                    <button type="button" id="vendorReqCancel" class="btn btn-outline" style="display:none;font-size:11px;padding:5px 11px" onclick="cancelVendorChange()">취소 · Cancel</button>
                   </div>
                 </div>
 
@@ -748,7 +813,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                   <div class="fg" style="margin-bottom:11px">
                     <label>Bank Location · 은행 소재지</label>
                     <div class="radio-row">
-                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked onchange="toggleBankType()"> Vietnam · 베트남</label>
+                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked="" onchange="toggleBankType()"> Vietnam · 베트남</label>
                       <label class="radio-label"><input type="radio" name="bankType" value="foreign" onchange="toggleBankType()"> Foreign · 해외</label>
                     </div>
                   </div>
@@ -867,7 +932,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
               </div>
             </div>
-            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked> Not required · 불필요</label></div></div>
+            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked=""> Not required · 불필요</label></div></div>
           </div>
           <div class="line-preview" id="linePreview"></div>
         </div>
@@ -908,7 +973,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title" style="display:flex;align-items:center;gap:7px"><i class="ti ti-shield-check" style="color:var(--admin)"></i> Admin Login · 관리자 로그인</div>
           <div class="auth-card-sub">JINHA LEE administrator access · JINHA LEE 관리자 전용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key===&#39;Enter&#39;)loginAdmin()"></div>
           <div class="modal-err" id="adminErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginAdmin()"><i class="ti ti-login"></i> Login · 로그인</button>
         </div>
@@ -928,7 +993,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="admin-card">
             <div class="admin-card-hdr"><i class="ti ti-key"></i> Change Password · 비밀번호 변경</div>
             <div class="admin-card-body">
-              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"></select></div>
+              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option></select></div>
               <div class="fg" style="margin-bottom:10px"><label>New Password · 새 비밀번호</label><input type="text" id="pwNew" placeholder="New password · 새 비밀번호"></div>
               <button class="btn btn-admin" onclick="changePassword()"><i class="ti ti-check"></i> Save · 저장</button>
             </div>
@@ -981,6 +1046,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
               </div>
             </div>
           </div>
+          <!-- Vendor Change Requests -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-clipboard-check"></i> Vendor Change Requests · 거래처 변경 요청 <span id="adminVendorReqCnt" class="cnt-badge" style="margin-left:6px">0</span></div>
+            <div class="admin-card-body" id="adminVendorReqList"></div>
+          </div>
+          <!-- Vendor Management -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-building-store"></i> Vendor Master · 거래처 마스터 관리</div>
+            <div class="admin-card-body" id="adminVendorList"></div>
+          </div>
           <!-- Danger Zone -->
           <div class="admin-card">
             <div class="admin-card-hdr" style="color:var(--danger)"><i class="ti ti-alert-triangle"></i> Danger Zone · 주의</div>
@@ -1001,7 +1076,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <div class="modal-box">
     <div class="modal-title"><i class="ti ti-lock" style="font-size:17px"></i><span id="pinTitle">Authentication · 인증</span></div>
     <div class="modal-sub" id="pinSub"></div>
-    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key==='Enter')confirmPin()">
+    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key===&#39;Enter&#39;)confirmPin()">
     <div class="modal-err" id="pinErr">Incorrect password · 비밀번호 오류</div>
     <div class="modal-btns">
       <button class="btn btn-dark" onclick="confirmPin()"><i class="ti ti-check"></i> Confirm · 확인</button>
@@ -1011,7 +1086,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <div class="toast" id="toast"></div>
-<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple onchange="handleDraftFile(event)">
+<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple="" onchange="handleDraftFile(event)">
 <input type="file" id="payFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.docx" onchange="handlePayFile(event)">
 
 <script>
@@ -1031,6 +1106,7 @@ const ADMIN_EXTRA_PW = 'JINHA'; // Admin panel extra password · 관리자 패�
 let state = {
   docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{},
   departments:['FURNITURE','SOURCING'],
+  vendors:[], vendorRequests:[], vendorReqSeq:0,
   docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other']
 };
 let curPage='dashboard', curFilter='all', curDocId=null;
@@ -1093,6 +1169,9 @@ async function loadState() {
     if(!state.docSeq)state.docSeq={}; 
     if(!state.memberPasswords)state.memberPasswords={};
     if(!state.memberPhotos)state.memberPhotos={};
+    if(!state.vendors)state.vendors=[];
+    if(!state.vendorRequests)state.vendorRequests=[];
+    if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
   }
   // apply saved passwords
   if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
@@ -1109,6 +1188,7 @@ async function loadState() {
   if(fbReady && window._fbListen){
     window._fbListen(remote=>{
       state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
+      if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
       if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
       render(); setSyncStatus('ok','Live sync · 실시간 동기화');
     });
@@ -1154,6 +1234,7 @@ function showPage(name){
   if(name==='list')renderList();
   if(name==='admin')renderAdmin();
   if(name==='vendors')renderVendorDB();
+  if(name==='new')populateVendorDatalist();
   if(name==='mine') {
     var gu2 = window._gateUser;
     if (!gu2) {
@@ -1653,6 +1734,8 @@ function renderAdmin(){
   </div>`).join('');}
   renderApproverLines();
   renderDeptTypeAdmin();
+  renderAdminVendorReqs();
+  renderAdminVendors();
   // Populate add member dept select
   var nmd = document.getElementById('newMemberDept');
   if(nmd){ nmd.innerHTML = (state.departments||['FURNITURE','SOURCING','COMMON']).map(function(d){ return '<option>'+d+'</option>'; }).join(''); }
@@ -1686,6 +1769,89 @@ function clearDone(){
   if(!confirm('Delete all Done and Rejected documents?\n완료·반려 문서를 모두 삭제할까요?'))return;
   state.docs=state.docs.filter(d=>!['done','rejected'].includes(d.status));
   saveState();render();renderAdmin();showToast('Cleared · 삭제 완료');
+}
+
+// ── Vendor master & change requests (admin) ──
+function vendorBankSummary(v){
+  if((v.bankType||'vn')==='vn')
+    return (v.bankVN||'—')+' | '+(v.bankVNAcct||'—')+' | '+(v.bankVNHolder||'—')+(v.bankVNBranch?' ('+v.bankVNBranch+')':'');
+  return (v.bankForeignName||'—')+' | SWIFT:'+(v.bankSwift||'—')+' | '+(v.bankForeignAcct||'—')+' | '+(v.bankForeignHolder||'—')+(v.bankForeignAddr?' | '+v.bankForeignAddr:'');
+}
+var VENDOR_FIELD_LABEL = {reg:'사업자번호',bankType:'은행구분',bankVN:'은행명(VN)',bankVNAcct:'계좌번호',bankVNHolder:'예금주',bankVNBranch:'지점',
+  bankForeignName:'은행명',bankSwift:'SWIFT',bankForeignAcct:'계좌번호',bankForeignHolder:'예금주',bankForeignAddr:'은행주소'};
+
+function renderAdminVendorReqs(){
+  var el = document.getElementById('adminVendorReqList'); if(!el) return;
+  var reqs = (state.vendorRequests||[]).filter(function(r){ return r.status==='pending'; });
+  var cnt = document.getElementById('adminVendorReqCnt'); if(cnt) cnt.textContent = reqs.length;
+  if(!reqs.length){ el.innerHTML = '<p style="font-size:12px;color:var(--text-3)">No pending requests · 대기 중인 요청 없음</p>'; return; }
+  el.innerHTML = reqs.map(function(r){
+    var diff = Object.keys(r.changes||{}).map(function(f){
+      var c=r.changes[f]; return '<div style="font-size:11px;padding:2px 0"><strong>'+(VENDOR_FIELD_LABEL[f]||f)+'</strong>: <span style="color:var(--text-3);text-decoration:line-through">'+(c.from||'(없음)')+'</span> → <span style="color:#15803d">'+(c.to||'(없음)')+'</span></div>';
+    }).join('');
+    return '<div style="border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:8px">'
+      +'<div style="font-size:13px;font-weight:600;margin-bottom:4px">'+r.vendorName+'</div>'
+      +'<div style="font-size:10px;color:var(--text-3);margin-bottom:6px">요청자 '+r.requestedBy+' · '+r.requestedAt+'</div>'
+      +diff
+      +'<div style="display:flex;gap:6px;margin-top:8px">'
+      +'<button class="btn btn-dark" style="font-size:11px;padding:4px 10px" onclick="applyVendorReq('+r.id+')"><i class="ti ti-check"></i> 승인 · Apply</button>'
+      +'<button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="rejectVendorReq('+r.id+')"><i class="ti ti-x"></i> 반려 · Reject</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function applyVendorReq(id){
+  var r = (state.vendorRequests||[]).find(function(x){ return x.id===id; });
+  if(!r) return;
+  if(!confirm('이 변경을 거래처 마스터에 반영할까요?\nApply changes to vendor master?')) return;
+  if(!state.vendors) state.vendors=[];
+  var key = r.vendorName.trim().toLowerCase();
+  var rec = state.vendors.find(function(v){ return v.name.trim().toLowerCase()===key; });
+  if(!rec){
+    // promote doc-derived vendor into master
+    var derived = buildVendorIndex()[key] || {name:r.vendorName, bankType:'vn'};
+    rec = Object.assign({}, derived); delete rec.source;
+    state.vendors.push(rec);
+  }
+  Object.keys(r.changes).forEach(function(f){ rec[f] = r.changes[f].to; });
+  rec.updatedAt = nowStr();
+  r.status = 'applied'; r.resolvedAt = nowStr();
+  saveState(); renderAdmin();
+  if(typeof renderVendorDB==='function') renderVendorDB();
+  showToast('변경 반영 완료 · Applied');
+}
+
+function rejectVendorReq(id){
+  var r = (state.vendorRequests||[]).find(function(x){ return x.id===id; });
+  if(!r) return;
+  if(!confirm('이 요청을 반려할까요?\nReject this request?')) return;
+  r.status = 'rejected'; r.resolvedAt = nowStr();
+  saveState(); renderAdmin();
+  showToast('반려 처리 · Rejected');
+}
+
+function renderAdminVendors(){
+  var el = document.getElementById('adminVendorList'); if(!el) return;
+  var all = getAllVendors();
+  var list = Object.keys(all).map(function(k){ return all[k]; }).sort(function(a,b){ return a.name.localeCompare(b.name); });
+  if(!list.length){ el.innerHTML = '<p style="font-size:12px;color:var(--text-3)">No vendors · 거래처 없음</p>'; return; }
+  el.innerHTML = list.map(function(v){
+    var tag = v.source==='master' ? '<span class="badge b-done" style="font-size:9px">Master</span>' : '<span class="badge b-draft" style="font-size:9px">Doc</span>';
+    var del = v.source==='master' ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteVendor(\''+v.name.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button>' : '';
+    return '<div style="border-bottom:1px solid var(--border);padding:8px 0">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+      +'<div style="font-size:13px;font-weight:600">'+v.name+' '+tag+(v.reg?' <span style="font-size:10px;color:var(--text-3)">'+v.reg+'</span>':'')+'</div>'+del+'</div>'
+      +'<div style="font-size:11px;color:var(--text-2);margin-top:3px">'+vendorBankSummary(v)+'</div></div>';
+  }).join('');
+}
+
+function deleteVendor(name){
+  if(!confirm('거래처 마스터에서 삭제할까요?\nDelete from vendor master? ('+name+')')) return;
+  var key = name.trim().toLowerCase();
+  state.vendors = (state.vendors||[]).filter(function(v){ return v.name.trim().toLowerCase()!==key; });
+  saveState(); renderAdmin();
+  if(typeof renderVendorDB==='function') renderVendorDB();
+  showToast('삭제 완료 · Deleted');
 }
 
 // ═══════════════════════════════════════════
@@ -1934,6 +2100,9 @@ function editDoc(id, wrapId) {
   // Expense data
   if(doc.expenseData){
     var e = doc.expenseData;
+    vendorReqName = null;
+    if(typeof setVendorBankLock==='function') setVendorBankLock(false);
+    if(typeof showVendorActions==='function') showVendorActions({});
     function sv(eid, val){ var el=document.getElementById(eid); if(el) el.value=val||''; }
     sv('expVendorName', e.vendorName);
     sv('expVendorReg', e.vendorReg);
@@ -2017,6 +2186,19 @@ function renderVendorDB() {
     vendors[key].docs.push({no:doc.docNo, title:doc.title, po:e.poNumber||'', inv:e.invoiceNumber||''});
   });
 
+  // Overlay vendor master (authoritative bank info; includes vendors with no docs yet)
+  (state.vendors||[]).forEach(function(m){
+    if(!m || !m.name) return;
+    var key = m.name.trim();
+    if(!vendors[key]) vendors[key] = {name:key, reg:m.reg||'', bank:{}, docs:[]};
+    vendors[key].reg = m.reg || vendors[key].reg;
+    vendors[key].bank = {
+      type: m.bankType||'vn',
+      bankVN: m.bankVN||'', acctVN: m.bankVNAcct||'', holderVN: m.bankVNHolder||'', branchVN: m.bankVNBranch||'',
+      bankForeign: m.bankForeignName||'', swift: m.bankSwift||'', acctForeign: m.bankForeignAcct||'', holderForeign: m.bankForeignHolder||''
+    };
+  });
+
   var list = Object.values(vendors);
   if(q) list = list.filter(function(v){
     return v.name.toLowerCase().includes(q) || v.reg.toLowerCase().includes(q) ||
@@ -2046,6 +2228,266 @@ function renderVendorDB() {
   }).join('');
 }
 
+
+// ═══════════════════════════════════════════
+// VENDOR MASTER + AUTOCOMPLETE (draft form)
+// ═══════════════════════════════════════════
+// Bank fields that are LOCKED (admin-managed) once a vendor is selected.
+var VENDOR_LOCK_FIELDS = ['expVendorReg','expBankVNAcct','expBankVNHolder','expBankVNBranch',
+  'expBankForeignName','expBankSwift','expBankForeignAcct','expBankForeignHolder','expBankForeignAddr'];
+var vendorReqName = null; // vendor name currently in change-request edit mode
+
+function vendorRecordFromFields(name){
+  var bankType = (document.querySelector('input[name="bankType"]:checked')||{}).value || 'vn';
+  function val(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; }
+  return {
+    name: (name||val('expVendorName')).trim(),
+    reg: val('expVendorReg'),
+    bankType: bankType,
+    bankVN: bankType==='vn' ? ((document.getElementById('expBankVN')||{}).value||'') : '',
+    bankVNAcct: bankType==='vn' ? val('expBankVNAcct') : '',
+    bankVNHolder: bankType==='vn' ? val('expBankVNHolder') : '',
+    bankVNBranch: bankType==='vn' ? val('expBankVNBranch') : '',
+    bankForeignName: bankType==='foreign' ? val('expBankForeignName') : '',
+    bankSwift: bankType==='foreign' ? val('expBankSwift') : '',
+    bankForeignAcct: bankType==='foreign' ? val('expBankForeignAcct') : '',
+    bankForeignHolder: bankType==='foreign' ? val('expBankForeignHolder') : '',
+    bankForeignAddr: bankType==='foreign' ? val('expBankForeignAddr') : ''
+  };
+}
+
+// Doc-derived vendors (legacy / backward-compatible source)
+function buildVendorIndex() {
+  var idx = {};
+  (state.docs || []).forEach(function(doc){
+    if(!doc.expenseData || !doc.expenseData.vendorName) return;
+    var e = doc.expenseData;
+    var key = e.vendorName.trim();
+    if(!key) return;
+    idx[key.toLowerCase()] = {
+      name: key, reg: e.vendorReg || '', bankType: e.bankType || 'vn',
+      bankVN: e.bankVN || '', bankVNAcct: e.bankVNAcct || '',
+      bankVNHolder: e.bankVNHolder || '', bankVNBranch: e.bankVNBranch || '',
+      bankForeignName: e.bankForeignName || '', bankSwift: e.bankSwift || '',
+      bankForeignAcct: e.bankForeignAcct || '', bankForeignHolder: e.bankForeignHolder || '',
+      bankForeignAddr: e.bankForeignAddr || '', source:'doc'
+    };
+  });
+  return idx;
+}
+
+// Merged view: doc-derived first, then vendor master overlays (master is authoritative)
+function getAllVendors() {
+  var idx = buildVendorIndex();
+  (state.vendors || []).forEach(function(v){
+    if(!v || !v.name) return;
+    idx[v.name.trim().toLowerCase()] = Object.assign({}, v, {source:'master'});
+  });
+  return idx;
+}
+
+// Lock / unlock the admin-managed bank & reg fields
+function setVendorBankLock(locked){
+  VENDOR_LOCK_FIELDS.forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    el.readOnly = locked;
+    el.style.background = locked ? 'var(--surface-2)' : '';
+    el.style.color = locked ? 'var(--text-2)' : '';
+    el.style.cursor = locked ? 'not-allowed' : '';
+  });
+  var sel = document.getElementById('expBankVN');
+  if(sel){ sel.disabled = locked; sel.style.background = locked ? 'var(--surface-2)' : ''; sel.style.color = locked ? 'var(--text-2)' : ''; }
+  document.querySelectorAll('input[name="bankType"]').forEach(function(r){ r.disabled = locked; });
+}
+
+// Kept for compatibility with existing callers (showPage/toggleExpenseDetail).
+// Custom autocomplete builds its list live, so this just clears any stale dropdown.
+function populateVendorDatalist() {
+  hideVendorSuggest();
+}
+
+// Normalize for fuzzy comparison: lowercase, strip spaces/punctuation (keeps Korean/letters/digits)
+function vendorNorm(s){ return (s||'').toLowerCase().replace(/[\s.,_\-()/&]+/g,''); }
+
+// Subsequence test: do all chars of q appear in order within t? (typo/abbrev tolerant)
+function isSubseq(q, t){
+  var i=0; for(var j=0;j<t.length && i<q.length;j++){ if(t[j]===q[i]) i++; } return i===q.length;
+}
+
+// Score a vendor name against the query. Higher = better. 0 = no match.
+function vendorScore(query, name){
+  var q = vendorNorm(query), n = vendorNorm(name);
+  if(!q) return 1; // empty query → show all (low base score)
+  if(n === q) return 100;
+  if(n.startsWith(q)) return 90;
+  if(n.includes(q)) return 80;          // name contains query
+  if(q.includes(n)) return 70;          // query contains name (e.g. ISIRIUS ⊃ SIRIUS)
+  if(isSubseq(q, n)) return 55;         // query is subsequence of name
+  if(isSubseq(n, q)) return 50;         // name is subsequence of query (extra typed chars)
+  // light overlap: share a 3+ char chunk
+  if(q.length>=3){ for(var i=0;i+3<=q.length;i++){ if(n.includes(q.substr(i,3))) return 40; } }
+  return 0;
+}
+
+function hideVendorSuggest(){
+  var box = document.getElementById('vendorSuggest');
+  if(box){ box.style.display='none'; box.innerHTML=''; }
+}
+
+// Build & render the fuzzy suggestion dropdown as the user types
+function onVendorInput(value){
+  var box = document.getElementById('vendorSuggest');
+  if(!box) return;
+  var all = getAllVendors();
+  var matches = Object.keys(all).map(function(k){ return all[k]; })
+    .map(function(v){ return {v:v, s:vendorScore(value, v.name)}; })
+    .filter(function(x){ return x.s > 0; })
+    .sort(function(a,b){ return b.s - a.s || a.v.name.localeCompare(b.v.name); })
+    .slice(0, 10);
+  if(!matches.length){
+    hideVendorSuggest();
+    return;
+  }
+  box.innerHTML = matches.map(function(x){
+    var v = x.v;
+    var tag = v.source==='master' ? '<span style="font-size:9px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:10px;margin-left:6px">등록</span>' : '';
+    var sub = [v.reg, (v.bankType==='vn'?(v.bankVN||''):(v.bankForeignName||''))].filter(Boolean).join(' · ');
+    var nm = v.name.replace(/"/g,'&quot;');
+    return '<div class="vendor-sug-item" onmousedown="event.preventDefault()" onclick="pickVendorSuggest(this.getAttribute(\'data-n\'))" data-n="'+nm+'"'
+      + ' style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border)" '
+      + 'onmouseover="this.style.background=\'var(--surface-2)\'" onmouseout="this.style.background=\'\'">'
+      + '<div style="font-size:13px;font-weight:600">'+v.name+tag+'</div>'
+      + (sub?'<div style="font-size:10px;color:var(--text-3);margin-top:1px">'+sub+'</div>':'')
+      + '</div>';
+  }).join('');
+  box.style.display='block';
+}
+
+function pickVendorSuggest(name){
+  var inp = document.getElementById('expVendorName');
+  if(inp) inp.value = name;
+  hideVendorSuggest();
+  onVendorPick(name);
+}
+
+// Enter selects top suggestion; Escape closes
+function onVendorKeydown(e){
+  if(e.key==='Escape'){ hideVendorSuggest(); return; }
+  if(e.key==='Enter'){
+    var first = document.querySelector('#vendorSuggest .vendor-sug-item');
+    if(first){ e.preventDefault(); pickVendorSuggest(first.getAttribute('data-n')); }
+  }
+}
+
+function fillVendorFields(v){
+  function sv(id, val){ var el=document.getElementById(id); if(el) el.value = val||''; }
+  sv('expVendorName', v.name);
+  sv('expVendorReg', v.reg);
+  var bankRadio = document.querySelector('input[name="bankType"][value="'+(v.bankType||'vn')+'"]');
+  if(bankRadio){ bankRadio.checked = true; toggleBankType(); }
+  if((v.bankType||'vn') === 'vn'){
+    var sel = document.getElementById('expBankVN'); if(sel) sel.value = v.bankVN || '';
+    sv('expBankVNAcct', v.bankVNAcct); sv('expBankVNHolder', v.bankVNHolder); sv('expBankVNBranch', v.bankVNBranch);
+  } else {
+    sv('expBankForeignName', v.bankForeignName); sv('expBankSwift', v.bankSwift);
+    sv('expBankForeignAcct', v.bankForeignAcct); sv('expBankForeignHolder', v.bankForeignHolder); sv('expBankForeignAddr', v.bankForeignAddr);
+  }
+}
+
+function showVendorActions(opts){
+  var row = document.getElementById('vendorActionRow');
+  if(row) row.style.display = (opts.add||opts.req||opts.submit) ? 'flex' : 'none';
+  var ids = {vendorAddBtn:!!opts.add, vendorReqBtn:!!opts.req, vendorReqSubmit:!!opts.submit, vendorReqCancel:!!opts.submit};
+  Object.keys(ids).forEach(function(id){ var b=document.getElementById(id); if(b) b.style.display = ids[id] ? 'inline-flex' : 'none'; });
+}
+
+// Vendor name committed → autofill + lock if existing, or offer "Add" if new
+function onVendorPick(name) {
+  var hint = document.getElementById('vendorPickHint');
+  vendorReqName = null;
+  if(!name || !name.trim()){
+    setVendorBankLock(false);
+    showVendorActions({});
+    if(hint){ hint.textContent='기존 거래처 선택 시 사업자번호 · 은행정보 자동입력 · Select existing vendor to auto-fill'; hint.style.color='var(--text-3)'; }
+    return;
+  }
+  var v = getAllVendors()[name.trim().toLowerCase()];
+  if(!v){
+    setVendorBankLock(false); // editable so user can enter info then click Add
+    showVendorActions({add:true});
+    if(hint){ hint.textContent='신규 거래처 · New vendor — 정보 입력 후 [거래처 추가]를 누르세요'; hint.style.color='#b45309'; }
+    return;
+  }
+  fillVendorFields(v);
+  setVendorBankLock(true);
+  showVendorActions({req:true});
+  if(hint){ hint.textContent='🔒 기존 거래처 (관리자 관리) · 자동입력됨 · 변경은 [변경 요청]'; hint.style.color='#15803d'; }
+  if(typeof showToast === 'function') showToast('거래처 자동입력 · '+v.name);
+}
+
+// Add a brand-new vendor to the master store
+function addVendorFromDraft(){
+  var rec = vendorRecordFromFields();
+  if(!rec.name){ showToast('업체명을 입력하세요 · Enter vendor name'); return; }
+  if(getAllVendors()[rec.name.toLowerCase()]){ showToast('이미 등록된 거래처입니다 · Already registered'); return; }
+  var hasBank = rec.bankType==='vn' ? (rec.bankVN || rec.bankVNAcct) : (rec.bankForeignName || rec.bankForeignAcct);
+  if(!hasBank && !confirm('은행정보 없이 거래처만 등록할까요?\nRegister vendor without bank info?')) return;
+  var who = (window._gateUser && window._gateUser.name) || (newAuthId && gm(newAuthId) && gm(newAuthId).name) || 'unknown';
+  rec.createdBy = who; rec.createdAt = nowStr(); rec.updatedAt = nowStr();
+  if(!state.vendors) state.vendors = [];
+  state.vendors.push(rec);
+  saveState();
+  populateVendorDatalist();
+  setVendorBankLock(true);
+  showVendorActions({req:true});
+  var hint = document.getElementById('vendorPickHint');
+  if(hint){ hint.textContent='✓ 거래처 등록 완료 · Vendor added: '+rec.name; hint.style.color='#15803d'; }
+  showToast('거래처 추가 완료 · Vendor added');
+}
+
+// Enter change-request edit mode (unlock fields temporarily)
+function requestVendorChange(){
+  var name = (document.getElementById('expVendorName')||{}).value || '';
+  vendorReqName = name.trim();
+  if(!vendorReqName) return;
+  setVendorBankLock(false);
+  showVendorActions({submit:true});
+  var hint = document.getElementById('vendorPickHint');
+  if(hint){ hint.textContent='✎ 변경할 은행정보를 수정한 뒤 [변경 요청 제출] · Edit then submit for admin approval'; hint.style.color='#b45309'; }
+}
+
+// Submit the diff as a pending request; master stays unchanged until admin approves
+function submitVendorChange(){
+  if(!vendorReqName){ cancelVendorChange(); return; }
+  var master = getAllVendors()[vendorReqName.toLowerCase()] || {};
+  var edited = vendorRecordFromFields(vendorReqName);
+  var fields = ['reg','bankType','bankVN','bankVNAcct','bankVNHolder','bankVNBranch',
+    'bankForeignName','bankSwift','bankForeignAcct','bankForeignHolder','bankForeignAddr'];
+  var changes = {};
+  fields.forEach(function(f){ if((edited[f]||'') !== (master[f]||'')) changes[f] = {from: master[f]||'', to: edited[f]||''}; });
+  if(!Object.keys(changes).length){ showToast('변경 사항이 없습니다 · No changes'); cancelVendorChange(); return; }
+  var who = (window._gateUser && window._gateUser.name) || (newAuthId && gm(newAuthId) && gm(newAuthId).name) || 'unknown';
+  if(!state.vendorRequests) state.vendorRequests = [];
+  state.vendorRequests.push({
+    id: (state.vendorReqSeq = (state.vendorReqSeq||0)+1),
+    vendorName: vendorReqName, requestedBy: who, requestedAt: nowStr(),
+    changes: changes, status:'pending'
+  });
+  saveState();
+  // restore master values in the form (the draft uses approved data, not the pending change)
+  cancelVendorChange();
+  showToast('변경 요청 전송 · 관리자 승인 대기 · Request sent to admin');
+}
+
+function cancelVendorChange(){
+  var name = vendorReqName || (document.getElementById('expVendorName')||{}).value || '';
+  vendorReqName = null;
+  var v = getAllVendors()[name.trim().toLowerCase()];
+  if(v){ fillVendorFields(v); setVendorBankLock(true); showVendorActions({req:true}); }
+  else { setVendorBankLock(false); showVendorActions({}); }
+  var hint = document.getElementById('vendorPickHint');
+  if(hint){ hint.textContent='🔒 기존 거래처 (관리자 관리) · 변경은 [변경 요청]'; hint.style.color='#15803d'; }
+}
 
 // ═══════════════════════════════════════════
 // HUB PAGE
@@ -2205,6 +2647,7 @@ function toggleExpenseDetail() {
   var type = document.getElementById('docType') ? document.getElementById('docType').value : '';
   var el = document.getElementById('expenseDetail');
   if (el) el.style.display = type.includes('지출결의서') ? 'block' : 'none';
+  if (el && el.style.display === 'block') populateVendorDatalist();
 }
 
 function toggleBankType() {
@@ -2254,6 +2697,11 @@ function clearExpenseForm() {
   if (no) no.checked = true;
   var bankSel = document.getElementById('expBankVN');
   if (bankSel) bankSel.selectedIndex = 0;
+  var hint = document.getElementById('vendorPickHint');
+  if (hint) { hint.textContent = '기존 거래처 선택 시 사업자번호 · 은행정보 자동입력 · Select existing vendor to auto-fill'; hint.style.color = 'var(--text-3)'; }
+  vendorReqName = null;
+  if (typeof setVendorBankLock === 'function') setVendorBankLock(false);
+  if (typeof showVendorActions === 'function') showVendorActions({});
 }
 
 // ═══════════════════════════════════════════
@@ -2396,5 +2844,6 @@ function toggleBankType() {
 })();
 </script>
 
-</body>
-</html>
+
+
+</body></html>
