@@ -1,15 +1,14 @@
-
 <!DOCTYPE html>
-<!-- saved from url=(0049)file:///C:/Users/jinha/Downloads/index%20(1).html -->
-<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INICS — Electronic Approval System 전자결재 시스템</title>
-<link rel="preconnect" href="https://fonts.googleapis.com/">
-<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="./INICS — Electronic Approval System 전자결재 시스템_files/css2" rel="stylesheet">
-<link rel="stylesheet" href="./INICS — Electronic Approval System 전자결재 시스템_files/tabler-icons.min.css">
-<script src="./INICS — Electronic Approval System 전자결재 시스템_files/jspdf.umd.min.js.다운로드"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <!-- ════════════════════════════════════════════════
      FIREBASE CONFIG
@@ -483,11 +482,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="login-sub">Electronic Approval System · 전자결재 시스템<br>FURNITURE &amp; SOURCING Division</div>
     <div class="login-field">
       <label>ID · 아이디</label>
-      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key===&#39;Enter&#39;)document.getElementById(&#39;gatePw&#39;).focus()">
+      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key==='Enter')document.getElementById('gatePw').focus()">
     </div>
     <div class="login-field">
       <label>Password · 비밀번호</label>
-      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)gateLogin()">
+      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')gateLogin()">
     </div>
     <div class="login-err" id="gateErr">Incorrect ID or password · 아이디 또는 비밀번호 오류</div>
     <button class="login-btn" onclick="gateLogin()">Sign in · 로그인</button>
@@ -515,7 +514,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="hub-grid">
 
       <!-- 전자결재 Electronic Approval -->
-      <div class="hub-card active-module" onclick="enterModule(&#39;approval&#39;)">
+      <div class="hub-card active-module" onclick="enterModule('approval')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#eff6ff;color:#1d4ed8">
           <i class="ti ti-file-check"></i>
@@ -528,7 +527,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
 
       <!-- 거래처 DB Vendor Database -->
-      <div class="hub-card active-module" onclick="enterModule(&#39;vendors&#39;)">
+      <div class="hub-card active-module" onclick="enterModule('vendors')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d">
           <i class="ti ti-building-store"></i>
@@ -548,8 +547,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
 
       <!-- 카드사용 Card Usage -->
-      <div class="hub-card coming-soon">
-        <div class="hub-card-badge" style="background:var(--surface-2);color:var(--text-3)">Coming Soon</div>
+      <div class="hub-card active-module" onclick="enterModule('card')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#fef3c7;color:#92400e">
           <i class="ti ti-credit-card"></i>
         </div>
@@ -561,34 +560,153 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<!-- CARD USAGE — standalone overlay (separate from approval app) -->
+<div id="cardApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:900px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closeCardApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub · 허브</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">Card Usage · 법인카드 지출</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <span id="cardAvatarChip"></span>
+        <span id="cardUserName"></span>
+        <button class="btn btn-outline" onclick="hubLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:18px">법인카드 지출 등록 · 부서/사용자별 관리 · Corporate Card Management</div>
+
+    <!-- Tabs -->
+    <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
+      <button id="cardTabDash" onclick="cardSwitchTab('dash')"><i class="ti ti-chart-bar"></i> 대시보드 · Dashboard</button>
+      <button id="cardTabList" onclick="cardSwitchTab('list')"><i class="ti ti-list"></i> 내역 · Records</button>
+    </div>
+
+    <!-- Dashboard view -->
+    <div id="cardDashView" style="display:none">
+      <div class="fgrid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+        <div class="fg"><label>통화 · Currency</label><select id="cardDashCur" onchange="renderCardDashboard()"></select></div>
+        <div class="fg"><label>부서 · Dept <span>사용처 드릴다운</span></label><select id="cardDashDept" onchange="renderCardDashboard()"></select></div>
+        <div class="fg"><label>월 · Month</label><input type="month" id="cardDashMonth" onchange="renderCardDashboard()"></div>
+      </div>
+      <div id="cardDashKpi" style="margin-bottom:18px"></div>
+      <div id="cardDashByDept" style="margin-bottom:20px"></div>
+      <div id="cardDashByMerchant" style="margin-bottom:20px"></div>
+      <div id="cardDashByCategory" style="margin-bottom:20px"></div>
+      <div id="cardDashByMonth" style="margin-bottom:6px"></div>
+    </div>
+
+    <!-- Records view -->
+    <div id="cardListView">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn btn-dark" id="cardNewBtn" onclick="toggleCardForm()" style="font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i> 지출 등록 · New entry</button>
+    </div>
+
+      <!-- Submission form -->
+      <div class="form-card" id="cardFormCard" style="display:none;margin-bottom:16px">
+        <div class="form-card-title"><i class="ti ti-credit-card"></i> 법인카드 지출 등록 · Corporate Card Expense</div>
+        <div class="fgrid">
+          <div class="fg"><label>사용일 · Date</label><input type="date" id="cardDate"></div>
+          <div class="fg"><label>부서 · Department</label><select id="cardDept"></select></div>
+          <div class="fg"><label>사용자 · User</label><input type="text" id="cardUser" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>카드 · Card</label><select id="cardName"><option value="5505">법인카드 *5505</option><option value="2451">법인카드 *2451</option></select></div>
+          <div class="fg"><label>사용처 · Merchant <span style="color:var(--text-3);font-weight:400">— 검색·추가</span></label>
+            <div style="position:relative">
+              <input type="text" id="cardMerchant" placeholder="가맹점 검색 또는 신규 입력" autocomplete="off" oninput="onMerchantInput(this.value)" onfocus="onMerchantInput(this.value)" onkeydown="onMerchantKeydown(event)" onblur="setTimeout(hideMerchantSuggest,180)">
+              <div id="cardMerchantSuggest" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:60;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.13);max-height:220px;overflow-y:auto;margin-top:3px"></div>
+            </div>
+          </div>
+          <div class="fg"><label>분류 · Category</label><select id="cardCategory">
+            <option value="식대">식대 · Meals</option>
+            <option value="접대비">접대비 · Entertainment</option>
+            <option value="교통·주유">교통·주유 · Transport</option>
+            <option value="사무용품">사무용품 · Office</option>
+            <option value="출장">출장 · Travel</option>
+            <option value="통신">통신 · Telecom</option>
+            <option value="기타">기타 · Other</option>
+          </select></div>
+          <div class="fg"><label>통화 · Currency</label><select id="cardCurrency"><option>VND</option><option>USD</option><option>KRW</option><option>MXN</option></select></div>
+          <div class="fg"><label>금액 · Amount</label><input type="text" id="cardAmount" inputmode="decimal" placeholder="0" oninput="formatCardAmount(this)"></div>
+          <div class="fg span2"><label>목적 · Purpose</label><textarea id="cardPurpose" placeholder="사용 목적을 입력하세요 · why was this spent" style="min-height:54px"></textarea></div>
+          <div class="fg"><label>Invoice 발행 여부 · Invoice</label>
+            <div class="radio-row">
+              <label class="radio-label"><input type="radio" name="cardInvoice" value="yes" onchange="toggleCardInvoiceNo()"> 발행 · Issued</label>
+              <label class="radio-label"><input type="radio" name="cardInvoice" value="no" checked onchange="toggleCardInvoiceNo()"> 미발행 · None</label>
+            </div>
+          </div>
+          <div class="fg" id="cardInvoiceNoWrap" style="display:none"><label>Invoice 번호 · No.</label><input type="text" id="cardInvoiceNo" placeholder="인보이스/세금계산서 번호"></div>
+        </div>
+
+        <!-- Line items (상세 구매목록) -->
+        <div class="fg span2" style="margin-top:10px">
+          <label>상세 구매목록 · Line items <span style="color:var(--text-3);font-weight:400">— 선택 · 검색에 활용</span></label>
+          <div id="cardItemsList" style="display:flex;flex-direction:column;gap:6px"></div>
+          <button type="button" class="btn btn-outline" style="font-size:11px;padding:4px 10px;margin-top:6px;align-self:flex-start" onclick="addCardItemRow()"><i class="ti ti-plus"></i> 항목 추가 · Add item</button>
+        </div>
+
+        <!-- Receipt photo (required) -->
+        <div class="fg span2" style="margin-top:10px">
+          <label>영수증 사진 · Receipt photo <span style="color:var(--danger);font-weight:700">*필수</span></label>
+          <label class="upload-zone" style="display:block">
+            <i class="ti ti-camera" style="font-size:22px;display:block;margin-bottom:6px;color:var(--text-3)"></i>
+            <strong style="display:block;margin-bottom:2px;color:var(--text-2)">사진 촬영 또는 업로드 · Take photo / upload</strong>
+            <span style="font-size:11px">업로드 시 자동 압축 저장 · auto-compressed</span>
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleCardReceipt(this.files[0])">
+          </label>
+          <div id="cardReceiptPreview" style="margin-top:8px"></div>
+        </div>
+
+        <div class="btn-row" style="margin-top:14px">
+          <button class="btn btn-outline" onclick="toggleCardForm(false)">취소 · Cancel</button>
+          <button class="btn btn-dark" onclick="submitCardExpense()"><i class="ti ti-check"></i> 등록 · Submit</button>
+        </div>
+      </div>
+
+      <!-- DB search + filters -->
+      <div class="fg" style="margin-bottom:8px">
+        <input type="text" id="cardSearch" placeholder="🔎 전체 검색 · 사용처 · 목적 · 품목 · 금액 · 사용자 (유사검색)" oninput="renderCard()" autocomplete="off">
+      </div>
+      <div class="fgrid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div class="fg"><label>부서 필터 · Dept</label><select id="cardFDept" onchange="renderCard()"><option value="">전체 부서 · All</option></select></div>
+        <div class="fg"><label>사용자 필터 · User</label><select id="cardFUser" onchange="renderCard()"><option value="">전체 사용자 · All</option></select></div>
+        <div class="fg"><label>월 필터 · Month</label><input type="month" id="cardFMonth" onchange="renderCard()"></div>
+      </div>
+      <div id="cardSummary" style="margin-bottom:10px"></div>
+      <div id="cardList"></div>
+    </div>
+  </div>
+</div>
+
 <!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar"
+ id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-text" onclick="showHub()" style="cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-home-2" style="font-size:16px;color:var(--text-3)"></i>INICS VINA</div>
     <div class="logo-sub">Electronic Approval · 전자결재 시스템<br>FURNITURE &amp; SOURCING</div>
   </div>
   <nav class="sidebar-nav">
     <div class="sidebar-section">Main · 메인</div>
-    <button class="nav-item active" onclick="showPage(&#39;dashboard&#39;)"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
+    <button class="nav-item active" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
 
     <div class="sidebar-section">Approval · 결재</div>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;)"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage(&#39;mine&#39;)"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
-    <button class="nav-item" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
+    <button class="nav-item" onclick="showPage('list')"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage('mine')"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
+    <button class="nav-item" onclick="showPage('new')"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
 
     <div class="sidebar-section">Quick Filter · 빠른 필터</div>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;pending1&#39;,null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;payment&#39;,null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="">1</span></button>
-    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;done&#39;,null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
+    <button class="nav-item" onclick="showPage('list');setFilter('pending1',null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage('list');setFilter('payment',null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showPage('list');setFilter('done',null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
 
     <div class="sidebar-section">Admin · 관리자</div>
-    <button class="nav-item" id="nav-admin" onclick="showPage(&#39;admin&#39;)" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
-    <button class="nav-item" onclick="showPage(&#39;vendors&#39;)"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
+    <button class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
+    <button class="nav-item" onclick="showPage('vendors')"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
+    <button class="nav-item" onclick="showHubFromApp()"><i class="ti ti-layout-grid"></i>Hub · 모듈 허브</button>
     <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
   </nav>
   <div class="sidebar-footer">
     v6.0 · Firebase Realtime DB<br>
-    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Online · 연결됨 ✓</span>
+    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Online · 연결됨</span>
   </div>
 </aside>
 
@@ -614,36 +732,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div id="syncBar" class="sync-bar" style="margin-bottom:16px"><i class="ti ti-cloud-check"></i><span>Live sync · 실시간 동기화</span></div>
-      <div class="stats-grid" id="dashStats"><div class="stat-card"><div class="stat-top"><div class="stat-label">Total · 전체</div><div class="stat-icon" style="background:#f0f0ec;color:#1a1a18"><i class="ti ti-files"></i></div></div><div class="stat-num" style="color:#1a1a18">2</div><div class="stat-sub">All documents</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Pending · 대기</div><div class="stat-icon" style="background:#fffbeb;color:#b45309"><i class="ti ti-clock"></i></div></div><div class="stat-num" style="color:#b45309">0</div><div class="stat-sub">Awaiting approval</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Payment · 결제</div><div class="stat-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div></div><div class="stat-num" style="color:#92400e">1</div><div class="stat-sub">In payment process</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Done · 완료</div><div class="stat-icon" style="background:#f0fdf4;color:#166534"><i class="ti ti-circle-check"></i></div></div><div class="stat-num" style="color:#166534">1</div><div class="stat-sub">Fully approved</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Rejected · 반려</div><div class="stat-icon" style="background:#fef2f2;color:#b91c1c"><i class="ti ti-x"></i></div></div><div class="stat-num" style="color:#b91c1c">0</div><div class="stat-sub">Returned</div></div></div>
+      <div id="syncBar" class="sync-bar" style="margin-bottom:16px">
+        <i class="ti ti-cloud-check"></i>
+        <span id="syncMsg">Connected · Firebase 연결됨</span>
+      </div>
+      <div class="stats-grid" id="dashStats"></div>
       <div id="dashGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
-          <div id="dashPending"><div class="empty-state" style="padding:20px"><i class="ti ti-inbox"></i><p>No pending · 대기 없음</p></div></div>
+          <div id="dashPending"></div>
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
-          <div id="dashRecent"><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(15,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
-    <div class="doc-main">
-      <div class="doc-title-row" style="font-size:12px">
-        <span class="docno">SRC202606-011</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[VISA/ISIRIUS] VISA and purchase of INV</span>
-        <span class="badge b-sourcing">COMMON</span>
-      </div>
-      <div class="doc-meta"><span>JINHA LEE</span><span>2026.06.10</span><span>VND 90,380,800</span></div>
-    </div>
-    <span class="badge b-payment">Payment</span>
-  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(14,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
-    <div class="doc-main">
-      <div class="doc-title-row" style="font-size:12px">
-        <span class="docno">FUR202606-001</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Balace payment for company incorporation. 사업자 설립 잔금</span>
-        <span class="badge b-sourcing">COMMON</span>
-      </div>
-      <div class="doc-meta"><span>JINHA LEE</span><span>2026.06.09</span><span>VND 29052000</span></div>
-    </div>
-    <span class="badge b-done">Done</span>
-  </div></div>
+          <div id="dashRecent"></div>
         </div>
       </div>
     </div>
@@ -651,55 +752,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <!-- ALL DOCS -->
     <div class="page" id="page-list">
       <div class="filter-bar" id="listFilterBar">
-        <button class="filter-chip active" onclick="setFilter(&#39;all&#39;,this)">All · 전체</button>
-        <button class="filter-chip" onclick="setFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
-        <button class="filter-chip" onclick="setFilter(&#39;pending1&#39;,this)">1st · 1차 대기</button>
-        <button class="filter-chip" onclick="setFilter(&#39;pending2&#39;,this)">2nd · 2차 대기</button>
-        <button class="filter-chip" onclick="setFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
-        <button class="filter-chip" onclick="setFilter(&#39;done&#39;,this)">Done · 완료</button>
-        <button class="filter-chip" onclick="setFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
+        <button class="filter-chip active" onclick="setFilter('all',this)">All · 전체</button>
+        <button class="filter-chip" onclick="setFilter('draft',this)">Draft · 임시저장</button>
+        <button class="filter-chip" onclick="setFilter('pending1',this)">1st · 1차 대기</button>
+        <button class="filter-chip" onclick="setFilter('pending2',this)">2nd · 2차 대기</button>
+        <button class="filter-chip" onclick="setFilter('payment',this)">Payment · 결제 중</button>
+        <button class="filter-chip" onclick="setFilter('done',this)">Done · 완료</button>
+        <button class="filter-chip" onclick="setFilter('rejected',this)">Rejected · 반려</button>
         <div class="filter-spacer"></div>
-        <button class="btn btn-dark" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i> New · 기안</button>
+        <button class="btn btn-dark" onclick="showPage('new')"><i class="ti ti-plus"></i> New · 기안</button>
       </div>
-      <div class="doc-list" id="docList"><div class="doc-row" onclick="showDetail(15,&#39;detailWrap&#39;)">
-    <div class="doc-main">
-      <div class="doc-title-row">
-        <span class="docno">SRC202606-011</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[VISA/ISIRIUS] VISA and purchase of INV</span>
-        <span class="badge b-sourcing">COMMON</span>
-      </div>
-      <div class="doc-meta">
-        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
-        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 90,380,800</span>
-        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.10</span>
-        <span><i class="ti ti-user" style="font-size:10px"></i> JINHA LEE</span>
-        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 1</span>
-        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
-        
-        
-      </div>
-    </div>
-    <span class="badge b-payment">Payment · 결제 중</span>
-  </div><div class="doc-row" onclick="showDetail(14,&#39;detailWrap&#39;)">
-    <div class="doc-main">
-      <div class="doc-title-row">
-        <span class="docno">FUR202606-001</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">Balace payment for company incorporation. 사업자 설립 잔금</span>
-        <span class="badge b-sourcing">COMMON</span>
-      </div>
-      <div class="doc-meta">
-        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
-        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 29052000</span>
-        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.09</span>
-        <span><i class="ti ti-user" style="font-size:10px"></i> JINHA LEE</span>
-        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 2</span>
-        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
-        
-        
-      </div>
-    </div>
-    <span class="badge b-done">Done · 완료</span>
-  </div></div>
+      <div class="doc-list" id="docList"></div>
       <div id="detailWrap"></div>
     </div>
 
@@ -709,8 +772,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">My Documents · 내 문서함</div>
           <div class="auth-card-sub">Sign in to view your documents · 본인 인증 후 이용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginMine()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginMine()"></div>
           <div class="modal-err" id="mineErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginMine()"><i class="ti ti-login"></i> Sign in · 확인</button>
         </div>
@@ -721,12 +784,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <button class="btn btn-outline" onclick="logoutMine()"><i class="ti ti-x"></i> Close · 닫기</button>
         </div>
         <div class="filter-bar" id="mineFilterBar">
-          <button class="filter-chip active" onclick="setMineFilter(&#39;all&#39;,this)">All · 전체</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;pending1&#39;,this)">Pending · 승인 대기</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;done&#39;,this)">완료 · Done</button>
-          <button class="filter-chip" onclick="setMineFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
+          <button class="filter-chip active" onclick="setMineFilter('all',this)">All · 전체</button>
+          <button class="filter-chip" onclick="setMineFilter('draft',this)">Draft · 임시저장</button>
+          <button class="filter-chip" onclick="setMineFilter('pending1',this)">Pending · 승인 대기</button>
+          <button class="filter-chip" onclick="setMineFilter('payment',this)">Payment · 결제 중</button>
+          <button class="filter-chip" onclick="setMineFilter('done',this)">완료 · Done</button>
+          <button class="filter-chip" onclick="setMineFilter('rejected',this)">Rejected · 반려</button>
         </div>
         <div class="doc-list" id="mineList"></div>
         <div id="mineDetailWrap"></div>
@@ -739,8 +802,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">New Draft · 기안하기</div>
           <div class="auth-card-sub">Authenticate to proceed · 기안자 인증 후 진행</div>
-          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginNew()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginNew()"></div>
           <div class="modal-err" id="newErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginNew()"><i class="ti ti-login"></i> Confirm · 확인</button>
         </div>
@@ -788,7 +851,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                   <div class="fg">
                     <label>Vendor Name · 업체명 <span style="color:var(--text-3);font-weight:400">— Search · 검색·유사검색</span></label>
                     <div style="position:relative">
-                      <input type="text" id="expVendorName" placeholder="업체명 입력 또는 기존 거래처 검색 · type to search" autocomplete="off" oninput="onVendorInput(this.value)" onfocus="onVendorInput(this.value)" onkeydown="onVendorKeydown(event)" onblur="setTimeout(hideVendorSuggest,180)" onchange="onVendorPick(this.value)">
+                      <input type="text" id="expVendorName" placeholder="업체명 입력 또는 기존 거래처 검색 · type to search" autocomplete="off"
+                        oninput="onVendorInput(this.value)" onfocus="onVendorInput(this.value)"
+                        onkeydown="onVendorKeydown(event)" onblur="setTimeout(hideVendorSuggest,180)"
+                        onchange="onVendorPick(this.value)">
                       <div id="vendorSuggest" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.13);max-height:240px;overflow-y:auto;margin-top:3px"></div>
                     </div>
                     <div id="vendorPickHint" style="font-size:10px;color:var(--text-3);margin-top:3px">기존 거래처 선택 시 사업자번호 · 은행정보 자동입력 · Select existing vendor to auto-fill</div>
@@ -813,7 +879,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                   <div class="fg" style="margin-bottom:11px">
                     <label>Bank Location · 은행 소재지</label>
                     <div class="radio-row">
-                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked="" onchange="toggleBankType()"> Vietnam · 베트남</label>
+                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked onchange="toggleBankType()"> Vietnam · 베트남</label>
                       <label class="radio-label"><input type="radio" name="bankType" value="foreign" onchange="toggleBankType()"> Foreign · 해외</label>
                     </div>
                   </div>
@@ -932,7 +998,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
               </div>
             </div>
-            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked=""> Not required · 불필요</label></div></div>
+            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked> Not required · 불필요</label></div></div>
           </div>
           <div class="line-preview" id="linePreview"></div>
         </div>
@@ -973,7 +1039,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title" style="display:flex;align-items:center;gap:7px"><i class="ti ti-shield-check" style="color:var(--admin)"></i> Admin Login · 관리자 로그인</div>
           <div class="auth-card-sub">JINHA LEE administrator access · JINHA LEE 관리자 전용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key===&#39;Enter&#39;)loginAdmin()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
           <div class="modal-err" id="adminErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginAdmin()"><i class="ti ti-login"></i> Login · 로그인</button>
         </div>
@@ -993,7 +1059,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="admin-card">
             <div class="admin-card-hdr"><i class="ti ti-key"></i> Change Password · 비밀번호 변경</div>
             <div class="admin-card-body">
-              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option></select></div>
+              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"></select></div>
               <div class="fg" style="margin-bottom:10px"><label>New Password · 새 비밀번호</label><input type="text" id="pwNew" placeholder="New password · 새 비밀번호"></div>
               <button class="btn btn-admin" onclick="changePassword()"><i class="ti ti-check"></i> Save · 저장</button>
             </div>
@@ -1076,7 +1142,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <div class="modal-box">
     <div class="modal-title"><i class="ti ti-lock" style="font-size:17px"></i><span id="pinTitle">Authentication · 인증</span></div>
     <div class="modal-sub" id="pinSub"></div>
-    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key===&#39;Enter&#39;)confirmPin()">
+    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key==='Enter')confirmPin()">
     <div class="modal-err" id="pinErr">Incorrect password · 비밀번호 오류</div>
     <div class="modal-btns">
       <button class="btn btn-dark" onclick="confirmPin()"><i class="ti ti-check"></i> Confirm · 확인</button>
@@ -1086,7 +1152,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <div class="toast" id="toast"></div>
-<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple="" onchange="handleDraftFile(event)">
+<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple onchange="handleDraftFile(event)">
 <input type="file" id="payFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.docx" onchange="handlePayFile(event)">
 
 <script>
@@ -1107,6 +1173,7 @@ let state = {
   docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{},
   departments:['FURNITURE','SOURCING'],
   vendors:[], vendorRequests:[], vendorReqSeq:0,
+  cardExpenses:[], cardSeq:0, cardMerchants:[],
   docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other']
 };
 let curPage='dashboard', curFilter='all', curDocId=null;
@@ -1172,6 +1239,9 @@ async function loadState() {
     if(!state.vendors)state.vendors=[];
     if(!state.vendorRequests)state.vendorRequests=[];
     if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
+    if(!state.cardExpenses)state.cardExpenses=[];
+    if(state.cardSeq===undefined)state.cardSeq=0;
+    if(!state.cardMerchants)state.cardMerchants=[];
   }
   // apply saved passwords
   if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
@@ -1189,8 +1259,9 @@ async function loadState() {
     window._fbListen(remote=>{
       state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
       if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
+      if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[];
       if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
-      render(); setSyncStatus('ok','Live sync · 실시간 동기화');
+      render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } setSyncStatus('ok','Live sync · 실시간 동기화');
     });
   }
 }
@@ -2490,6 +2561,399 @@ function cancelVendorChange(){
 }
 
 // ═══════════════════════════════════════════
+// CARD USAGE (법인카드 지출)
+// ═══════════════════════════════════════════
+var cardReceiptData = null;
+var cardAppOpen = false;
+
+// Open the standalone Card Usage overlay (separate from the approval app)
+function showCardApp(){
+  cardAppOpen = true;
+  var hub = document.getElementById('hubPage'); if(hub) hub.style.display = 'none';
+  var app = document.getElementById('cardApp'); if(app) app.style.display = 'block';
+  var u = cardCurrentUser();
+  var nameEl = document.getElementById('cardUserName'); if(nameEl && u) nameEl.textContent = u.name;
+  var avEl = document.getElementById('cardAvatarChip'); if(avEl && u && typeof getAvatar==='function') avEl.innerHTML = getAvatar(u.id, 'sm');
+  toggleCardForm(false);
+  renderCard();
+  cardSwitchTab('dash');
+  window.scrollTo(0,0);
+}
+
+// Back to module hub from the card overlay
+function closeCardApp(){
+  cardAppOpen = false;
+  var app = document.getElementById('cardApp'); if(app) app.style.display = 'none';
+  if(typeof showHub==='function') showHub();
+}
+
+// From inside the approval app, jump back to the module hub
+function showHubFromApp(){
+  if(typeof showHub==='function') showHub();
+  var sb = document.getElementById('sidebar'); if(sb) sb.classList.remove('open');
+}
+
+function cardCurrentUser(){
+  var gu = window._gateUser;
+  if(!gu){ var uid=parseInt(sessionStorage.getItem('inics_uid')||'0'); if(uid) gu=MEMBERS.find(function(m){return m.id==uid;}); }
+  return gu || null;
+}
+
+// Departments: union of configured depts + member depts (so COMMON etc. appear)
+function cardDepts(){
+  var s=(state.departments||['FURNITURE','SOURCING']).slice();
+  MEMBERS.forEach(function(m){ if(m.dept && s.indexOf(m.dept)<0) s.push(m.dept); });
+  return s;
+}
+
+function populateCardSelects(){
+  var depts=cardDepts();
+  var dsel=document.getElementById('cardDept');
+  if(dsel){ var cd=dsel.value; dsel.innerHTML=depts.map(function(d){ return '<option>'+d+'</option>'; }).join(''); if(cd) dsel.value=cd; }
+  var fd=document.getElementById('cardFDept');
+  if(fd){ var cur=fd.value; fd.innerHTML='<option value="">전체 부서 · All</option>'+depts.map(function(d){ return '<option>'+d+'</option>'; }).join(''); fd.value=cur; }
+  var fu=document.getElementById('cardFUser');
+  if(fu){ var cu=fu.value; fu.innerHTML='<option value="">전체 사용자 · All</option>'+MEMBERS.map(function(m){ return '<option value="'+m.id+'">'+m.name+'</option>'; }).join(''); fu.value=cu; }
+}
+
+// ── Merchant master (사용처): derived from expenses + added master (no separate DB page) ──
+function getCardMerchants(){
+  var set={};
+  (state.cardExpenses||[]).forEach(function(x){ if(x.merchant && x.merchant.trim()) set[x.merchant.trim()]=true; });
+  (state.cardMerchants||[]).forEach(function(m){ if(m && m.trim()) set[m.trim()]=true; });
+  return Object.keys(set).sort(function(a,b){ return a.localeCompare(b); });
+}
+function hideMerchantSuggest(){ var b=document.getElementById('cardMerchantSuggest'); if(b){ b.style.display='none'; b.innerHTML=''; } }
+function onMerchantInput(value){
+  var box=document.getElementById('cardMerchantSuggest'); if(!box) return;
+  var all=getCardMerchants();
+  var matches=all.map(function(m){ return {m:m, s:vendorScore(value, m)}; })
+    .filter(function(x){ return x.s>0; })
+    .sort(function(a,b){ return b.s-a.s || a.m.localeCompare(b.m); })
+    .slice(0,10);
+  var html=matches.map(function(x){
+    var nm=x.m.replace(/"/g,'&quot;');
+    return '<div onmousedown="event.preventDefault()" onclick="pickMerchant(this.getAttribute(\'data-m\'))" data-m="'+nm+'" style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px" onmouseover="this.style.background=\'var(--surface-2)\'" onmouseout="this.style.background=\'\'">'+x.m+'</div>';
+  }).join('');
+  var q=(value||'').trim();
+  if(q && all.map(function(m){return m.toLowerCase();}).indexOf(q.toLowerCase())<0){
+    html+='<div onmousedown="event.preventDefault()" onclick="pickMerchant(this.getAttribute(\'data-m\'))" data-m="'+q.replace(/"/g,'&quot;')+'" style="padding:8px 11px;cursor:pointer;font-size:13px;color:#15803d;font-weight:600"><i class="ti ti-plus"></i> 신규 사용처 추가 · Add &quot;'+q+'&quot;</div>';
+  }
+  if(!html){ hideMerchantSuggest(); return; }
+  box.innerHTML=html; box.style.display='block';
+}
+function pickMerchant(m){ var inp=document.getElementById('cardMerchant'); if(inp) inp.value=m; hideMerchantSuggest(); }
+function onMerchantKeydown(e){
+  if(e.key==='Escape'){ hideMerchantSuggest(); return; }
+  if(e.key==='Enter'){ var f=document.querySelector('#cardMerchantSuggest [data-m]'); if(f){ e.preventDefault(); pickMerchant(f.getAttribute('data-m')); } }
+}
+
+// ── Amount thousand separators ──
+function formatCardAmount(el){
+  var v=(el.value||'').replace(/[^\d.]/g,'');
+  var parts=v.split('.');
+  if(parts[0]!=='') parts[0]=Number(parts[0]).toLocaleString('en-US');
+  el.value = parts.length>1 ? parts[0]+'.'+parts.slice(1).join('').slice(0,2) : parts[0];
+}
+
+// ── Line items (상세 구매목록) ──
+function addCardItemRow(name,qty,price){
+  var box=document.getElementById('cardItemsList'); if(!box) return;
+  var row=document.createElement('div');
+  row.className='card-item-row'; row.style.cssText='display:flex;gap:6px;align-items:center';
+  row.innerHTML='<input type="text" class="ci-name" placeholder="품목 · item" style="flex:2;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
+    +'<input type="text" class="ci-qty" inputmode="numeric" placeholder="수량" style="width:62px;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
+    +'<input type="text" class="ci-price" inputmode="decimal" placeholder="금액" oninput="formatCardAmount(this)" style="flex:1;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
+    +'<button type="button" class="btn btn-outline" style="font-size:11px;padding:5px 8px" onclick="this.parentNode.remove()"><i class="ti ti-x"></i></button>';
+  box.appendChild(row);
+  if(name!==undefined){ row.querySelector('.ci-name').value=name||''; row.querySelector('.ci-qty').value=qty||''; row.querySelector('.ci-price').value=price||''; }
+}
+function getCardItems(){
+  var out=[];
+  document.querySelectorAll('#cardItemsList .card-item-row').forEach(function(r){
+    var name=((r.querySelector('.ci-name')||{}).value||'').trim();
+    var qty=((r.querySelector('.ci-qty')||{}).value||'').trim();
+    var price=((r.querySelector('.ci-price')||{}).value||'').replace(/,/g,'').trim();
+    if(name||price) out.push({name:name, qty:qty, price:price});
+  });
+  return out;
+}
+
+function toggleCardForm(show){
+  var card=document.getElementById('cardFormCard'); if(!card) return;
+  var willShow = (show===undefined) ? card.style.display==='none' : show;
+  card.style.display = willShow ? 'block' : 'none';
+  if(willShow) resetCardForm();
+}
+
+function resetCardForm(){
+  populateCardSelects();
+  var u=cardCurrentUser();
+  var d=document.getElementById('cardDate');
+  if(d){ var t=new Date(); d.value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
+  var us=document.getElementById('cardUser'); if(us) us.value = u ? u.name : '';
+  var ds=document.getElementById('cardDept'); if(ds && u && u.dept && cardDepts().indexOf(u.dept)>=0) ds.value=u.dept;
+  ['cardMerchant','cardAmount','cardPurpose','cardInvoiceNo'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var cn=document.getElementById('cardName'); if(cn) cn.selectedIndex=0;
+  var cc=document.getElementById('cardCategory'); if(cc) cc.selectedIndex=0;
+  var cur=document.getElementById('cardCurrency'); if(cur) cur.selectedIndex=0;
+  var il=document.getElementById('cardItemsList'); if(il) il.innerHTML='';
+  var inv=document.querySelector('input[name="cardInvoice"][value="no"]'); if(inv) inv.checked=true; toggleCardInvoiceNo();
+  cardReceiptData=null; var p=document.getElementById('cardReceiptPreview'); if(p) p.innerHTML='';
+  hideMerchantSuggest();
+}
+
+function toggleCardInvoiceNo(){
+  var v=(document.querySelector('input[name="cardInvoice"]:checked')||{}).value;
+  var w=document.getElementById('cardInvoiceNoWrap'); if(w) w.style.display = v==='yes' ? 'flex' : 'none';
+}
+
+function handleCardReceipt(file){
+  if(!file) return;
+  if(!/^image\//.test(file.type||'')){ showToast('이미지 파일만 가능합니다 · Image only'); return; }
+  if(file.size > 12*1024*1024){ showToast('이미지가 너무 큽니다 (12MB 초과)'); return; }
+  var url=URL.createObjectURL(file);
+  var img=new Image();
+  img.onload=function(){
+    URL.revokeObjectURL(url);
+    var maxDim=1100, w=img.width, h=img.height;
+    var scale=Math.min(1, maxDim/w, maxDim/h);
+    var cw=Math.max(1,Math.round(w*scale)), ch=Math.max(1,Math.round(h*scale));
+    var cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+    cv.getContext('2d').drawImage(img,0,0,cw,ch);
+    try { cardReceiptData=cv.toDataURL('image/jpeg',0.55); }
+    catch(err){ showToast('이미지 처리 실패 · Processing failed'); return; }
+    var kb=Math.round(cardReceiptData.length*0.75/1024);
+    var p=document.getElementById('cardReceiptPreview');
+    if(p) p.innerHTML='<img src="'+cardReceiptData+'" style="max-width:100%;max-height:220px;border-radius:var(--radius);border:1px solid var(--border);display:block">'
+      +'<div style="font-size:10px;color:var(--text-3);margin-top:4px">압축 저장 · 약 '+kb+'KB · '+cw+'×'+ch+'px</div>'
+      +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px;margin-top:5px" onclick="clearCardReceipt()"><i class="ti ti-x"></i> 제거 · Remove</button>';
+  };
+  img.onerror=function(){ URL.revokeObjectURL(url); showToast('이미지를 읽을 수 없습니다 · Cannot read image'); };
+  img.src=url;
+}
+function clearCardReceipt(){ cardReceiptData=null; var p=document.getElementById('cardReceiptPreview'); if(p) p.innerHTML=''; }
+
+function submitCardExpense(){
+  var u=cardCurrentUser();
+  var purpose=((document.getElementById('cardPurpose')||{}).value||'');
+  var amount=((document.getElementById('cardAmount')||{}).value||'');
+  var merchant=((document.getElementById('cardMerchant')||{}).value||'').trim();
+  if(!amount.trim()){ showToast('금액을 입력하세요 · Enter amount'); return; }
+  if(!purpose.trim()){ showToast('사용 목적을 입력하세요 · Enter purpose'); return; }
+  if(!cardReceiptData){ showToast('영수증 사진은 필수입니다 · Receipt photo required'); return; }
+  var rec={
+    id:(state.cardSeq=(state.cardSeq||0)+1),
+    date:((document.getElementById('cardDate')||{}).value||today()),
+    dept:((document.getElementById('cardDept')||{}).value||''),
+    userId:u?u.id:null, userName:u?u.name:'unknown',
+    card:((document.getElementById('cardName')||{}).value||''),
+    merchant:merchant,
+    amount:amount.replace(/,/g,'').trim(),
+    currency:((document.getElementById('cardCurrency')||{}).value||'VND'),
+    category:((document.getElementById('cardCategory')||{}).value||'기타'),
+    purpose:purpose.trim(),
+    items:getCardItems(),
+    invoiceIssued:((document.querySelector('input[name="cardInvoice"]:checked')||{}).value==='yes'),
+    invoiceNo:((document.getElementById('cardInvoiceNo')||{}).value||'').trim(),
+    receipt:cardReceiptData,
+    createdAt:nowStr()
+  };
+  if(!state.cardExpenses) state.cardExpenses=[];
+  state.cardExpenses.push(rec);
+  if(merchant){
+    if(!state.cardMerchants) state.cardMerchants=[];
+    if(state.cardMerchants.map(function(m){return m.toLowerCase();}).indexOf(merchant.toLowerCase())<0) state.cardMerchants.push(merchant);
+  }
+  saveState();
+  toggleCardForm(false);
+  renderCard();
+  showToast('카드 지출 등록 완료 · Card expense saved');
+}
+
+function cardFmtAmount(a){ var n=parseFloat(String(a).replace(/,/g,'')); return isNaN(n) ? a : n.toLocaleString(); }
+
+function renderCard(){
+  populateCardSelects();
+  var listEl=document.getElementById('cardList'); if(!listEl) return;
+  var fDept=((document.getElementById('cardFDept')||{}).value||'');
+  var fUser=((document.getElementById('cardFUser')||{}).value||'');
+  var fMonth=((document.getElementById('cardFMonth')||{}).value||'');
+  var q=((document.getElementById('cardSearch')||{}).value||'').toLowerCase().trim();
+  var items=(state.cardExpenses||[]).slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||'') || b.id-a.id; });
+  items=items.filter(function(x){
+    if(fDept && x.dept!==fDept) return false;
+    if(fUser && String(x.userId)!==String(fUser)) return false;
+    if(fMonth){ var ym=(x.date||'').slice(0,7).replace(/\./g,'-'); if(ym!==fMonth) return false; }
+    return true;
+  });
+  if(q){
+    var terms=q.split(/\s+/);
+    items=items.filter(function(x){
+      var hay=[x.date,x.dept,x.userName,('*'+x.card),x.merchant,x.category,x.currency,x.amount,x.purpose,x.invoiceNo,(x.items||[]).map(function(it){return it.name+' '+it.price;}).join(' ')].join(' ').toLowerCase();
+      return terms.every(function(t){ return hay.indexOf(t)>=0; });
+    });
+  }
+  var sums={};
+  items.forEach(function(x){ var n=parseFloat(String(x.amount).replace(/,/g,''))||0; sums[x.currency]=(sums[x.currency]||0)+n; });
+  var sumEl=document.getElementById('cardSummary');
+  if(sumEl){
+    var chips=Object.keys(sums).map(function(c){ return '<span style="background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;margin-right:6px">'+c+' '+sums[c].toLocaleString()+'</span>'; }).join('');
+    sumEl.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:12px;color:var(--text-2);margin-right:4px">합계 · '+items.length+'건</span>'+(chips||'<span style="font-size:12px;color:var(--text-3)">—</span>')+'</div>';
+  }
+  if(!items.length){ listEl.innerHTML='<div class="empty-state"><i class="ti ti-credit-card"></i><p>'+(q?'검색 결과 없음 · No results':'등록된 카드 지출 없음 · No card expenses')+'</p></div>'; return; }
+  var me=cardCurrentUser();
+  var isAdmin = sessionIsAdmin || (me && me.isAdmin);
+  listEl.innerHTML=items.map(function(x){
+    var inv = x.invoiceIssued
+      ? '<span class="badge b-done" style="font-size:10px">Invoice ✓'+(x.invoiceNo?' '+x.invoiceNo:'')+'</span>'
+      : '<span class="badge b-rejected" style="font-size:10px">Invoice ✗</span>';
+    var itemBadge = (x.items&&x.items.length) ? '<span class="badge b-draft" style="font-size:10px">품목 '+x.items.length+'</span>' : '';
+    var canDel = isAdmin || (me && x.userId===me.id);
+    var del = canDel ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();deleteCardExpense('+x.id+')"><i class="ti ti-trash"></i></button>' : '';
+    return '<div class="detail-panel" style="margin-bottom:9px;cursor:pointer" onclick="viewCardDetail('+x.id+')" title="클릭하여 상세 보기"><div style="display:flex;gap:11px;align-items:flex-start;padding:11px 13px">'
+      +'<img src="'+x.receipt+'" onclick="event.stopPropagation();viewCardReceipt('+x.id+')" style="width:56px;height:56px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--border);cursor:zoom-in;flex-shrink:0" title="영수증 확대">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><div style="font-size:14px;font-weight:700">'+x.currency+' '+cardFmtAmount(x.amount)+'</div><div style="font-size:11px;color:var(--text-3)">'+x.date+'</div></div>'
+      +'<div style="font-size:12px;color:var(--text-2);margin-top:2px">'+(x.merchant||'—')+' · '+x.category+'</div>'
+      +'<div style="font-size:11px;color:var(--text-3);margin-top:3px"><strong>'+x.dept+'</strong> · '+x.userName+(x.card?' · *'+x.card:'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text);margin-top:5px;white-space:pre-wrap;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+x.purpose+'</div>'
+      +'<div style="margin-top:7px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+inv+itemBadge+del+'</div>'
+      +'</div></div></div>';
+  }).join('');
+}
+
+function deleteCardExpense(id){
+  var x=(state.cardExpenses||[]).find(function(e){ return e.id===id; }); if(!x) return;
+  if(!confirm('이 카드 지출 내역을 삭제할까요?\nDelete this card expense?')) return;
+  state.cardExpenses=(state.cardExpenses||[]).filter(function(e){ return e.id!==id; });
+  saveState(); renderCard(); showToast('삭제 완료 · Deleted');
+}
+
+function viewCardReceipt(id){
+  var x=(state.cardExpenses||[]).find(function(e){ return e.id===id; }); if(!x) return;
+  var ov=document.getElementById('cardLightbox');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='cardLightbox';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out';
+    ov.onclick=function(){ ov.style.display='none'; ov.innerHTML=''; };
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML='<img src="'+x.receipt+'" style="max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.4)">';
+  ov.style.display='flex';
+}
+
+function viewCardDetail(id){
+  var x=(state.cardExpenses||[]).find(function(e){ return e.id===id; }); if(!x) return;
+  var ov=document.getElementById('cardDetailModal');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='cardDetailModal';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.onclick=function(e){ if(e.target===ov){ ov.style.display='none'; ov.innerHTML=''; } };
+    document.body.appendChild(ov);
+  }
+  var its=(x.items||[]);
+  var itemsHtml = its.length
+    ? '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px"><thead><tr style="text-align:left;color:var(--text-3)"><th style="padding:4px 6px;border-bottom:1px solid var(--border)">품목 · Item</th><th style="padding:4px 6px;border-bottom:1px solid var(--border);width:56px">수량</th><th style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:right;width:110px">금액</th></tr></thead><tbody>'
+      + its.map(function(it){ return '<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border)">'+(it.name||'—')+'</td><td style="padding:4px 6px;border-bottom:1px solid var(--border)">'+(it.qty||'')+'</td><td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:right">'+(it.price?cardFmtAmount(it.price):'')+'</td></tr>'; }).join('')
+      + '</tbody></table>'
+    : '<div style="font-size:12px;color:var(--text-3);margin-top:4px">등록된 품목 없음 · No line items</div>';
+  function row(l,v){ return '<div style="display:flex;gap:10px;padding:3px 0"><div style="width:92px;color:var(--text-3);font-size:11px;flex-shrink:0">'+l+'</div><div style="font-size:13px;word-break:break-word">'+((v===undefined||v===null||v==='')?'—':v)+'</div></div>'; }
+  var inv = x.invoiceIssued ? ('발행'+(x.invoiceNo?' ('+x.invoiceNo+')':'')) : '미발행';
+  ov.innerHTML='<div style="background:#fff;border-radius:var(--radius-lg);max-width:560px;width:100%;max-height:88vh;overflow-y:auto;padding:20px" onclick="event.stopPropagation()">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:17px;font-weight:700">'+x.currency+' '+cardFmtAmount(x.amount)+'</div><button class="btn btn-outline" style="font-size:11px;padding:4px 9px" onclick="document.getElementById(\'cardDetailModal\').style.display=\'none\'">닫기 · Close</button></div>'
+    +row('사용일 · Date',x.date)+row('부서 · Dept',x.dept)+row('사용자 · User',x.userName)+row('카드 · Card', x.card?('*'+x.card):'')+row('사용처 · Merchant',x.merchant)+row('분류 · Category',x.category)+row('Invoice',inv)+row('목적 · Purpose','<span style="white-space:pre-wrap">'+(x.purpose||'')+'</span>')
+    +'<div style="margin-top:12px;font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">상세 구매목록 · Line items</div>'+itemsHtml
+    +'<div style="margin-top:14px;font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">영수증 · Receipt</div>'
+    +'<img src="'+x.receipt+'" onclick="viewCardReceipt('+x.id+')" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:6px;cursor:zoom-in">'
+    +'</div>';
+  ov.style.display='flex';
+}
+
+// ── Card dashboard (집계) ──
+var cardTab='dash';
+function styleCardTabs(){
+  [['cardTabDash','dash'],['cardTabList','list']].forEach(function(p){
+    var b=document.getElementById(p[0]); if(!b) return;
+    var on = cardTab===p[1];
+    b.style.cssText='background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;color:'+(on?'var(--text)':'var(--text-3)')+';border-bottom:2px solid '+(on?'var(--text)':'transparent')+';margin-bottom:-1px';
+  });
+}
+function cardSwitchTab(tab){
+  cardTab=tab;
+  var dv=document.getElementById('cardDashView'), lv=document.getElementById('cardListView');
+  if(dv) dv.style.display = tab==='dash' ? 'block' : 'none';
+  if(lv) lv.style.display = tab==='list' ? 'block' : 'none';
+  styleCardTabs();
+  if(tab==='dash') renderCardDashboard(); else renderCard();
+}
+
+function cardNum(a){ return parseFloat(String(a).replace(/,/g,''))||0; }
+function cardCurrencies(){
+  var s={}; (state.cardExpenses||[]).forEach(function(x){ if(x.currency) s[x.currency]=(s[x.currency]||0)+1; });
+  return Object.keys(s).sort(function(a,b){ return s[b]-s[a]; });
+}
+function populateCardDashControls(){
+  var curs=cardCurrencies(); if(!curs.length) curs=['VND'];
+  var cs=document.getElementById('cardDashCur');
+  if(cs){ var cur=cs.value; cs.innerHTML=curs.map(function(c){ return '<option>'+c+'</option>'; }).join(''); if(cur && curs.indexOf(cur)>=0) cs.value=cur; }
+  var ds=document.getElementById('cardDashDept');
+  if(ds){ var d=ds.value; ds.innerHTML='<option value="">전체 부서 · All</option>'+cardDepts().map(function(x){ return '<option>'+x+'</option>'; }).join(''); ds.value=d; }
+}
+function cardBars(title, rows, cur){
+  if(!rows.length) return '<div><div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+title+'</div><div style="font-size:12px;color:var(--text-3)">데이터 없음 · No data</div></div>';
+  var max=Math.max.apply(null, rows.map(function(r){ return r.amount; }))||1;
+  var body=rows.map(function(r){
+    var pct=Math.max(2, Math.round(r.amount/max*100));
+    return '<div style="margin-bottom:9px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;gap:8px"><span style="font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.label+' <span style="color:var(--text-3);font-weight:400">· '+r.count+'건</span></span><span style="font-weight:700;white-space:nowrap">'+cur+' '+r.amount.toLocaleString()+'</span></div>'
+      +'<div style="height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#1d4ed8;border-radius:5px"></div></div>'
+      +'</div>';
+  }).join('');
+  return '<div><div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">'+title+'</div>'+body+'</div>';
+}
+function cardGroup(arr, keyFn){
+  var g={};
+  arr.forEach(function(x){ var k=keyFn(x)||'(미지정)'; if(!g[k]) g[k]={label:k,amount:0,count:0}; g[k].amount+=cardNum(x.amount); g[k].count++; });
+  return Object.keys(g).map(function(k){ return g[k]; }).sort(function(a,b){ return b.amount-a.amount; });
+}
+function renderCardDashboard(){
+  populateCardDashControls();
+  var cur=((document.getElementById('cardDashCur')||{}).value)||'VND';
+  var fDept=((document.getElementById('cardDashDept')||{}).value)||'';
+  var fMonth=((document.getElementById('cardDashMonth')||{}).value)||'';
+  var base=(state.cardExpenses||[]).filter(function(x){
+    if((x.currency||'')!==cur) return false;
+    if(fMonth){ var ym=(x.date||'').slice(0,7).replace(/\./g,'-'); if(ym!==fMonth) return false; }
+    return true;
+  });
+  var scoped = fDept ? base.filter(function(x){ return x.dept===fDept; }) : base;
+
+  // KPI
+  var total=scoped.reduce(function(s,x){ return s+cardNum(x.amount); },0);
+  var mset={}; scoped.forEach(function(x){ if(x.merchant) mset[x.merchant]=true; });
+  var dset={}; base.forEach(function(x){ if(x.dept) dset[x.dept]=true; });
+  var kpi=document.getElementById('cardDashKpi');
+  if(kpi){
+    function kc(label,val){ return '<div style="flex:1;min-width:130px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px"><div style="font-size:11px;color:var(--text-3)">'+label+'</div><div style="font-size:18px;font-weight:700;margin-top:3px">'+val+'</div></div>'; }
+    kpi.innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap">'
+      +kc('총 사용액 · Total', cur+' '+total.toLocaleString())
+      +kc('거래 건수 · Tx', scoped.length+'건')
+      +kc('사용처 · Merchants', Object.keys(mset).length)
+      +kc('부서 · Depts', Object.keys(dset).length)
+      +'</div>';
+  }
+  var d1=document.getElementById('cardDashByDept');
+  if(d1) d1.innerHTML=cardBars('부서별 사용 · By Department', cardGroup(base, function(x){return x.dept;}), cur);
+  var d2=document.getElementById('cardDashByMerchant');
+  if(d2) d2.innerHTML=cardBars('사용처별 사용 · By Merchant'+(fDept?' · '+fDept:'')+' · Top 10', cardGroup(scoped, function(x){return x.merchant;}).slice(0,10), cur);
+  var d3=document.getElementById('cardDashByCategory');
+  if(d3) d3.innerHTML=cardBars('분류별 사용 · By Category', cardGroup(scoped, function(x){return x.category;}), cur);
+  var d4=document.getElementById('cardDashByMonth');
+  if(d4){ var mo=cardGroup(scoped, function(x){ return (x.date||'').slice(0,7).replace(/\./g,'-'); }).sort(function(a,b){ return a.label.localeCompare(b.label); }).slice(-12); d4.innerHTML=cardBars('월별 추이 · By Month', mo, cur); }
+}
+
+// ═══════════════════════════════════════════
 // HUB PAGE
 // ═══════════════════════════════════════════
 function showHub() {
@@ -2519,6 +2983,8 @@ function enterModule(module) {
     showPage('dashboard');
   } else if(module === 'vendors') {
     showPage('vendors');
+  } else if(module === 'card') {
+    showCardApp();
   }
 }
 
@@ -2535,6 +3001,9 @@ function hubLogout() {
   if(gate) gate.classList.remove('hidden');
   var hub = document.getElementById('hubPage');
   if(hub) hub.style.display = 'none';
+  var cardA = document.getElementById('cardApp');
+  if(cardA) cardA.style.display = 'none';
+  cardAppOpen = false;
   // Reset session chip
   var chip = document.getElementById('sessionChip');
   if(chip) chip.style.display = 'none';
@@ -2844,6 +3313,5 @@ function toggleBankType() {
 })();
 </script>
 
-
-
-</body></html>
+</body>
+</html>
