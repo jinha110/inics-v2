@@ -512,59 +512,62 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">Modules · 모듈 선택 — Click to enter · 클릭하여 진입</div>
 
-    <div class="hub-grid">
+    <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>COMMON · 공통</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
+    <div class="hub-grid" style="margin-bottom:26px">
 
-      <!-- 전자결재 Electronic Approval -->
       <div class="hub-card active-module" id="hubCard-approval" onclick="enterModule('approval')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
-        <div class="hub-card-icon" style="background:#eff6ff;color:#1d4ed8">
-          <i class="ti ti-file-check"></i>
-        </div>
+        <div class="hub-card-icon" style="background:#eff6ff;color:#1d4ed8"><i class="ti ti-file-check"></i></div>
         <div class="hub-card-title">전자결재 · Electronic Approval</div>
         <div class="hub-card-desc">기안 · 승인 · 결제<br>Draft · Approve · Payment</div>
-        <div id="hubApprovalBadge" style="display:none;margin-top:10px">
-          <span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px"></span>
-        </div>
+        <div id="hubApprovalBadge" style="display:none;margin-top:10px"><span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px"></span></div>
       </div>
 
-      <!-- 거래처 DB Vendor Database -->
-      <div class="hub-card active-module" id="hubCard-vendors" onclick="enterModule('vendors')">
+      <div class="hub-card active-module" id="hubCard-card" onclick="enterModule('card')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
-        <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d">
-          <i class="ti ti-building-store"></i>
-        </div>
-        <div class="hub-card-title">거래처 DB · Vendor Database</div>
-        <div class="hub-card-desc">거래처 · 은행정보 · 문서 검색<br>Vendor · Bank Info · Search</div>
+        <div class="hub-card-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div>
+        <div class="hub-card-title">카드사용 · Card Usage</div>
+        <div class="hub-card-desc">법인카드 지출 관리<br>Corporate Card Management</div>
       </div>
 
-      <!-- 견적서 Quotation -->
-      <div class="hub-card active-module" id="hubCard-quote" onclick="enterModule('quote')">
-        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
-        <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca">
-          <i class="ti ti-file-invoice"></i>
-        </div>
-        <div class="hub-card-title">견적서 · Quotation</div>
-        <div class="hub-card-desc">제품 DB · 마진 · PDF 출력<br>Product DB · Margin · PDF</div>
-      </div>
-
-      <!-- 업무보고 Work Report -->
       <div class="hub-card coming-soon">
         <div class="hub-card-badge" style="background:var(--surface-2);color:var(--text-3)">Coming Soon</div>
-        <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d">
-          <i class="ti ti-report"></i>
-        </div>
+        <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d"><i class="ti ti-report"></i></div>
         <div class="hub-card-title">업무보고 · Work Report</div>
         <div class="hub-card-desc">일일 · 주간 · 월간 보고<br>Daily · Weekly · Monthly</div>
       </div>
 
-      <!-- 카드사용 Card Usage -->
-      <div class="hub-card active-module" id="hubCard-card" onclick="enterModule('card')">
+      <div class="hub-card active-module" id="hubCard-vendors" onclick="enterModule('vendors')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
-        <div class="hub-card-icon" style="background:#fef3c7;color:#92400e">
-          <i class="ti ti-credit-card"></i>
-        </div>
-        <div class="hub-card-title">카드사용 · Card Usage</div>
-        <div class="hub-card-desc">법인카드 지출 관리<br>Corporate Card Management</div>
+        <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d"><i class="ti ti-building-store"></i></div>
+        <div class="hub-card-title">거래처 DB · Vendor Database</div>
+        <div class="hub-card-desc">거래처 · 은행정보 · 문서 검색<br>Vendor · Bank Info · Search</div>
+      </div>
+
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>FURNITURE · 가구</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
+    <div class="hub-grid">
+
+      <div class="hub-card active-module" id="hubCard-quote" onclick="enterModule('quote')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
+        <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca"><i class="ti ti-file-invoice"></i></div>
+        <div class="hub-card-title">견적서 · Quotation</div>
+        <div class="hub-card-desc">제품 DB · 마진 · PDF 출력<br>Product DB · Margin · PDF</div>
+      </div>
+
+      <div class="hub-card active-module" id="hubCard-project" onclick="enterModule('project')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
+        <div class="hub-card-icon" style="background:#f5f3ff;color:#7c3aed"><i class="ti ti-layout-kanban"></i></div>
+        <div class="hub-card-title">프로젝트 관리 · Projects</div>
+        <div class="hub-card-desc">영업 파이프라인 · 단계 현황<br>Sales Pipeline · Kanban</div>
+      </div>
+
+      <div class="hub-card active-module" id="hubCard-finance" onclick="enterModule('finance')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
+        <div class="hub-card-icon" style="background:#ecfdf5;color:#047857"><i class="ti ti-report-money"></i></div>
+        <div class="hub-card-title">매입/매출 정산 · Finance</div>
+        <div class="hub-card-desc">매출·매입·마진·미수금<br>Sales · Purchase · Margin</div>
       </div>
 
     </div>
@@ -690,6 +693,158 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <!-- QUOTATION — standalone overlay -->
+
+<!-- PROJECT MANAGEMENT — standalone overlay -->
+<div id="projectApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:1240px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closeProjectApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub · 허브</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">Projects · 프로젝트 관리</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <span id="projAvatarChip"></span><span id="projUserName"></span>
+        <button class="btn btn-outline" onclick="hubLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">고객사 단위 영업 파이프라인 · 단계별 진행 현황 · Sales Pipeline</div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center">
+        <button id="projTabBoard" onclick="projectSwitchTab('board')"><i class="ti ti-layout-kanban"></i> 보드 · Board</button>
+        <button id="projTabList" onclick="projectSwitchTab('list')"><i class="ti ti-list"></i> 목록 · List</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <button class="btn btn-outline" id="projImportBtn" onclick="projOpenImport()" style="font-size:12px;padding:6px 12px"><i class="ti ti-file-import"></i> 가져오기 · Import</button>
+        <button class="btn btn-dark" onclick="openProjectForm()" style="font-size:12px;padding:6px 13px"><i class="ti ti-plus"></i> 새 프로젝트 · New</button>
+      </div>
+    </div>
+
+    <div id="projBoardView">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <input type="text" id="projBoardSearch" placeholder="🔎 고객사 · 내용" oninput="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none;min-width:200px">
+        <select id="projBoardOwner" onchange="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">담당자 전체</option></select>
+        <select id="projBoardRegion" onchange="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">지역 전체</option></select>
+        <span style="font-size:11px;color:var(--text-3)">카드를 드래그하거나 카드 하단 단계 선택으로 이동</span>
+      </div>
+      <div id="projBoard" style="display:flex;gap:9px;overflow-x:auto;padding-bottom:14px;align-items:flex-start"></div>
+    </div>
+
+    <div id="projListView" style="display:none">
+      <div class="fg" style="margin-bottom:10px"><input type="text" id="projListSearch" placeholder="🔎 고객사 · 담당자 · 지역 · 단계" oninput="renderProjectList()" autocomplete="off"></div>
+      <div id="projList"></div>
+    </div>
+  </div>
+
+  <!-- Project form modal -->
+  <div id="projectFormModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;overflow-y:auto;padding:28px 16px">
+    <div style="max-width:580px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div id="projFormTitle" style="font-size:15px;font-weight:700">새 프로젝트 등록</div>
+        <button class="btn btn-outline" onclick="closeProjectForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>고객사 · Client <span>거래처DB 연동</span></label><input type="text" id="projClient" list="projectClients" placeholder="고객사 검색 또는 신규 입력" autocomplete="off"></div>
+        <div class="fg"><label>담당자 · Owner <span>로그인 사용자</span></label><input type="text" id="projOwnerName" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg"><label>지역 · Region</label><select id="projRegion"></select></div>
+        <div class="fg"><label>위치 · Location</label><input type="text" id="projLocation" placeholder="도시 / 주"></div>
+        <div class="fg"><label>유형 · Type</label><select id="projType"></select></div>
+        <div class="fg"><label>고객 타입 · Cust. Type</label><select id="projCustType"><option>B2B</option><option>B2C</option><option>END USER</option></select></div>
+        <div class="fg"><label>단계 · Stage</label><select id="projStage" onchange="onProjStageChange()"></select></div>
+        <div class="fg"><label>예상금액 · Amount</label><input type="text" id="projAmount" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+        <div class="fg"><label>통화 · Currency</label><select id="projCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
+        <div class="fg"><label>등록일 · Reg. Date</label><input type="date" id="projRegDate"></div>
+        <div class="fg"><label>목표 프로젝트 완료일 · Target</label><input type="date" id="projTargetDate"></div>
+      </div>
+      <datalist id="projectClients"></datalist>
+      <div class="fg" id="projLostWrap" style="display:none;margin-top:11px"><label style="color:var(--danger)">드롭 사유 · Lost Reason</label><select id="projLostReason"></select></div>
+      <div class="fg" style="margin-top:11px"><label>내용 · 스코프 · Note</label><textarea id="projNote" placeholder="예: 신축 - 책상 70세트, 회의실 등 / 추가 구매 (락커 10개)"></textarea></div>
+      <div class="fg" style="margin-top:11px"><label>비고 · Remark</label><input type="text" id="projRemark" autocomplete="off"></div>
+      <div id="projLinkedQuotes" style="margin-top:12px"></div>
+
+      <div id="projFinanceWrap" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+        <div class="form-card-title" style="margin-bottom:10px;color:var(--text-2)"><i class="ti ti-cash"></i> 수주 확정 — 매출 / 매입 정산</div>
+
+        <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px">매출 · Sales</div>
+        <div class="fgrid">
+          <div class="fg"><label>통화 · Currency</label><select id="salesCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
+          <div class="fg"><label>매출 총액 · Total <span>선금+잔금 자동</span></label><input type="text" id="salesTotal" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="salesDeposit" inputmode="decimal" autocomplete="off" oninput="recalcProjFinance()"></div>
+          <div class="fg"><label>선금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesDepositPaid" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesDepositDate" style="flex:1"></div></div>
+          <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="salesBalance" inputmode="decimal" autocomplete="off" oninput="recalcProjFinance()"></div>
+          <div class="fg"><label>잔금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesBalancePaid" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesBalanceDate" style="flex:1"></div></div>
+          <div class="fg"><label>인보이스 발행 · Invoice</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesInvoiceIssued" onchange="recalcProjFinance()" style="width:auto;margin:0"> 발행됨</label><input type="text" id="salesInvoiceNo" placeholder="인보이스 번호" autocomplete="off" style="flex:1"></div></div>
+          <div class="fg"><label>인보이스 금액 / 발행일 <span>미입력=총액</span></label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="salesInvoiceAmount" inputmode="decimal" autocomplete="off" oninput="recalcProjFinance()" placeholder="발행 금액" style="flex:1"><input type="date" id="salesInvoiceDate" style="flex:1"></div></div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#b45309;margin:14px 0 8px">매입 · Purchase</div>
+        <div class="fgrid">
+          <div class="fg"><label>거래처 · Vendor</label><input type="text" id="purchaseVendor" list="projectClients" autocomplete="off"></div>
+          <div class="fg"><label>통화 · Currency</label><select id="purchaseCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
+          <div class="fg"><label>매입 총액 · Total <span>선금+잔금 자동</span></label><input type="text" id="purchaseTotal" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>　</label><div style="font-size:11px;color:var(--text-3);padding-top:8px">아래 선금/잔금 입력</div></div>
+          <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="purchaseDeposit" inputmode="decimal" autocomplete="off" oninput="recalcProjFinance()"></div>
+          <div class="fg"><label>선금 지급</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseDepositPaid" style="width:auto;margin:0"> 지급완료</label><input type="date" id="purchaseDepositDate" style="flex:1"></div></div>
+          <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="purchaseBalance" inputmode="decimal" autocomplete="off" oninput="recalcProjFinance()"></div>
+          <div class="fg"><label>잔금 지급</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseBalancePaid" style="width:auto;margin:0"> 지급완료</label><input type="date" id="purchaseBalanceDate" style="flex:1"></div></div>
+        </div>
+        <div class="line-preview" id="projMarginPreview" style="margin-top:10px">마진 —</div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-danger" id="projDeleteBtn" onclick="deleteProject(_editingProjId)" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
+        <button class="btn btn-dark" onclick="saveProject()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project import modal -->
+  <div id="projImportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;overflow-y:auto;padding:28px 16px">
+    <div style="max-width:620px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:700">노션 가져오기 · Import</div>
+        <button class="btn btn-outline" onclick="projCloseImport()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:10px">노션에서 <b>··· → 내보내기(Export) → CSV</b>로 받은 내용을 그대로 붙여넣으세요. Status·견적·발주·납품·결제 컬럼을 읽어 단계를 자동 매핑하고, <b>같은 고객사는 갱신</b>합니다.</div>
+      <textarea id="projImportText" placeholder="여기에 노션 CSV 내용을 붙여넣기..." style="width:100%;min-height:160px;font-family:var(--mono);font-size:11px;border:1px solid var(--border);border-radius:var(--radius);padding:10px;outline:none;resize:vertical"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <span id="projImportStatus" style="font-size:12px;color:var(--text-2)"></span>
+        <button class="btn btn-dark" onclick="projRunImport()"><i class="ti ti-download"></i> 가져오기 실행</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- FINANCE (매입/매출 정산) — standalone overlay -->
+<div id="financeApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:1100px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closeFinanceApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub · 허브</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">매입/매출 정산 · Finance</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <span id="finAvatarChip"></span><span id="finUserName"></span>
+        <button class="btn btn-outline" onclick="hubLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">수주확정 이상 프로젝트의 매출·매입·마진·미수금·미지급금 현황 · 통화별</div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <select id="finCurrency" onchange="renderFinanceDashboard()" style="font-size:13px;font-weight:600;padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option>VND</option><option>USD</option><option>MXN</option></select>
+      <select id="finOwner" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">담당자 전체</option></select>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer"><input type="checkbox" id="finUninvOnly" onchange="renderFinanceDashboard()" style="width:auto;margin:0"> 미발행 인보이스만</label>
+      <span style="font-size:11px;color:var(--text-3)">선택 통화 기준 집계 (통화 혼합 없음)</span>
+    </div>
+
+    <div id="finKpis" style="margin-bottom:18px"></div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">프로젝트별 정산 · By Project</div>
+    <div id="finTable" style="overflow-x:auto"></div>
+  </div>
+</div>
+
 <div id="quoteApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
   <div style="max-width:1000px;margin:0 auto;padding:28px 24px 60px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
@@ -1297,6 +1452,7 @@ let state = {
   vendors:[], vendorRequests:[], vendorReqSeq:0,
   cardExpenses:[], cardSeq:0, cardMerchants:[], modulePerms:{},
   products:[], quotes:[], quoteSeq:0,
+  projects:[], projectSeq:0,
   docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other']
 };
 let curPage='dashboard', curFilter='all', curDocId=null;
@@ -1369,6 +1525,8 @@ async function loadState() {
     if(!state.products)state.products=[];
     if(!state.quotes)state.quotes=[];
     if(state.quoteSeq===undefined)state.quoteSeq=0;
+    if(!state.projects)state.projects=[];
+    if(state.projectSeq===undefined)state.projectSeq=0;
   }
   // apply saved passwords
   if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
@@ -1381,14 +1539,17 @@ async function loadState() {
     });
   }
   populateSelects(); render();
+  if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
   // realtime listener
   if(fbReady && window._fbListen){
     window._fbListen(remote=>{
       state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
       if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
       if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
+      if(!state.projects)state.projects=[]; if(state.projectSeq===undefined)state.projectSeq=0;
       if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
-      render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } setSyncStatus('ok','Live sync · 실시간 동기화');
+      if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
+      render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } if(typeof projectAppOpen!=='undefined' && projectAppOpen && typeof renderProjectBoard==='function'){ renderProjectBoard(); } setSyncStatus('ok','Live sync · 실시간 동기화');
     });
   }
 }
@@ -2368,62 +2529,113 @@ function renderVendorDB() {
   var q = (document.getElementById('vendorSearch')||{}).value || '';
   q = q.toLowerCase().trim();
 
-  // Collect unique vendors from all docs with expense data
   var vendors = {};
-  state.docs.forEach(function(doc){
+  function ensure(key){
+    key = (key||'').trim();
+    if(!key) return null;
+    if(!vendors[key]) vendors[key] = {name:key, reg:'', bank:{}, docs:[], srcs:{}};
+    return vendors[key];
+  }
+
+  // 1) 전자결재 지출결의서 (state.docs) — 매입 거래처
+  (state.docs||[]).forEach(function(doc){
     if(!doc.expenseData || !doc.expenseData.vendorName) return;
     var e = doc.expenseData;
-    var key = e.vendorName.trim();
-    if(!key) return;
-    if(!vendors[key]) vendors[key] = {name:key, reg:e.vendorReg||'', bank:{}, docs:[]};
-    // Update bank info (latest wins)
-    vendors[key].bank = {
+    var v = ensure(e.vendorName); if(!v) return;
+    if(e.vendorReg) v.reg = e.vendorReg;
+    v.bank = {
       type: e.bankType,
       bankVN: e.bankVN||'', acctVN: e.bankVNAcct||'', holderVN: e.bankVNHolder||'', branchVN: e.bankVNBranch||'',
       bankForeign: e.bankForeignName||'', swift: e.bankSwift||'', acctForeign: e.bankForeignAcct||'', holderForeign: e.bankForeignHolder||''
     };
-    vendors[key].docs.push({no:doc.docNo, title:doc.title, po:e.poNumber||'', inv:e.invoiceNumber||''});
+    v.srcs.expense = true;
+    v.docs.push({src:'expense', no:doc.docNo||('D-'+doc.id), title:doc.title||'지출결의서', id:doc.id, po:e.poNumber||'', inv:e.invoiceNumber||''});
   });
 
-  // Overlay vendor master (authoritative bank info; includes vendors with no docs yet)
+  // 2) 거래처 마스터 (state.vendors) — 은행정보 권위 소스 + 문서 없는 거래처 포함
   (state.vendors||[]).forEach(function(m){
     if(!m || !m.name) return;
-    var key = m.name.trim();
-    if(!vendors[key]) vendors[key] = {name:key, reg:m.reg||'', bank:{}, docs:[]};
-    vendors[key].reg = m.reg || vendors[key].reg;
-    vendors[key].bank = {
+    var v = ensure(m.name); if(!v) return;
+    v.reg = m.reg || v.reg;
+    v.bank = {
       type: m.bankType||'vn',
       bankVN: m.bankVN||'', acctVN: m.bankVNAcct||'', holderVN: m.bankVNHolder||'', branchVN: m.bankVNBranch||'',
       bankForeign: m.bankForeignName||'', swift: m.bankSwift||'', acctForeign: m.bankForeignAcct||'', holderForeign: m.bankForeignHolder||''
     };
+    v.srcs.master = true;
+  });
+
+  // 3) 견적서 (state.quotes) — 매출 고객
+  (state.quotes||[]).forEach(function(qt){
+    if(!qt || !qt.client) return;
+    var v = ensure(qt.client); if(!v) return;
+    var tot = (qt.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
+    v.srcs.quote = true;
+    v.docs.push({src:'quote', no:qt.quoteNo||('Q-'+qt.id), title:'견적서 · Quotation', id:qt.id, cur:qt.currency||'', amt:tot, date:qt.date||''});
+  });
+
+  // 4) 카드사용 (state.cardExpenses) — 가맹점/사용처
+  (state.cardExpenses||[]).forEach(function(x){
+    if(!x || !x.merchant) return;
+    var v = ensure(x.merchant); if(!v) return;
+    v.srcs.card = true;
+    v.docs.push({src:'card', no:x.invoiceNo||('CARD-'+x.id), title:'카드 · '+(x.category||'지출'), id:x.id, cur:x.currency||'', amt:qNum(x.amount), date:x.date||''});
   });
 
   var list = Object.values(vendors);
   if(q) list = list.filter(function(v){
-    return v.name.toLowerCase().includes(q) || v.reg.toLowerCase().includes(q) ||
-      v.bank.bankVN.toLowerCase().includes(q) || v.bank.bankForeign.toLowerCase().includes(q) ||
-      v.docs.some(function(d){ return d.no.toLowerCase().includes(q) || d.inv.toLowerCase().includes(q) || d.po.toLowerCase().includes(q); });
+    return v.name.toLowerCase().includes(q) || (v.reg||'').toLowerCase().includes(q) ||
+      (v.bank.bankVN||'').toLowerCase().includes(q) || (v.bank.bankForeign||'').toLowerCase().includes(q) ||
+      v.docs.some(function(d){ return (d.no||'').toLowerCase().includes(q) || (d.inv||'').toLowerCase().includes(q) || (d.po||'').toLowerCase().includes(q) || (d.title||'').toLowerCase().includes(q); });
   });
+  list.sort(function(a,b){ return a.name.localeCompare(b.name); });
 
   if(!list.length){
     el.innerHTML = '<div class="empty-state"><i class="ti ti-building-store"></i><p>No vendors · 거래처 없음</p></div>';
     return;
   }
 
-  el.innerHTML = list.map(function(v){
+  var SRC = {
+    expense:{label:'전자결재', icon:'ti-file-text', color:'#475569'},
+    quote:  {label:'견적', icon:'ti-file-invoice', color:'#1d4ed8'},
+    card:   {label:'카드', icon:'ti-credit-card', color:'#15803d'}
+  };
+
+  el.innerHTML = list.map(function(v,vi){
     var bankInfo = v.bank.type === 'vn'
       ? (v.bank.bankVN||'—') + ' | ' + (v.bank.acctVN||'—') + ' | ' + (v.bank.holderVN||'—') + (v.bank.branchVN?' ('+v.bank.branchVN+')':'')
       : (v.bank.bankForeign||'—') + ' | SWIFT: ' + (v.bank.swift||'—') + ' | ' + (v.bank.acctForeign||'—') + ' | ' + (v.bank.holderForeign||'—');
     var bankLabel = v.bank.type === 'vn' ? 'Vietnam · 베트남' : 'Foreign · 해외';
-    var docLinks = v.docs.map(function(d){ return '<span class="docno">'+d.no+'</span> '+d.title+(d.inv?' [INV:'+d.inv+']':'')+(d.po?' [PO:'+d.po+']':''); }).join('<br>');
+
+    // source chips
+    var srcChips = ['expense','quote','card'].filter(function(s){ return v.srcs[s]; }).map(function(s){
+      var c=SRC[s]; return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:'+c.color+';background:'+c.color+'14;padding:2px 7px;border-radius:10px;margin-left:5px"><i class="ti '+c.icon+'" style="font-size:11px"></i>'+c.label+'</span>';
+    }).join('');
+
+    var docLinks = v.docs.length ? v.docs.map(function(d){
+      var c = SRC[d.src] || SRC.expense;
+      var amt = (d.amt!=null && d.amt!=='' && d.amt!==0) ? ' <span class="docno">'+(d.cur||'')+' '+fmtN(d.amt)+'</span>' : '';
+      var meta = (d.inv?' <span class="docno">[INV:'+d.inv+']</span>':'')+(d.po?' <span class="docno">[PO:'+d.po+']</span>':'');
+      var dt = d.date?' <span class="docno">'+d.date+'</span>':'';
+      var act = d.src==='quote' ? 'openRelatedQuote('+d.id+')'
+              : d.src==='card'  ? 'openRelatedCard('+d.id+')'
+              : "showPage('list');setTimeout(function(){showDetail("+d.id+",'detailWrap');},80)";
+      return '<a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)">'
+        +'<i class="ti '+c.icon+'" style="font-size:13px;color:'+c.color+'"></i>'
+        +'<span class="docno">'+d.no+'</span> '+d.title+amt+meta+dt+'</a>';
+    }).join('<br>') : '<span style="color:var(--text-3)">— No related docs · 관련 문서 없음</span>';
+
     return '<div class="detail-panel" style="margin-bottom:10px">'
-      +'<div class="detail-hdr"><div style="flex:1"><div class="detail-title">'+v.name+'</div>'
-      +'<div class="detail-badges"><span class="badge b-draft">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">'+v.reg+'</span>':'')+'</div></div></div>'
+      +'<div class="detail-hdr" onclick="toggleVendorDetail('+vi+')" style="cursor:pointer">'
+      +'<div style="flex:1"><div class="detail-title">'+v.name+srcChips+'</div></div>'
+      +'<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);white-space:nowrap">상세 · Detail <i class="ti ti-chevron-down" id="vchev-'+vi+'" style="font-size:15px;transition:transform .15s"></i></span></div>'
       +'<div class="detail-body">'
-      +'<div class="info-grid">'
+      +'<div class="ifield"><div class="lbl">Related Docs · 관련 문서 ('+v.docs.length+')</div><div class="val" style="font-size:12px;line-height:1.9">'+docLinks+'</div></div>'
+      +'<div id="vdet-'+vi+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">'
+      +'<div style="margin-bottom:8px"><span class="badge b-draft">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">사업자 · '+v.reg+'</span>':'')+'</div>'
       +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+'</div></div>'
-      +'<div class="ifield"><div class="lbl">Related Docs · 관련 문서</div><div class="val" style="font-size:12px;line-height:1.8">'+docLinks+'</div></div>'
-      +'</div></div></div>';
+      +'</div>'
+      +'</div></div>';
   }).join('');
 }
 
@@ -3594,7 +3806,7 @@ function renderSavedQuotes(){
   el.innerHTML=list.map(function(x){
     var tot=(x.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
     return '<div class="detail-panel" style="margin-bottom:8px"><div style="display:flex;gap:10px;align-items:center;padding:11px 13px">'
-      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+(x.quoteNo||'')+' <span style="font-size:11px;color:var(--text-3);font-weight:400">'+(x.client||'—')+'</span></div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+(x.client||'—')+' <span style="font-size:11px;color:var(--text-3);font-weight:400;font-family:var(--mono)">'+(x.quoteNo||'')+'</span></div>'
       +'<div style="font-size:11px;color:var(--text-3);margin-top:2px">'+(x.date||'')+' · '+(x.lines||[]).length+'개 품목 · '+(x.currency||'')+' '+fmtN(tot)+'</div></div>'
       +'<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+')"><i class="ti ti-edit"></i> 열기</button>'
       +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+',true)"><i class="ti ti-file-type-pdf"></i> PDF</button>'
@@ -3612,6 +3824,14 @@ function loadQuote(id, pdf){
   quoteLines=(x.lines||[]).map(function(l){ return Object.assign({}, l); });
   quoteSwitchTab('build'); renderQuoteLines();
   if(pdf) setTimeout(exportQuotePdf,150);
+}
+function openRelatedQuote(id){ showQuoteApp(); loadQuote(id); }
+function openRelatedCard(id){ showCardApp(); setTimeout(function(){ if(typeof viewCardDetail==='function') viewCardDetail(id); }, 60); }
+function toggleVendorDetail(i){
+  var d=document.getElementById('vdet-'+i); if(!d) return;
+  var open=d.style.display==='none';
+  d.style.display=open?'block':'none';
+  var ch=document.getElementById('vchev-'+i); if(ch) ch.style.transform=open?'rotate(180deg)':'';
 }
 function deleteQuote(id){ if(!confirm('견적을 삭제할까요?')) return; state.quotes=(state.quotes||[]).filter(function(x){ return x.id!==id; }); saveState(); renderSavedQuotes(); showToast('삭제 완료'); }
 
@@ -3702,7 +3922,7 @@ function showHub() {
   var hubPage = document.getElementById('hubPage');
   if(hubPage) hubPage.style.display = 'block';
   // Per-user module access
-  ['approval','vendors','card','quote'].forEach(function(k){
+  ['approval','vendors','card','quote','project','finance'].forEach(function(k){
     var c=document.getElementById('hubCard-'+k);
     if(c) c.style.display = moduleAllowed(k) ? '' : 'none';
   });
@@ -3755,6 +3975,805 @@ function renderModulePerms(){
   el.innerHTML=head+rows+'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. 관리자는 항상 전체 접근.</div>';
 }
 
+// ═══════════════════════════════════════════
+// PROJECT MANAGEMENT (프로젝트 관리) — 고객사 단위 파이프라인
+// ═══════════════════════════════════════════
+var PROJ_STAGES = [
+  {key:'lead',       label:'리드',     sub:'정보습득',  color:'#64748b'},
+  {key:'contact',    label:'컨택',     sub:'미팅',      color:'#0891b2'},
+  {key:'quote',      label:'견적',     sub:'견적발송',  color:'#4338ca'},
+  {key:'nego',       label:'수주협의', sub:'협상',      color:'#7c3aed'},
+  {key:'won',        label:'수주확정', sub:'계약완료',  color:'#1d4ed8'},
+  {key:'po',         label:'PO 완료',  sub:'제작·설치',  color:'#b45309'},
+  {key:'delivered',  label:'납품완료', sub:'Won',       color:'#15803d'},
+  {key:'hold',       label:'보류',     sub:'On-hold',   color:'#94a3b8'},
+  {key:'lost',       label:'드롭',     sub:'Lost',      color:'#b91c1c'}
+];
+var PROJ_TYPES = ['신규 셋팅','가구 추가구매','리뉴얼','재견적','소모품','기타'];
+var PROJ_REGIONS = ['USA','MEXICO','VIETNAM'];
+var PROJ_LOST_REASONS = ['가격','경쟁사','예산부족','일정연기','내부취소','기타'];
+var _editingProjId = null;
+var _projFormOwnerId = null;
+function projWonPlus(stage){ return ['won','po','delivered'].indexOf(stage)>=0; }
+var _projDragId = null;
+var projectAppOpen = false;
+
+function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
+function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function projOwnerName(id){ var m=MEMBERS.find(function(x){ return x.id==id; }); return m?m.name:''; }
+
+function showProjectApp(){
+  projectAppOpen = true;
+  var hub=document.getElementById('hubPage'); if(hub) hub.style.display='none';
+  var app=document.getElementById('projectApp'); if(app) app.style.display='block';
+  var u=cardCurrentUser();
+  var n=document.getElementById('projUserName'); if(n&&u) n.textContent=u.name;
+  var a=document.getElementById('projAvatarChip'); if(a&&u&&typeof getAvatar==='function') a.innerHTML=getAvatar(u.id,'sm');
+  // board filter selects
+  var ownerSel=document.getElementById('projBoardOwner');
+  if(ownerSel) ownerSel.innerHTML='<option value="">담당자 전체</option>'+MEMBERS.map(function(m){ return '<option value="'+m.id+'">'+m.name+'</option>'; }).join('');
+  var regSel=document.getElementById('projBoardRegion');
+  if(regSel) regSel.innerHTML='<option value="">지역 전체</option>'+PROJ_REGIONS.map(function(r){ return '<option>'+r+'</option>'; }).join('');
+  projectSwitchTab('board');
+  window.scrollTo(0,0);
+}
+function closeProjectApp(){ projectAppOpen=false; var app=document.getElementById('projectApp'); if(app) app.style.display='none'; if(typeof showHub==='function') showHub(); }
+
+function styleProjTabs(){
+  [['projTabBoard','board'],['projTabList','list']].forEach(function(p){
+    var b=document.getElementById(p[0]); if(!b) return; var on=_projTab===p[1];
+    b.style.cssText='background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;color:'+(on?'var(--text)':'var(--text-3)')+';border-bottom:2px solid '+(on?'var(--text)':'transparent')+';margin-bottom:-1px';
+  });
+}
+var _projTab='board';
+function projectSwitchTab(t){
+  _projTab=t;
+  document.getElementById('projBoardView').style.display = t==='board'?'block':'none';
+  document.getElementById('projListView').style.display = t==='list'?'block':'none';
+  styleProjTabs();
+  if(t==='board') renderProjectBoard(); else renderProjectList();
+}
+
+function projFilteredList(){
+  var q=((document.getElementById('projBoardSearch')||{}).value||'').toLowerCase().trim();
+  var ow=(document.getElementById('projBoardOwner')||{}).value||'';
+  var rg=(document.getElementById('projBoardRegion')||{}).value||'';
+  return (state.projects||[]).filter(function(p){
+    if(ow && String(p.ownerId)!==String(ow)) return false;
+    if(rg && p.region!==rg) return false;
+    if(q){ var hay=[p.client,p.note,p.location,p.type].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    return true;
+  });
+}
+
+function renderProjectBoard(){
+  var board=document.getElementById('projBoard'); if(!board) return;
+  var list=projFilteredList();
+  var byStage={}; PROJ_STAGES.forEach(function(s){ byStage[s.key]=[]; });
+  list.forEach(function(p){ (byStage[p.stage]||byStage['lead']).push(p); });
+
+  board.innerHTML = PROJ_STAGES.map(function(s){
+    var cards=byStage[s.key]||[];
+    var cardsHtml = cards.length ? cards.map(function(p){ return projCardHtml(p); }).join('') :
+      '<div style="font-size:11px;color:var(--text-3);text-align:center;padding:14px 0">—</div>';
+    return '<div class="proj-col" data-stage="'+s.key+'" ondragover="projDragOver(event)" ondragleave="projDragLeave(event)" ondrop="projDrop(event,\''+s.key+'\')" '
+      +'style="flex:0 0 176px;background:var(--surface-2);border-radius:var(--radius-lg);padding:7px;min-height:80px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px 8px;border-bottom:2px solid '+s.color+'">'
+        +'<div><div style="font-size:12px;font-weight:700;color:'+s.color+'">'+s.label+'</div><div style="font-size:9px;color:var(--text-3)">'+s.sub+'</div></div>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--text-2);background:var(--surface);padding:1px 8px;border-radius:10px">'+cards.length+'</span>'
+      +'</div>'
+      +'<div style="margin-top:8px;display:flex;flex-direction:column;gap:7px">'+cardsHtml+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function projCardHtml(p){
+  var s=projStage(p.stage);
+  var amt = (p.amount!=null && p.amount!=='') ? (p.currency||'USD')+' '+fmtN(p.amount) : '';
+  var owner = projOwnerName(p.ownerId);
+  var typeBadge = p.type ? '<span style="font-size:9px;font-weight:600;color:var(--text-2);background:var(--surface-2);padding:1px 6px;border-radius:8px">'+p.type+'</span>' : '';
+  var custBadge = p.custType ? '<span style="font-size:9px;font-weight:700;color:#4338ca;background:#eef2ff;padding:1px 6px;border-radius:8px">'+p.custType+'</span>' : '';
+  var qCount = (state.quotes||[]).filter(function(q){ return (q.client||'').toLowerCase()===(p.client||'').toLowerCase(); }).length;
+  var qBadge = qCount ? '<span style="font-size:9px;font-weight:600;color:#4338ca;display:inline-flex;align-items:center;gap:2px"><i class="ti ti-file-invoice" style="font-size:10px"></i>'+qCount+'</span>' : '';
+  var regChip = p.region ? '<span style="font-size:9px;color:var(--text-3)">'+p.region+(p.location?' · '+p.location:'')+'</span>' : '';
+  var stageOpts = PROJ_STAGES.map(function(st){ return '<option value="'+st.key+'"'+(st.key===p.stage?' selected':'')+'>'+st.label+'</option>'; }).join('');
+  var noteShort = (p.note||'').length>54 ? (p.note||'').slice(0,54)+'…' : (p.note||'');
+  var lost = p.stage==='lost' && p.lostReason ? '<div style="font-size:10px;color:var(--danger);margin-top:3px">사유: '+p.lostReason+'</div>' : '';
+  return '<div class="proj-card" draggable="true" ondragstart="projDragStart(event,'+p.id+')" ondragend="projDragEnd(event)" '
+    +'style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+s.color+';border-radius:var(--radius);padding:8px 9px;cursor:grab">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
+      +'<div style="font-size:12px;font-weight:700;line-height:1.2;flex:1;min-width:0">'+(p.client||'—')+(qCount?' <span style="font-size:9px;font-weight:600;color:#4338ca">·'+qCount+'견적</span>':'')+'</div>'
+      +'<button onclick="toggleProjDetail('+p.id+')" style="background:none;border:1px solid var(--border);border-radius:6px;font-size:9px;color:var(--text-3);padding:2px 6px;cursor:pointer;white-space:nowrap;font-family:var(--sans)">DETAIL <i class="ti ti-chevron-down" id="pchev-'+p.id+'" style="font-size:11px;vertical-align:-1px"></i></button>'
+    +'</div>'
+    +'<div id="pdet-'+p.id+'" style="display:none;margin-top:6px">'
+      +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">'+custBadge+typeBadge+qBadge+regChip+'</div>'
+      +(noteShort?'<div style="font-size:11px;color:var(--text-2);margin-top:5px;line-height:1.4">'+noteShort+'</div>':'')
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'
+        +'<span style="font-size:11px;font-weight:600;color:var(--text)">'+amt+'</span>'
+        +'<span style="font-size:10px;color:var(--text-3)">'+(owner||'')+(p.targetDate?' · '+p.targetDate:'')+'</span>'
+      +'</div>'+lost
+      +'<div style="margin-top:7px"><a href="javascript:void(0)" onclick="editProject('+p.id+')" style="font-size:10px;color:#4338ca;text-decoration:none"><i class="ti ti-edit"></i> 수정 · Edit</a></div>'
+    +'</div>'
+    +'<div style="margin-top:7px;border-top:1px solid var(--border);padding-top:6px">'
+      +'<select onchange="setProjectStage('+p.id+',this.value)" style="width:100%;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);color:var(--text-2);background:var(--surface)">'+stageOpts+'</select>'
+    +'</div></div>';
+}
+function toggleProjDetail(id){
+  var d=document.getElementById('pdet-'+id); if(!d) return;
+  var open=d.style.display==='none';
+  d.style.display=open?'block':'none';
+  var ch=document.getElementById('pchev-'+id); if(ch) ch.style.transform=open?'rotate(180deg)':'';
+}
+
+// drag & drop (desktop)
+function projDragStart(e,id){ _projDragId=id; e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',String(id)); }catch(_){ } }
+function projDragEnd(e){ _projDragId=null; document.querySelectorAll('.proj-col').forEach(function(c){ c.style.outline=''; }); }
+function projDragOver(e){ e.preventDefault(); e.currentTarget.style.outline='2px dashed var(--border-strong)'; }
+function projDragLeave(e){ e.currentTarget.style.outline=''; }
+function projDrop(e,stageKey){ e.preventDefault(); e.currentTarget.style.outline=''; var id=_projDragId; if(id==null){ try{ id=parseInt(e.dataTransfer.getData('text/plain')); }catch(_){ } } if(id!=null) setProjectStage(id,stageKey); }
+
+function setProjectStage(id,stageKey){
+  var p=(state.projects||[]).find(function(x){ return x.id===id; }); if(!p) return;
+  if(p.stage===stageKey) return;
+  p.stage=stageKey; p.updatedAt=nowStr();
+  if(stageKey==='lost' && !p.lostReason){ var r=prompt('드롭 사유를 입력하세요 (가격/경쟁사/예산부족/일정연기/내부취소/기타):',''); p.lostReason=(r||'기타').trim(); }
+  if(stageKey!=='lost') p.lostReason='';
+  saveState(); renderProjectBoard(); if(_projTab==='list') renderProjectList();
+  showToast('단계 이동: '+projStage(stageKey).label);
+}
+
+function renderProjectList(){
+  var el=document.getElementById('projList'); if(!el) return;
+  var q=((document.getElementById('projListSearch')||{}).value||'').toLowerCase().trim();
+  var list=(state.projects||[]).slice().sort(function(a,b){ return (b.regDate||'').localeCompare(a.regDate||''); });
+  if(q){ list=list.filter(function(p){ var hay=[p.client,projOwnerName(p.ownerId),p.region,p.location,p.type,projStage(p.stage).label,p.note].join(' ').toLowerCase(); return hay.indexOf(q)>=0; }); }
+  if(!list.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-folder"></i><p>프로젝트 없음 · No projects</p></div>'; return; }
+  el.innerHTML=list.map(function(p){
+    var s=projStage(p.stage);
+    var amt=(p.amount!=null&&p.amount!=='')?(p.currency||'USD')+' '+fmtN(p.amount):'—';
+    return '<div class="detail-panel" style="margin-bottom:8px;cursor:pointer" onclick="editProject('+p.id+')"><div style="display:flex;gap:10px;align-items:center;padding:11px 13px">'
+      +'<span style="flex:0 0 auto;font-size:10px;font-weight:700;color:#fff;background:'+s.color+';padding:3px 9px;border-radius:10px">'+s.label+'</span>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+(p.client||'—')+' <span style="font-size:11px;color:var(--text-3);font-weight:400">'+(p.type||'')+'</span></div>'
+      +'<div style="font-size:11px;color:var(--text-3);margin-top:2px">'+(p.region||'')+(p.location?' · '+p.location:'')+' · '+projOwnerName(p.ownerId)+' · 등록 '+(p.regDate||'')+(p.targetDate?' · 목표 '+p.targetDate:'')+'</div></div>'
+      +'<div style="font-size:12px;font-weight:600;white-space:nowrap">'+amt+'</div>'
+      +'</div></div>';
+  }).join('');
+}
+
+function populateProjectClients(){
+  var dl=document.getElementById('projectClients'); if(!dl) return;
+  var names={};
+  try{ var all=getAllVendors(); Object.keys(all).forEach(function(k){ if(all[k]&&all[k].name) names[all[k].name]=true; }); }catch(_){}
+  (state.projects||[]).forEach(function(p){ if(p.client) names[p.client]=true; });
+  dl.innerHTML=Object.keys(names).sort().map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'; }).join('');
+}
+
+function openProjectForm(){ _openProjectForm(null); }
+function editProject(id){ _openProjectForm(id); }
+function _openProjectForm(id){
+  _editingProjId=id;
+  populateProjectClients();
+  document.getElementById('projRegion').innerHTML=PROJ_REGIONS.map(function(r){ return '<option>'+r+'</option>'; }).join('');
+  document.getElementById('projType').innerHTML=PROJ_TYPES.map(function(t){ return '<option>'+t+'</option>'; }).join('');
+  document.getElementById('projStage').innerHTML=PROJ_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+' · '+s.sub+'</option>'; }).join('');
+  document.getElementById('projLostReason').innerHTML=PROJ_LOST_REASONS.map(function(r){ return '<option>'+r+'</option>'; }).join('');
+  var cu=cardCurrentUser();
+  var delBtn=document.getElementById('projDeleteBtn');
+  function setFin(s,p){
+    s=s||{}; p=p||{};
+    document.getElementById('salesCurrency').value=s.currency||'VND';
+    document.getElementById('salesDeposit').value=s.deposit||'';
+    document.getElementById('salesDepositPaid').checked=!!s.depositPaid;
+    document.getElementById('salesDepositDate').value=s.depositDate||'';
+    document.getElementById('salesBalance').value=s.balance||'';
+    document.getElementById('salesBalancePaid').checked=!!s.balancePaid;
+    document.getElementById('salesBalanceDate').value=s.balanceDate||'';
+    document.getElementById('salesInvoiceIssued').checked=!!s.invoiceIssued;
+    document.getElementById('salesInvoiceNo').value=s.invoiceNo||'';
+    document.getElementById('salesInvoiceAmount').value=s.invoiceAmount||'';
+    document.getElementById('salesInvoiceDate').value=s.invoiceDate||'';
+    document.getElementById('purchaseVendor').value=p.vendor||'';
+    document.getElementById('purchaseCurrency').value=p.currency||'VND';
+    document.getElementById('purchaseDeposit').value=p.deposit||'';
+    document.getElementById('purchaseDepositPaid').checked=!!p.depositPaid;
+    document.getElementById('purchaseDepositDate').value=p.depositDate||'';
+    document.getElementById('purchaseBalance').value=p.balance||'';
+    document.getElementById('purchaseBalancePaid').checked=!!p.balancePaid;
+    document.getElementById('purchaseBalanceDate').value=p.balanceDate||'';
+  }
+  if(id){
+    var p=(state.projects||[]).find(function(x){ return x.id===id; }); if(!p){ _editingProjId=null; }
+    if(p){
+      document.getElementById('projFormTitle').textContent='프로젝트 수정 · '+(p.client||'');
+      document.getElementById('projClient').value=p.client||'';
+      _projFormOwnerId = p.ownerId || (cu?cu.id:null);
+      document.getElementById('projOwnerName').value = projOwnerName(_projFormOwnerId) || (cu?cu.name:'');
+      document.getElementById('projRegion').value=p.region||'VIETNAM';
+      document.getElementById('projLocation').value=p.location||'';
+      document.getElementById('projType').value=p.type||PROJ_TYPES[0];
+      document.getElementById('projCustType').value=p.custType||'B2B';
+      document.getElementById('projStage').value=p.stage||'lead';
+      document.getElementById('projAmount').value=p.amount||'';
+      document.getElementById('projCurrency').value=p.currency||'VND';
+      document.getElementById('projRegDate').value=p.regDate||projTodayISO();
+      document.getElementById('projTargetDate').value=p.targetDate||'';
+      document.getElementById('projNote').value=p.note||'';
+      document.getElementById('projRemark').value=p.remark||'';
+      document.getElementById('projLostReason').value=p.lostReason||PROJ_LOST_REASONS[0];
+      setFin(p.sales, p.purchase);
+      delBtn.style.display='inline-flex';
+    }
+  } else {
+    document.getElementById('projFormTitle').textContent='새 프로젝트 등록';
+    document.getElementById('projClient').value='';
+    _projFormOwnerId = cu?cu.id:null;
+    document.getElementById('projOwnerName').value = cu?cu.name:'';
+    document.getElementById('projRegion').value='VIETNAM';
+    document.getElementById('projLocation').value='';
+    document.getElementById('projType').value=PROJ_TYPES[0];
+    document.getElementById('projCustType').value='B2B';
+    document.getElementById('projStage').value='lead';
+    document.getElementById('projAmount').value='';
+    document.getElementById('projCurrency').value='VND';
+    document.getElementById('projRegDate').value=projTodayISO();
+    document.getElementById('projTargetDate').value='';
+    document.getElementById('projNote').value='';
+    document.getElementById('projRemark').value='';
+    setFin(null,null);
+    delBtn.style.display='none';
+  }
+  onProjStageChange();
+  recalcProjFinance();
+  renderProjLinkedQuotes(id ? (document.getElementById('projClient').value) : '');
+  document.getElementById('projectFormModal').style.display='block';
+}
+function renderProjLinkedQuotes(client){
+  var box=document.getElementById('projLinkedQuotes'); if(!box) return;
+  client=(client||'').trim();
+  var qs = client ? (state.quotes||[]).filter(function(q){ return (q.client||'').toLowerCase()===client.toLowerCase(); }) : [];
+  if(!qs.length){ box.innerHTML=''; return; }
+  qs.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  box.innerHTML='<div class="form-card-title" style="margin-bottom:6px;color:var(--text-2)"><i class="ti ti-file-invoice"></i> 연결 견적서 · Linked Quotes ('+qs.length+')</div>'
+    + qs.map(function(q){
+        var tot=(q.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
+        return '<a href="javascript:void(0)" onclick="closeProjectForm();openRelatedQuote('+q.id+')" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text);font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)">'
+          +'<i class="ti ti-file-invoice" style="color:#4338ca"></i><span class="docno">'+(q.quoteNo||('Q-'+q.id))+'</span> '
+          +'<span style="flex:1">'+(q.date||'')+'</span><span style="font-weight:600">'+(q.currency||'')+' '+fmtN(tot)+'</span></a>';
+      }).join('');
+}
+function closeProjectForm(){ document.getElementById('projectFormModal').style.display='none'; _editingProjId=null; }
+function onProjStageChange(){
+  var st=document.getElementById('projStage').value;
+  document.getElementById('projLostWrap').style.display = st==='lost'?'flex':'none';
+  document.getElementById('projFinanceWrap').style.display = projWonPlus(st)?'block':'none';
+}
+function recalcProjFinance(){
+  var sd=qNum(document.getElementById('salesDeposit').value), sb=qNum(document.getElementById('salesBalance').value);
+  var pd=qNum(document.getElementById('purchaseDeposit').value), pb=qNum(document.getElementById('purchaseBalance').value);
+  var sCur=document.getElementById('salesCurrency').value, pCur=document.getElementById('purchaseCurrency').value;
+  document.getElementById('salesTotal').value = fmtN(sd+sb);
+  document.getElementById('purchaseTotal').value = fmtN(pd+pb);
+  var prev=document.getElementById('projMarginPreview');
+  var sTot=sd+sb;
+  var invIssued=document.getElementById('salesInvoiceIssued').checked;
+  var invAmt=qNum(document.getElementById('salesInvoiceAmount').value);
+  var issued=invIssued?(invAmt||sTot):0; if(issued>sTot) issued=sTot;
+  var uninv=sTot-issued;
+  var invLine='<div style="margin-top:4px;font-size:11px">인보이스 발행 '+sCur+' '+fmtN(issued)+(uninv>0?(' · <span style="color:var(--danger)">미발행 '+fmtN(uninv)+'</span>'):' · <span style="color:#15803d">전액 발행</span>')+'</div>';
+  if(sCur===pCur){ var m=(sd+sb)-(pd+pb); prev.innerHTML='마진 · Margin: <b style="color:'+(m>=0?'#15803d':'var(--danger)')+'">'+sCur+' '+fmtN(m)+'</b>  (매출 '+fmtN(sd+sb)+' − 매입 '+fmtN(pd+pb)+')'+invLine; }
+  else { prev.innerHTML='매출 '+sCur+' '+fmtN(sd+sb)+' · 매입 '+pCur+' '+fmtN(pd+pb)+' <span style="color:var(--text-3)">(통화 상이 — 마진 미산출)</span>'+invLine; }
+}
+
+function saveProject(){
+  var client=(document.getElementById('projClient').value||'').trim();
+  if(!client){ showToast('고객사를 입력하세요 · Enter client'); return; }
+  var gv=function(id){ return (document.getElementById(id).value||'').replace(/,/g,'').trim(); };
+  var sales={ currency:document.getElementById('salesCurrency').value, deposit:gv('salesDeposit'), depositPaid:document.getElementById('salesDepositPaid').checked, depositDate:document.getElementById('salesDepositDate').value, balance:gv('salesBalance'), balancePaid:document.getElementById('salesBalancePaid').checked, balanceDate:document.getElementById('salesBalanceDate').value, invoiceIssued:document.getElementById('salesInvoiceIssued').checked, invoiceNo:(document.getElementById('salesInvoiceNo').value||'').trim(), invoiceAmount:gv('salesInvoiceAmount'), invoiceDate:document.getElementById('salesInvoiceDate').value };
+  var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, deposit:gv('purchaseDeposit'), depositPaid:document.getElementById('purchaseDepositPaid').checked, depositDate:document.getElementById('purchaseDepositDate').value, balance:gv('purchaseBalance'), balancePaid:document.getElementById('purchaseBalancePaid').checked, balanceDate:document.getElementById('purchaseBalanceDate').value };
+  var data={
+    client:client,
+    ownerId:_projFormOwnerId,
+    region:document.getElementById('projRegion').value||'',
+    location:(document.getElementById('projLocation').value||'').trim(),
+    type:document.getElementById('projType').value||'',
+    custType:document.getElementById('projCustType').value||'',
+    stage:document.getElementById('projStage').value||'lead',
+    amount:(document.getElementById('projAmount').value||'').replace(/,/g,'').trim(),
+    currency:document.getElementById('projCurrency').value||'VND',
+    regDate:document.getElementById('projRegDate').value||projTodayISO(),
+    targetDate:document.getElementById('projTargetDate').value||'',
+    note:(document.getElementById('projNote').value||'').trim(),
+    remark:(document.getElementById('projRemark').value||'').trim(),
+    lostReason: document.getElementById('projStage').value==='lost' ? (document.getElementById('projLostReason').value||'기타') : '',
+    sales:sales, purchase:purchase
+  };
+  if(!state.projects) state.projects=[];
+  var u=cardCurrentUser();
+  if(_editingProjId){
+    var idx=state.projects.findIndex(function(x){ return x.id===_editingProjId; });
+    if(idx>=0){ data.id=_editingProjId; data.createdAt=state.projects[idx].createdAt; data.createdBy=state.projects[idx].createdBy; data.updatedAt=nowStr(); state.projects[idx]=data; }
+  } else {
+    var ex=state.projects.find(function(x){ return (x.client||'').toLowerCase()===client.toLowerCase(); });
+    if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신'); }
+    else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); state.projects.push(data); showToast('프로젝트 등록 완료'); }
+  }
+  saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList();
+  if(typeof financeAppOpen!=='undefined' && financeAppOpen && typeof renderFinanceDashboard==='function') renderFinanceDashboard();
+}
+
+function deleteProject(id){
+  if(id==null) return;
+  if(!confirm('이 프로젝트를 삭제할까요?')) return;
+  state.projects=(state.projects||[]).filter(function(x){ return x.id!==id; });
+  saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList(); showToast('삭제 완료');
+}
+
+
+// ── PROJECT IMPORT (Notion CSV → 프로젝트 모듈) ──
+function projOpenImport(){
+  var m=document.getElementById('projImportModal'); if(m) m.style.display='block';
+  var ta=document.getElementById('projImportText'); if(ta){ ta.value=''; }
+  var st=document.getElementById('projImportStatus'); if(st) st.textContent='';
+}
+function projCloseImport(){ var m=document.getElementById('projImportModal'); if(m) m.style.display='none'; }
+
+function projParseCSV(text){
+  var rows=[], row=[], cur='', q=false, i, c;
+  text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  for(i=0;i<text.length;i++){ c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=c; }
+    else { if(c==='"') q=true; else if(c===','){ row.push(cur); cur=''; } else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; } else cur+=c; }
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function projKDate(s){
+  s=(s||'').trim(); if(!s) return '';
+  var m=s.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+  if(m) return m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0');
+  var iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(iso) return iso[0];
+  return '';
+}
+function projMapNotionRow(r){
+  function g(k){ return (r[k]||'').trim(); }
+  function done(k){ return g(k).toLowerCase()==='done'; }
+  var client=g('Project'); if(!client) return null;
+  var st=g('Status').toLowerCase(), qs=g('STATUS').toLowerCase();
+  var stage;
+  if(done('PAYMENT') || st==='done') stage='delivered';
+  else if(g('DELIVERY') || done('Building Approval') || done('Client Approval')) stage='po';
+  else if(done('Order')) stage='won';
+  else if(done('Quotation') || st==='quotation'){ stage = (qs==='follow-up'||qs==='under review')?'nego':(qs==='confirmed'?'won':'quote'); }
+  else if(st==='first contact') stage='contact';
+  else if(st==='not started') stage='lead';
+  else stage='lead';
+  var noteLines=[];
+  if(g('ETC')) noteLines.push(g('ETC'));
+  var meta=[];
+  if(projKDate(g('Q Date'))) meta.push('견적일 '+projKDate(g('Q Date')));
+  if(projKDate(g('ORDER'))) meta.push('발주 '+projKDate(g('ORDER')));
+  if(projKDate(g('DELIVERY'))) meta.push('납품 '+projKDate(g('DELIVERY')));
+  if(g('STATUS')) meta.push('견적상태 '+g('STATUS'));
+  if(meta.length) noteLines.push(meta.join(' · '));
+  return {
+    client:client, region:'VIETNAM', type:'기타', currency:'VND',
+    stage:stage,
+    regDate:projKDate(g('Start')),
+    targetDate:projKDate(g('DELIVERY'))||projKDate(g('END')),
+    note:noteLines.join('\n'),
+    remark:'',
+    custType: (function(){ var t=g('TYPE'); if(t==='B2B') return 'B2B'; if(t==='B2C') return 'B2C'; if(t==='개인고객'||t==='END USER') return 'END USER'; return ''; })()
+  };
+}
+function projRunImport(){
+  var raw=(document.getElementById('projImportText').value||'').trim();
+  var statusEl=document.getElementById('projImportStatus');
+  if(!raw){ if(statusEl) statusEl.textContent='붙여넣은 내용이 없습니다.'; return; }
+  var mapped=[];
+  try{
+    if(raw[0]==='['){ // JSON array of already-mapped records
+      mapped=JSON.parse(raw).filter(function(x){ return x&&x.client; });
+    } else { // Notion CSV
+      var rows=projParseCSV(raw);
+      if(rows.length<2){ if(statusEl) statusEl.textContent='데이터 행이 없습니다.'; return; }
+      var hdr=rows[0].map(function(h){ return (h||'').trim(); });
+      for(var i=1;i<rows.length;i++){
+        var obj={}; for(var j=0;j<hdr.length;j++){ obj[hdr[j]]=rows[i][j]||''; }
+        var rec=projMapNotionRow(obj); if(rec) mapped.push(rec);
+      }
+    }
+  }catch(e){ if(statusEl) statusEl.textContent='파싱 오류: '+e.message; return; }
+  if(!mapped.length){ if(statusEl) statusEl.textContent='가져올 항목이 없습니다.'; return; }
+  if(!state.projects) state.projects=[];
+  var added=0, updated=0;
+  mapped.forEach(function(rec){
+    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===rec.client.toLowerCase(); });
+    if(ex){
+      ex.stage=rec.stage; ex.targetDate=rec.targetDate||ex.targetDate; ex.note=rec.note||ex.note;
+      ex.remark=rec.remark||ex.remark; ex.region=rec.region||ex.region;
+      if(!ex.regDate) ex.regDate=rec.regDate; ex.updatedAt=nowStr(); updated++;
+    } else {
+      var u=cardCurrentUser();
+      state.projects.push(Object.assign({ id:(state.projectSeq=(state.projectSeq||0)+1), ownerId:null, location:'', amount:'', lostReason:'', createdAt:nowStr(), createdBy:(u?u.name:'import') }, rec));
+      added++;
+    }
+  });
+  saveState();
+  if(statusEl) statusEl.textContent='완료 · 신규 '+added+'건, 갱신 '+updated+'건';
+  renderProjectBoard(); if(_projTab==='list') renderProjectList();
+  showToast('가져오기 완료 · 신규 '+added+' / 갱신 '+updated);
+}
+
+
+// ── PROJECT SEED (Notion VIETNAM 1회 자동 주입) ──
+var PROJ_SEED = [
+{
+"client": "INICS HCM",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "",
+"currency": "VND",
+"stage": "po",
+"regDate": "2026-04-01",
+"targetDate": "2026-05-28",
+"note": "- Need to notify the interior contractor when the furniture schedule is fixed\n견적일 2026-04-01 · 발주 2026-04-08 · 납품 2026-05-28 · 견적상태 Confirmed",
+"remark": ""
+},
+{
+"client": "SPT E&C DN",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2B",
+"currency": "VND",
+"stage": "po",
+"regDate": "2026-04-01",
+"targetDate": "2026-05-28",
+"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-01 · 발주 2026-04-08 · 납품 2026-05-28 · 견적상태 Confirmed",
+"remark": ""
+},
+{
+"client": "SPT E&C LAO",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2B",
+"currency": "VND",
+"stage": "po",
+"regDate": "2026-04-08",
+"targetDate": "2026-06-02",
+"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-03 · 발주 2026-04-17 · 납품 2026-06-02 · 견적상태 Confirmed",
+"remark": ""
+},
+{
+"client": "READING GATE HCM",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2B",
+"currency": "VND",
+"stage": "po",
+"regDate": "2026-04-08",
+"targetDate": "2026-04-24",
+"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-13 · 발주 2026-04-16 · 납품 2026-04-24 · 견적상태 Confirmed",
+"remark": ""
+},
+{
+"client": "GRAND PLAZA",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2C",
+"currency": "VND",
+"stage": "delivered",
+"regDate": "2026-04-10",
+"targetDate": "2026-04-29",
+"note": "• Agreement on No VAT Invoice and No After-Sales Service\n견적일 2026-04-15 · 발주 2026-04-16 · 납품 2026-04-29 · 견적상태 Confirmed",
+"remark": ""
+},
+{
+"client": "POONGIN TRADING HCM",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2B",
+"currency": "VND",
+"stage": "po",
+"regDate": "2026-04-17",
+"targetDate": "2026-06-01",
+"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-20 · 발주 2026-04-23 · 납품 2026-06-01 · 견적상태 Confirmed",
+"remark": ""
+},
+{
+"client": "INTERLINK TAY NINH",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2B",
+"currency": "VND",
+"stage": "nego",
+"regDate": "2026-04-16",
+"targetDate": "",
+"note": "견적일 2026-04-17 · 견적상태 Follow-up",
+"remark": ""
+},
+{
+"client": "SEDO VINA",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2B",
+"currency": "VND",
+"stage": "nego",
+"regDate": "2026-04-23",
+"targetDate": "",
+"note": "견적일 2026-04-24 · 견적상태 Under Review",
+"remark": ""
+},
+{
+"client": "L MARK",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "",
+"currency": "VND",
+"stage": "contact",
+"regDate": "2026-04-23",
+"targetDate": "",
+"note": "",
+"remark": ""
+},
+{
+"client": "NAM LE VAN",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "",
+"currency": "VND",
+"stage": "contact",
+"regDate": "2026-04-23",
+"targetDate": "",
+"note": "",
+"remark": ""
+},
+{
+"client": "JAY 님 의자",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "END USER",
+"currency": "VND",
+"stage": "won",
+"regDate": "",
+"targetDate": "",
+"note": "발주 2026-06-28",
+"remark": ""
+},
+{
+"client": "한동건설",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "",
+"currency": "VND",
+"stage": "lead",
+"regDate": "",
+"targetDate": "",
+"note": "",
+"remark": ""
+},
+{
+"client": "RED INTERIOR",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "",
+"currency": "VND",
+"stage": "lead",
+"regDate": "",
+"targetDate": "",
+"note": "",
+"remark": ""
+},
+{
+"client": "INTOSUM",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "",
+"currency": "VND",
+"stage": "lead",
+"regDate": "",
+"targetDate": "",
+"note": "",
+"remark": ""
+},
+{
+"client": "AVT",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "",
+"currency": "VND",
+"stage": "quote",
+"regDate": "",
+"targetDate": "",
+"note": "",
+"remark": ""
+},
+{
+"client": "DXM ENC",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2B",
+"currency": "VND",
+"stage": "quote",
+"regDate": "",
+"targetDate": "",
+"note": "",
+"remark": ""
+},
+{
+"client": "CHOI IN OK",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2C",
+"currency": "VND",
+"stage": "delivered",
+"regDate": "",
+"targetDate": "2026-05-26",
+"note": "발주 2026-05-14 · 납품 2026-05-26 · 견적상태 Confirmed",
+"remark": ""
+},
+{
+"client": "DAEHONG (Mr.Kim)",
+"region": "VIETNAM",
+"type": "기타",
+"custType": "B2C",
+"currency": "VND",
+"stage": "won",
+"regDate": "2026-06-03",
+"targetDate": "",
+"note": "발주 2026-06-04 · 견적상태 Confirmed",
+"remark": ""
+}
+];
+function projMigrate(){
+  if(!state.projects) state.projects=[];
+  var changed=false;
+  state.projects.forEach(function(p){ if(p.stage==='production'||p.stage==='install'){ p.stage='po'; changed=true; } });
+  if(!state.projOwnerMigrated){ state.projects.forEach(function(p){ p.ownerId=2; }); state.projOwnerMigrated=true; changed=true; }
+  if(changed && typeof saveState==='function') saveState();
+}
+function projSeedOnce(){
+  if(!state.projects) state.projects=[];
+  if(state.projectsSeeded) return;
+  var u=(typeof cardCurrentUser==='function')?cardCurrentUser():null;
+  var added=0;
+  PROJ_SEED.forEach(function(rec){
+    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===rec.client.toLowerCase(); });
+    if(!ex){ state.projects.push(Object.assign({ id:(state.projectSeq=(state.projectSeq||0)+1), ownerId:null, location:"", amount:"", lostReason:"", createdAt:(typeof nowStr==="function"?nowStr():""), createdBy:"Notion import" }, rec)); added++; }
+  });
+  state.projectsSeeded=true;
+  if(typeof saveState==="function") saveState();
+  if(added && typeof projectAppOpen!=="undefined" && projectAppOpen && typeof renderProjectBoard==="function") renderProjectBoard();
+}
+
+// ═══════════════════════════════════════════
+// FINANCE (매입/매출 정산 대시보드)
+// ═══════════════════════════════════════════
+var financeAppOpen = false;
+function showFinanceApp(){
+  financeAppOpen = true;
+  var hub=document.getElementById('hubPage'); if(hub) hub.style.display='none';
+  var app=document.getElementById('financeApp'); if(app) app.style.display='block';
+  var u=cardCurrentUser();
+  var n=document.getElementById('finUserName'); if(n&&u) n.textContent=u.name;
+  var a=document.getElementById('finAvatarChip'); if(a&&u&&typeof getAvatar==='function') a.innerHTML=getAvatar(u.id,'sm');
+  var ow=document.getElementById('finOwner');
+  if(ow) ow.innerHTML='<option value="">담당자 전체</option>'+MEMBERS.map(function(m){ return '<option value="'+m.id+'">'+m.name+'</option>'; }).join('');
+  renderFinanceDashboard();
+  window.scrollTo(0,0);
+}
+function closeFinanceApp(){ financeAppOpen=false; var app=document.getElementById('financeApp'); if(app) app.style.display='none'; if(typeof showHub==='function') showHub(); }
+
+function finCalc(p, cur){
+  var s=p.sales||{}, pu=p.purchase||{};
+  var r={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, hasS:false, hasP:false };
+  if((s.currency||'VND')===cur){
+    var sd=qNum(s.deposit), sb=qNum(s.balance);
+    r.sTotal=sd+sb; r.sRecv=(s.depositPaid?sd:0)+(s.balancePaid?sb:0); r.sOut=r.sTotal-r.sRecv;
+    var iss = s.invoiceIssued ? (qNum(s.invoiceAmount)||r.sTotal) : 0; if(iss>r.sTotal) iss=r.sTotal;
+    r.sInvoiced=iss; r.sUninvoiced=r.sTotal-iss;
+    r.hasS = r.sTotal>0;
+  }
+  if((pu.currency||'VND')===cur){
+    var pd=qNum(pu.deposit), pb=qNum(pu.balance);
+    r.pTotal=pd+pb; r.pPaid=(pu.depositPaid?pd:0)+(pu.balancePaid?pb:0); r.pOut=r.pTotal-r.pPaid;
+    r.hasP = r.pTotal>0;
+  }
+  r.margin = r.sTotal - r.pTotal;
+  return r;
+}
+
+function renderFinanceDashboard(){
+  var cur=(document.getElementById('finCurrency')||{}).value||'VND';
+  var ow=(document.getElementById('finOwner')||{}).value||'';
+  var uninvOnly=(document.getElementById('finUninvOnly')||{}).checked;
+  var list=(state.projects||[]).filter(function(p){
+    if(!projWonPlus(p.stage)) return false;
+    if(ow && String(p.ownerId)!==String(ow)) return false;
+    return true;
+  });
+  var tot={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0 };
+  var rows=[];
+  list.forEach(function(p){
+    var c=finCalc(p,cur);
+    if(!c.hasS && !c.hasP) return;
+    if(uninvOnly && c.sUninvoiced<=0) return;
+    tot.sTotal+=c.sTotal; tot.sRecv+=c.sRecv; tot.sOut+=c.sOut;
+    tot.sInvoiced+=c.sInvoiced; tot.sUninvoiced+=c.sUninvoiced;
+    tot.pTotal+=c.pTotal; tot.pPaid+=c.pPaid; tot.pOut+=c.pOut;
+    rows.push({p:p, c:c});
+  });
+  var margin=tot.sTotal-tot.pTotal;
+
+  function kpi(label, val, color, sub){
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px 15px">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">'+label+'</div>'
+      +'<div style="font-size:17px;font-weight:800;margin-top:5px;color:'+(color||'var(--text)')+'">'+cur+' '+fmtN(val)+'</div>'
+      +(sub?'<div style="font-size:10px;color:var(--text-3);margin-top:2px">'+sub+'</div>':'')+'</div>';
+  }
+  function grpLabel(t){ return '<div style="font-size:10px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;display:flex;align-items:center;gap:8px"><span>'+t+'</span><span style="flex:1;height:1px;background:var(--border)"></span></div>'; }
+  function grid(cards){ return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'+cards+'</div>'; }
+  var m1=tot.sTotal-tot.pTotal;
+  var m2=tot.sInvoiced-tot.pTotal;
+  document.getElementById('finKpis').innerHTML =
+    grpLabel('① 전체 · 인보이스 미발행 포함')
+    + grid(
+        kpi('매출 · Sales', tot.sTotal, '#15803d', '미발행 인보이스 포함')
+        + kpi('매입 · Purchase', tot.pTotal, '#b45309')
+        + kpi('마진 · Margin', m1, m1>=0?'#1d4ed8':'var(--danger)', tot.sTotal?'마진율 '+Math.round(m1/tot.sTotal*100)+'%':'')
+      )
+    + grpLabel('② 인보이스 발행 기준')
+    + grid(
+        kpi('매출 · Sales (발행분)', tot.sInvoiced, '#0e7490', tot.sUninvoiced>0?'미발행 '+fmtN(tot.sUninvoiced):'전액 발행')
+        + kpi('매입 · Purchase', tot.pTotal, '#b45309')
+        + kpi('마진 · Margin', m2, m2>=0?'#1d4ed8':'var(--danger)', tot.sInvoiced?'마진율 '+Math.round(m2/tot.sInvoiced*100)+'%':'발행 기준')
+      )
+    + grpLabel('③ 미수금 · 미지급금')
+    + grid(
+        kpi('미수금 · Receivable', tot.sOut, tot.sOut>0?'var(--danger)':'var(--text)', '매출 미입금')
+        + kpi('미지급금 · Payable', tot.pOut, tot.pOut>0?'var(--danger)':'var(--text)', '매입 미지급')
+      );
+
+  var el=document.getElementById('finTable');
+  if(!rows.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-cash-off"></i><p>'+cur+(uninvOnly?' 미발행 인보이스 없음':' 정산 데이터 없음 · 프로젝트 폼에서 매출/매입 입력')+'</p></div>'; return; }
+  rows.sort(function(a,b){ return b.c.sUninvoiced-a.c.sUninvoiced || b.c.margin-a.c.margin; });
+  var th='padding:7px 9px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap';
+  var thl=th+';text-align:left';
+  var td='padding:8px 9px;font-size:12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap';
+  var tdl=td+';text-align:left';
+  function payTag(out,total,kind){
+    if(total<=0) return '<span style="color:var(--text-3)">—</span>';
+    if(out<=0) return '<span style="color:#15803d;font-weight:600">'+(kind==='s'?'전액입금':'전액지급')+'</span>';
+    return '<span style="color:var(--danger);font-weight:600">'+(kind==='s'?'미수 ':'미지급 ')+fmtN(out)+'</span>';
+  }
+  function invTag(c){
+    if(c.sTotal<=0) return '<span style="color:var(--text-3)">—</span>';
+    if(c.sUninvoiced<=0) return '<span style="color:#0e7490;font-weight:600">발행 '+fmtN(c.sInvoiced)+'</span>';
+    if(c.sInvoiced<=0) return '<span style="color:var(--danger);font-weight:600">미발행 '+fmtN(c.sUninvoiced)+'</span>';
+    return '<span style="color:#0e7490">발행 '+fmtN(c.sInvoiced)+'</span> / <span style="color:var(--danger)">미 '+fmtN(c.sUninvoiced)+'</span>';
+  }
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:880px">'
+    +'<thead><tr><th style="'+thl+'">고객사</th><th style="'+thl+'">단계</th>'
+    +'<th style="'+th+'">매출총액</th><th style="'+th+'">인보이스</th><th style="'+th+'">매출입금</th>'
+    +'<th style="'+th+'">매입총액</th><th style="'+th+'">매입지급</th>'
+    +'<th style="'+th+'">마진</th></tr></thead><tbody>'
+    + rows.map(function(r){
+        var s=projStage(r.p.stage);
+        return '<tr style="cursor:pointer" onclick="showProjectAppToEdit('+r.p.id+')">'
+          +'<td style="'+tdl+';font-weight:600">'+(r.p.client||'—')+(r.p.custType?' <span style="font-size:9px;color:var(--text-3)">'+r.p.custType+'</span>':'')+'</td>'
+          +'<td style="'+tdl+'"><span style="font-size:10px;color:#fff;background:'+s.color+';padding:2px 7px;border-radius:8px">'+s.label+'</span></td>'
+          +'<td style="'+td+'">'+fmtN(r.c.sTotal)+'</td>'
+          +'<td style="'+td+'">'+invTag(r.c)+'</td>'
+          +'<td style="'+td+'">'+payTag(r.c.sOut,r.c.sTotal,'s')+'</td>'
+          +'<td style="'+td+'">'+fmtN(r.c.pTotal)+'</td>'
+          +'<td style="'+td+'">'+payTag(r.c.pOut,r.c.pTotal,'p')+'</td>'
+          +'<td style="'+td+';font-weight:700;color:'+(r.c.margin>=0?'#1d4ed8':'var(--danger)')+'">'+fmtN(r.c.margin)+'</td>'
+          +'</tr>';
+      }).join('')
+    +'</tbody></table>';
+}
+function showProjectAppToEdit(id){ closeFinanceApp(); if(typeof showProjectApp==='function'){ showProjectApp(); setTimeout(function(){ editProject(id); }, 60); } }
+
+
 function enterModule(module) {
   if(!moduleAllowed(module)){ showToast('접근 권한이 없습니다 · No access'); if(typeof showHub==='function') showHub(); return; }
   var hubPage = document.getElementById('hubPage');
@@ -3767,6 +4786,10 @@ function enterModule(module) {
     showCardApp();
   } else if(module === 'quote') {
     showQuoteApp();
+  } else if(module === 'project') {
+    showProjectApp();
+  } else if(module === 'finance') {
+    showFinanceApp();
   }
 }
 
