@@ -530,11 +530,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-desc">법인카드 지출 관리<br>Corporate Card Management</div>
       </div>
 
-      <div class="hub-card coming-soon">
-        <div class="hub-card-badge" style="background:var(--surface-2);color:var(--text-3)">Coming Soon</div>
+      <div class="hub-card active-module" id="hubCard-report" onclick="enterModule('report')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#15803d">Active</div>
         <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d"><i class="ti ti-report"></i></div>
-        <div class="hub-card-title">업무보고 · Work Report</div>
-        <div class="hub-card-desc">일일 · 주간 · 월간 보고<br>Daily · Weekly · Monthly</div>
+        <div class="hub-card-title">업무 관리 · Task Management</div>
+        <div class="hub-card-desc">TODO · 일일 · 주간 · 월간<br>Tasks · Daily · Weekly</div>
       </div>
 
       <div class="hub-card active-module" id="hubCard-vendors" onclick="enterModule('vendors')">
@@ -695,6 +695,66 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 <!-- QUOTATION — standalone overlay -->
 
 <!-- PROJECT MANAGEMENT — standalone overlay -->
+<div id="reportApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:1120px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closeReportApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub · 허브</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">Task Management · 업무 관리</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)"><span id="rptUserName"></span></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">개인별 TODO → 완료(CLOSING) 시 그날 일일 보고에 자동 반영 · 주간·월간 자동 집계</div>
+    <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);margin-bottom:18px;gap:2px;flex-wrap:wrap">
+      <button id="tskTabMytasks" onclick="taskSwitchTab('mytasks')"></button>
+      <button id="tskTabDaily" onclick="taskSwitchTab('daily')"></button>
+      <button id="tskTabWeekly" onclick="taskSwitchTab('weekly')"></button>
+      <button id="tskTabMonthly" onclick="taskSwitchTab('monthly')"></button>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+
+  <div id="taskFormModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:640;overflow-y:auto;padding:28px 16px">
+    <div style="max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div id="taskFormTitle" style="font-size:15px;font-weight:700">새 업무 · New Task</div>
+        <button class="btn btn-outline" onclick="closeTaskForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
+      </div>
+      <div class="fg" style="margin-bottom:10px"><label>업무 내용 · Task *</label><input type="text" id="tskTitle" placeholder="예: QCELL 모션데스크 색상 사양 최종 조율" autocomplete="off"></div>
+      <div class="fg" style="margin-bottom:10px"><label>목적 · Purpose</label><input type="text" id="tskPurpose" placeholder="이 업무의 목적 / 기대 결과" autocomplete="off"></div>
+      <div class="fgrid">
+        <div class="fg"><label>연관 프로젝트 · Project *</label><select id="tskProject"></select></div>
+        <div class="fg"><label>업무 유형 · Type</label><select id="tskType"></select></div>
+        <div class="fg"><label>상태 · Signal</label><select id="tskSignal"></select></div>
+        <div class="fg"><label>예상 소요(시간 h)</label><input type="text" id="tskHours" placeholder="예: 1.5" inputmode="decimal" autocomplete="off"></div>
+        <div class="fg"><label>시작일 · Start Date</label><input type="date" id="tskStart"></div>
+      </div>
+      <div class="fg" style="margin-top:10px"><label>이슈 / 지원 요청 · Issue</label><input type="text" id="tskIssue" placeholder="의사결정 필요·문제점 (선택)" autocomplete="off"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-danger" id="tskDeleteBtn" onclick="deleteTask(_editingTaskId)" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
+        <button class="btn btn-dark" onclick="saveTask()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="slackConfigModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:650;overflow-y:auto;padding:28px 16px">
+    <div style="max-width:580px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:15px;font-weight:700"><i class="ti ti-settings"></i> 업무관리 · 대상/Slack 설정</div>
+        <button class="btn btn-outline" onclick="closeSlackConfig()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:14px;line-height:1.6">업무 관리 대상 멤버를 지정하고, Slack 중계 서버(Cloudflare Worker)와 멤버별 Slack ID를 매핑하세요.</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px">업무 관리 대상 멤버 · Members</div>
+      <div id="reportMemberMap" style="margin-bottom:14px"></div>
+      <div class="fg" style="margin-bottom:10px"><label>Slack Worker URL</label><input type="text" id="slackWorkerUrl" placeholder="https://your-worker.workers.dev" autocomplete="off"></div>
+      <div class="fg" style="margin-bottom:10px"><label>채널 ID · Channel ID (예: C0123ABCD)</label><input type="text" id="slackChannel" placeholder="C..." autocomplete="off"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">멤버별 Slack User ID</div>
+      <div id="slackUserMap"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-dark" onclick="saveSlackConfig()"><i class="ti ti-device-floppy"></i> 저장 · Save</button></div>
+    </div>
+  </div>
+</div>
+
 <div id="projectApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
   <div style="max-width:1240px;margin:0 auto;padding:28px 24px 60px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
@@ -1808,8 +1868,17 @@ function showDetail(id,wrapId='detailWrap'){
   flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('done'),'circle-check')}<div class="flabel">Done · 완료</div></div>`;
 
   const cmts=doc.comments?.length?doc.comments.map(c=>{const isApp=c.text==='승인';const isRej=c.text==='반려';return`<div class="cmt ${isApp?'approve':isRej?'reject-cmt':''}"><div class="cmt-top"><span class="cmt-who">${c.who}<span class="cmt-role">${c.role}</span></span><span class="cmt-time">${c.time}</span></div><div class="cmt-txt">${c.text}</div></div>`;}).join(''):'<div style="font-size:11px;color:var(--text-3)">No comments · 의견 없음</div>';
-  const dnotes=(doc.notes||[]).map(function(n){ return `<div class="cmt"><div class="cmt-top"><span class="cmt-who">${n.who}</span><span class="cmt-time">${n.time}</span></div><div class="cmt-txt">${n.text}</div></div>`; }).join('')||'<div style="font-size:11px;color:var(--text-3)">아직 의견 없음 · No comments</div>';
-  const notesHTML=`<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Comments · 의견</div><div class="cmt-list">${dnotes}</div><textarea class="action-comment" id="docNoteInput_${wrapId}" placeholder="의견을 입력하세요 · Add a comment"></textarea><div class="btn-row"><button class="btn btn-dark" onclick="addDocComment(${id},'${wrapId}')"><i class="ti ti-message-plus"></i> 의견 등록 · Add</button></div>`;
+  const _cuid=mineUserId||parseInt(sessionStorage.getItem('inics_uid')||'0')||newAuthId;
+  const _cname=(gm(_cuid)&&gm(_cuid).name)||(window._gateUser&&window._gateUser.name)||'';
+  const _cadm=sessionIsAdmin||(gm(_cuid)&&gm(_cuid).isAdmin);
+  const dnotes=(doc.notes||[]).map(function(n,ni){
+    if(n.deleted){ return `<div class="cmt" style="opacity:.55"><div class="cmt-txt" style="font-style:italic;color:var(--text-3)">삭제된 의견 · Deleted${n.deletedBy?' (by '+n.deletedBy:''}${n.deletedAt?' · '+n.deletedAt+')':(n.deletedBy?')':'')}</div></div>`; }
+    var canMod=_cadm||(n.who&&_cname&&n.who===_cname);
+    var edited=n.editedAt?` <span style="font-size:9px;color:var(--text-3)">(수정됨)</span>`:'';
+    var btns=canMod?`<button onclick="editDocComment(${id},${ni},'${wrapId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:0 2px" title="수정"><i class="ti ti-edit"></i></button><button onclick="deleteDocComment(${id},${ni},'${wrapId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:0 2px" title="삭제"><i class="ti ti-trash"></i></button>`:'';
+    return `<div class="cmt"><div class="cmt-top"><span class="cmt-who">${n.who}</span><span style="display:flex;align-items:center;gap:5px"><span class="cmt-time">${n.time}${edited}</span>${btns}</span></div><div class="cmt-txt" style="white-space:pre-wrap">${n.text}</div></div>`;
+  }).join('')||'<div style="font-size:11px;color:var(--text-3)">아직 의견 없음 · No comments</div>';
+  const notesHTML=`<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Comments · 의견</div><div class="cmt-list">${dnotes}</div><textarea class="action-comment" id="docNoteInput_${wrapId}" placeholder="의견을 입력하세요 · Add a comment" oninput="_docNoteBuf['${wrapId}']=this.value">${(_docNoteBuf[wrapId]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea><div class="btn-row"><button class="btn btn-dark" onclick="addDocComment(${id},'${wrapId}')"><i class="ti ti-message-plus"></i> 의견 등록 · Add</button></div>`;
 
   const draftAttHTML=`<div class="att-section"><div class="att-hdr"><div class="att-hdr-title"><i class="ti ti-paperclip" style="font-size:13px"></i> Attachments · 기안 첨부 ${doc.draftAtts?.length?`<span class="cnt-badge">${doc.draftAtts.length}</span>`:''}</div>${s==='draft'?`<button class="btn btn-outline" onclick="triggerAddAtt(${id})" style="font-size:11px;padding:3px 9px"><i class="ti ti-plus"></i> Add · 추가</button>`:''}</div><div class="att-body">${attListHTML(doc.draftAtts,s==='draft',id,'draft')}</div></div>`;
 
@@ -2530,12 +2599,7 @@ function adminDeleteDoc(id, wrapId) {
 // ═══════════════════════════════════════════
 // VENDOR DB
 // ═══════════════════════════════════════════
-function renderVendorDB() {
-  var el = document.getElementById('vendorDBList');
-  if(!el) return;
-  var q = (document.getElementById('vendorSearch')||{}).value || '';
-  q = q.toLowerCase().trim();
-
+function buildVendorMap(){
   var vendors = {};
   function ensure(key){
     key = (key||'').trim();
@@ -2617,6 +2681,16 @@ function renderVendorDB() {
     }
   });
 
+  return vendors;
+}
+
+function renderVendorDB() {
+  var el = document.getElementById('vendorDBList');
+  if(!el) return;
+  var q = (document.getElementById('vendorSearch')||{}).value || '';
+  q = q.toLowerCase().trim();
+
+  var vendors = buildVendorMap();
   var list = Object.values(vendors);
   if(q) list = list.filter(function(v){
     return v.name.toLowerCase().includes(q) || (v.reg||'').toLowerCase().includes(q) ||
@@ -3131,7 +3205,16 @@ function confirmCardExpense(id){
   var x=(state.cardExpenses||[]).find(function(e){ return e.id===id; }); if(!x) return;
   var u=cardCurrentUser();
   if(x.confirmed){ x.confirmed=false; x.confirmedBy=''; x.confirmedAt=''; }
-  else { x.confirmed=true; x.confirmedBy=(u?u.name:CARD_CONFIRMER); x.confirmedAt=nowStr(); }
+  else {
+    if(!x.invoiceNo || !String(x.invoiceNo).trim()){
+      var iv=prompt('재무 확인을 위해 인보이스 번호를 입력하세요\nEnter invoice number to confirm:', x.invoiceNo||'');
+      if(iv===null) return;
+      iv=iv.trim();
+      if(!iv){ showToast('인보이스 번호가 필요합니다 · Invoice number required'); return; }
+      x.invoiceNo=iv; x.invoiceIssued=true;
+    }
+    x.confirmed=true; x.confirmedBy=(u?u.name:CARD_CONFIRMER); x.confirmedAt=nowStr();
+  }
   saveState(); renderCard();
   var d=document.getElementById('cardDetailModal'); if(d && d.style.display==='flex') viewCardDetail(id);
   showToast(x.confirmed?'재무 확인 완료 · Confirmed':'확인 취소 · Unconfirmed');
@@ -3888,6 +3971,7 @@ function loadQuote(id, pdf){
 function openRelatedQuote(id){ showQuoteApp(); loadQuote(id); }
 function openRelatedCard(id){ showCardApp(); setTimeout(function(){ if(typeof viewCardDetail==='function') viewCardDetail(id); }, 60); }
 function openRelatedProject(id){ if(typeof showProjectApp==='function'){ showProjectApp(); setTimeout(function(){ if(typeof editProject==='function') editProject(id); }, 80); } }
+var _docNoteBuf={};
 function addDocComment(id, wrapId){
   var doc=state.docs.find(function(d){ return d.id===id; }); if(!doc) return;
   var ta=document.getElementById('docNoteInput_'+wrapId); var txt=((ta&&ta.value)||'').trim();
@@ -3895,9 +3979,31 @@ function addDocComment(id, wrapId){
   var who=(window._gateUser&&window._gateUser.name) || (mineUserId&&gm(mineUserId)&&gm(mineUserId).name) || (newAuthId&&gm(newAuthId)&&gm(newAuthId).name) || '익명';
   doc.notes=doc.notes||[];
   doc.notes.push({who:who, text:txt, time:nowStr()});
+  _docNoteBuf[wrapId]='';
   saveState();
   showDetail(id, wrapId);
   showToast('의견 등록 완료 · Comment added');
+}
+function _noteCurName(){ var c=mineUserId||parseInt(sessionStorage.getItem('inics_uid')||'0')||newAuthId; return (gm(c)&&gm(c).name)||(window._gateUser&&window._gateUser.name)||''; }
+function _noteCanMod(n){ var c=mineUserId||parseInt(sessionStorage.getItem('inics_uid')||'0')||newAuthId; var adm=sessionIsAdmin||(gm(c)&&gm(c).isAdmin); return adm||(n.who&&n.who===_noteCurName()); }
+function editDocComment(id, idx, wrapId){
+  var doc=state.docs.find(function(d){ return d.id===id; }); if(!doc||!doc.notes||!doc.notes[idx]) return;
+  var n=doc.notes[idx]; if(n.deleted) return;
+  if(!_noteCanMod(n)){ showToast('본인 의견만 수정할 수 있습니다'); return; }
+  var nv=prompt('의견 수정 · Edit comment:', n.text); if(nv===null) return;
+  nv=nv.trim(); if(!nv){ showToast('내용을 입력하세요'); return; }
+  if(nv===n.text) return;
+  n.history=n.history||[]; n.history.push({text:n.text, at:nowStr(), by:_noteCurName()});
+  n.text=nv; n.editedAt=nowStr(); n.editedBy=_noteCurName();
+  saveState(); showDetail(id, wrapId); showToast('의견 수정됨 · Edited');
+}
+function deleteDocComment(id, idx, wrapId){
+  var doc=state.docs.find(function(d){ return d.id===id; }); if(!doc||!doc.notes||!doc.notes[idx]) return;
+  var n=doc.notes[idx]; if(n.deleted) return;
+  if(!_noteCanMod(n)){ showToast('본인 의견만 삭제할 수 있습니다'); return; }
+  if(!confirm('이 의견을 삭제할까요? · Delete this comment?')) return;
+  n.deleted=true; n.deletedAt=nowStr(); n.deletedBy=_noteCurName();
+  saveState(); showDetail(id, wrapId); showToast('의견 삭제됨 · Deleted');
 }
 function toggleVendorDetail(i){
   var d=document.getElementById('vdet-'+i); if(!d) return;
@@ -3996,7 +4102,7 @@ function showHub() {
   var hubPage = document.getElementById('hubPage');
   if(hubPage) hubPage.style.display = 'block';
   // Per-user module access
-  ['approval','vendors','card','quote','project','finance'].forEach(function(k){
+  ['approval','vendors','card','quote','project','finance','report'].forEach(function(k){
     var c=document.getElementById('hubCard-'+k);
     if(c) c.style.display = moduleAllowed(k) ? '' : 'none';
   });
@@ -4074,6 +4180,264 @@ var projectAppOpen = false;
 
 function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
 function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// ═══════════ TASK MANAGEMENT (업무 관리) ═══════════
+var TASK_TYPES=[{k:'meeting',l:'고객상담/미팅'},{k:'design',l:'도면/디자인'},{k:'quote',l:'견적/서류'},{k:'logistics',l:'발주/물류'},{k:'site',l:'현장시공/감리'},{k:'etc',l:'기타'}];
+var TASK_SIGNALS=[{k:'green',l:'정상 진행',c:'#15803d'},{k:'yellow',l:'확인 필요',c:'#b45309'},{k:'red',l:'문제 발생',c:'#b91c1c'}];
+var reportAppOpen=false, _taskTab='mytasks', _reportDate='', _taskTargetUid=null, _editingTaskId=null;
+function _isoD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function taskTypeLabel(k){ for(var i=0;i<TASK_TYPES.length;i++)if(TASK_TYPES[i].k===k)return TASK_TYPES[i].l; return '기타'; }
+function taskSignal(k){ for(var i=0;i<TASK_SIGNALS.length;i++)if(TASK_SIGNALS[i].k===k)return TASK_SIGNALS[i]; return TASK_SIGNALS[0]; }
+function daysBetween(a,b){ if(!a||!b)return 0; var d1=new Date(a+'T00:00:00'),d2=new Date(b+'T00:00:00'); return Math.round((d2-d1)/86400000); }
+function taskDelay(t){ var end=t.status==='done'?t.closedDate:projTodayISO(); return Math.max(0,daysBetween(t.startDate,end)); }
+function isReportMember(uid){ var rm=state.reportMembers; if(!rm||!Object.keys(rm).length)return true; return !!rm[uid]; }
+function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
+function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
+function taskProjectOptions(sel){
+  return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타] 회의·행정</option>'
+    +(state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).map(function(p){
+      return '<option value="'+p.id+'"'+(String(sel)===String(p.id)?' selected':'')+'>'+(p.client||'?')+' · '+projStage(p.stage).label+'</option>'; }).join('');
+}
+function showReportApp(){
+  reportAppOpen=true; _taskTargetUid=null;
+  var a=document.getElementById('reportApp'); if(a)a.style.display='block';
+  var u=cardCurrentUser(); var un=document.getElementById('rptUserName'); if(un)un.textContent=u?('· '+u.name):'';
+  if(!_reportDate)_reportDate=projTodayISO();
+  renderTaskApp(); window.scrollTo(0,0);
+}
+function closeReportApp(){ reportAppOpen=false; var a=document.getElementById('reportApp'); if(a)a.style.display='none'; if(typeof showHub==='function')showHub(); }
+function taskSwitchTab(t){ _taskTab=t; renderTaskApp(); }
+function reportSetDate(v){ _reportDate=v||projTodayISO(); renderTaskApp(); }
+function reportNav(dir){ var d=new Date(_reportDate||projTodayISO()); if(_taskTab==='weekly')d.setDate(d.getDate()+dir*7); else if(_taskTab==='monthly')d.setMonth(d.getMonth()+dir); else d.setDate(d.getDate()+dir); _reportDate=_isoD(d); renderTaskApp(); }
+function reportSetTarget(v){ _taskTargetUid=v||null; renderTaskApp(); }
+function openTaskForm(id){
+  _editingTaskId=id||null;
+  document.getElementById('tskType').innerHTML=TASK_TYPES.map(function(t){return '<option value="'+t.k+'">'+t.l+'</option>';}).join('');
+  document.getElementById('tskSignal').innerHTML=TASK_SIGNALS.map(function(sg){return '<option value="'+sg.k+'">'+sg.l+'</option>';}).join('');
+  var t=id?(state.tasks||[]).find(function(x){return x.id===id;}):null;
+  document.getElementById('tskProject').innerHTML=taskProjectOptions(t?t.projectId:'common');
+  document.getElementById('taskFormTitle').textContent=t?'업무 수정 · Edit Task':'새 업무 · New Task';
+  document.getElementById('tskTitle').value=t?(t.title||''):'';
+  document.getElementById('tskPurpose').value=t?(t.purpose||''):'';
+  document.getElementById('tskType').value=t?(t.taskType||'etc'):'etc';
+  document.getElementById('tskSignal').value=t?(t.signal||'green'):'green';
+  document.getElementById('tskHours').value=t?(t.estHours||''):'';
+  document.getElementById('tskStart').value=t?(t.startDate||projTodayISO()):projTodayISO();
+  document.getElementById('tskIssue').value=t?(t.issue||''):'';
+  document.getElementById('tskDeleteBtn').style.display=id?'inline-flex':'none';
+  document.getElementById('taskFormModal').style.display='block';
+}
+function closeTaskForm(){ document.getElementById('taskFormModal').style.display='none'; _editingTaskId=null; }
+function saveTask(){
+  var title=(document.getElementById('tskTitle').value||'').trim();
+  if(!title){ showToast('업무 내용을 입력하세요'); return; }
+  var u=reportTargetUser(); var uid=u?u.id:null, uname=u?u.name:'';
+  var data={
+    title:title,
+    purpose:(document.getElementById('tskPurpose').value||'').trim(),
+    projectId:document.getElementById('tskProject').value||'common',
+    taskType:document.getElementById('tskType').value||'etc',
+    signal:document.getElementById('tskSignal').value||'green',
+    estHours:(document.getElementById('tskHours').value||'').replace(/[^0-9.]/g,''),
+    startDate:document.getElementById('tskStart').value||projTodayISO(),
+    issue:(document.getElementById('tskIssue').value||'').trim()
+  };
+  if(!state.tasks)state.tasks=[];
+  if(_editingTaskId){
+    var t=state.tasks.find(function(x){return x.id===_editingTaskId;});
+    if(t){ Object.assign(t,data); t.updatedAt=nowStr(); if(t.status==='done')syncTaskToProject(t); }
+  } else {
+    state.tasks.push(Object.assign({id:(state.taskSeq=(state.taskSeq||0)+1),userId:uid,userName:uname,status:'open',closedDate:'',doneNote:'',createdAt:nowStr(),updatedAt:nowStr()},data));
+  }
+  saveState(); closeTaskForm(); renderTaskApp(); showToast('업무 저장 · Saved');
+}
+function deleteTask(id){
+  if(id==null)return;
+  if(!confirm('이 업무를 삭제할까요?'))return;
+  (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
+  state.tasks=(state.tasks||[]).filter(function(x){return x.id!==id;});
+  saveState(); closeTaskForm(); renderTaskApp(); showToast('삭제됨');
+}
+function completeTask(id){
+  var t=(state.tasks||[]).find(function(x){return x.id===id;}); if(!t)return;
+  var note=prompt('완료 내용 (금일 진행 업무) · Done note:', t.doneNote||t.title); if(note===null)return;
+  note=note.trim(); if(!note){ showToast('완료 내용을 입력하세요'); return; }
+  var hrs=prompt('실제 소요 시간(h) · Hours:', t.estHours||''); if(hrs===null)return;
+  t.status='done'; t.closedDate=projTodayISO(); t.doneNote=note; t.estHours=(hrs||'').replace(/[^0-9.]/g,'')||t.estHours; t.updatedAt=nowStr();
+  syncTaskToProject(t);
+  saveState(); renderTaskApp(); showToast('완료 — 오늘 일일 보고에 반영됨');
+}
+function reopenTask(id){
+  var t=(state.tasks||[]).find(function(x){return x.id===id;}); if(!t)return;
+  t.status='open'; t.closedDate=''; t.updatedAt=nowStr();
+  (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
+  saveState(); renderTaskApp(); showToast('재개됨 · Reopened');
+}
+function syncTaskToProject(t){
+  if(!t.projectId||t.projectId==='common')return;
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(t.projectId);}); if(!p)return;
+  p.logs=p.logs||[];
+  p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===t.id);});
+  p.logs.push({text:'[업무 '+t.closedDate+'] '+t.doneNote+(t.estHours?' ('+t.estHours+'h)':''), at:nowStr(), by:t.userName, source:'task', taskId:t.id, date:t.closedDate});
+}
+function renderTaskApp(){
+  [['Mytasks','내 업무 · My Tasks'],['Daily','일일 · Daily'],['Weekly','주간 · Weekly'],['Monthly','월간 · Monthly']].forEach(function(p){
+    var b=document.getElementById('tskTab'+p[0]); if(b){ var on=_taskTab===p[0].toLowerCase(); b.innerHTML=p[1]; b.style.cssText='background:none;border:none;border-bottom:2px solid '+(on?'var(--text)':'transparent')+';color:'+(on?'var(--text)':'var(--text-3)')+';font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;font-family:var(--sans)'; }
+  });
+  var body=document.getElementById('reportBody'); if(!body)return;
+  if(_taskTab==='mytasks') body.innerHTML=renderMyTasks();
+  else if(_taskTab==='daily') body.innerHTML=renderDaily();
+  else body.innerHTML=renderRollup();
+}
+function signalDot(k){ var sg=taskSignal(k); return '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+sg.c+';flex-shrink:0" title="'+sg.l+'"></span>'; }
+function taskCard(t, compact){
+  var sg=taskSignal(t.signal); var delay=taskDelay(t); var done=t.status==='done';
+  var delayTag = (!done && delay>0) ? '<span style="font-size:10px;font-weight:700;color:#b91c1c;background:#b91c1c14;padding:1px 7px;border-radius:8px">D+'+delay+' 지연</span>' : ((!done && delay===0) ? '<span style="font-size:10px;color:var(--text-3)">오늘 시작</span>':'');
+  var typeTag='<span style="font-size:10px;color:var(--text-3);background:var(--surface-2);padding:1px 7px;border-radius:8px">'+taskTypeLabel(t.taskType)+'</span>';
+  var projTag='<span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px"><i class="ti ti-folder"></i> '+taskProjLabel(t.projectId)+'</span>';
+  var hrs=t.estHours?'<span style="font-size:10px;color:var(--text-3)"><i class="ti ti-clock"></i> '+t.estHours+'h</span>':'';
+  var actions = done
+    ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="reopenTask('+t.id+')"><i class="ti ti-arrow-back-up"></i> 재개</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>'
+    : '<button class="btn btn-dark" style="font-size:10px;padding:3px 9px" onclick="completeTask('+t.id+')"><i class="ti ti-check"></i> 완료 · Close</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>';
+  return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+sg.c+';border-radius:var(--radius);padding:10px 12px;margin-bottom:8px'+(done?';opacity:.72':'')+'">'
+    +'<div style="display:flex;gap:8px;align-items:flex-start"><div style="margin-top:3px">'+signalDot(t.signal)+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:13px;font-weight:600'+(done?';text-decoration:line-through;color:var(--text-3)':'')+'">'+t.title+'</div>'
+    +(t.purpose?'<div style="font-size:11px;color:var(--text-3);margin-top:1px">목적: '+t.purpose+'</div>':'')
+    +(done&&t.doneNote?'<div style="font-size:12px;color:var(--text-2);margin-top:3px;white-space:pre-wrap">✓ '+t.doneNote+'</div>':'')
+    +(t.issue?'<div style="font-size:11px;color:#b91c1c;margin-top:3px"><i class="ti ti-alert-triangle"></i> '+t.issue+'</div>':'')
+    +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:6px">'+projTag+typeTag+hrs+'<span style="font-size:10px;color:var(--text-3)">시작 '+(t.startDate||'')+(done?' · 완료 '+t.closedDate:'')+'</span>'+delayTag+'</div>'
+    +'</div>'
+    +(compact?'':'<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">'+actions+'</div>')
+    +'</div></div>';
+}
+function renderMyTasks(){
+  var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin);
+  var tu=reportTargetUser(); var uid=tu?tu.id:null;
+  var hdr='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<div style="font-size:14px;font-weight:700">'+(tu?tu.name:'')+'님의 업무'+(_taskTargetUid?' <span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px">관리자 작성</span>':'')+'</div>'
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+  if(isAdm){ hdr+='<select onchange="reportSetTarget(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">본인 · Me</option>'+MEMBERS.map(function(m){return '<option value="'+m.id+'"'+(String(_taskTargetUid)===String(m.id)?' selected':'')+'>'+m.name+'</option>';}).join('')+'</select>'
+    +'<button class="btn btn-outline" onclick="openSlackConfig()" style="font-size:11px;padding:4px 8px" title="설정"><i class="ti ti-settings"></i></button>'; }
+  hdr+='<button class="btn btn-dark" onclick="openTaskForm(null)" style="font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i> 새 업무 · Add</button>'
+    +'<button class="btn btn-outline" onclick="fetchSlackToReport()" style="font-size:11px;padding:6px 10px"><i class="ti ti-brand-slack"></i> Slack 불러오기</button>'
+    +'</div></div>';
+  var mine=(state.tasks||[]).filter(function(t){return t.userId===uid;});
+  var openT=mine.filter(function(t){return t.status!=='done';}).sort(function(a,b){return taskDelay(b)-taskDelay(a)||(a.startDate||'').localeCompare(b.startDate||'');});
+  var doneT=mine.filter(function(t){return t.status==='done';}).sort(function(a,b){return (b.closedDate||'').localeCompare(a.closedDate||'');}).slice(0,15);
+  var html=hdr;
+  html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px">진행 중 · Open ('+openT.length+')</div>';
+  html+= openT.length? openT.map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">진행 중 업무 없음 — "새 업무"로 추가하세요.</div>';
+  html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">완료 · Closed (최근)</div>';
+  html+= doneT.length? doneT.map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">완료된 업무 없음</div>';
+  return html;
+}
+function dateNavBar(extra){
+  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">'
+    +'<button class="btn btn-outline" onclick="reportNav(-1)" style="padding:5px 9px"><i class="ti ti-chevron-left"></i></button>'
+    +extra
+    +'<button class="btn btn-outline" onclick="reportNav(1)" style="padding:5px 9px"><i class="ti ti-chevron-right"></i></button></div>';
+}
+function renderDaily(){
+  var nav=dateNavBar('<input type="date" value="'+_reportDate+'" onchange="reportSetDate(this.value)" style="font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><span style="font-size:12px;color:var(--text-3)">'+(_reportDate===projTodayISO()?'오늘 · Today':'')+'</span>');
+  var members=MEMBERS.filter(function(m){return isReportMember(m.id);});
+  var html=nav; var any=false;
+  members.forEach(function(m){
+    var doneT=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate===_reportDate;});
+    var openOverdue=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status!=='done' && (t.startDate||'')<=_reportDate;});
+    if(!doneT.length && !openOverdue.length) return;
+    any=true;
+    var redCnt=openOverdue.filter(function(t){return t.signal==='red';}).length;
+    var ylwCnt=openOverdue.filter(function(t){return t.signal==='yellow';}).length;
+    var sig = redCnt?'🔴':(ylwCnt?'🟡':'🟢');
+    var totH=doneT.reduce(function(s,t){return s+(parseFloat(t.estHours)||0);},0);
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px"><span style="font-size:14px;font-weight:700">'+sig+' '+m.name+'</span><span style="font-size:11px;color:var(--text-3)">완료 '+doneT.length+'건'+(totH?' · '+totH+'h':'')+' · 진행 '+openOverdue.length+'</span></div>';
+    html+='<div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:6px">완료 (Done)</div>';
+    html+= doneT.length? doneT.map(function(t){return taskCard(t,true);}).join('') : '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">완료 없음</div>';
+    if(openOverdue.length){ html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);margin:8px 0 6px">진행 중 / 이월 (To-Do)</div>'+openOverdue.sort(function(a,b){return taskDelay(b)-taskDelay(a);}).map(function(t){return taskCard(t,true);}).join(''); }
+    html+='</div>';
+  });
+  if(!any) html+='<div style="font-size:12px;color:var(--text-3);padding:8px 0">이 날짜 보고 없음 · No activity</div>';
+  return html;
+}
+function renderRollup(){
+  var base=_reportDate||projTodayISO(), start,end,label;
+  if(_taskTab==='weekly'){ var d=new Date(base); var dow=(d.getDay()+6)%7; var mon=new Date(d); mon.setDate(d.getDate()-dow); var sun=new Date(mon); sun.setDate(mon.getDate()+6); start=_isoD(mon); end=_isoD(sun); label=start+' ~ '+end+' · Week'; }
+  else { var y=+base.slice(0,4),m=+base.slice(5,7); start=base.slice(0,7)+'-01'; var last=new Date(y,m,0).getDate(); end=base.slice(0,7)+'-'+String(last).padStart(2,'0'); label=base.slice(0,7)+' · Month'; }
+  var nav=dateNavBar('<span style="font-size:14px;font-weight:700">'+label+'</span>');
+  var members=MEMBERS.filter(function(m){return isReportMember(m.id);});
+  var html=nav; var any=false;
+  members.forEach(function(m){
+    var done=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end;});
+    if(!done.length)return; any=true;
+    var totH=done.reduce(function(s,t){return s+(parseFloat(t.estHours)||0);},0);
+    var byProj={}; done.forEach(function(t){ var k=taskProjLabel(t.projectId); (byProj[k]=byProj[k]||[]).push(t); });
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px"><span style="font-size:14px;font-weight:700">'+m.name+'</span><span style="font-size:11px;color:var(--text-3)">완료 '+done.length+'건'+(totH?' · '+totH+'h':'')+'</span></div>';
+    Object.keys(byProj).sort().forEach(function(pn){
+      var arr=byProj[pn]; var ph=arr.reduce(function(s,t){return s+(parseFloat(t.estHours)||0);},0);
+      html+='<div style="margin-bottom:9px"><div style="font-size:11px;font-weight:700;color:#b45309;margin-bottom:4px"><i class="ti ti-folder"></i> '+pn+(ph?' · '+ph+'h':'')+'</div>'
+        +arr.map(function(t){return '<div style="font-size:12px;padding:2px 0 2px 12px;display:flex;gap:6px"><span style="font-size:10px;color:var(--text-3);flex-shrink:0;width:48px">'+(t.closedDate||'').slice(5)+'</span><span style="flex:1;white-space:pre-wrap">'+t.doneNote+'</span></div>';}).join('')+'</div>';
+    });
+    html+='</div>';
+  });
+  if(!any) html+='<div style="font-size:12px;color:var(--text-3);padding:8px 0">이 기간 완료 업무 없음</div>';
+  return html;
+}
+function _matchProjByName(name){ var lo=(name||'').toLowerCase().trim(); if(!lo)return null; var f=(state.projects||[]).find(function(p){ var c=(p.client||'').toLowerCase(); return c && (c===lo || lo.indexOf(c)>=0 || c.indexOf(lo)>=0); }); return f?f.id:null; }
+function _matchProjByText(text){ var lo=(text||'').toLowerCase(); var f=(state.projects||[]).find(function(p){ var c=(p.client||'').toLowerCase(); return c && lo.indexOf(c)>=0; }); return f?f.id:'common'; }
+async function fetchSlackToReport(){
+  var cfg=state.slackConfig||{};
+  if(!cfg.workerUrl){ showToast('Slack 설정(톱니)에서 Worker URL을 입력하세요'); if(sessionIsAdmin||(cardCurrentUser()&&cardCurrentUser().isAdmin))openSlackConfig(); return; }
+  var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin);
+  if(!isAdm && _taskTargetUid){ showToast('본인 보고만 가져올 수 있습니다'); return; }
+  var tu=reportTargetUser(); var uid=tu?tu.id:null; var uname=tu?tu.name:'';
+  var slackId=(state.slackUsers||{})[uid];
+  if(!isAdm && !slackId){ showToast('본인 Slack User ID가 설정되어 있어야 자기 대화를 가져올 수 있습니다'); return; }
+  var projNames=(state.projects||[]).map(function(p){return p.client;}).filter(Boolean);
+  showToast('Slack 불러와 정리하는 중...');
+  try{
+    var r=await fetch(cfg.workerUrl.replace(/\/$/,''),{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ channel:cfg.channel||'', date:_reportDate, user:slackId||'', projects:projNames, summarize:true })
+    });
+    var d=await r.json();
+    if(!d.ok){ showToast('Slack 오류: '+(d.error||'응답 실패')); return; }
+    var items = (d.items && d.items.length) ? d.items : (d.messages||[]).map(function(m){ return {text:m.text, project:''}; });
+    if(!items.length){ showToast('해당 날짜 메시지 없음'); return; }
+    if(!state.tasks)state.tasks=[];
+    var added=0;
+    items.forEach(function(it){
+      var t=(it.text||'').trim(); if(!t)return;
+      var pid = (it.project ? _matchProjByName(it.project) : null) || _matchProjByText(t);
+      state.tasks.push({ id:(state.taskSeq=(state.taskSeq||0)+1), userId:uid, userName:uname, title:t, purpose:'', projectId:pid, taskType:'etc', signal:'green', estHours:'', startDate:_reportDate, issue:'', status:'open', closedDate:'', doneNote:'', createdAt:nowStr(), updatedAt:nowStr(), fromSlack:true });
+      added++;
+    });
+    saveState(); renderTaskApp();
+    showToast(added+'건 정리되어 추가됨 — 프로젝트 확인/수정 및 추가 입력하세요');
+  }catch(e){ showToast('연결 실패 — Worker URL/배포 확인'); }
+}
+function openSlackConfig(){
+  var cfg=state.slackConfig||{}, su=state.slackUsers||{}, rm=state.reportMembers||{};
+  document.getElementById('slackWorkerUrl').value=cfg.workerUrl||'';
+  document.getElementById('slackChannel').value=cfg.channel||'';
+  var allOn=!Object.keys(rm).length;
+  document.getElementById('reportMemberMap').innerHTML=MEMBERS.map(function(m){ var on=allOn|| !!rm[m.id]; return '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;margin:0 12px 6px 0;cursor:pointer"><input type="checkbox" id="rptMem_'+m.id+'" '+(on?'checked':'')+' style="width:auto;margin:0"> '+m.name+'</label>'; }).join('');
+  document.getElementById('slackUserMap').innerHTML=MEMBERS.map(function(m){ return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span style="flex:0 0 130px;font-size:12px">'+m.name+'</span><input type="text" id="slackUid_'+m.id+'" value="'+(su[m.id]||'')+'" placeholder="U... (Slack User ID)" style="flex:1;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"></div>'; }).join('');
+  document.getElementById('slackConfigModal').style.display='block';
+}
+function closeSlackConfig(){ document.getElementById('slackConfigModal').style.display='none'; }
+function saveSlackConfig(){
+  state.slackConfig={ workerUrl:(document.getElementById('slackWorkerUrl').value||'').trim(), channel:(document.getElementById('slackChannel').value||'').trim() };
+  state.slackUsers=state.slackUsers||{};
+  state.reportMembers={};
+  MEMBERS.forEach(function(m){
+    var el=document.getElementById('slackUid_'+m.id); if(el){ var v=(el.value||'').trim(); if(v)state.slackUsers[m.id]=v; else delete state.slackUsers[m.id]; }
+    var cb=document.getElementById('rptMem_'+m.id); if(cb&&cb.checked) state.reportMembers[m.id]=true;
+  });
+  saveState(); closeSlackConfig(); showToast('Slack 설정 저장됨 · Saved');
+}
+
 function projOwnerName(id){ var m=MEMBERS.find(function(x){ return x.id==id; }); return m?m.name:''; }
 
 function showProjectApp(){
@@ -4350,6 +4714,37 @@ function renderProjLinkedQuotes(client){
       }).join('');
 }
 function closeProjectForm(){ document.getElementById('projectFormModal').style.display='none'; _editingProjId=null; }
+var _projCustDBOpen=false;
+function projCustomerInfoHTML(name){
+  name=(name||'').trim(); if(!name) return '';
+  var map; try{ map=buildVendorMap(); }catch(e){ return ''; }
+  var v=null; Object.keys(map).forEach(function(k){ if(k.toLowerCase()===name.toLowerCase()) v=map[k]; });
+  if(!v){ return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;font-size:11px;color:var(--text-3);margin-bottom:12px"><i class="ti ti-database-off"></i> 고객 DB에 연동된 거래처·문서 정보가 없습니다.</div>'; }
+  var SRC={expense:{label:'전자결재',color:'#475569',icon:'ti-file-text'},quote:{label:'견적',color:'#1d4ed8',icon:'ti-file-invoice'},card:{label:'카드',color:'#15803d',icon:'ti-credit-card'},project:{label:'프로젝트',color:'#b45309',icon:'ti-folder'},master:{label:'마스터',color:'#6b7280',icon:'ti-database'}};
+  var chips=['expense','quote','card','project','master'].filter(function(x){return v.srcs&&v.srcs[x];}).map(function(x){var c=SRC[x];return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:'+c.color+';background:'+c.color+'14;padding:2px 6px;border-radius:10px;margin-left:4px"><i class="ti '+c.icon+'" style="font-size:10px"></i>'+c.label+'</span>';}).join('');
+  var bankInfo = (v.bank&&v.bank.type==='vn')
+    ? ((v.bank.bankVN||'\u2014')+' | '+(v.bank.acctVN||'\u2014')+' | '+(v.bank.holderVN||'\u2014'))
+    : (v.bank ? ((v.bank.bankForeign||'\u2014')+' | SWIFT '+(v.bank.swift||'\u2014')+' | '+(v.bank.acctForeign||'\u2014')) : '\u2014');
+  var docLinks=(v.docs&&v.docs.length)? v.docs.map(function(d){
+    var c=SRC[d.src]||SRC.expense;
+    var amt=(d.amt!=null&&d.amt!==''&&d.amt!==0)?' <span class="docno">'+(d.cur||'')+' '+fmtN(d.amt)+'</span>':'';
+    var act=d.src==='quote'?"closeProjectForm();openRelatedQuote("+d.id+")":d.src==='card'?"closeProjectForm();openRelatedCard("+d.id+")":d.src==='project'?"editProject("+d.id+")":"closeProjectForm();showPage('list');setTimeout(function(){showDetail("+d.id+",'detailWrap');},80)";
+    return '<a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)"><i class="ti '+c.icon+'" style="font-size:12px;color:'+c.color+'"></i><span class="docno">'+d.no+'</span> '+d.title+amt+'</a>';
+  }).join('<br>') : '<span style="color:var(--text-3)">관련 문서 없음</span>';
+  var sk=Object.keys(v.sales||{}).filter(function(c){return v.sales[c];});
+  var pk=Object.keys(v.purch||{}).filter(function(c){return v.purch[c];});
+  var settle=(sk.length||pk.length)?'<div style="margin-top:8px;font-size:12px;line-height:1.7">'+(sk.length?'<div>매출 · Sales: <b style="color:#1d4ed8">'+sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')+(pk.length?'<div>매입 · Purchase: <b style="color:#b45309">'+pk.map(function(c){return fmtN(v.purch[c])+' '+c;}).join(' · ')+'</b></div>':'')+'</div>':'';
+  var body=_projCustDBOpen?('<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+    +'<div style="font-size:10px;color:var(--text-3);margin-bottom:3px">은행정보 · Bank</div><div style="font-size:12px;margin-bottom:8px;word-break:break-all">'+bankInfo+'</div>'
+    +(v.reg?'<div style="font-size:11px;color:var(--text-3);margin-bottom:8px">사업자 · '+v.reg+'</div>':'')
+    +'<div style="font-size:10px;color:var(--text-3);margin-bottom:3px">관련 문서 · Related Docs ('+(v.docs?v.docs.length:0)+')</div><div style="font-size:12px;line-height:1.9">'+docLinks+'</div>'
+    +settle+'</div>'):'';
+  return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px">'
+    +'<div onclick="_projCustDBOpen=!_projCustDBOpen;renderProjectHistory(_editingProjId)" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:6px">'
+    +'<div style="font-size:12px;font-weight:700;min-width:0"><i class="ti ti-building-store"></i> 고객 DB · Customer DB'+chips+'</div>'
+    +'<span style="font-size:11px;color:var(--text-3);white-space:nowrap">상세 · Detail <i class="ti ti-chevron-'+(_projCustDBOpen?'up':'down')+'"></i></span></div>'
+    +body+'</div>';
+}
 function renderProjectHistory(id){
   var panel=document.getElementById('projHistoryPanel'); if(!panel) return;
   var p=(state.projects||[]).find(function(x){ return x.id===id; });
@@ -4379,6 +4774,7 @@ function renderProjectHistory(id){
   }).join('') : '<div style="font-size:11px;color:var(--text-3)">아직 대화 로그가 없습니다.</div>';
   panel.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="ti ti-history"></i> 고객 히스토리 · History</div>'
     +summary
+    +projCustomerInfoHTML(p.client)
     +'<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px">단계 진행 · Stage Timeline</div>'
     +histHtml
     +'<hr style="border:none;border-top:1px solid var(--border);margin:13px 0">'
@@ -4950,6 +5346,8 @@ function enterModule(module) {
     showProjectApp();
   } else if(module === 'finance') {
     showFinanceApp();
+  } else if(module === 'report') {
+    showReportApp();
   }
 }
 
