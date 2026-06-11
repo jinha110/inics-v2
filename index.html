@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <!-- ════════════════════════════════════════════════
      FIREBASE CONFIG
@@ -572,6 +573,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
 
     </div>
+
+    <div id="hubAdminSection" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:26px 0 10px;display:flex;align-items:center;gap:8px"><span>ADMIN · 관리자</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
+      <div class="hub-grid">
+        <div class="hub-card active-module" id="hubCard-admin" onclick="enterModule('admin')">
+          <div class="hub-card-badge" style="background:var(--surface-2);color:#b45309">Admin</div>
+          <div class="hub-card-icon" style="background:#fef3c7;color:#b45309"><i class="ti ti-shield-check"></i></div>
+          <div class="hub-card-title">관리자 패널 · Admin Panel</div>
+          <div class="hub-card-desc">구성원·권한·템플릿·거래처 승인<br>Members · Access · Template</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -724,7 +737,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="fg" style="margin-bottom:10px"><label>업무 내용 · Task *</label><input type="text" id="tskTitle" placeholder="예: 건설사 미팅 — 회사 소개·협업 요청" autocomplete="off"></div>
       <div class="fgrid" style="margin-bottom:10px">
         <div class="fg"><label>업무 유형 · Type</label><select id="tskType" onchange="updateTaskFormFields()"></select></div>
-        <div class="fg"><label>연관 프로젝트 · Project *</label><select id="tskProject" onchange="updateTaskFormFields()"></select></div>
+        <div class="fg" id="tskProjectWrap"><label>연관 프로젝트 · Project *</label><select id="tskProject" onchange="updateTaskFormFields()"></select></div>
+      </div>
+      <div class="fg" id="tskNetCompanyWrap" style="margin-bottom:10px;display:none"><label>업체명 · Company (네트워킹)</label><input type="text" id="tskNetCompany" list="quoteClients" placeholder="만난 업체명 — 거래처 DB에 등록됨" autocomplete="off"></div>
+      <div id="tskNewProjWrap" style="margin-bottom:10px;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px">
+        <label style="font-size:11px;color:var(--text-2);display:block;margin-bottom:5px">새 프로젝트 · New Project (고객사명)</label>
+        <div style="display:flex;gap:6px"><input type="text" id="tskNewProjName" list="quoteClients" placeholder="고객사명 입력" autocomplete="off" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><button type="button" class="btn btn-dark" style="font-size:11px;padding:6px 12px;white-space:nowrap" onclick="createQuickProject()">생성 · Create</button></div>
       </div>
       <div class="fg" style="margin-bottom:10px"><label>목적 · Purpose</label><input type="text" id="tskPurpose" placeholder="이 업무의 목적 / 기대 결과" autocomplete="off"></div>
       <div class="fgrid">
@@ -732,7 +750,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fg"><label>예상 소요(시간 h)</label><input type="text" id="tskHours" placeholder="예: 1.5" inputmode="decimal" autocomplete="off"></div>
         <div class="fg" id="tskStartWrap"><label>시작일 · Start Date</label><input type="date" id="tskStart"></div>
       </div>
-      <div class="fg" style="margin-top:10px"><label>이슈 / 지원 요청 · Issue</label><input type="text" id="tskIssue" placeholder="의사결정 필요·문제점 (선택)" autocomplete="off"></div>
+      <div class="fg" style="margin-top:10px"><label>메모 · Memo</label><input type="text" id="tskIssue" placeholder="메모 · 참고사항 (선택)" autocomplete="off"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button class="btn btn-danger" id="tskDeleteBtn" onclick="deleteTask(_editingTaskId)" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
         <button class="btn btn-dark" onclick="saveTask()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
@@ -1553,6 +1571,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
             <div class="admin-card-hdr"><i class="ti ti-lock-access"></i> Module Access · 모듈 접근 권한 (사용자별)</div>
             <div class="admin-card-body" id="adminModulePerms"></div>
           </div>
+          <!-- View Scope -->
+          <div class="admin-card">
+            <div class="admin-card-hdr"><i class="ti ti-eye-cog"></i> View Scope · 조회 범위 (전자결재·카드)</div>
+            <div class="admin-card-body" id="adminViewScope"></div>
+          </div>
           <!-- Danger Zone -->
           <div class="admin-card">
             <div class="admin-card-hdr" style="color:var(--danger)"><i class="ti ti-alert-triangle"></i> Danger Zone · 주의</div>
@@ -1604,7 +1627,7 @@ let state = {
   docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{},
   departments:['FURNITURE','SOURCING'],
   vendors:[], vendorRequests:[], vendorReqSeq:0,
-  cardExpenses:[], cardSeq:0, cardMerchants:[], modulePerms:{},
+  cardExpenses:[], cardSeq:0, cardMerchants:[], modulePerms:{}, viewScope:{},
   products:[], quotes:[], quoteSeq:0,
   projects:[], projectSeq:0,
   docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other']
@@ -1699,7 +1722,7 @@ async function loadState() {
     window._fbListen(remote=>{
       state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
       if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
-      if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
+      if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(!state.viewScope)state.viewScope={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
       if(!state.projects)state.projects=[]; if(state.projectSeq===undefined)state.projectSeq=0;
       if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
       if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
@@ -1853,6 +1876,7 @@ function renderList(){
   updateNavBadges();
   const el=document.getElementById('docList');
   let docs=state.docs.slice().reverse();
+  if(!canViewAll('approval')&&mineUserId)docs=docs.filter(d=>d.drafterId==mineUserId);
   if(curFilter!=='all')docs=docs.filter(d=>d.status===curFilter);
   if(!docs.length){el.innerHTML='<div class="empty-state"><i class="ti ti-inbox"></i><p>No documents · 문서 없음</p></div>';if(!curDocId)document.getElementById('detailWrap').innerHTML='';return;}
   el.innerHTML=docs.map(d=>docRowHTML(d,curDocId,'detailWrap')).join('');
@@ -2261,6 +2285,7 @@ function renderAdmin(){
   renderAdminVendorReqs();
   renderAdminVendors();
   renderModulePerms();
+  renderViewScope();
   // Populate add member dept select
   var nmd = document.getElementById('newMemberDept');
   if(nmd){ nmd.innerHTML = (state.departments||['FURNITURE','SOURCING','COMMON']).map(function(d){ return '<option>'+d+'</option>'; }).join(''); }
@@ -3425,6 +3450,8 @@ function renderCard(){
   var fInv=((document.getElementById('cardFInvoice')||{}).value||'');
   var q=((document.getElementById('cardSearch')||{}).value||'').toLowerCase().trim();
   var items=(state.cardExpenses||[]).slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||'') || b.id-a.id; });
+  var _cardAll=canViewAll('card'), _myU=cardCurrentUser(); var _myUid=_myU?_myU.id:null;
+  if(!_cardAll) items=items.filter(function(x){ return x.userId===_myUid; });
   items=items.filter(function(x){
     if(fDept && x.dept!==fDept) return false;
     if(fUser && String(x.userId)!==String(fUser)) return false;
@@ -3587,7 +3614,9 @@ function renderCardDashboard(){
   var cur=((document.getElementById('cardDashCur')||{}).value)||'VND';
   var fDept=((document.getElementById('cardDashDept')||{}).value)||'';
   var fMonth=((document.getElementById('cardDashMonth')||{}).value)||'';
+  var _cAll=canViewAll('card'), _cU=cardCurrentUser(); var _cUid=_cU?_cU.id:null;
   var base=(state.cardExpenses||[]).filter(function(x){
+    if(!_cAll && x.userId!==_cUid) return false;
     if((x.currency||'')!==cur) return false;
     if(fMonth){ var ym=(x.date||'').slice(0,7).replace(/\./g,'-'); if(ym!==fMonth) return false; }
     return true;
@@ -3702,34 +3731,70 @@ function upsertProductFromLine(l,cur){
   if(idx>=0){ var old=state.products[idx]; if(!rec.image) rec.image=old.image||''; if(!rec.cost) rec.cost=old.cost||''; state.products[idx]=Object.assign({}, old, rec); }
   else state.products.push(rec);
 }
+function _xlsxRowImages(buf){
+  // .xlsx(zip) 내부 그림을 추출해 {엑셀행(0-based): dataURL} 매핑 반환
+  if(typeof JSZip==='undefined') return Promise.resolve({});
+  return JSZip.loadAsync(buf).then(function(zip){
+    var map={};
+    var drawings=Object.keys(zip.files).filter(function(n){ return /xl\/drawings\/drawing\d+\.xml$/.test(n); });
+    return Promise.all(drawings.map(function(dname){
+      var relName=dname.replace(/drawings\/(drawing\d+)\.xml$/,'drawings/_rels/$1.xml.rels');
+      var relFile=zip.file(relName);
+      return Promise.all([ zip.file(dname).async('string'), relFile?relFile.async('string'):Promise.resolve('') ]).then(function(pair){
+        var xml=pair[0], rels=pair[1];
+        var relMap={};
+        (rels.match(/<Relationship\b[^>]*>/g)||[]).forEach(function(r){
+          var id=(r.match(/Id="([^"]+)"/)||[])[1]; var tgt=(r.match(/Target="([^"]+)"/)||[])[1];
+          if(id&&tgt){ tgt=tgt.replace(/^\.\.\//,'xl/').replace(/^\//,''); relMap[id]=tgt; }
+        });
+        var anchors=xml.match(/<(?:xdr:)?(?:one|two)CellAnchor\b[\s\S]*?<\/(?:xdr:)?(?:one|two)CellAnchor>/g)||[];
+        return Promise.all(anchors.map(function(a){
+          var rowM=a.match(/<(?:xdr:)?from>[\s\S]*?<(?:xdr:)?row>(\d+)<\/(?:xdr:)?row>/);
+          var emb=a.match(/r:embed="([^"]+)"/);
+          if(!rowM||!emb) return null;
+          var row=parseInt(rowM[1],10); var tgt=relMap[emb[1]]; if(!tgt) return null;
+          var mfile=zip.file(tgt); if(!mfile) return null;
+          var ext=(tgt.split('.').pop()||'png').toLowerCase();
+          var mime= (ext==='jpg'||ext==='jpeg')?'image/jpeg': ext==='gif'?'image/gif': ext==='png'?'image/png': ('image/'+ext);
+          return mfile.async('base64').then(function(b64){ if(map[row]==null) map[row]='data:'+mime+';base64,'+b64; });
+        }).filter(Boolean));
+      }).catch(function(){ return null; });
+    })).then(function(){ return map; });
+  }).catch(function(){ return {}; });
+}
 function handleProductExcel(file){
   if(!file) return;
   if(typeof XLSX==='undefined'){ showToast('Excel 모듈 로드 실패 (네트워크 확인 후 새로고침)'); return; }
   var reader=new FileReader();
   reader.onload=function(ev){
-    try{
-      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      var hi=-1;
-      for(var i=0;i<rows.length;i++){ var rr=(rows[i]||[]).map(function(x){return String(x).toLowerCase();}); if(rr.some(function(c){return c.indexOf('product code')>=0 || c.indexOf('product name')>=0;})){ hi=i; break; } }
-      if(hi<0){ showToast('템플릿 헤더를 찾을 수 없습니다 (Product Code / Product Name 행 필요)'); return; }
-      var hdr=(rows[hi]||[]).map(function(x){return String(x).replace(/\s+/g,' ').trim().toLowerCase();});
-      function col(){ var names=[].slice.call(arguments); for(var n=0;n<names.length;n++){ for(var j=0;j<hdr.length;j++){ if(hdr[j].indexOf(names[n])>=0) return j; } } return -1; }
-      var cCat=col('category'), cName=col('product name','name'), cSize=col('size'), cCode=col('product code','code'), cColor=col('color'), cPrice=col('unit price','price');
-      var added=0,updated=0;
-      for(var i=hi+1;i<rows.length;i++){
-        var r=rows[i]||[];
+    var buf=ev.target.result;
+    _xlsxRowImages(buf).then(function(imgMap){
+      try{
+        var wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        var hi=-1;
+        for(var i=0;i<rows.length;i++){ var rr=(rows[i]||[]).map(function(x){return String(x).toLowerCase();}); if(rr.some(function(c){return c.indexOf('product code')>=0 || c.indexOf('product name')>=0;})){ hi=i; break; } }
+        if(hi<0){ showToast('템플릿 헤더를 찾을 수 없습니다 (Product Code / Product Name 행 필요)'); return; }
+        var hdr=(rows[hi]||[]).map(function(x){return String(x).replace(/\s+/g,' ').trim().toLowerCase();});
+        function col(){ var names=[].slice.call(arguments); for(var n=0;n<names.length;n++){ for(var j=0;j<hdr.length;j++){ if(hdr[j].indexOf(names[n])>=0) return j; } } return -1; }
+        var cCat=col('category'), cName=col('product name','name'), cSize=col('size'), cCode=col('product code','code'), cColor=col('color'), cPrice=col('unit price','price');
         function nrm(v){ return String(v==null?'':v).replace(/\s+/g,' ').trim(); }
-        var code=nrm(cCode>=0?r[cCode]:''), name=nrm(cName>=0?r[cName]:'');
-        if(!code && !name) continue;
-        var exists=code?getProduct(code):null;
-        upsertProductFromLine({ code:code, category:nrm(cCat>=0?r[cCat]:''), name:name, size:nrm(cSize>=0?r[cSize]:''), colorCode:nrm(cColor>=0?r[cColor]:''), cost:nrm(cPrice>=0?r[cPrice]:'').replace(/,/g,'') }, 'VND');
-        if(exists) updated++; else added++;
-      }
-      saveState(); if(typeof renderQuoteDb==='function') renderQuoteDb(); populateQuoteProductCodes();
-      showToast('Excel 등록 완료 · '+added+'개 추가, '+updated+'개 갱신');
-    }catch(err){ showToast('Excel 파싱 오류: '+(err&&err.message||err)); }
+        var added=0,updated=0,withImg=0;
+        for(var i=hi+1;i<rows.length;i++){
+          var r=rows[i]||[];
+          var code=nrm(cCode>=0?r[cCode]:''), name=nrm(cName>=0?r[cName]:'');
+          if(!code && !name) continue;
+          var img=imgMap[i]||'';        // i = rows 인덱스 = 엑셀행(0-based)
+          if(img) withImg++;
+          var exists=code?getProduct(code):null;
+          upsertProductFromLine({ code:code, category:nrm(cCat>=0?r[cCat]:''), name:name, size:nrm(cSize>=0?r[cSize]:''), colorCode:nrm(cColor>=0?r[cColor]:''), cost:nrm(cPrice>=0?r[cPrice]:'').replace(/,/g,''), image:img }, 'VND');
+          if(exists) updated++; else added++;
+        }
+        saveState(); if(typeof renderQuoteDb==='function') renderQuoteDb(); populateQuoteProductCodes();
+        showToast('Excel 등록 완료 · '+added+'개 추가, '+updated+'개 갱신'+(withImg?(' · 이미지 '+withImg+'개'):' · 이미지 없음'));
+      }catch(err){ showToast('Excel 파싱 오류: '+(err&&err.message||err)); }
+    });
   };
   reader.readAsArrayBuffer(file);
 }
@@ -4226,6 +4291,7 @@ function showHub() {
     var c=document.getElementById('hubCard-'+k);
     if(c) c.style.display = moduleAllowed(k) ? '' : 'none';
   });
+  var _cu=cardCurrentUser(); var _isAdm=(sessionIsAdmin||(_cu&&_cu.isAdmin)); var _as=document.getElementById('hubAdminSection'); if(_as)_as.style.display=_isAdm?'':'none';
   // Update hub user chip
   var gu = window._gateUser;
   if(gu) {
@@ -4255,20 +4321,36 @@ function moduleAllowed(key, u){
 function setModulePerm(uid, key, allowed){
   if(!state.modulePerms) state.modulePerms={};
   var p=state.modulePerms[uid];
-  if(!p){ p={approval:true,vendors:true,card:true,quote:true}; state.modulePerms[uid]=p; }
+  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true}; state.modulePerms[uid]=p; }
   p[key]=!!allowed;
   saveState();
   showToast('모듈 권한 저장됨 · Access saved');
 }
-function renderModulePerms(){
-  var el=document.getElementById('adminModulePerms'); if(!el) return;
-  var mods=[['approval','전자결재'],['vendors','거래처 DB'],['card','카드사용'],['quote','견적서']];
-  var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1">사용자 · User</div>'+mods.map(function(m){ return '<div style="width:84px;text-align:center">'+m[1]+'</div>'; }).join('')+'</div>';
+function canViewAll(module){ var u=cardCurrentUser(); if(!u)return true; if(u.isAdmin||sessionIsAdmin)return true; var sc=(state.viewScope||{})[u.id]; if(!sc)return true; return sc[module]!=='own'; }
+function setViewScope(uid,mod,val){ if(!state.viewScope)state.viewScope={}; if(!state.viewScope[uid])state.viewScope[uid]={}; state.viewScope[uid][mod]=val; saveState(); showToast('조회 범위 저장됨 · View scope saved'); }
+function renderViewScope(){
+  var el=document.getElementById('adminViewScope'); if(!el)return;
+  var mods=[['approval','전자결재'],['card','카드사용']];
+  var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1">사용자 · User</div>'+mods.map(function(m){return '<div style="width:110px;text-align:center">'+m[1]+'</div>';}).join('')+'</div>';
   var rows=MEMBERS.map(function(m){
     var cells=mods.map(function(md){
-      if(m.isAdmin) return '<div style="width:84px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
+      if(m.isAdmin) return '<div style="width:110px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
+      var sc=(state.viewScope||{})[m.id]||{}; var v=sc[md[0]]||'all';
+      return '<div style="width:110px;text-align:center"><select onchange="setViewScope('+m.id+',\''+md[0]+'\',this.value)" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="all"'+(v==='all'?' selected':'')+'>전체 · All</option><option value="own"'+(v==='own'?' selected':'')+'>본인만 · Own</option></select></div>';
+    }).join('');
+    return '<div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:9px 8px"><div style="flex:1;font-size:13px;font-weight:600">'+m.name+' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+m.role+'</span></div>'+cells+'</div>';
+  }).join('');
+  el.innerHTML=head+rows+'<div style="font-size:10px;color:var(--text-3);padding:8px">「본인만」으로 지정하면 그 사용자는 전자결재 전체 문서함·카드 목록에서 자신이 올린 항목만 보게 됩니다. 관리자는 항상 전체.</div>';
+}
+function renderModulePerms(){
+  var el=document.getElementById('adminModulePerms'); if(!el) return;
+  var mods=[['approval','전자결재'],['card','카드'],['report','업무'],['vendors','거래처'],['quote','견적'],['project','프로젝트'],['finance','정산']];
+  var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1">사용자 · User</div>'+mods.map(function(m){ return '<div style="width:62px;text-align:center">'+m[1]+'</div>'; }).join('')+'</div>';
+  var rows=MEMBERS.map(function(m){
+    var cells=mods.map(function(md){
+      if(m.isAdmin) return '<div style="width:62px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
       var allowed=moduleAllowed(md[0], m);
-      return '<div style="width:84px;text-align:center"><input type="checkbox" '+(allowed?'checked':'')+' onchange="setModulePerm('+m.id+',\''+md[0]+'\',this.checked)" style="width:16px;height:16px;cursor:pointer"></div>';
+      return '<div style="width:62px;text-align:center"><input type="checkbox" '+(allowed?'checked':'')+' onchange="setModulePerm('+m.id+',\''+md[0]+'\',this.checked)" style="width:16px;height:16px;cursor:pointer"></div>';
     }).join('');
     return '<div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:9px 8px"><div style="flex:1;font-size:13px;font-weight:600">'+m.name+' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+m.role+'</span></div>'+cells+'</div>';
   }).join('');
@@ -4544,7 +4626,7 @@ function buildContractHtml(p,o,review){
 function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
 function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 // ═══════════ TASK MANAGEMENT (업무 관리) ═══════════
-var TASK_TYPES=[{k:'meeting',l:'고객상담/미팅 · Meeting'},{k:'design',l:'도면/디자인 · Design'},{k:'quote',l:'견적/서류 · Quote/Docs'},{k:'logistics',l:'발주/물류 · Order/Logistics'},{k:'site',l:'현장시공/감리 · Site'},{k:'etc',l:'기타 · Etc'}];
+var TASK_TYPES=[{k:'meeting',l:'고객상담/미팅 · Meeting'},{k:'networking',l:'네트워킹/영업개발 · Networking'},{k:'design',l:'도면/디자인 · Design'},{k:'quote',l:'견적/서류 · Quote/Docs'},{k:'logistics',l:'발주/물류 · Order/Logistics'},{k:'site',l:'현장시공/감리 · Site'},{k:'etc',l:'기타 · Etc'}];
 var TASK_SIGNALS=[{k:'green',l:'정상 진행 · On track',c:'#15803d'},{k:'yellow',l:'확인 필요 · Needs check',c:'#b45309'},{k:'red',l:'문제 발생 · Issue',c:'#b91c1c'}];
 var reportAppOpen=false, _taskTab='mytasks', _reportDate='', _taskTargetUid=null, _editingTaskId=null;
 function _isoD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -4556,9 +4638,10 @@ function isReportMember(uid){ var rm=state.reportMembers; if(!rm||!Object.keys(r
 function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
 function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; if(pid==='networking')return '네트워킹 · Networking'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
 function taskProjectOptions(sel){
-  return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타 · Common] 회의·행정</option>'+'<option value="networking"'+(sel==='networking'?' selected':'')+'>[네트워킹 · Networking] 소개·영업개발 (프로젝트 무관)</option>'
+  return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타 · Common] 회의·행정</option>'
     +(state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).map(function(p){
-      return '<option value="'+p.id+'"'+(String(sel)===String(p.id)?' selected':'')+'>'+(p.client||'?')+' · '+projStage(p.stage).label+'</option>'; }).join('');
+      return '<option value="'+p.id+'"'+(String(sel)===String(p.id)?' selected':'')+'>'+(p.client||'?')+' · '+projStage(p.stage).label+'</option>'; }).join('')
+    +'<option value="__new__">➕ 새 프로젝트 추가 · Add new project…</option>';
 }
 function showReportApp(){
   reportAppOpen=true; _taskTargetUid=null;
@@ -4586,24 +4669,67 @@ function openTaskForm(id){
   document.getElementById('tskHours').value=t?(t.estHours||''):'';
   document.getElementById('tskStart').value=t?(t.startDate||projTodayISO()):projTodayISO();
   document.getElementById('tskIssue').value=t?(t.issue||''):'';
+  document.getElementById('tskNetCompany').value=t?(t.netCompany||''):'';
+  var _np=document.getElementById('tskNewProjName'); if(_np)_np.value='';
   document.getElementById('tskDeleteBtn').style.display=id?'inline-flex':'none';
   document.getElementById('taskFormModal').style.display='block';
   updateTaskFormFields();
+  (function(){
+    var modal=document.getElementById('taskFormModal');
+    var inputs=[].slice.call(modal.querySelectorAll('input[type="text"],input[type="date"],input[inputmode]'));
+    inputs.forEach(function(inp,i){
+      inp.onkeydown=function(e){
+        if(e.key==='Enter'){ e.preventDefault();
+          var nx=null;
+          for(var j=i+1;j<inputs.length;j++){ if(inputs[j].offsetParent!==null && !inputs[j].disabled && !inputs[j].readOnly){ nx=inputs[j]; break; } }
+          if(nx) nx.focus(); else saveTask();
+        }
+      };
+    });
+  })();
 }
-function updateTaskFormFields(){ var type=document.getElementById("tskType").value; var proj=document.getElementById("tskProject").value; var hide=(type==="meeting"||proj==="networking"); var w=document.getElementById("tskStartWrap"); if(w)w.style.display=hide?"none":""; }
+function updateTaskFormFields(){
+  var type=document.getElementById("tskType").value;
+  var proj=document.getElementById("tskProject").value;
+  var isNet=(type==="networking");
+  var w=document.getElementById("tskStartWrap"); if(w)w.style.display=(type==="meeting"||isNet)?"none":"";
+  var nc=document.getElementById("tskNetCompanyWrap"); if(nc)nc.style.display=isNet?"":"none";
+  var pw=document.getElementById("tskProjectWrap"); if(pw)pw.style.display=isNet?"none":"";
+  var np=document.getElementById("tskNewProjWrap"); if(np)np.style.display=(!isNet&&proj==="__new__")?"":"none";
+}
+function addVendorByName(name){ name=(name||"").trim(); if(!name)return; if(!state.vendors)state.vendors=[]; if(getAllVendors()[name.toLowerCase()])return; state.vendors.push({name:name, source:"networking", createdAt:nowStr()}); }
+function createQuickProject(){
+  var name=(document.getElementById("tskNewProjName").value||"").trim();
+  if(!name){ showToast("고객사/프로젝트명을 입력하세요"); return; }
+  var u=reportTargetUser();
+  if(!state.projects)state.projects=[];
+  var pj={ id:(state.projectSeq=(state.projectSeq||0)+1), client:name, clientFull:"", ownerId:(u?u.id:null), region:"", location:"", deliveryPlace:"", type:"", custType:"B2B", stage:"lead", amount:"", currency:"VND", regDate:projTodayISO(), targetDate:"", note:"", createdAt:nowStr(), createdBy:(u?u.name:""), logs:[], stageHistory:[{stage:"lead",label:projStage("lead").label,at:nowStr(),by:(u?u.name:""),first:true}] };
+  state.projects.push(pj); saveState();
+  document.getElementById("tskProject").innerHTML=taskProjectOptions(pj.id);
+  document.getElementById("tskNewProjName").value="";
+  updateTaskFormFields();
+  showToast("새 프로젝트 생성 · "+name);
+}
 function closeTaskForm(){ document.getElementById('taskFormModal').style.display='none'; _editingTaskId=null; }
 function saveTask(){
   var title=(document.getElementById('tskTitle').value||'').trim();
   if(!title){ showToast('업무 내용을 입력하세요'); return; }
   var u=reportTargetUser(); var uid=u?u.id:null, uname=u?u.name:'';
+  var _type=document.getElementById('tskType').value||'etc';
+  var _isNet=(_type==='networking');
+  var _proj=document.getElementById('tskProject').value||'common';
+  if(!_isNet && _proj==='__new__'){ showToast('새 프로젝트를 먼저 생성하세요'); return; }
+  var _netCo=_isNet?(document.getElementById('tskNetCompany').value||'').trim():'';
+  if(_isNet && _netCo){ addVendorByName(_netCo); }
   var data={
     title:title,
     purpose:(document.getElementById('tskPurpose').value||'').trim(),
-    projectId:document.getElementById('tskProject').value||'common',
-    taskType:document.getElementById('tskType').value||'etc',
+    projectId:_isNet?'common':_proj,
+    taskType:_type,
+    netCompany:_netCo,
     signal:document.getElementById('tskSignal').value||'green',
     estHours:(document.getElementById('tskHours').value||'').replace(/[^0-9.]/g,''),
-    startDate:(document.getElementById('tskType').value==='meeting'||document.getElementById('tskProject').value==='networking')?'':(document.getElementById('tskStart').value||projTodayISO()),
+    startDate:(_type==='meeting'||_isNet)?'':(document.getElementById('tskStart').value||projTodayISO()),
     issue:(document.getElementById('tskIssue').value||'').trim()
   };
   if(!state.tasks)state.tasks=[];
@@ -4749,7 +4875,7 @@ function renderRollup(){
   var html=nav; var any=false;
   var netAll=[];
   members.forEach(function(m){
-    (state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end && t.projectId==='networking';}).forEach(function(t){ netAll.push({m:m.name,d:t.closedDate||'',note:t.doneNote||t.title,h:t.estHours}); });
+    (state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end && t.taskType==='networking';}).forEach(function(t){ netAll.push({m:m.name,d:t.closedDate||'',note:(t.netCompany?('['+t.netCompany+'] '):'')+(t.doneNote||t.title),h:t.estHours}); });
   });
   if(netAll.length){
     any=true;
@@ -4760,7 +4886,7 @@ function renderRollup(){
       +'</div>';
   }
   members.forEach(function(m){
-    var done=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end && t.projectId!=='networking';});
+    var done=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end && t.taskType!=='networking';});
     if(!done.length)return; any=true;
     var totH=done.reduce(function(s,t){return s+(parseFloat(t.estHours)||0);},0);
     var byProj={}; done.forEach(function(t){ var k=taskProjLabel(t.projectId); (byProj[k]=byProj[k]||[]).push(t); });
@@ -5807,7 +5933,8 @@ function showProjectAppToEdit(id){ closeFinanceApp(); if(typeof showProjectApp==
 
 
 function enterModule(module) {
-  if(!moduleAllowed(module)){ showToast('접근 권한이 없습니다 · No access'); if(typeof showHub==='function') showHub(); return; }
+  if(module==='admin'){ var _cu=cardCurrentUser(); if(!(sessionIsAdmin||(_cu&&_cu.isAdmin))){ showToast('관리자 전용 · Admin only'); return; } }
+  else if(!moduleAllowed(module)){ showToast('접근 권한이 없습니다 · No access'); if(typeof showHub==='function') showHub(); return; }
   var hubPage = document.getElementById('hubPage');
   if(hubPage) hubPage.style.display = 'none';
   if(module === 'approval') {
@@ -5824,6 +5951,8 @@ function enterModule(module) {
     showFinanceApp();
   } else if(module === 'report') {
     showReportApp();
+  } else if(module === 'admin') {
+    showPage('admin');
   }
 }
 
