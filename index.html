@@ -4159,19 +4159,19 @@ function renderModulePerms(){
 // PROJECT MANAGEMENT (프로젝트 관리) — 고객사 단위 파이프라인
 // ═══════════════════════════════════════════
 var PROJ_STAGES = [
-  {key:'lead',       label:'리드',     sub:'정보습득',  color:'#64748b'},
-  {key:'contact',    label:'컨택',     sub:'미팅',      color:'#0891b2'},
-  {key:'quote',      label:'견적',     sub:'견적발송',  color:'#4338ca'},
-  {key:'nego',       label:'수주협의', sub:'협상',      color:'#7c3aed'},
-  {key:'won',        label:'수주확정', sub:'계약완료',  color:'#1d4ed8'},
-  {key:'po',         label:'PO 완료',  sub:'제작·설치',  color:'#b45309'},
-  {key:'delivered',  label:'납품완료', sub:'Won',       color:'#15803d'},
-  {key:'hold',       label:'보류',     sub:'On-hold',   color:'#94a3b8'},
-  {key:'lost',       label:'드롭',     sub:'Lost',      color:'#b91c1c'}
+  {key:'lead',       label:'리드 · Lead',           sub:'정보습득',  color:'#64748b'},
+  {key:'contact',    label:'컨택 · Contact',        sub:'미팅',      color:'#0891b2'},
+  {key:'quote',      label:'견적 · Quote',          sub:'견적발송',  color:'#4338ca'},
+  {key:'nego',       label:'수주협의 · Negotiation', sub:'협상',      color:'#7c3aed'},
+  {key:'won',        label:'수주확정 · Won',         sub:'계약완료',  color:'#1d4ed8'},
+  {key:'po',         label:'PO 완료 · PO Done',      sub:'제작·설치',  color:'#b45309'},
+  {key:'delivered',  label:'납품완료 · Delivered',   sub:'완료',      color:'#15803d'},
+  {key:'hold',       label:'보류 · On-hold',         sub:'대기',      color:'#94a3b8'},
+  {key:'lost',       label:'드롭 · Lost',            sub:'실패',      color:'#b91c1c'}
 ];
-var PROJ_TYPES = ['신규 셋팅','가구 추가구매','리뉴얼','재견적','소모품','기타'];
+var PROJ_TYPES = ['신규 셋팅 · New Setup','가구 추가구매 · Add-on','리뉴얼 · Renewal','재견적 · Re-quote','소모품 · Supplies','기타 · Etc'];
 var PROJ_REGIONS = ['USA','MEXICO','VIETNAM'];
-var PROJ_LOST_REASONS = ['가격','경쟁사','예산부족','일정연기','내부취소','기타'];
+var PROJ_LOST_REASONS = ['가격 · Price','경쟁사 · Competitor','예산부족 · Budget','일정연기 · Delay','내부취소 · Cancelled','기타 · Etc'];
 var _editingProjId = null;
 var _projFormOwnerId = null;
 function projWonPlus(stage){ return ['won','po','delivered'].indexOf(stage)>=0; }
@@ -4181,8 +4181,8 @@ var projectAppOpen = false;
 function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
 function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 // ═══════════ TASK MANAGEMENT (업무 관리) ═══════════
-var TASK_TYPES=[{k:'meeting',l:'고객상담/미팅'},{k:'design',l:'도면/디자인'},{k:'quote',l:'견적/서류'},{k:'logistics',l:'발주/물류'},{k:'site',l:'현장시공/감리'},{k:'etc',l:'기타'}];
-var TASK_SIGNALS=[{k:'green',l:'정상 진행',c:'#15803d'},{k:'yellow',l:'확인 필요',c:'#b45309'},{k:'red',l:'문제 발생',c:'#b91c1c'}];
+var TASK_TYPES=[{k:'meeting',l:'고객상담/미팅 · Meeting'},{k:'design',l:'도면/디자인 · Design'},{k:'quote',l:'견적/서류 · Quote/Docs'},{k:'logistics',l:'발주/물류 · Order/Logistics'},{k:'site',l:'현장시공/감리 · Site'},{k:'etc',l:'기타 · Etc'}];
+var TASK_SIGNALS=[{k:'green',l:'정상 진행 · On track',c:'#15803d'},{k:'yellow',l:'확인 필요 · Needs check',c:'#b45309'},{k:'red',l:'문제 발생 · Issue',c:'#b91c1c'}];
 var reportAppOpen=false, _taskTab='mytasks', _reportDate='', _taskTargetUid=null, _editingTaskId=null;
 function _isoD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function taskTypeLabel(k){ for(var i=0;i<TASK_TYPES.length;i++)if(TASK_TYPES[i].k===k)return TASK_TYPES[i].l; return '기타'; }
@@ -4191,9 +4191,9 @@ function daysBetween(a,b){ if(!a||!b)return 0; var d1=new Date(a+'T00:00:00'),d2
 function taskDelay(t){ var end=t.status==='done'?t.closedDate:projTodayISO(); return Math.max(0,daysBetween(t.startDate,end)); }
 function isReportMember(uid){ var rm=state.reportMembers; if(!rm||!Object.keys(rm).length)return true; return !!rm[uid]; }
 function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
-function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
+function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
 function taskProjectOptions(sel){
-  return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타] 회의·행정</option>'
+  return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타 · Common] 회의·행정</option>'
     +(state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).map(function(p){
       return '<option value="'+p.id+'"'+(String(sel)===String(p.id)?' selected':'')+'>'+(p.client||'?')+' · '+projStage(p.stage).label+'</option>'; }).join('');
 }
