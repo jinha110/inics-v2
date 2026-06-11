@@ -5106,9 +5106,9 @@ function projCardHtml(p){
   var lost = p.stage==='lost' && p.lostReason ? '<div style="font-size:10px;color:var(--danger);margin-top:3px">사유: '+p.lostReason+'</div>' : '';
   return '<div class="proj-card" draggable="true" ondragstart="projDragStart(event,'+p.id+')" ondragend="projDragEnd(event)" '
     +'style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+s.color+';border-radius:var(--radius);padding:8px 9px;cursor:grab">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer" onclick="toggleProjDetail('+p.id+')">'
       +'<div style="font-size:12px;font-weight:700;line-height:1.2;flex:1;min-width:0">'+(p.client||'—')+(qCount?' <span style="font-size:9px;font-weight:600;color:#4338ca">·'+qCount+'견적</span>':'')+'</div>'
-      +'<button onclick="toggleProjDetail('+p.id+')" style="background:none;border:1px solid var(--border);border-radius:6px;font-size:9px;color:var(--text-3);padding:2px 6px;cursor:pointer;white-space:nowrap;font-family:var(--sans)">DETAIL <i class="ti ti-chevron-down" id="pchev-'+p.id+'" style="font-size:11px;vertical-align:-1px"></i></button>'
+      +'<button onclick="event.stopPropagation();toggleProjDetail('+p.id+')" draggable="false" style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:9px;color:var(--text-2);padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:var(--sans)">DETAIL <i class="ti ti-chevron-down" id="pchev-'+p.id+'" style="font-size:11px;vertical-align:-1px"></i></button>'
     +'</div>'
     +'<div id="pdet-'+p.id+'" style="display:none;margin-top:6px">'
       +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">'+custBadge+typeBadge+qBadge+regChip+'</div>'
@@ -5125,7 +5125,8 @@ function projCardHtml(p){
 }
 function toggleProjDetail(id){
   var d=document.getElementById('pdet-'+id); if(!d) return;
-  var open=d.style.display==='none';
+  var cs=window.getComputedStyle(d).display;
+  var open=(cs==='none');
   d.style.display=open?'block':'none';
   var ch=document.getElementById('pchev-'+id); if(ch) ch.style.transform=open?'rotate(180deg)':'';
 }
