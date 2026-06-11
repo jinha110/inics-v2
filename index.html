@@ -720,14 +720,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div id="taskFormTitle" style="font-size:15px;font-weight:700">새 업무 · New Task</div>
         <button class="btn btn-outline" onclick="closeTaskForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
       </div>
-      <div class="fg" style="margin-bottom:10px"><label>업무 내용 · Task *</label><input type="text" id="tskTitle" placeholder="예: QCELL 모션데스크 색상 사양 최종 조율" autocomplete="off"></div>
+      <div class="fg" style="margin-bottom:10px"><label>업무 내용 · Task *</label><input type="text" id="tskTitle" placeholder="예: 건설사 미팅 — 회사 소개·협업 요청" autocomplete="off"></div>
+      <div class="fgrid" style="margin-bottom:10px">
+        <div class="fg"><label>업무 유형 · Type</label><select id="tskType" onchange="updateTaskFormFields()"></select></div>
+        <div class="fg"><label>연관 프로젝트 · Project *</label><select id="tskProject" onchange="updateTaskFormFields()"></select></div>
+      </div>
       <div class="fg" style="margin-bottom:10px"><label>목적 · Purpose</label><input type="text" id="tskPurpose" placeholder="이 업무의 목적 / 기대 결과" autocomplete="off"></div>
       <div class="fgrid">
-        <div class="fg"><label>연관 프로젝트 · Project *</label><select id="tskProject"></select></div>
-        <div class="fg"><label>업무 유형 · Type</label><select id="tskType"></select></div>
         <div class="fg"><label>상태 · Signal</label><select id="tskSignal"></select></div>
         <div class="fg"><label>예상 소요(시간 h)</label><input type="text" id="tskHours" placeholder="예: 1.5" inputmode="decimal" autocomplete="off"></div>
-        <div class="fg"><label>시작일 · Start Date</label><input type="date" id="tskStart"></div>
+        <div class="fg" id="tskStartWrap"><label>시작일 · Start Date</label><input type="date" id="tskStart"></div>
       </div>
       <div class="fg" style="margin-top:10px"><label>이슈 / 지원 요청 · Issue</label><input type="text" id="tskIssue" placeholder="의사결정 필요·문제점 (선택)" autocomplete="off"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
@@ -770,6 +772,40 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<div id="contractModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:660;overflow-y:auto;padding:18px 10px">
+  <div style="max-width:960px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2">
+      <div style="font-size:15px;font-weight:700"><i class="ti ti-file-text"></i> 가구 공급 계약서 · Furniture Supply Contract</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="saveContractOpts()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 설정 저장</button>
+        <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄</button>
+        <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
+        <button class="btn btn-outline" onclick="closeContractModal()" style="font-size:11px;padding:5px 10px">닫기</button>
+      </div>
+    </div>
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px">
+        <div class="fg" style="margin:0"><label style="font-size:10px">계약번호 · No.</label><input type="text" id="ctNo" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">계약일 · Date</label><input type="date" id="ctDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">연결 견적 · Quote (품목·금액 소스)</label><select id="ctQuote" onchange="renderContractPreview()" style="font-size:12px;padding:5px 8px"></select></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">선금 % · Deposit</label><input type="text" id="ctDeposit" inputmode="decimal" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">검수일 · Inspect (days)</label><input type="text" id="ctInspect" inputmode="numeric" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">납기 · Delivery (days)</label><input type="text" id="ctDelivery" inputmode="numeric" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">보증 · Warranty (년)</label><input type="text" id="ctWarranty" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">위약 %/일 · Penalty</label><input type="text" id="ctPenalty" inputmode="decimal" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">VAT %</label><input type="text" id="ctVat" inputmode="decimal" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+        <div class="fg" style="margin:0;grid-column:span 1"><label style="font-size:10px">구매자 대표 · Buyer Rep.</label><input type="text" id="ctBuyerRep" oninput="renderContractPreview()" placeholder="Ông/Bà ..." autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">구매자 주소 · Buyer Address</label><input type="text" id="ctBuyerAddr" oninput="renderContractPreview()" placeholder="Địa chỉ" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:span 1"><label style="font-size:10px">세금코드 · Tax (MST)</label><input type="text" id="ctBuyerTax" oninput="renderContractPreview()" placeholder="0312..." autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text-3);margin-top:5px">거래처 DB에 있으면 자동 채워지고, 입력·저장하면 DB에 반영됩니다.</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:8px">납품 장소 · Delivery Place: <span id="ctDeliveryPlace"></span></div>
+    </div>
+    <div id="contractPreview" style="background:#e5e7eb;padding:16px;max-height:62vh;overflow:auto"></div>
+  </div>
+</div>
 <div id="projectApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
   <div style="max-width:1240px;margin:0 auto;padding:28px 24px 60px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
@@ -820,17 +856,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <button class="btn btn-outline" onclick="closeProjectForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
       </div>
       <div class="fgrid">
-        <div class="fg"><label>고객사 · Client <span>거래처DB 연동</span></label><input type="text" id="projClient" list="projectClients" placeholder="고객사 검색 또는 신규 입력" autocomplete="off"></div>
-        <div class="fg"><label>담당자 · Owner <span>로그인 사용자</span></label><input type="text" id="projOwnerName" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg"><label>고객사 닉네임 · Client (약칭) <span>거래처DB 연동</span></label><input type="text" id="projClient" list="projectClients" placeholder="약칭/검색 또는 신규" autocomplete="off"></div>
+        <div class="fg"><label>고객사 정식명칭 · Official Name</label><input type="text" id="projClientFull" placeholder="계약서용 정식 회사명 (CÔNG TY ...)" autocomplete="off"></div>
+        <div class="fg"><label>담당자 · Owner</label><input type="text" id="projOwnerName" readonly style="background:var(--surface-2);color:var(--text-2)"><select id="projOwnerSelect" onchange="setProjOwner(this.value)" style="display:none"></select></div>
         <div class="fg"><label>지역 · Region</label><select id="projRegion"></select></div>
         <div class="fg"><label>위치 · Location</label><input type="text" id="projLocation" placeholder="도시 / 주"></div>
         <div class="fg"><label>유형 · Type</label><select id="projType"></select></div>
-        <div class="fg"><label>고객 타입 · Cust. Type</label><select id="projCustType"><option>B2B</option><option>B2C</option><option>END USER</option></select></div>
+        <div class="fg"><label>고객 타입 · Cust. Type</label><select id="projCustType" onchange="toggleEndCust()"><option>B2B</option><option>B2C</option><option>END USER</option></select></div>
+        <div class="fg" id="projEndCustWrap" style="grid-column:1/-1;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px"><label style="color:#b45309"><i class="ti ti-users"></i> 최종 고객 정보 · End Customer (B2B)</label><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px"><input type="text" id="projEndName" placeholder="최종 고객사명 · Name" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndRep" placeholder="담당/대표 · Rep." autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndAddr" placeholder="주소 · Address" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndContact" placeholder="연락처 · Contact" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"></div></div>
         <div class="fg"><label>단계 · Stage</label><select id="projStage" onchange="onProjStageChange()"></select></div>
         <div class="fg"><label>예상금액 · Amount</label><input type="text" id="projAmount" placeholder="0" inputmode="decimal" autocomplete="off"></div>
         <div class="fg"><label>통화 · Currency</label><select id="projCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
         <div class="fg"><label>등록일 · Reg. Date</label><input type="date" id="projRegDate"></div>
         <div class="fg"><label>목표 프로젝트 완료일 · Target</label><input type="date" id="projTargetDate"></div>
+        <div class="fg"><label>납품 장소 · Delivery Place <span style="color:#b45309;font-size:9px">(PO단계 입력)</span></label><input type="text" id="projDeliveryPlace" placeholder="배송·설치 주소 / Địa điểm giao hàng" autocomplete="off"></div>
       </div>
       <datalist id="projectClients"></datalist>
       <div class="fg" id="projLostWrap" style="display:none;margin-top:11px"><label style="color:var(--danger)">드롭 사유 · Lost Reason</label><select id="projLostReason"></select></div>
@@ -869,6 +908,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button class="btn btn-danger" id="projDeleteBtn" onclick="deleteProject(_editingProjId)" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
+        <button class="btn btn-outline" id="projContractBtn" onclick="openContractModal(_editingProjId)" style="display:none"><i class="ti ti-file-text"></i> 계약서 · Contract</button>
         <button class="btn btn-dark" onclick="saveProject()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
       </div>
       </div>
@@ -4193,6 +4233,244 @@ function projWonPlus(stage){ return ['won','po','delivered'].indexOf(stage)>=0; 
 var _projDragId = null;
 var projectAppOpen = false;
 
+// ═══════════ 계약서 · CONTRACT (가구 공급 / Furniture Supply) ═══════════
+var INICS_INFO = {
+  nameVi:'CÔNG TY TNHH INICS VINA', nameEn:'INICS VINA CO., LTD.',
+  rep:'LEE JINHA', repTitleVi:'Giám đốc', repTitleEn:'Director',
+  addr:'Tầng 3, tòa nhà QA4 Building, số 28 Đường Đặng Hữu Phổ, Phường An Khánh, TP. Hồ Chí Minh',
+  tel:'0347973470', mst:'0319562684'
+};
+var _contractProjId=null;
+function _projQuotesC(p){ return (state.quotes||[]).filter(function(q){return (q.client||'').toLowerCase()===((p&&p.client)||'').toLowerCase();}).sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');}); }
+function _ctDefaults(p){ var qs=_projQuotesC(p); return { contractNo:'HD-'+(p.id||'')+'-'+(new Date().getFullYear()), date:projTodayISO(), depositPct:100, inspectDays:7, deliveryDays:30, warrantyYears:1, penaltyDaily:0.1, penaltyCap:8, vatRate:8, quoteId:(qs[0]?qs[0].id:null) }; }
+function _vnd(n){ return fmtN(Math.round(n||0))+' VNĐ'; }
+function _money(n,cur){ cur=cur||'VND'; return fmtN(Math.round(n||0))+' '+(cur==='VND'?'VNĐ':cur); }
+function getBuyerFromDB(client){ var key=(client||'').trim().toLowerCase(); var rec=(state.vendors||[]).find(function(v){return v&&v.name&&v.name.trim().toLowerCase()===key;}); return rec?{rep:rec.buyerRep||'',addr:rec.buyerAddr||'',tax:rec.buyerTax||''}:{rep:'',addr:'',tax:''}; }
+function saveBuyerToDB(client,rep,addr,tax){ if(!client)return; if(!state.vendors)state.vendors=[]; var key=client.trim().toLowerCase(); var rec=state.vendors.find(function(v){return v&&v.name&&v.name.trim().toLowerCase()===key;}); if(!rec){ rec={name:client}; state.vendors.push(rec); } if(rep!=null&&rep!=='')rec.buyerRep=rep; if(addr!=null&&addr!=='')rec.buyerAddr=addr; if(tax!=null&&tax!=='')rec.buyerTax=tax; rec.updatedAt=nowStr(); }
+
+function setProjOwner(uid){ _projFormOwnerId=uid; var m=gm(uid); var inp=document.getElementById("projOwnerName"); if(inp)inp.value=m?m.name:""; }
+function toggleEndCust(){ var b=(document.getElementById("projCustType").value==="B2B"); var w=document.getElementById("projEndCustWrap"); if(w)w.style.display=b?"block":"none"; }
+function openContractModal(projId){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);});
+  if(!p){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요'); return; }
+  _contractProjId=projId;
+  var o=p.contractOpts||_ctDefaults(p);
+  document.getElementById('ctNo').value=o.contractNo||'';
+  document.getElementById('ctDate').value=o.date||projTodayISO();
+  document.getElementById('ctDeposit').value=(o.depositPct==null?100:o.depositPct);
+  document.getElementById('ctInspect').value=o.inspectDays||7;
+  document.getElementById('ctDelivery').value=o.deliveryDays||30;
+  document.getElementById('ctWarranty').value=o.warrantyYears||1;
+  document.getElementById('ctPenalty').value=o.penaltyDaily||0.1;
+  document.getElementById('ctVat').value=(o.vatRate==null?8:o.vatRate);
+  var qs=_projQuotesC(p);
+  document.getElementById('ctQuote').innerHTML = qs.length
+    ? qs.map(function(q){ var tot=(q.lines||[]).reduce(function(s,l){return s+qNum(l.amount);},0); return '<option value="'+q.id+'"'+(String(o.quoteId)===String(q.id)?' selected':'')+'>'+(q.quoteNo||'견적')+' · '+fmtN(tot)+' · '+(q.lines||[]).length+'품목</option>'; }).join('')
+    : '<option value="">연결된 견적 없음 — 견적서에서 먼저 작성하세요</option>';
+  var _b=getBuyerFromDB(p.client);
+  document.getElementById('ctBuyerRep').value=o.buyerRep||_b.rep||'';
+  document.getElementById('ctBuyerAddr').value=o.buyerAddr||_b.addr||p.location||'';
+  document.getElementById('ctBuyerTax').value=o.buyerTax||_b.tax||'';
+  document.getElementById('ctDeliveryPlace').innerHTML = p.deliveryPlace
+    ? '<b>'+p.deliveryPlace+'</b>'
+    : '<span style="color:#b91c1c">미입력 — 프로젝트 PO 단계의 "납품 장소"에 입력하세요</span>';
+  document.getElementById('contractModal').style.display='block';
+  renderContractPreview();
+}
+function closeContractModal(){ document.getElementById('contractModal').style.display='none'; }
+function _readContractOpts(){
+  return {
+    contractNo:(document.getElementById('ctNo').value||'').trim(),
+    date:document.getElementById('ctDate').value||projTodayISO(),
+    depositPct:qNum(document.getElementById('ctDeposit').value)||0,
+    inspectDays:qNum(document.getElementById('ctInspect').value)||0,
+    deliveryDays:qNum(document.getElementById('ctDelivery').value)||0,
+    warrantyYears:(document.getElementById('ctWarranty').value||'').trim(),
+    penaltyDaily:(document.getElementById('ctPenalty').value||'').trim(),
+    penaltyCap:8,
+    vatRate:qNum(document.getElementById('ctVat').value)||0,
+    quoteId:qNum(document.getElementById('ctQuote').value)||null,
+    buyerRep:(document.getElementById('ctBuyerRep').value||'').trim(),
+    buyerAddr:(document.getElementById('ctBuyerAddr').value||'').trim(),
+    buyerTax:(document.getElementById('ctBuyerTax').value||'').trim()
+  };
+}
+function renderContractPreview(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
+  document.getElementById('contractPreview').innerHTML=buildContractHtml(p,_readContractOpts(),true);
+}
+function saveContractOpts(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
+  var _o=_readContractOpts(); p.contractOpts=_o; saveBuyerToDB(p.client,_o.buyerRep,_o.buyerAddr,_o.buyerTax); saveState(); showToast('계약 설정 저장 · 구매자 정보 거래처 DB 반영');
+}
+function downloadContractPDF(){
+  if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
+  var o=_readContractOpts();
+  saveBuyerToDB(p.client,o.buyerRep,o.buyerAddr,o.buyerTax); saveState();
+  var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:0';
+  wrap.innerHTML=buildContractHtml(p,o,false);
+  document.body.appendChild(wrap);
+  showToast('PDF 생성 중...');
+  html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
+    var pdf=new window.jspdf.jsPDF('p','mm','a4');
+    var iw=210, ih=canvas.height*iw/canvas.width, ph=297, pos=0, left=ih;
+    var img=canvas.toDataURL('image/jpeg',0.92);
+    if(ih<=ph){ pdf.addImage(img,'JPEG',0,0,iw,ih); }
+    else { while(left>0){ pdf.addImage(img,'JPEG',0,pos,iw,ih); left-=ph; if(left>0){ pdf.addPage(); pos-=ph; } } }
+    pdf.save('Contract_'+((o.contractNo||p.client||'contract').replace(/[^a-zA-Z0-9_-]/g,'_'))+'.pdf');
+    document.body.removeChild(wrap);
+  }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
+}
+function printContract(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
+  var _o=_readContractOpts(); saveBuyerToDB(p.client,_o.buyerRep,_o.buyerAddr,_o.buyerTax); saveState();
+  var w=window.open('','_blank');
+  w.document.write('<html><head><meta charset="utf-8"><title>Contract</title></head><body style="margin:0">'+buildContractHtml(p,_readContractOpts(),false)+'</body></html>');
+  w.document.close(); setTimeout(function(){ w.print(); }, 400);
+}
+
+function buildContractHtml(p,o,review){
+  var qs=_projQuotesC(p);
+  var q = o.quoteId ? qs.find(function(x){return x.id===o.quoteId;}) : qs[0];
+  var lines = q ? (q.lines||[]) : [];
+  var sub = lines.reduce(function(s,l){return s+qNum(l.amount);},0);
+  var vatAmt = sub*o.vatRate/100, total = sub+vatAmt;
+  var dep = total*o.depositPct/100, bal = total-dep;
+  var cur = q ? (q.currency||'VND') : 'VND';
+  var M = function(n){ return _money(n,cur); };
+  var H = review ? function(v){ return '<mark style="background:#fff59d;padding:0 2px;border-radius:1px">'+v+'</mark>'; } : function(v){ return v; };
+  var KO = review ? function(t){ return '<div style="font-size:9.5px;color:#1d4ed8;margin-top:2px">🇰🇷 '+t+'</div>'; } : function(){ return ''; };
+  var deliveryPlace = p.deliveryPlace || (review?'(납품장소 미입력)':'………………');
+
+  var rows = lines.length ? lines.map(function(l,i){
+    return '<tr>'
+      +'<td style="border:1px solid #888;padding:4px 5px;text-align:center">'+(i+1)+'</td>'
+      +'<td style="border:1px solid #888;padding:4px 5px">'+H(l.name||l.code||'')+(l.code&&l.name?'<br><span style="font-size:8px;color:#666">'+l.code+'</span>':'')+'</td>'
+      +'<td style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8px">'+(l.size||'')+'</td>'
+      +'<td style="border:1px solid #888;padding:4px 5px;text-align:center">Cái</td>'
+      +'<td style="border:1px solid #888;padding:4px 5px;text-align:right">'+fmtN(l.unitPrice)+'</td>'
+      +'<td style="border:1px solid #888;padding:4px 5px;text-align:center">'+fmtN(l.qty)+'</td>'
+      +'<td style="border:1px solid #888;padding:4px 5px;text-align:right">'+fmtN(l.amount)+'</td>'
+      +'</tr>';
+  }).join('') : '<tr><td colspan="7" style="border:1px solid #888;padding:10px;text-align:center;color:#b91c1c">'+(review?'연결된 견적이 없습니다 — 견적서를 먼저 작성/연결하세요':'')+'</td></tr>';
+
+  var pay;
+  if(o.depositPct>=100){
+    pay = '🇻🇳 Bên A thanh toán 100% giá trị hợp đồng ('+H(M(total))+') bằng chuyển khoản trong vòng '+H(o.inspectDays+'')+' ngày làm việc kể từ ngày ký Hợp đồng và nhận được đề nghị thanh toán hợp lệ từ Bên B.'
+      +'<br>🇬🇧 Party A pays 100% of the contract value ('+H(M(total))+') by bank transfer within '+H(o.inspectDays+'')+' working days from signing and receipt of a valid payment request from Party B.'
+      +KO('계약 체결 후 '+o.inspectDays+'일 이내 계약금액 100% 전액 지급 (선금 100%, 계좌이체).');
+  } else {
+    pay = '🇻🇳 Đợt 1 – Tạm ứng '+H(o.depositPct+'%')+': '+H(M(dep))+', trong vòng 07 ngày làm việc kể từ ngày ký Hợp đồng.<br>Đợt 2 – '+H((100-o.depositPct)+'%')+': '+H(M(bal))+', trong vòng 25 ngày làm việc sau khi nghiệm thu và nhận đủ bộ chứng từ thanh toán.'
+      +'<br>🇬🇧 Phase 1 – Advance '+H(o.depositPct+'%')+': '+H(M(dep))+' within 07 working days of signing. Phase 2 – '+H((100-o.depositPct)+'%')+': '+H(M(bal))+' within 25 working days after acceptance and full payment documents.'
+      +KO('선금 '+o.depositPct+'% ('+M(dep)+') 계약 후 7일 이내, 잔금 '+(100-o.depositPct)+'% ('+M(bal)+') 검수 후 25일 이내.');
+  }
+
+  function art(no, vi, en, ko){
+    return '<div style="margin-top:11px"><div style="font-weight:700;font-size:11px;margin-bottom:3px">'+no+'</div>'
+      +'<div style="font-size:10px;line-height:1.55">🇻🇳 '+vi+'<br>🇬🇧 '+en+(ko?KO(ko):'')+'</div></div>';
+  }
+
+  return ''
+  +'<div style="width:754px;margin:0 auto;padding:22px 20px 30px;background:#fff;color:#111;font-family:Arial,sans-serif;box-sizing:border-box">'
+  +'<div style="text-align:center;font-size:10px;font-weight:700;line-height:1.4">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br><span style="font-weight:400">Độc lập - Tự do - Hạnh phúc</span><div style="margin:2px auto 0;width:120px;border-bottom:1px solid #111"></div></div>'
+  +'<div style="text-align:center;margin-top:14px"><div style="font-size:17px;font-weight:800">HỢP ĐỒNG MUA BÁN</div><div style="font-size:12px;font-weight:700;color:#333">FURNITURE SUPPLY CONTRACT</div>'+(review?'<div style="font-size:10px;color:#1d4ed8">가구 공급 계약서</div>':'')+'<div style="font-size:10px;margin-top:3px">Số / No.: '+H(o.contractNo||'')+'</div></div>'
+  +'<div style="font-size:9.5px;color:#333;margin-top:10px;line-height:1.5">- Căn cứ Bộ luật Dân sự số 91/2015/QH13; Luật Thương mại số 36/2005/QH11;<br>- Căn cứ nhu cầu và khả năng của hai bên. / Pursuant to the Civil Code 91/2015/QH13, the Commercial Law 36/2005/QH11, and the needs and capacity of both parties.</div>'
+  +'<div style="font-size:10px;margin-top:6px">Hôm nay, ngày '+H(o.date||'')+', chúng tôi gồm: / Today, '+H(o.date||'')+', we are:</div>'
+
+  // 당사자
+  +'<div style="display:flex;gap:14px;margin-top:10px;font-size:9.5px;line-height:1.55">'
+    +'<div style="flex:1;border:1px solid #888;padding:8px 10px">'
+      +'<div style="font-weight:700;margin-bottom:3px">BÊN MUA (Bên A) · BUYER (Party A)'+(review?'<span style="color:#1d4ed8"> · 구매자</span>':'')+'</div>'
+      +'<div><b>'+H(p.clientFull||p.client||'')+'</b>'+((p.clientFull&&p.client&&p.clientFull!==p.client)?' <span style="font-size:8px;color:#888">('+p.client+')</span>':'')+'</div>'
+      +'<div>Đại diện / Rep.: '+H(o.buyerRep||(review?'(미입력)':'………'))+'</div>'
+      +'<div>Địa chỉ / Address: '+H(o.buyerAddr||p.location||(review?'(미입력)':'………'))+'</div>'
+      +'<div>MST / Tax code: '+H(o.buyerTax||(review?'(미입력)':'………'))+'</div>'
+      +(review&&!(o.buyerRep&&o.buyerTax)?KO('구매자 정보가 없으면 위 옵션에 입력 → 저장 시 거래처 DB에 자동 반영'):'')
+    +'</div>'
+    +'<div style="flex:1;border:1px solid #888;padding:8px 10px">'
+      +'<div style="font-weight:700;margin-bottom:3px">BÊN BÁN (Bên B) · SELLER (Party B)'+(review?'<span style="color:#1d4ed8"> · 판매자</span>':'')+'</div>'
+      +'<div><b>'+INICS_INFO.nameVi+'</b> ('+INICS_INFO.nameEn+')</div>'
+      +'<div>Đại diện / Rep.: Bà '+INICS_INFO.rep+' – '+INICS_INFO.repTitleVi+' / '+INICS_INFO.repTitleEn+'</div>'
+      +'<div>Địa chỉ / Address: '+INICS_INFO.addr+'</div>'
+      +'<div>Điện thoại / Tel: '+INICS_INFO.tel+' · MST / Tax: '+INICS_INFO.mst+'</div>'
+    +'</div>'
+  +'</div>'
+
+  // 제1조 대상 + 품목표
+  +'<div style="margin-top:13px"><div style="font-weight:700;font-size:11px">Điều 1. Đối tượng Hợp đồng · Article 1. Subject'+(review?' · 제1조 계약 대상':'')+'</div>'
+    +'<div style="font-size:10px;line-height:1.5;margin:3px 0">🇻🇳 Bên B cung cấp cho Bên A các hàng hóa nội thất theo bảng dưới đây. 🇬🇧 Party B supplies Party A with the furniture below.'+KO('판매자(INICS VINA)는 아래 품목표의 가구를 구매자에게 공급한다. (견적서 연동)')+'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:9px;margin-top:4px">'
+      +'<thead><tr style="background:#f1f5f9">'
+        +'<th style="border:1px solid #888;padding:4px">TT</th><th style="border:1px solid #888;padding:4px">Tên hàng / Item</th><th style="border:1px solid #888;padding:4px">Kích thước / Size</th><th style="border:1px solid #888;padding:4px">ĐVT</th><th style="border:1px solid #888;padding:4px">Đơn giá / Unit</th><th style="border:1px solid #888;padding:4px">SL / Qty</th><th style="border:1px solid #888;padding:4px">Thành tiền / Amount</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody>'
+      +'<tfoot>'
+        +'<tr><td colspan="6" style="border:1px solid #888;padding:5px;text-align:right;font-weight:700">TỔNG CỘNG / Subtotal</td><td style="border:1px solid #888;padding:5px;text-align:right;font-weight:700">'+H(fmtN(sub))+'</td></tr>'
+        +'<tr><td colspan="6" style="border:1px solid #888;padding:5px;text-align:right">VAT '+H(o.vatRate+'%')+'</td><td style="border:1px solid #888;padding:5px;text-align:right">'+H(fmtN(vatAmt))+'</td></tr>'
+        +'<tr style="background:#eef2ff"><td colspan="6" style="border:1px solid #888;padding:5px;text-align:right;font-weight:800">THÀNH TIỀN / TOTAL</td><td style="border:1px solid #888;padding:5px;text-align:right;font-weight:800">'+H(fmtN(total))+'</td></tr>'
+      +'</tfoot></table></div>'
+
+  // 제2조 금액
+  +art('Điều 2. Giá trị Hợp đồng · Article 2. Contract Value'+(review?' · 제2조 계약금액':''),
+      'Tổng giá trị Hợp đồng: '+H(M(total))+' (đã bao gồm VAT '+H(o.vatRate+'%')+', chi phí vận chuyển, bốc xếp, lắp đặt và bảo hành).',
+      'Total contract value: '+H(M(total))+' (incl. VAT '+H(o.vatRate+'%')+', delivery, handling, installation and warranty).',
+      '총 계약금액 '+M(total)+' (VAT '+o.vatRate+'%·운송·하역·설치·보증 포함).')
+
+  // 제3조 결제
+  +'<div style="margin-top:11px"><div style="font-weight:700;font-size:11px">Điều 3. Phương thức thanh toán · Article 3. Payment'+(review?' · 제3조 결제':'')+'</div><div style="font-size:10px;line-height:1.55;margin-top:3px">'+pay+'</div>'
+    +'<div style="font-size:9px;color:#444;margin-top:4px">🇻🇳 Chứng từ thanh toán: hóa đơn GTGT bản gốc, biên bản nghiệm thu, phiếu bảo hành. 🇬🇧 Payment documents: original VAT invoice, acceptance minutes, warranty card.</div></div>'
+
+  // 제4조 납품·검수
+  +art('Điều 4. Giao hàng & Nghiệm thu · Article 4. Delivery & Acceptance'+(review?' · 제4조 납품·검수':''),
+      'Thời gian giao hàng: trong vòng '+H(o.deliveryDays+'')+' ngày làm việc sau khi nhận thanh toán đợt 1. Địa điểm giao hàng: '+H(deliveryPlace)+'. Mọi chi phí vận chuyển, bốc xếp do Bên B chịu. Bên A nghiệm thu trong vòng '+H(o.inspectDays+'')+' ngày kể từ ngày nhận hàng.',
+      'Delivery within '+H(o.deliveryDays+'')+' working days after the 1st payment. Place: '+H(deliveryPlace)+'. All transport/handling costs borne by Party B. Party A inspects within '+H(o.inspectDays+'')+' days of receipt.',
+      '1차 결제 후 '+o.deliveryDays+'일 이내 납품, 장소: '+deliveryPlace+'. 운송·하역비 판매자 부담. 구매자는 수령 후 '+o.inspectDays+'일 이내 검수.')
+
+  // 제5조 책임
+  +art('Điều 5. Trách nhiệm các bên · Article 5. Responsibilities'+(review?' · 제5조 책임':''),
+      'Bên B giao đúng số lượng, chủng loại, chất lượng (mới 100%), đúng thời hạn, cung cấp hóa đơn GTGT hợp lệ và chịu trách nhiệm về nguồn gốc, xuất xứ hàng hóa. Bên A cung cấp thông tin, tạo điều kiện giao nhận và thanh toán đúng hạn.',
+      'Party B delivers the correct quantity, type and quality (100% new) on time, issues a valid VAT invoice and guarantees the goods\u2019 origin. Party A provides information, facilitates delivery and pays on time.',
+      '판매자: 수량·종류·품질(신품 100%)·납기 준수, 정식 VAT 인보이스 발행, 원산지 책임. 구매자: 정보 제공·인수 협조·기한 내 지급.')
+
+  // 제6조 보증
+  +art('Điều 6. Đổi trả & Bảo hành · Article 6. Replacement & Warranty'+(review?' · 제6조 교환·보증':''),
+      'Bên B đổi mới 100% đối với hàng lỗi kỹ thuật, sai mẫu, sai quy cách hoặc hư hỏng do vận chuyển. Thời gian bảo hành: '+H(o.warrantyYears+'')+' năm kể từ ngày nghiệm thu; phản hồi trong 24 giờ và khắc phục trong 03 ngày làm việc.',
+      'Party B replaces 100% any defective, wrong-model, wrong-spec or transport-damaged goods. Warranty: '+H(o.warrantyYears+'')+' year(s) from acceptance; response within 24 hours and remedy within 03 working days.',
+      '기술불량·오모델·규격오류·운송파손은 100% 신품 교환. 보증 '+o.warrantyYears+'년(검수일 기준), 24시간 내 응답·3영업일 내 조치.')
+
+  // 제7조 위약
+  +art('Điều 7. Phạt vi phạm · Article 7. Penalty'+(review?' · 제7조 위약·배상':''),
+      'Bên vi phạm thời hạn giao hàng hoặc thanh toán (không do bất khả kháng) chịu phạt '+H(o.penaltyDaily+'%')+'/ngày trên tổng giá trị Hợp đồng, tối đa không quá '+H(o.penaltyCap+'%')+' tổng giá trị Hợp đồng.',
+      'A party breaching the delivery or payment deadline (not by force majeure) pays a penalty of '+H(o.penaltyDaily+'%')+'/day on the total value, capped at '+H(o.penaltyCap+'%')+' of the total contract value.',
+      '납품·지급 지연(불가항력 제외) 시 일 '+o.penaltyDaily+'%, 계약총액의 최대 '+o.penaltyCap+'% 한도 위약금.')
+
+  // 제8조 해지
+  +art('Điều 8. Chấm dứt Hợp đồng · Article 8. Termination'+(review?' · 제8조 해지':''),
+      'Hai bên không tự ý đơn phương chấm dứt. Bên A được đơn phương chấm dứt mà không bồi thường nếu Bên B chậm giao quá 15 ngày, giao hàng không đạt quá 02 lần, cung cấp hàng giả/không rõ nguồn gốc, vi phạm bảo hành hoặc vi phạm đạo đức kinh doanh.',
+      'Neither party may terminate unilaterally at will. Party A may terminate without compensation if Party B delays over 15 days, fails acceptance more than twice, supplies counterfeit/untraceable goods, breaches warranty or business ethics.',
+      '임의 일방해지 불가. 판매자가 15일 초과 지연·2회 초과 불합격·위조/무출처 공급·보증위반·윤리위반 시 구매자는 무배상 해지 가능.')
+
+  // 제9조 불가항력
+  +art('Điều 9. Bất khả kháng · Article 9. Force Majeure'+(review?' · 제9조 불가항력':''),
+      'Các sự kiện khách quan không lường trước, không khắc phục được (chiến tranh, thiên tai, dịch bệnh, thay đổi chính sách\u2026) được coi là bất khả kháng. Bên gặp phải phải thông báo trong 03 ngày. Nếu kéo dài quá 30 ngày, hai bên có quyền chấm dứt Hợp đồng.',
+      'Unforeseeable, unavoidable objective events (war, disaster, epidemic, policy change\u2026) are force majeure. The affected party must notify within 03 days. If it lasts over 30 days, either party may terminate.',
+      '전쟁·재해·전염병·정책변경 등은 불가항력. 발생 3일 내 통지, 30일 초과 시 양 당사자 해지 가능.')
+
+  // 제10조 일반
+  +art('Điều 10. Điều khoản chung · Article 10. General'+(review?' · 제10조 일반조항':''),
+      'Hợp đồng có hiệu lực từ ngày ký. Mọi sửa đổi phải bằng văn bản. Bên B cam kết không hối lộ nhân viên Bên A. Tranh chấp giải quyết bằng thương lượng; nếu không thành, đưa ra Tòa án có thẩm quyền tại TP. Hồ Chí Minh theo pháp luật Việt Nam. Hợp đồng lập thành 04 bản có giá trị như nhau.',
+      'Effective from signing. Amendments must be in writing. Party B commits to no bribery of Party A\u2019s staff. Disputes settled by negotiation; otherwise by the competent Court in Ho Chi Minh City under Vietnamese law. Made in 04 copies of equal validity.',
+      '서명일부터 효력. 수정은 서면. 반부패 서약. 분쟁은 협의, 불성립 시 호치민 관할 법원(베트남법). 4부 작성.')
+
+  // 서명란
+  +'<div style="display:flex;gap:14px;margin-top:20px;font-size:10px;text-align:center">'
+    +'<div style="flex:1;border-top:1px solid #111;padding-top:6px">ĐẠI DIỆN BÊN A / Party A<br><span style="font-size:8.5px;color:#555">(Ký, ghi rõ họ tên, đóng dấu / Sign, name, seal)</span><div style="height:54px"></div></div>'
+    +'<div style="flex:1;border-top:1px solid #111;padding-top:6px">ĐẠI DIỆN BÊN B / Party B<br><span style="font-size:8.5px;color:#555">'+INICS_INFO.nameEn+'</span><div style="height:54px"></div></div>'
+  +'</div>'
+  +(review?'<div style="margin-top:14px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;font-size:9px;color:#92400e;line-height:1.5">🟡 노란색 표시는 <b>프로젝트·견적에서 자동으로 채워진 값</b>입니다. 출력(PDF/인쇄)에는 형광펜과 한국어 설명이 빠지고 베트남어·영문만 인쇄됩니다. 실제 사용 전 현지 법무 검토를 권장합니다.</div>':'')
+  +'</div>';
+}
+
 function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
 function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 // ═══════════ TASK MANAGEMENT (업무 관리) ═══════════
@@ -4206,9 +4484,9 @@ function daysBetween(a,b){ if(!a||!b)return 0; var d1=new Date(a+'T00:00:00'),d2
 function taskDelay(t){ var end=t.status==='done'?t.closedDate:projTodayISO(); return Math.max(0,daysBetween(t.startDate,end)); }
 function isReportMember(uid){ var rm=state.reportMembers; if(!rm||!Object.keys(rm).length)return true; return !!rm[uid]; }
 function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
-function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
+function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; if(pid==='networking')return '네트워킹 · Networking'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
 function taskProjectOptions(sel){
-  return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타 · Common] 회의·행정</option>'
+  return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타 · Common] 회의·행정</option>'+'<option value="networking"'+(sel==='networking'?' selected':'')+'>[네트워킹 · Networking] 소개·영업개발 (프로젝트 무관)</option>'
     +(state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).map(function(p){
       return '<option value="'+p.id+'"'+(String(sel)===String(p.id)?' selected':'')+'>'+(p.client||'?')+' · '+projStage(p.stage).label+'</option>'; }).join('');
 }
@@ -4240,7 +4518,9 @@ function openTaskForm(id){
   document.getElementById('tskIssue').value=t?(t.issue||''):'';
   document.getElementById('tskDeleteBtn').style.display=id?'inline-flex':'none';
   document.getElementById('taskFormModal').style.display='block';
+  updateTaskFormFields();
 }
+function updateTaskFormFields(){ var type=document.getElementById("tskType").value; var proj=document.getElementById("tskProject").value; var hide=(type==="meeting"||proj==="networking"); var w=document.getElementById("tskStartWrap"); if(w)w.style.display=hide?"none":""; }
 function closeTaskForm(){ document.getElementById('taskFormModal').style.display='none'; _editingTaskId=null; }
 function saveTask(){
   var title=(document.getElementById('tskTitle').value||'').trim();
@@ -4253,7 +4533,7 @@ function saveTask(){
     taskType:document.getElementById('tskType').value||'etc',
     signal:document.getElementById('tskSignal').value||'green',
     estHours:(document.getElementById('tskHours').value||'').replace(/[^0-9.]/g,''),
-    startDate:document.getElementById('tskStart').value||projTodayISO(),
+    startDate:(document.getElementById('tskType').value==='meeting'||document.getElementById('tskProject').value==='networking')?'':(document.getElementById('tskStart').value||projTodayISO()),
     issue:(document.getElementById('tskIssue').value||'').trim()
   };
   if(!state.tasks)state.tasks=[];
@@ -4397,8 +4677,20 @@ function renderRollup(){
   var nav=dateNavBar('<span style="font-size:14px;font-weight:700">'+label+'</span>');
   var members=MEMBERS.filter(function(m){return isReportMember(m.id);});
   var html=nav; var any=false;
+  var netAll=[];
   members.forEach(function(m){
-    var done=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end;});
+    (state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end && t.projectId==='networking';}).forEach(function(t){ netAll.push({m:m.name,d:t.closedDate||'',note:t.doneNote||t.title,h:t.estHours}); });
+  });
+  if(netAll.length){
+    any=true;
+    var netH=netAll.reduce(function(s,t){return s+(parseFloat(t.h)||0);},0);
+    html+='<div style="background:#7c3aed0d;border:1px solid #7c3aed33;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #7c3aed33;padding-bottom:8px;margin-bottom:10px"><span style="font-size:13px;font-weight:700;color:#7c3aed"><i class="ti ti-users"></i> 네트워킹 · 영업개발 · Networking</span><span style="font-size:11px;color:var(--text-3)">'+netAll.length+'건'+(netH?' · '+netH+'h':'')+'</span></div>'
+      +netAll.sort(function(a,b){return (a.d||'').localeCompare(b.d||'');}).map(function(t){return '<div style="font-size:12px;padding:3px 0;display:flex;gap:8px"><span style="font-size:10px;color:var(--text-3);flex-shrink:0;width:96px">'+(t.d||'').slice(5)+' · '+t.m+'</span><span style="flex:1;white-space:pre-wrap">'+t.note+'</span></div>';}).join('')
+      +'</div>';
+  }
+  members.forEach(function(m){
+    var done=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end && t.projectId!=='networking';});
     if(!done.length)return; any=true;
     var totH=done.reduce(function(s,t){return s+(parseFloat(t.estHours)||0);},0);
     var byProj={}; done.forEach(function(t){ var k=taskProjLabel(t.projectId); (byProj[k]=byProj[k]||[]).push(t); });
@@ -4414,6 +4706,7 @@ function renderRollup(){
   if(!any) html+='<div style="font-size:12px;color:var(--text-3);padding:8px 0">이 기간 완료 업무 없음</div>';
   return html;
 }
+function _normTxt(t){ return String(t||'').replace(/\s+/g,' ').trim().toLowerCase(); }
 function _matchProjByName(name){ var lo=(name||'').toLowerCase().trim(); if(!lo)return null; var f=(state.projects||[]).find(function(p){ var c=(p.client||'').toLowerCase(); return c && (c===lo || lo.indexOf(c)>=0 || c.indexOf(lo)>=0); }); return f?f.id:null; }
 function _matchProjByText(text){ var lo=(text||'').toLowerCase(); var f=(state.projects||[]).find(function(p){ var c=(p.client||'').toLowerCase(); return c && lo.indexOf(c)>=0; }); return f?f.id:'common'; }
 var _taskView='card', _taskSel={};
@@ -4496,16 +4789,21 @@ async function doSlackImport(){
     var items=(d.items&&d.items.length)?d.items:(d.messages||[]).map(function(m){return {text:m.text, project:'', date:m.date||''};});
     if(!items.length){ showToast('해당 기간 메시지 없음'); return; }
     if(!state.tasks)state.tasks=[];
-    var added=0;
+    var existing={};
+    (state.tasks||[]).forEach(function(x){ existing[x.userId+'|'+(x.startDate||'')+'|'+_normTxt(x.title)]=true; });
+    var added=0, skipped=0;
     items.forEach(function(it){
       var t=(it.text||'').trim(); if(!t)return;
       var pid=(it.project?_matchProjByName(it.project):null)||_matchProjByText(t);
       var sd=(it.date&&/^\d{4}-\d{2}-\d{2}$/.test(it.date))?it.date:from;
+      var key=uid+'|'+sd+'|'+_normTxt(t);
+      if(existing[key]){ skipped++; return; }
+      existing[key]=true;
       state.tasks.push({ id:(state.taskSeq=(state.taskSeq||0)+1), userId:uid, userName:uname, title:t, purpose:'', projectId:pid, taskType:'etc', signal:'green', estHours:'', startDate:sd, issue:'', status:'open', closedDate:'', doneNote:'', createdAt:nowStr(), updatedAt:nowStr(), fromSlack:true });
       added++;
     });
     saveState(); renderTaskApp();
-    showToast(added+'건 정리되어 추가됨 ('+from+(from!==to?' ~ '+to:'')+') — 프로젝트 확인/수정하세요');
+    showToast(added+'건 추가됨'+(skipped?' · 중복 '+skipped+'건 제외':'')+' ('+from+(from!==to?' ~ '+to:'')+')');
   }catch(e){ showToast('연결 실패 — Worker URL/배포 확인'); }
 }
 function openSlackConfig(){
@@ -4721,6 +5019,7 @@ function _openProjectForm(id){
   document.getElementById('projType').innerHTML=PROJ_TYPES.map(function(t){ return '<option>'+t+'</option>'; }).join('');
   document.getElementById('projStage').innerHTML=PROJ_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+' · '+s.sub+'</option>'; }).join('');
   document.getElementById('projLostReason').innerHTML=PROJ_LOST_REASONS.map(function(r){ return '<option>'+r+'</option>'; }).join('');
+  var _cbtn=document.getElementById('projContractBtn'); if(_cbtn)_cbtn.style.display=id?'inline-flex':'none';
   var cu=cardCurrentUser();
   var delBtn=document.getElementById('projDeleteBtn');
   function setFin(s,p){
@@ -4750,10 +5049,13 @@ function _openProjectForm(id){
     if(p){
       document.getElementById('projFormTitle').textContent='프로젝트 수정 · '+(p.client||'');
       document.getElementById('projClient').value=p.client||'';
+      document.getElementById('projClientFull').value=p.clientFull||'';
+      var _ec=p.endCustomer||{}; document.getElementById('projEndName').value=_ec.name||''; document.getElementById('projEndRep').value=_ec.rep||''; document.getElementById('projEndAddr').value=_ec.addr||''; document.getElementById('projEndContact').value=_ec.contact||'';
       _projFormOwnerId = p.ownerId || (cu?cu.id:null);
       document.getElementById('projOwnerName').value = projOwnerName(_projFormOwnerId) || (cu?cu.name:'');
       document.getElementById('projRegion').value=p.region||'VIETNAM';
       document.getElementById('projLocation').value=p.location||'';
+      document.getElementById('projDeliveryPlace').value=p.deliveryPlace||'';
       document.getElementById('projType').value=p.type||PROJ_TYPES[0];
       document.getElementById('projCustType').value=p.custType||'B2B';
       document.getElementById('projStage').value=p.stage||'lead';
@@ -4770,10 +5072,13 @@ function _openProjectForm(id){
   } else {
     document.getElementById('projFormTitle').textContent='새 프로젝트 등록';
     document.getElementById('projClient').value='';
+    document.getElementById('projClientFull').value='';
+    ['projEndName','projEndRep','projEndAddr','projEndContact'].forEach(function(i){ var el=document.getElementById(i); if(el)el.value=''; });
     _projFormOwnerId = cu?cu.id:null;
     document.getElementById('projOwnerName').value = cu?cu.name:'';
     document.getElementById('projRegion').value='VIETNAM';
     document.getElementById('projLocation').value='';
+    document.getElementById('projDeliveryPlace').value='';
     document.getElementById('projType').value=PROJ_TYPES[0];
     document.getElementById('projCustType').value='B2B';
     document.getElementById('projStage').value='lead';
@@ -4788,6 +5093,11 @@ function _openProjectForm(id){
   }
   onProjStageChange();
   recalcProjFinance();
+  var _ocu=cardCurrentUser(); var _oadm=sessionIsAdmin||(_ocu&&_ocu.isAdmin);
+  var _osel=document.getElementById('projOwnerSelect'), _oinp=document.getElementById('projOwnerName');
+  if(_oadm&&_osel){ _osel.innerHTML=MEMBERS.map(function(m){return '<option value="'+m.id+'">'+m.name+'</option>';}).join(''); _osel.value=_projFormOwnerId; _osel.style.display=''; _oinp.style.display='none'; }
+  else if(_osel){ _osel.style.display='none'; _oinp.style.display=''; }
+  toggleEndCust();
   renderProjLinkedQuotes(id ? (document.getElementById('projClient').value) : '');
   renderProjectHistory(id||null);
   document.getElementById('projectFormModal').style.display='block';
@@ -4924,6 +5234,9 @@ function saveProject(){
     ownerId:_projFormOwnerId,
     region:document.getElementById('projRegion').value||'',
     location:(document.getElementById('projLocation').value||'').trim(),
+    deliveryPlace:(document.getElementById('projDeliveryPlace').value||'').trim(),
+    clientFull:(document.getElementById('projClientFull').value||'').trim(),
+    endCustomer:(document.getElementById('projCustType').value==='B2B')?{ name:(document.getElementById('projEndName').value||'').trim(), rep:(document.getElementById('projEndRep').value||'').trim(), addr:(document.getElementById('projEndAddr').value||'').trim(), contact:(document.getElementById('projEndContact').value||'').trim() }:null,
     type:document.getElementById('projType').value||'',
     custType:document.getElementById('projCustType').value||'',
     stage:document.getElementById('projStage').value||'lead',
@@ -4940,10 +5253,10 @@ function saveProject(){
   var u=cardCurrentUser();
   if(_editingProjId){
     var idx=state.projects.findIndex(function(x){ return x.id===_editingProjId; });
-    if(idx>=0){ var _prev=state.projects[idx]; data.id=_editingProjId; data.createdAt=_prev.createdAt; data.createdBy=_prev.createdBy; data.updatedAt=nowStr(); data.logs=_prev.logs||[]; data.stageHistory=_prev.stageHistory||[]; if(_prev.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } state.projects[idx]=data; }
+    if(idx>=0){ var _prev=state.projects[idx]; data.id=_editingProjId; data.createdAt=_prev.createdAt; data.createdBy=_prev.createdBy; data.updatedAt=nowStr(); data.logs=_prev.logs||[]; data.stageHistory=_prev.stageHistory||[]; data.contractOpts=_prev.contractOpts; if(_prev.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } state.projects[idx]=data; }
   } else {
     var ex=state.projects.find(function(x){ return (x.client||'').toLowerCase()===client.toLowerCase(); });
-    if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신'); }
+    if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신'); }
     else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); data.logs=[]; data.stageHistory=[{stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:''),first:true}]; state.projects.push(data); showToast('프로젝트 등록 완료'); }
   }
   saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList();
