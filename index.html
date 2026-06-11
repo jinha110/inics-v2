@@ -737,6 +737,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
   </div>
 
+  <div id="slackImportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:645;overflow-y:auto;padding:28px 16px">
+    <div style="max-width:420px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:15px;font-weight:700"><i class="ti ti-brand-slack"></i> Slack 기간 불러오기 · Import</div>
+        <button class="btn btn-outline" onclick="closeSlackImport()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:12px;line-height:1.6">선택한 기간·채널의 <b id="slkWho"></b> 대화를 날짜별로 정리해 업무로 추가합니다. (하루만 보려면 시작·종료를 같게)</div>
+      <div id="slkChannels" style="margin-bottom:12px"></div>
+      <div class="fgrid">
+        <div class="fg"><label>시작일 · From</label><input type="date" id="slkFrom"></div>
+        <div class="fg"><label>종료일 · To</label><input type="date" id="slkTo"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-dark" onclick="doSlackImport()"><i class="ti ti-download"></i> 불러오기 · Import</button></div>
+    </div>
+  </div>
   <div id="slackConfigModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:650;overflow-y:auto;padding:28px 16px">
     <div style="max-width:580px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -747,7 +762,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px">업무 관리 대상 멤버 · Members</div>
       <div id="reportMemberMap" style="margin-bottom:14px"></div>
       <div class="fg" style="margin-bottom:10px"><label>Slack Worker URL</label><input type="text" id="slackWorkerUrl" placeholder="https://your-worker.workers.dev" autocomplete="off"></div>
-      <div class="fg" style="margin-bottom:10px"><label>채널 ID · Channel ID (예: C0123ABCD)</label><input type="text" id="slackChannel" placeholder="C..." autocomplete="off"></div>
+      <div class="fg" style="margin-bottom:10px"><label>채널 · Channels (한 줄에 하나: 채널ID 이름)</label><textarea id="slackChannel" rows="3" placeholder="C0123ABCD 영업방&#10;C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans);font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);resize:vertical;box-sizing:border-box"></textarea><div style="font-size:10px;color:var(--text-3);margin-top:3px">봇을 각 채널에 모두 초대(/invite)해야 합니다.</div></div>
       <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">멤버별 Slack User ID</div>
       <div id="slackUserMap"></div>
       <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-dark" onclick="saveSlackConfig()"><i class="ti ti-device-floppy"></i> 저장 · Save</button></div>
@@ -4313,9 +4328,12 @@ function taskCard(t, compact){
 function renderMyTasks(){
   var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin);
   var tu=reportTargetUser(); var uid=tu?tu.id:null;
+  var viewBtn='<div style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">'
+    +'<button onclick="setTaskView(\'card\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='card'?'var(--text)':'transparent')+';color:'+(_taskView==='card'?'#fff':'var(--text-3)')+'"><i class="ti ti-layout-cards"></i> 카드</button>'
+    +'<button onclick="setTaskView(\'table\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='table'?'var(--text)':'transparent')+';color:'+(_taskView==='table'?'#fff':'var(--text-3)')+'"><i class="ti ti-table"></i> 표</button></div>';
   var hdr='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<div style="font-size:14px;font-weight:700">'+(tu?tu.name:'')+'님의 업무'+(_taskTargetUid?' <span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px">관리자 작성</span>':'')+'</div>'
-    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+viewBtn;
   if(isAdm){ hdr+='<select onchange="reportSetTarget(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">본인 · Me</option>'+MEMBERS.map(function(m){return '<option value="'+m.id+'"'+(String(_taskTargetUid)===String(m.id)?' selected':'')+'>'+m.name+'</option>';}).join('')+'</select>'
     +'<button class="btn btn-outline" onclick="openSlackConfig()" style="font-size:11px;padding:4px 8px" title="설정"><i class="ti ti-settings"></i></button>'; }
   hdr+='<button class="btn btn-dark" onclick="openTaskForm(null)" style="font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i> 새 업무 · Add</button>'
@@ -4323,12 +4341,24 @@ function renderMyTasks(){
     +'</div></div>';
   var mine=(state.tasks||[]).filter(function(t){return t.userId===uid;});
   var openT=mine.filter(function(t){return t.status!=='done';}).sort(function(a,b){return taskDelay(b)-taskDelay(a)||(a.startDate||'').localeCompare(b.startDate||'');});
-  var doneT=mine.filter(function(t){return t.status==='done';}).sort(function(a,b){return (b.closedDate||'').localeCompare(a.closedDate||'');}).slice(0,15);
+  var doneT=mine.filter(function(t){return t.status==='done';}).sort(function(a,b){return (b.closedDate||'').localeCompare(a.closedDate||'');});
   var html=hdr;
+  if(_taskView==='table'){
+    var all=openT.concat(doneT.slice(0,40));
+    html+='<div id="taskSelBar" style="display:none;align-items:center;gap:10px;background:#b91c1c0d;border:1px solid #b91c1c33;border-radius:var(--radius);padding:8px 12px;margin-bottom:10px"><span style="font-size:12px"><b id="taskSelCount">0</b>건 선택 · selected</span><button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="deleteSelectedTasks()"><i class="ti ti-trash"></i> 선택 삭제 · Delete</button></div>';
+    html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg)"><table style="width:100%;border-collapse:collapse;min-width:780px">';
+    html+='<thead><tr style="background:var(--surface-2)">'
+      +'<th style="padding:8px;text-align:left"><input type="checkbox" onclick="toggleAllTasks(this)" style="width:auto;margin:0" title="전체"></th>'
+      +['', '업무 · Task','프로젝트 · Project','유형 · Type','시작 · Start','지연 · Delay','시간','상태','작업'].map(function(c){return '<th style="padding:8px;font-size:11px;color:var(--text-3);font-weight:700;white-space:nowrap;text-align:left">'+c+'</th>';}).join('')
+      +'</tr></thead><tbody>';
+    html+= all.length? all.map(taskRow).join('') : '<tr><td colspan="10" style="padding:16px;text-align:center;font-size:12px;color:var(--text-3)">업무 없음 — "새 업무"로 추가하세요</td></tr>';
+    html+='</tbody></table></div>';
+    return html;
+  }
   html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px">진행 중 · Open ('+openT.length+')</div>';
   html+= openT.length? openT.map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">진행 중 업무 없음 — "새 업무"로 추가하세요.</div>';
   html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">완료 · Closed (최근)</div>';
-  html+= doneT.length? doneT.map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">완료된 업무 없음</div>';
+  html+= doneT.length? doneT.slice(0,15).map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">완료된 업무 없음</div>';
   return html;
 }
 function dateNavBar(extra){
@@ -4386,41 +4416,102 @@ function renderRollup(){
 }
 function _matchProjByName(name){ var lo=(name||'').toLowerCase().trim(); if(!lo)return null; var f=(state.projects||[]).find(function(p){ var c=(p.client||'').toLowerCase(); return c && (c===lo || lo.indexOf(c)>=0 || c.indexOf(lo)>=0); }); return f?f.id:null; }
 function _matchProjByText(text){ var lo=(text||'').toLowerCase(); var f=(state.projects||[]).find(function(p){ var c=(p.client||'').toLowerCase(); return c && lo.indexOf(c)>=0; }); return f?f.id:'common'; }
-async function fetchSlackToReport(){
+var _taskView='card', _taskSel={};
+function setTaskView(v){ _taskView=v; renderTaskApp(); }
+function toggleTaskSel(id,el){ if(el&&el.checked)_taskSel[id]=true; else delete _taskSel[id]; _refreshSelBar(); }
+function toggleAllTasks(el){
+  document.querySelectorAll('.tskRowChk').forEach(function(c){ c.checked=el.checked; var id=+c.getAttribute('data-id'); if(el.checked)_taskSel[id]=true; else delete _taskSel[id]; });
+  _refreshSelBar();
+}
+function _refreshSelBar(){ var n=Object.keys(_taskSel).length; var bar=document.getElementById('taskSelBar'); if(bar)bar.style.display=n?'flex':'none'; var c=document.getElementById('taskSelCount'); if(c)c.textContent=n; }
+function deleteSelectedTasks(){
+  var ids=Object.keys(_taskSel).map(Number); if(!ids.length)return;
+  if(!confirm(ids.length+'건을 삭제할까요? · Delete '+ids.length+' tasks?'))return;
+  ids.forEach(function(id){ (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); }); });
+  state.tasks=(state.tasks||[]).filter(function(x){return ids.indexOf(x.id)<0;});
+  _taskSel={}; saveState(); renderTaskApp(); showToast(ids.length+'건 삭제됨 · Deleted');
+}
+function taskRow(t){
+  var done=t.status==='done'; var delay=taskDelay(t);
+  return '<tr style="border-bottom:1px solid var(--border)'+(done?';opacity:.6':'')+'">'
+   +'<td style="padding:6px 8px"><input type="checkbox" class="tskRowChk" data-id="'+t.id+'" '+(_taskSel[t.id]?'checked':'')+' onclick="toggleTaskSel('+t.id+',this)" style="width:auto;margin:0"></td>'
+   +'<td style="padding:6px 8px">'+signalDot(t.signal)+'</td>'
+   +'<td style="padding:6px 8px;font-size:12px'+(done?';text-decoration:line-through;color:var(--text-3)':'')+'">'+t.title+(done&&t.doneNote?'<div style="font-size:11px;color:var(--text-3);text-decoration:none">✓ '+t.doneNote+'</div>':'')+(t.issue?'<div style="font-size:10px;color:#b91c1c">⚠ '+t.issue+'</div>':'')+'</td>'
+   +'<td style="padding:6px 8px;font-size:11px;color:#b45309;white-space:nowrap">'+taskProjLabel(t.projectId)+'</td>'
+   +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+taskTypeLabel(t.taskType)+'</td>'
+   +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+(t.startDate||'')+'</td>'
+   +'<td style="padding:6px 8px;font-size:11px;white-space:nowrap">'+(!done&&delay>0?'<span style="color:#b91c1c;font-weight:700">D+'+delay+'</span>':(done?'<span style="color:#15803d">완료</span>':'-'))+'</td>'
+   +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3)">'+(t.estHours||'')+'</td>'
+   +'<td style="padding:6px 8px;white-space:nowrap">'+(done
+       ?'<button class="btn btn-outline" style="font-size:10px;padding:2px 7px" onclick="reopenTask('+t.id+')">재개</button>'
+       :'<button class="btn btn-dark" style="font-size:10px;padding:2px 7px" onclick="completeTask('+t.id+')">완료</button>')
+     +' <button class="btn btn-outline" style="font-size:10px;padding:2px 6px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button></td>'
+   +'</tr>';
+}
+function getSlackChannels(){
+  var ch=state.slackChannels;
+  if(ch&&ch.length)return ch;
+  var c=(state.slackConfig||{}).channel;
+  return c? String(c).split(',').map(function(x){x=x.trim();return x?{id:x,name:x}:null;}).filter(Boolean):[];
+}
+function fetchSlackToReport(){
   var cfg=state.slackConfig||{};
   if(!cfg.workerUrl){ showToast('Slack 설정(톱니)에서 Worker URL을 입력하세요'); if(sessionIsAdmin||(cardCurrentUser()&&cardCurrentUser().isAdmin))openSlackConfig(); return; }
   var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin);
   if(!isAdm && _taskTargetUid){ showToast('본인 보고만 가져올 수 있습니다'); return; }
-  var tu=reportTargetUser(); var uid=tu?tu.id:null; var uname=tu?tu.name:'';
+  var tu=reportTargetUser(); var uid=tu?tu.id:null;
   var slackId=(state.slackUsers||{})[uid];
   if(!isAdm && !slackId){ showToast('본인 Slack User ID가 설정되어 있어야 자기 대화를 가져올 수 있습니다'); return; }
+  document.getElementById('slkFrom').value=_reportDate;
+  document.getElementById('slkTo').value=_reportDate;
+  var who=document.getElementById('slkWho'); if(who)who.textContent=(tu?tu.name:'')+(_taskTargetUid?' (관리자 작성)':'');
+  var chs=getSlackChannels();
+  document.getElementById('slkChannels').innerHTML = chs.length
+    ? '<label style="font-size:11px;font-weight:700;color:var(--text-3);display:block;margin-bottom:5px">채널 · Channels</label>'+chs.map(function(c){return '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;margin:0 12px 5px 0;cursor:pointer"><input type="checkbox" class="slkChk" value="'+c.id+'" checked style="width:auto;margin:0"> '+(c.name||c.id)+'</label>';}).join('')
+    : '<div style="font-size:11px;color:#b91c1c">설정(톱니)에서 채널을 먼저 등록하세요</div>';
+  document.getElementById('slackImportModal').style.display='block';
+}
+function closeSlackImport(){ document.getElementById('slackImportModal').style.display='none'; }
+async function doSlackImport(){
+  var from=(document.getElementById('slkFrom').value||'').trim();
+  var to=(document.getElementById('slkTo').value||'').trim();
+  if(!from){ showToast('시작일을 선택하세요'); return; }
+  if(!to)to=from;
+  if(to<from){ var tmp=from; from=to; to=tmp; }
+  var chans=Array.prototype.slice.call(document.querySelectorAll('.slkChk:checked')).map(function(x){return x.value;});
+  if(!chans.length){ showToast('채널을 1개 이상 선택하세요'); return; }
+  closeSlackImport();
+  var cfg=state.slackConfig||{};
+  var tu=reportTargetUser(); var uid=tu?tu.id:null; var uname=tu?tu.name:'';
+  var slackId=(state.slackUsers||{})[uid];
   var projNames=(state.projects||[]).map(function(p){return p.client;}).filter(Boolean);
-  showToast('Slack 불러와 정리하는 중...');
+  showToast('Slack 기간 불러와 정리하는 중...');
   try{
     var r=await fetch(cfg.workerUrl.replace(/\/$/,''),{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ channel:cfg.channel||'', date:_reportDate, user:slackId||'', projects:projNames, summarize:true })
+      body:JSON.stringify({ channels:chans, from:from, to:to, user:slackId||'', projects:projNames, summarize:true })
     });
     var d=await r.json();
     if(!d.ok){ showToast('Slack 오류: '+(d.error||'응답 실패')); return; }
-    var items = (d.items && d.items.length) ? d.items : (d.messages||[]).map(function(m){ return {text:m.text, project:''}; });
-    if(!items.length){ showToast('해당 날짜 메시지 없음'); return; }
+    var items=(d.items&&d.items.length)?d.items:(d.messages||[]).map(function(m){return {text:m.text, project:'', date:m.date||''};});
+    if(!items.length){ showToast('해당 기간 메시지 없음'); return; }
     if(!state.tasks)state.tasks=[];
     var added=0;
     items.forEach(function(it){
       var t=(it.text||'').trim(); if(!t)return;
-      var pid = (it.project ? _matchProjByName(it.project) : null) || _matchProjByText(t);
-      state.tasks.push({ id:(state.taskSeq=(state.taskSeq||0)+1), userId:uid, userName:uname, title:t, purpose:'', projectId:pid, taskType:'etc', signal:'green', estHours:'', startDate:_reportDate, issue:'', status:'open', closedDate:'', doneNote:'', createdAt:nowStr(), updatedAt:nowStr(), fromSlack:true });
+      var pid=(it.project?_matchProjByName(it.project):null)||_matchProjByText(t);
+      var sd=(it.date&&/^\d{4}-\d{2}-\d{2}$/.test(it.date))?it.date:from;
+      state.tasks.push({ id:(state.taskSeq=(state.taskSeq||0)+1), userId:uid, userName:uname, title:t, purpose:'', projectId:pid, taskType:'etc', signal:'green', estHours:'', startDate:sd, issue:'', status:'open', closedDate:'', doneNote:'', createdAt:nowStr(), updatedAt:nowStr(), fromSlack:true });
       added++;
     });
     saveState(); renderTaskApp();
-    showToast(added+'건 정리되어 추가됨 — 프로젝트 확인/수정 및 추가 입력하세요');
+    showToast(added+'건 정리되어 추가됨 ('+from+(from!==to?' ~ '+to:'')+') — 프로젝트 확인/수정하세요');
   }catch(e){ showToast('연결 실패 — Worker URL/배포 확인'); }
 }
 function openSlackConfig(){
   var cfg=state.slackConfig||{}, su=state.slackUsers||{}, rm=state.reportMembers||{};
   document.getElementById('slackWorkerUrl').value=cfg.workerUrl||'';
-  document.getElementById('slackChannel').value=cfg.channel||'';
+  document.getElementById('slackChannel').value=getSlackChannels().map(function(c){return c.id+(c.name&&c.name!==c.id?' '+c.name:'');}).join('\n');
   var allOn=!Object.keys(rm).length;
   document.getElementById('reportMemberMap').innerHTML=MEMBERS.map(function(m){ var on=allOn|| !!rm[m.id]; return '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;margin:0 12px 6px 0;cursor:pointer"><input type="checkbox" id="rptMem_'+m.id+'" '+(on?'checked':'')+' style="width:auto;margin:0"> '+m.name+'</label>'; }).join('');
   document.getElementById('slackUserMap').innerHTML=MEMBERS.map(function(m){ return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span style="flex:0 0 130px;font-size:12px">'+m.name+'</span><input type="text" id="slackUid_'+m.id+'" value="'+(su[m.id]||'')+'" placeholder="U... (Slack User ID)" style="flex:1;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"></div>'; }).join('');
@@ -4428,7 +4519,9 @@ function openSlackConfig(){
 }
 function closeSlackConfig(){ document.getElementById('slackConfigModal').style.display='none'; }
 function saveSlackConfig(){
-  state.slackConfig={ workerUrl:(document.getElementById('slackWorkerUrl').value||'').trim(), channel:(document.getElementById('slackChannel').value||'').trim() };
+  var chLines=(document.getElementById('slackChannel').value||'').split('\n');
+  state.slackChannels=chLines.map(function(ln){ ln=ln.trim(); if(!ln)return null; var sp=ln.indexOf(' '); var id=(sp<0?ln:ln.slice(0,sp)).trim(); var nm=(sp<0?'':ln.slice(sp+1)).trim(); return id?{id:id,name:nm||id}:null; }).filter(Boolean);
+  state.slackConfig={ workerUrl:(document.getElementById('slackWorkerUrl').value||'').trim(), channel:(state.slackChannels[0]?state.slackChannels[0].id:'') };
   state.slackUsers=state.slackUsers||{};
   state.reportMembers={};
   MEMBERS.forEach(function(m){
