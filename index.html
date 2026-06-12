@@ -5125,10 +5125,14 @@ function projCardHtml(p){
 }
 function toggleProjDetail(id){
   var d=document.getElementById('pdet-'+id); if(!d) return;
-  var cs=window.getComputedStyle(d).display;
-  var open=(cs==='none');
+  var open=(d.style.display==='none'||d.style.display==='');
   d.style.display=open?'block':'none';
   var ch=document.getElementById('pchev-'+id); if(ch) ch.style.transform=open?'rotate(180deg)':'';
+}
+function toggleEndCust(){
+  var wrap=document.getElementById('projEndCustWrap'); if(!wrap) return;
+  var sel=document.getElementById('projCustType');
+  wrap.style.display=(sel&&sel.value==='B2B')?'block':'none';
 }
 
 // drag & drop (desktop)
