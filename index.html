@@ -739,6 +739,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:12px;color:var(--text-3);margin-bottom:18px">Per-account statement import &amp; categorization · 계좌별 거래내역 업로드 · 회계 분류</div>
     <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
       <button id="bankTabStmt" onclick="bankSwitchTab('stmt')" style="background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-file-spreadsheet"></i> Statements · 명세서</button>
+      <button id="bankTabRecon" onclick="bankSwitchTab('recon')" style="background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-arrows-diff"></i> Card Reconcile · 카드 대사</button>
       <button id="bankTabAcct" onclick="bankSwitchTab('acct')" style="display:none;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-adjustments-cog"></i> Accounting Admin · 회계 관리자</button>
     </div>
     <div id="bankStmtPane">
@@ -747,6 +748,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div id="bankSummary" style="margin-bottom:10px"></div>
       <div id="bankList"></div>
     </div>
+    <div id="bankReconPane" style="display:none"></div>
     <div id="bankAcctPane" style="display:none"></div>
   </div>
 </div>
@@ -841,6 +843,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="font-size:15px;font-weight:700"><i class="ti ti-file-text"></i> 가구 공급 계약서 · Supply Contract</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-outline" onclick="saveContractOpts()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 설정 저장</button>
+        <button class="btn btn-outline" onclick="openPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-cash"></i> 대금지급요청서</button>
         <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄</button>
         <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
         <button class="btn btn-outline" onclick="closeContractModal()" style="font-size:11px;padding:5px 10px">닫기</button>
@@ -881,6 +884,47 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
     <div id="contractPreview" style="background:#e5e7eb;padding:16px;max-height:66vh;overflow:auto"></div>
+  </div>
+</div>
+
+<div id="prModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:665;overflow-y:auto;padding:18px 10px">
+  <div style="max-width:1000px;width:96vw;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2">
+      <div style="font-size:15px;font-weight:700"><i class="ti ti-cash"></i> 대금지급요청서 · Payment Request</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="issuePaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-plus"></i> 발행·기록</button>
+        <button class="btn btn-outline" onclick="printPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄</button>
+        <button class="btn btn-dark" onclick="downloadPaymentRequestPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
+        <button class="btn btn-outline" onclick="closePaymentRequest()" style="font-size:11px;padding:5px 10px">닫기</button>
+      </div>
+    </div>
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">연결 계약 · Linked Contract: <b id="prContractNo" style="font-family:var(--mono);color:var(--text)"></b> &middot; <span id="prClientName"></span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px">
+        <div class="fg" style="margin:0"><label style="font-size:10px">PR 번호 · No.</label><input type="text" id="prNo" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px;font-family:var(--mono)"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">회차 · Installment</label><select id="prKind" onchange="prOnKindChange()" style="font-size:12px;padding:5px 8px"><option value="deposit">선금 · Advance (Đợt 1)</option><option value="balance">잔금 · Balance (Đợt 2)</option><option value="full">전액 · Full</option><option value="custom">직접입력 · Custom</option></select></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">요청 금액 · Amount</label><input type="text" id="prAmount" inputmode="decimal" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">통화 · Currency</label><input type="text" id="prCurrency" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">요청일 · Date</label><input type="date" id="prDate" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">지급기한 · Due Date</label><input type="date" id="prDue" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+        <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank</label><input type="text" id="prBank" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No.</label><input type="text" id="prAcct" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder</label><input type="text" id="prHolder" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">비고 · Note</label><input type="text" id="prNote" oninput="renderPRPreview()" placeholder="추가 메모 (선택)" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+      </div>
+      <div id="prHistory" style="margin-top:8px"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+      <span style="font-size:11px;color:var(--text-3);font-weight:600">미리보기 · Preview</span>
+      <div style="display:flex;gap:4px;align-items:center;margin-left:auto">
+        <button onclick="prPrevZoom(-15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">&minus;</button>
+        <span id="prPrevZoomLabel" style="font-size:11px;color:var(--text-2);min-width:44px;text-align:center">100%</span>
+        <button onclick="prPrevZoom(15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">+</button>
+      </div>
+    </div>
+    <div id="prPreview" style="background:#e5e7eb;padding:16px;max-height:60vh;overflow:auto"></div>
   </div>
 </div>
 
@@ -1852,8 +1896,10 @@ function populateSelects(){
 // ═══════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════
+var _eaStack=[], _navByBack=false;
 function showPage(name){
   curPage=name;
+  if(!_navByBack){ if(_eaStack[_eaStack.length-1]!==name) _eaStack.push(name); if(_eaStack.length>50) _eaStack.shift(); }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -2322,9 +2368,17 @@ function addMember() {
 
   if(!name||!loginId||!pw||!role){ showToast('모든 필드를 입력하세요 · Fill all fields'); return; }
   if(MEMBERS.find(function(m){ return m.name===name; })){ showToast('이미 존재합니다 · Already exists'); return; }
+  // 로그인 ID 중복 방지 (기존 게이트/추가 사용자와 충돌 시 거부)
+  var _gateAll = (typeof GATE_USERS!=='undefined'?GATE_USERS:[]).concat(state.extraMembers||[]);
+  if(_gateAll.find(function(u){ return (u.id||'').toUpperCase()===loginId; })){ showToast('이미 사용 중인 로그인 ID · Login ID already in use'); return; }
 
-  // New member id
-  var newId = Math.max.apply(null, MEMBERS.map(function(m){ return m.id; })) + 1;
+  // New member id — 기본 멤버 + 추가 멤버 + 게이트 사용자 전체에서 고유 ID 산출 (중복 방지)
+  var _usedIds = MEMBERS.map(function(m){ return m.id; })
+    .concat((state.extraMembers||[]).map(function(u){ return u.memberId; }))
+    .concat((typeof GATE_USERS!=='undefined'?GATE_USERS:[]).map(function(g){ return g.memberId; }))
+    .concat([state.memberSeq||0, 0]);
+  var newId = Math.max.apply(null, _usedIds) + 1;
+  state.memberSeq = newId;
   MEMBERS.push({id:newId, name:name, role:role, dept:dept, pw:pw, isAdmin:false});
 
   // Add to gate users (stored in state for persistence)
@@ -3643,7 +3697,7 @@ function renderCard(){
       +'<td style="'+td+'"><div style="font-weight:600">'+(x.merchant||'—')+'</div><div style="font-size:11px;color:var(--text-3)">'+(x.category||'')+'</div></td>'
       +'<td style="'+td+';white-space:nowrap"><strong>'+(x.dept||'')+'</strong><br><span style="font-size:11px;color:var(--text-3)">'+(x.userName||'')+(x.card?' · *'+x.card:'')+'</span></td>'
       +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+x.currency+' '+cardFmtAmount(x.amount)+'</td>'
-      +'<td style="'+td+';white-space:nowrap">'+confBadge+'<br>'+inv+'</td>'
+      +'<td style="'+td+';white-space:nowrap">'+confBadge+'<br>'+inv+'<br>'+_matchBadgeFor(x)+'</td>'
       +'<td style="'+td+'"><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">'+editBtn+confBtn+del+'</div></td>'
       +'</tr>';
   }).join('');
@@ -3655,6 +3709,7 @@ function renderCard(){
 function deleteCardExpense(id){
   var x=(state.cardExpenses||[]).find(function(e){ return e.id===id; }); if(!x) return;
   if(!confirm('이 카드 지출 내역을 삭제할까요?\nDelete this card expense?')) return;
+  if(x.matchTxnId && typeof _unlinkCard==='function') _unlinkCard(x);
   state.cardExpenses=(state.cardExpenses||[]).filter(function(e){ return e.id!==id; });
   saveState(); renderCard(); showToast('삭제 완료 · Deleted');
 }
@@ -3701,6 +3756,7 @@ function viewCardDetail(id){
   ov.innerHTML='<div style="background:#fff;border-radius:var(--radius-lg);max-width:560px;width:100%;max-height:88vh;overflow-y:auto;padding:20px" onclick="event.stopPropagation()">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:17px;font-weight:700">'+x.currency+' '+cardFmtAmount(x.amount)+'</div><button class="btn btn-outline" style="font-size:11px;padding:4px 9px" onclick="document.getElementById(\'cardDetailModal\').style.display=\'none\'">닫기 · Close</button></div>'
     +row('재무확인 · Finance', (x.confirmed?'<span style="color:#15803d;font-weight:600">':'<span style="color:#92400e;font-weight:600">')+conf+'</span>')
+    +row('은행 매칭 · Bank', (x.matchTxnId?('<span style="color:#15803d;font-weight:600">'+_reconBankLineHtml((state.bankTxns||[]).find(function(t){return t.id===x.matchTxnId;}))+(x.matchStatus==='auto'?' <span style="font-size:10px;color:var(--text-3)">(자동)</span>':'')+' · <a href="javascript:void(0)" onclick="unmatchCard('+x.id+')" style="color:var(--danger);text-decoration:none;font-size:11px">해제</a></span>'):'<span style="color:var(--text-3)">미매칭 — 은행 명세서 → 카드 대사 탭</span>'))
     +row('사용일 · Date',x.date)+row('부서 · Dept',x.dept)+row('사용자 · User',x.userName)+row('카드 · Card', x.card?('*'+x.card):'')+row('사용처 · Merchant',x.merchant)+row('분류 · Category',x.category)+row('Invoice',inv)+row('목적 · Purpose','<span style="white-space:pre-wrap">'+(x.purpose||'')+'</span>')
     +'<div style="margin-top:12px;font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">상세 구매목록 · Line items</div>'+itemsHtml
     +'<div style="margin-top:14px;font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">영수증 · Receipt</div>'
@@ -4445,6 +4501,7 @@ function exportQuotePdf(){
 
 
 function showHub() {
+  if(typeof _eaStack!=='undefined') _eaStack=[];
   var hubPage = document.getElementById('hubPage');
   if(hubPage) hubPage.style.display = 'block';
   // Per-user module access
@@ -4583,7 +4640,37 @@ function getContractTpl(){ var t=state.contractTemplate||{}; var out={}; for(var
 
 var _contractProjId=null;
 function _projQuotesC(p){ return (state.quotes||[]).filter(function(q){return (q.client||'').toLowerCase()===((p&&p.client)||'').toLowerCase();}).sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');}); }
-function _ctDefaults(p){ var qs=_projQuotesC(p); return { contractNo:'HD-'+(p.id||'')+'-'+(new Date().getFullYear()), date:projTodayISO(), vatRate:8, warrantyYears:10, depositPct:50, balancePct:50, paymentDays:3, deliveryDate:p.targetDate||'', buyerGender:'female', quoteId:(qs[0]?qs[0].id:null) }; }
+function _pad(n,w){ n=String(n||''); while(n.length<w) n='0'+n; return n; }
+function _clientCode(name){
+  name=(name||'').trim();
+  if(!name) return 'XXXX';
+  var words=name.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  var code='';
+  if(words.length>=2){ code=words.map(function(w){return w.charAt(0);}).join(''); }
+  else { code=words[0]||''; }
+  code=code.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+  if(code.length<2 && words[0]) code=words[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+  if(code.length>4) code=code.slice(0,4);
+  return code||'XXXX';
+}
+function _assignContractSeq(p){
+  if(p && p.contractSeq) return p.contractSeq;
+  state.contractSeq=(state.contractSeq||0)+1;
+  if(p) p.contractSeq=state.contractSeq;
+  saveState();
+  return state.contractSeq;
+}
+function _ctNoFor(p){
+  var seq=_assignContractSeq(p);
+  var yr=(p&&p.contractOpts&&p.contractOpts.date)?String(p.contractOpts.date).slice(0,4):String(new Date().getFullYear());
+  return 'HD-'+_pad(seq,3)+'-'+yr+'/INICS-'+_clientCode(p?(p.clientFull||p.client):'');
+}
+// 구 형식(HD-<id>-<년도>) 또는 빈 값이면 신 형식으로 자동 갱신, 사용자가 직접 입력한 번호는 보존
+function _normalizeContractNo(p,saved){
+  if(!saved || /^HD-\d+-\d{4}$/.test(saved) || saved===('HD-'+(p&&p.id||'')+'-'+(new Date().getFullYear()))) return _ctNoFor(p);
+  return saved;
+}
+function _ctDefaults(p){ var qs=_projQuotesC(p); return { contractNo:_ctNoFor(p), date:projTodayISO(), vatRate:8, warrantyYears:10, depositPct:50, balancePct:50, paymentDays:3, deliveryDate:p.targetDate||'', buyerGender:'female', quoteId:(qs[0]?qs[0].id:null) }; }
 function _money(n,cur){ cur=cur||'VND'; return fmtN(Math.round(n||0))+' '+(cur==='VND'?'VND':cur); }
 function getBuyerFromDB(client){ var key=(client||'').trim().toLowerCase(); var rec=(state.vendors||[]).find(function(v){return v&&v.name&&v.name.trim().toLowerCase()===key;}); return rec?{rep:rec.buyerRep||'',gender:rec.buyerGender||'',addr:rec.buyerAddr||'',tax:rec.buyerTax||'',title:rec.buyerTitle||'',auth:rec.buyerAuth||''}:{rep:'',gender:'',addr:'',tax:'',title:'',auth:''}; }
 function saveBuyerToDB(client,b){ if(!client)return; if(!state.vendors)state.vendors=[]; var key=client.trim().toLowerCase(); var rec=state.vendors.find(function(v){return v&&v.name&&v.name.trim().toLowerCase()===key;}); if(!rec){ rec={name:client}; state.vendors.push(rec); } if(b.rep)rec.buyerRep=b.rep; if(b.gender)rec.buyerGender=b.gender; if(b.addr)rec.buyerAddr=b.addr; if(b.tax)rec.buyerTax=b.tax; if(b.title)rec.buyerTitle=b.title; if(b.auth)rec.buyerAuth=b.auth; rec.updatedAt=nowStr(); }
@@ -4592,7 +4679,9 @@ function openContractModal(projId){
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);});
   if(!p){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요'); return; }
   _contractProjId=projId;
+  _assignContractSeq(p);
   var o=p.contractOpts||_ctDefaults(p);
+  o.contractNo=_normalizeContractNo(p,o.contractNo);
   document.getElementById('ctNo').value=o.contractNo||'';
   document.getElementById('ctDate').value=o.date||projTodayISO();
   document.getElementById('ctVat').value=(o.vatRate==null?8:o.vatRate);
@@ -4699,6 +4788,227 @@ function downloadContractPDF(){
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
 }
 function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+buildContractHtml(p,o,false)+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
+
+// ═══════════ PAYMENT REQUEST (대금지급요청서) ═══════════
+var _prPrevZoom=100;
+function _prContractData(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
+  if(!p) return null;
+  var o=p.contractOpts||_ctDefaults(p);
+  o.contractNo=_normalizeContractNo(p,o.contractNo);
+  var qs=_projQuotesC(p);
+  var q=o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0];
+  var lines=q?(q.lines||[]):[];
+  var sub=lines.reduce(function(s,l){return s+qNum(l.amount);},0);
+  var vatAmt=sub*(o.vatRate||0)/100, total=sub+vatAmt;
+  var cur=q?(q.currency||'VND'):'VND';
+  var dep=(o.depositPct==null?100:qNum(o.depositPct));
+  var bal=(o.balancePct==null||o.balancePct===''?(100-dep):qNum(o.balancePct));
+  return {p:p,o:o,q:q,total:total,cur:cur,dep:dep,bal:bal,depAmt:total*dep/100,balAmt:total*bal/100};
+}
+function _prList(projId){ return (state.paymentRequests||[]).filter(function(r){return String(r.projId)===String(projId);}).sort(function(a,b){return (a.seq||0)-(b.seq||0);}); }
+function _prNextSeq(projId){ var mx=0; _prList(projId).forEach(function(r){ if((r.seq||0)>mx) mx=r.seq; }); return mx+1; }
+function _prNoFor(contractNo,seq){ return String(contractNo||'').replace(/^HD-/,'PR-')+'-'+_pad(seq,2); }
+function _prKindLabel(kind,langKo){ if(kind==='deposit')return langKo?'선금 (Đợt 1)':'Advance Payment (Đợt 1)'; if(kind==='balance')return langKo?'잔금 (Đợt 2)':'Balance Payment (Đợt 2)'; if(kind==='full')return langKo?'전액':'Full Payment'; return langKo?'기타':'Payment'; }
+function _prComputeAmount(d,kind){ if(!d)return 0; if(kind==='deposit')return d.depAmt; if(kind==='balance')return d.balAmt; if(kind==='full')return d.total; return 0; }
+function prOnKindChange(){ var d=_prContractData(); var kEl=document.getElementById('prKind'); if(!kEl)return; var kind=kEl.value; if(kind!=='custom'){ document.getElementById('prAmount').value=fmtN(Math.round(_prComputeAmount(d,kind))); } renderPRPreview(); }
+function openPaymentRequest(){
+  var d=_prContractData();
+  if(!d){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요'); return; }
+  var p=d.p, o=d.o;
+  document.getElementById('prContractNo').textContent=o.contractNo||'';
+  document.getElementById('prClientName').textContent=(p.clientFull||p.client||'');
+  var seq=_prNextSeq(p.id);
+  document.getElementById('prNo').value=_prNoFor(o.contractNo,seq);
+  document.getElementById('prKind').value='deposit';
+  document.getElementById('prCurrency').value=d.cur;
+  document.getElementById('prDate').value=projTodayISO();
+  document.getElementById('prDue').value='';
+  document.getElementById('prNote').value='';
+  var accs=(state.bankAccounts&&state.bankAccounts.length)?state.bankAccounts:(typeof BANK_DEFAULT_ACCOUNTS!=='undefined'?BANK_DEFAULT_ACCOUNTS:[]);
+  var acc=accs.filter(function(a){return a.currency===d.cur;})[0]||accs[0];
+  document.getElementById('prBank').value='Shinhan Bank Vietnam';
+  document.getElementById('prAcct').value=acc?acc.acctNo:'';
+  document.getElementById('prHolder').value=(acc&&acc.name)||INICS_INFO.nameEn;
+  prOnKindChange();
+  renderPRHistory();
+  document.getElementById('prModal').style.display='block';
+  renderPRPreview();
+}
+function closePaymentRequest(){ document.getElementById('prModal').style.display='none'; }
+function _readPR(){
+  return {
+    prNo:(document.getElementById('prNo').value||'').trim(),
+    kind:document.getElementById('prKind').value,
+    amount:qNum(document.getElementById('prAmount').value)||0,
+    currency:(document.getElementById('prCurrency').value||'VND').trim(),
+    date:document.getElementById('prDate').value||projTodayISO(),
+    due:document.getElementById('prDue').value||'',
+    bank:(document.getElementById('prBank').value||'').trim(),
+    acct:(document.getElementById('prAcct').value||'').trim(),
+    holder:(document.getElementById('prHolder').value||'').trim(),
+    note:(document.getElementById('prNote').value||'').trim()
+  };
+}
+function renderPRPreview(){ var d=_prContractData(); if(!d)return; var box=document.getElementById('prPreview'); if(!box)return; box.innerHTML=buildPaymentRequestHtml(d.p,d.o,_readPR()); box.style.zoom=_prPrevZoom/100; }
+function prPrevZoom(delta){ _prPrevZoom=Math.max(50,Math.min(220,_prPrevZoom+delta)); var lbl=document.getElementById('prPrevZoomLabel'); if(lbl)lbl.textContent=_prPrevZoom+'%'; var box=document.getElementById('prPreview'); if(box)box.style.zoom=_prPrevZoom/100; }
+function renderPRHistory(){
+  var d=_prContractData(); if(!d)return;
+  var box=document.getElementById('prHistory'); if(!box)return;
+  var list=_prList(d.p.id);
+  if(!list.length){ box.innerHTML='<div style="font-size:10px;color:var(--text-3)">발행된 대금지급요청서 없음 · No payment requests issued for this contract.</div>'; return; }
+  box.innerHTML='<div style="font-size:10px;font-weight:700;color:var(--text-3);margin-bottom:4px">발행 이력 · Issued ('+list.length+')</div>'
+    +list.map(function(r){
+      return '<div style="display:flex;align-items:center;gap:8px;font-size:10px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;background:var(--surface);margin-bottom:3px">'
+        +'<span style="font-family:var(--mono);font-weight:700;flex:1;min-width:0">'+(r.prNo||'')+'</span>'
+        +'<span style="color:var(--text-2)">'+_prKindLabel(r.kind,true)+'</span>'
+        +'<span style="font-weight:600">'+(r.currency||'')+' '+fmtN(r.amount||0)+'</span>'
+        +'<span style="color:var(--text-3)">'+(r.date||'')+'</span>'
+        +'<a href="javascript:void(0)" onclick="reprintPaymentRequest(\''+r.id+'\')" style="color:#4338ca;text-decoration:none" title="다시 인쇄"><i class="ti ti-printer"></i></a>'
+        +'<a href="javascript:void(0)" onclick="deletePaymentRequest(\''+r.id+'\')" style="color:var(--danger);text-decoration:none" title="삭제"><i class="ti ti-trash"></i></a>'
+        +'</div>';
+    }).join('');
+}
+function issuePaymentRequest(){
+  var d=_prContractData(); if(!d){ showToast('계약 정보 없음'); return; }
+  var pr=_readPR();
+  if(!pr.amount){ showToast('요청 금액을 입력하세요 · Enter amount'); return; }
+  if(!state.paymentRequests) state.paymentRequests=[];
+  var seq=_prNextSeq(d.p.id);
+  if(!pr.prNo) pr.prNo=_prNoFor(d.o.contractNo,seq);
+  var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
+  var rec={ id:'PR'+Date.now(), projId:d.p.id, contractNo:d.o.contractNo, seq:seq,
+    prNo:pr.prNo, kind:pr.kind, amount:pr.amount, currency:pr.currency, date:pr.date, due:pr.due,
+    bank:pr.bank, acct:pr.acct, holder:pr.holder, note:pr.note,
+    createdAt:nowStr(), createdBy:(u?u.name:'') };
+  state.paymentRequests.push(rec);
+  saveState();
+  renderPRHistory();
+  document.getElementById('prNo').value=_prNoFor(d.o.contractNo,_prNextSeq(d.p.id));
+  showToast('대금지급요청서 발행·기록: '+rec.prNo);
+}
+function deletePaymentRequest(id){
+  if(!confirm('이 대금지급요청서 기록을 삭제할까요?\nDelete this payment request record?')) return;
+  state.paymentRequests=(state.paymentRequests||[]).filter(function(r){return String(r.id)!==String(id);});
+  saveState(); renderPRHistory();
+  var d=_prContractData(); if(d) document.getElementById('prNo').value=_prNoFor(d.o.contractNo,_prNextSeq(d.p.id));
+  showToast('삭제 완료 · Deleted');
+}
+function reprintPaymentRequest(id){
+  var rec=(state.paymentRequests||[]).find(function(r){return String(r.id)===String(id);}); if(!rec)return;
+  var d=_prContractData(); if(!d)return;
+  _printHtmlDoc(buildPaymentRequestHtml(d.p,d.o,rec),'PaymentRequest');
+}
+function printPaymentRequest(){ var d=_prContractData(); if(!d)return; _printHtmlDoc(buildPaymentRequestHtml(d.p,d.o,_readPR()),'PaymentRequest'); }
+function _printHtmlDoc(htmlBody,title){
+  var w=window.open('','_blank');
+  w.document.write('<html><head><meta charset="utf-8"><title>'+title+'</title><style>@page{margin:10mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}</style></head><body style="margin:0">'+htmlBody+'</body></html>');
+  w.document.close(); setTimeout(function(){ w.print(); },400);
+}
+function downloadPaymentRequestPDF(){
+  if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
+  var d=_prContractData(); if(!d)return; var pr=_readPR();
+  var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff';
+  wrap.innerHTML=buildPaymentRequestHtml(d.p,d.o,pr); document.body.appendChild(wrap);
+  showToast('PDF 생성 중...');
+  html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
+    var pdf=new window.jspdf.jsPDF('p','mm','a4');
+    var W=wrap.offsetWidth||794, mmPerCss=210/W, marginMm=8, usableMm=297-marginMm*2;
+    var scale=canvas.width/W, usableCss=usableMm/mmPerCss, Hcss=canvas.height/scale, start=0, first=true, guard=0;
+    while(start<Hcss-1 && guard++<60){
+      var sliceCss=Math.min(usableCss,Hcss-start);
+      var sc=document.createElement('canvas'); sc.width=canvas.width; sc.height=Math.max(1,Math.round(sliceCss*scale));
+      sc.getContext('2d').drawImage(canvas,0,Math.round(start*scale),canvas.width,sc.height,0,0,canvas.width,sc.height);
+      if(!first) pdf.addPage();
+      pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',0,marginMm,210,sliceCss*mmPerCss);
+      first=false; start+=sliceCss;
+    }
+    pdf.save((pr.prNo||'PaymentRequest').replace(/[^a-zA-Z0-9_-]/g,'_')+'.pdf'); document.body.removeChild(wrap);
+  }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
+}
+function buildPaymentRequestHtml(p,o,pr){
+  function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  var cur=pr.currency||'VND';
+  var amtStr=fmtN(Math.round(pr.amount||0))+' '+cur;
+  var buyerName=esc(p.clientFull||p.client||'');
+  var buyerAddr=esc(o.buyerAddr||p.location||'');
+  var buyerRep=o.buyerRep?esc((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'';
+  var kindVi=(pr.kind==='deposit')?'Tạm ứng (Đợt 1)':(pr.kind==='balance')?'Thanh toán đợt cuối (Đợt 2)':(pr.kind==='full')?'Thanh toán toàn bộ':'Thanh toán';
+  var kindEn=_prKindLabel(pr.kind,false);
+  var html='<div style="width:794px;max-width:100%;margin:0 auto;background:#fff;color:#111;font-family:Arial,\'Helvetica Neue\',sans-serif;padding:30px 34px;box-sizing:border-box;font-size:11px;line-height:1.55">';
+  // header
+  html+='<div class="ct-blk" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid #111;padding-bottom:10px">'
+    +'<div style="max-width:60%">'
+      +'<div style="font-size:13px;font-weight:800">'+esc(INICS_INFO.nameVi)+' / '+esc(INICS_INFO.nameEn)+'</div>'
+      +'<div style="font-size:9px;color:#444;margin-top:2px">'+esc(INICS_INFO.addr)+'</div>'
+      +'<div style="font-size:9px;color:#444">MST: '+esc(INICS_INFO.mst)+' · Tel: '+esc(INICS_INFO.tel)+'</div>'
+    +'</div>'
+    +'<div style="text-align:right">'
+      +'<div style="font-size:15px;font-weight:800;letter-spacing:.02em">GIẤY ĐỀ NGHỊ THANH TOÁN</div>'
+      +'<div style="font-size:12px;font-weight:700;color:#333">PAYMENT REQUEST · 대금지급요청서</div>'
+      +'<div style="font-size:10px;margin-top:4px">Số / No.: <b>'+esc(pr.prNo||'')+'</b></div>'
+      +'<div style="font-size:10px">Ngày / Date: '+esc(pr.date||'')+'</div>'
+    +'</div>'
+  +'</div>';
+  // to / reference
+  html+='<div class="ct-blk" style="margin-top:14px;display:flex;gap:14px">'
+    +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
+      +'<div style="font-weight:700;font-size:10px">Kính gửi / To · 수신</div>'
+      +'<div style="font-weight:700;margin-top:2px">'+(buyerName||'………')+'</div>'
+      +(buyerRep?'<div style="font-size:10px">Đại diện / Rep.: '+buyerRep+(o.buyerTitle?' – '+esc(o.buyerTitle):'')+'</div>':'')
+      +(buyerAddr?'<div style="font-size:9.5px;color:#444">'+buyerAddr+'</div>':'')
+    +'</div>'
+    +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
+      +'<div style="font-weight:700;font-size:10px">Hợp đồng / Contract · 연결 계약</div>'
+      +'<div style="font-weight:700;margin-top:2px;font-family:monospace">'+esc(o.contractNo||'')+'</div>'
+      +'<div style="font-size:9.5px;color:#444">Ngày HĐ / Contract date: '+esc(o.date||'')+'</div>'
+    +'</div>'
+  +'</div>';
+  // intro
+  html+='<div class="ct-blk" style="margin-top:12px;font-size:10.5px">'
+    +'Căn cứ Hợp đồng cung cấp hàng hóa số <b>'+esc(o.contractNo||'')+'</b>, '+esc(INICS_INFO.nameEn)+' trân trọng đề nghị Quý Công ty thanh toán khoản sau / '
+    +'Pursuant to Supply Contract No. <b>'+esc(o.contractNo||'')+'</b>, '+esc(INICS_INFO.nameEn)+' respectfully requests payment of the following:'
+  +'</div>';
+  // table
+  html+='<table class="ct-blk" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:10.5px">'
+    +'<thead><tr style="background:#f1f5f9">'
+      +'<th style="border:1px solid #999;padding:6px;width:8%">No</th>'
+      +'<th style="border:1px solid #999;padding:6px;text-align:left">Nội dung / Description · 내용</th>'
+      +'<th style="border:1px solid #999;padding:6px;width:32%;text-align:right">Số tiền / Amount</th>'
+    +'</tr></thead><tbody>'
+      +'<tr>'
+        +'<td style="border:1px solid #999;padding:6px;text-align:center">1</td>'
+        +'<td style="border:1px solid #999;padding:6px">'+kindVi+' / '+kindEn+'<div style="font-size:9px;color:#555">theo HĐ / under Contract '+esc(o.contractNo||'')+'</div></td>'
+        +'<td style="border:1px solid #999;padding:6px;text-align:right;font-weight:700">'+amtStr+'</td>'
+      +'</tr>'
+    +'</tbody><tfoot style="break-inside:avoid;page-break-inside:avoid">'
+      +'<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL · 합계</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>'
+    +'</tfoot></table>';
+  // payment info
+  html+='<div class="ct-blk" style="margin-top:12px;border:1px solid #999;padding:9px 11px;background:#fbfbfb">'
+    +'<div style="font-weight:700;font-size:10px;margin-bottom:4px">Thông tin thanh toán / Payment Details · 입금 정보</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:10px">'
+      +'<div>Ngân hàng / Bank: <b>'+esc(pr.bank||'')+'</b></div>'
+      +'<div>Số TK / Account No.: <b>'+esc(pr.acct||'')+'</b></div>'
+      +'<div style="grid-column:span 2">Chủ TK / Account holder: <b>'+esc(pr.holder||'')+'</b></div>'
+      +'<div>Hạn thanh toán / Due date: <b>'+(pr.due?esc(pr.due):'………')+'</b></div>'
+      +'<div>Số tiền / Amount: <b>'+amtStr+'</b></div>'
+    +'</div>'
+  +'</div>';
+  if(pr.note){ html+='<div class="ct-blk" style="margin-top:8px;font-size:10px;color:#444">Ghi chú / Note: '+esc(pr.note)+'</div>'; }
+  // signature
+  html+='<div class="ct-blk" style="display:flex;gap:18px;margin-top:30px;text-align:center;font-size:10px">'
+    +'<div style="flex:1"></div>'
+    +'<div style="flex:1">'
+      +'<div style="font-weight:700">'+esc(INICS_INFO.nameEn)+'</div>'
+      +'<div style="font-size:8px;color:#777;margin-top:2px">(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)</div>'
+      +'<div style="height:80px"></div>'
+      +'<div style="border-top:1px solid #111;padding-top:4px">Bà '+esc(INICS_INFO.rep)+' – '+esc(INICS_INFO.repTitleEn)+'</div>'
+    +'</div>'
+  +'</div>';
+  html+='</div>';
+  return html;
+}
 
 // ─ 관리자: 계약서 템플릿 편집 ─
 var _CT_FIELDS=[['art1','제1조 목적 · Purpose'],['art2','제2조 제품·수량 · Product'],['art3','제3조 납품 · Delivery'],['art4','제4조 결제 · Payment'],['art5','제5조 해지 · Termination'],['art6','제6조 구매자 의무 · Buyer'],['art7','제7조 공급자 의무·보증 · Supplier'],['art8','제8조 일반 · General']];
@@ -4843,7 +5153,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
     +'</div>'
     +'<div style="flex:1;border:1px solid #888;padding:7px 9px">'
       +'<div style="font-weight:700">'+(isKo?'을 — 구매자 / Buyer':'Bên B – Bên mua / Buyer'+(review?'<span style="color:#1d4ed8"> · 구매자</span>':''))+'</div>'
-      +'<div><b>'+H(p.clientFull||p.client||'')+'</b>'+((p.clientFull&&p.client&&p.clientFull!==p.client)?' <span style="font-size:8px;color:#888">('+p.client+')</span>':'')+'</div>'
+      +'<div><b>'+H(p.clientFull||p.client||'')+'</b></div>'
       +'<div>'+(isKo?'주소':'Địa chỉ')+': '+H(o.buyerAddr||p.location||(review?'(미입력)':'………'))+'</div>'
       +'<div>'+(isKo?'대표':'Đại diện')+': '+H(o.buyerRep?((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):(review?'(미입력)':'………'))+' – '+H(o.buyerTitle||(review?'(직위)':'………'))+'</div>'
       +'<div>'+(isKo?'세금코드':'MST')+': '+H(o.buyerTax||(review?'(미입력)':'………'))+'</div>'
@@ -4882,12 +5192,12 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
       +'<thead><tr style="background:#f1f5f9">'
         +['No','Category','Product Name','Image','Size (WxDxH)','Code','Color','Qty','Unit Price<br>(Excl.VAT)','Amount<br>(Excl.VAT)','Remark'].map(function(h){return '<th style="border:1px solid #999;padding:4px">'+h+'</th>';}).join('')
       +'</tr></thead><tbody>'+rows+'</tbody>'
-      +'<tfoot>'
+      +'<tfoot style="break-inside:avoid;page-break-inside:avoid">'
         +'<tr><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right;font-weight:700">TOTAL (Excl. VAT)</td><td style="border:1px solid #999;padding:5px;text-align:right;font-weight:700">'+H(fmtN(sub))+'</td><td style="border:1px solid #999"></td></tr>'
         +'<tr style="background:'+(review?'#fff59d':'#f8fafc')+'"><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right">VAT '+H(o.vatRate+'%')+'</td><td style="border:1px solid #999;padding:5px;text-align:right">'+fmtN(vatAmt)+'</td><td style="border:1px solid #999"></td></tr>'
         +'<tr style="background:#eef2ff"><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right;font-weight:800">TOTAL (Incl. VAT)</td><td style="border:1px solid #999;padding:5px;text-align:right;font-weight:800">'+H(fmtN(total))+'</td><td style="border:1px solid #999"></td></tr>'
+        +'<tr class="ct-soft"><td colspan="11" style="border:1px solid #999;border-top:none;padding:6px 8px;font-size:8px;color:#555;background:#fbfbfb;line-height:1.5">Currency: '+cur+' &middot; All prices exclusive of taxes unless stated &middot; Prices include delivery and installation fee.</td></tr>'
       +'</tfoot></table>'
-    +'<div style="margin-top:6px;font-size:8px;color:#666">Currency: '+cur+' · All prices exclusive of taxes unless stated · Prices include delivery and installation fee.</div>'
   +'</div>'
 
   +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:13px;font-weight:800;margin-bottom:3px">APPENDIX 2 \u2013 WARRANTY LETTER</div>'
@@ -5412,7 +5722,7 @@ function projCardHtml(p){
       +'<div style="margin-top:7px"><a href="javascript:void(0)" onclick="editProject('+p.id+')" style="font-size:10px;color:#4338ca;text-decoration:none"><i class="ti ti-edit"></i> 수정 · Edit</a></div>'
     +'</div>'
     +'<div style="margin-top:7px;border-top:1px solid var(--border);padding-top:6px">'
-      +'<select onchange="setProjectStage('+p.id+',this.value)" style="width:100%;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);color:var(--text-2);background:var(--surface)">'+stageOpts+'</select>'
+      +'<select onmousedown="event.stopPropagation();var c=this.closest(\'.proj-card\');if(c)c.setAttribute(\'draggable\',\'false\')" ontouchstart="var c=this.closest(\'.proj-card\');if(c)c.setAttribute(\'draggable\',\'false\')" onfocus="var c=this.closest(\'.proj-card\');if(c)c.setAttribute(\'draggable\',\'false\')" onblur="var c=this.closest(\'.proj-card\');if(c)c.setAttribute(\'draggable\',\'true\')" onchange="var c=this.closest(\'.proj-card\');if(c)c.setAttribute(\'draggable\',\'true\');setProjectStage('+p.id+',this.value)" style="width:100%;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);color:var(--text-2);background:var(--surface)">'+stageOpts+'</select>'
     +'</div></div>';
 }
 function toggleProjDetail(id){
@@ -6320,7 +6630,7 @@ function closeBankApp(){
   if(typeof showHub==='function') showHub();
 }
 function bankStyleTabs(){
-  [['bankTabStmt','stmt'],['bankTabAcct','acct']].forEach(function(p){
+  [['bankTabStmt','stmt'],['bankTabRecon','recon'],['bankTabAcct','acct']].forEach(function(p){
     var b=document.getElementById(p[0]); if(!b) return;
     var on=bankTab===p[1];
     b.style.color = on?'var(--text)':'var(--text-3)';
@@ -6331,9 +6641,11 @@ function bankSwitchTab(tab){
   if(tab==='acct' && !acctAdminAllowed()){ showToast('회계 관리자 권한이 없습니다 · No accounting-admin access'); return; }
   bankTab=tab;
   document.getElementById('bankStmtPane').style.display = tab==='stmt'?'':'none';
+  var rp=document.getElementById('bankReconPane'); if(rp) rp.style.display = tab==='recon'?'':'none';
   document.getElementById('bankAcctPane').style.display = tab==='acct'?'':'none';
   bankStyleTabs();
   if(tab==='acct') renderBankAcctAdmin();
+  if(tab==='recon') renderCardBankRecon();
 }
 
 function renderBankApp(){
@@ -6344,6 +6656,7 @@ function renderBankApp(){
   renderBankUploadBar();
   renderBankList();
   if(bankTab==='acct') renderBankAcctAdmin();
+  if(bankTab==='recon') renderCardBankRecon();
 }
 
 function bankAcctBalance(acctNo){
@@ -6351,7 +6664,7 @@ function bankAcctBalance(acctNo){
   var txns=(state.bankTxns||[]).filter(function(t){return t.acctNo===acctNo;});
   if(!txns.length) return acc?acc.balance:0;
   // newest by date then seq
-  var newest=txns.slice().sort(function(a,b){ var d=bankDateKey(b.date)-bankDateKey(a.date); return d!==0?d:(b.seq-a.seq); })[0];
+  var newest=txns.slice().sort(function(a,b){ var d=bankDateKey(b.date)-bankDateKey(a.date); return d!==0?d:(a.seq-b.seq); })[0];
   return (newest && typeof newest.balance==='number') ? newest.balance : (acc?acc.balance:0);
 }
 function bankDateKey(s){ // DD/MM/YYYY -> number
@@ -6392,6 +6705,8 @@ function renderBankUploadBar(){
 
 function bankClearAcct(acctNo){
   if(!confirm('Delete all imported transactions for '+acctNo+'?\n'+acctNo+' 거래내역을 모두 삭제할까요?')) return;
+  var removedIds={}; (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acctNo && t.matchCardId!=null) removedIds[t.matchCardId]=true; });
+  (state.cardExpenses||[]).forEach(function(c){ if(c.matchTxnId!=null && removedIds[c.id]){ c.matchTxnId=null; c.matchStatus=null; c.matchedAt=null; } });
   state.bankTxns=(state.bankTxns||[]).filter(function(t){return t.acctNo!==acctNo;});
   saveState(); renderBankApp(); showToast('Cleared · 초기화 완료');
 }
@@ -6426,7 +6741,8 @@ function handleBankExcel(file){
         var ref=String(r[5]||'').trim();
         var note=String(r[6]||'').trim();
         if(!date && !type && !debit && !credit && !note) continue;
-        var txn={id:++state.bankSeq, acctNo:acc.acctNo, currency:acc.currency, date:date, type:type, debit:debit, credit:credit, balance:bal, ref:ref, note:note, category:'Uncategorized', seq:state.bankSeq};
+        if(!debit && !credit) continue; // 금액 이동 없는 행(개설/플레이스홀더, 예: 잔액 0) 제외
+        var txn={id:++state.bankSeq, acctNo:acc.acctNo, currency:acc.currency, date:date, type:type, debit:debit, credit:credit, balance:bal, ref:ref, note:note, vendor:_bankGuessVendor(note||ref), category:'Uncategorized', seq:state.bankSeq};
         var k=bankTxnKey(txn);
         if(existing[k]){ skipped++; continue; }
         existing[k]=true;
@@ -6440,18 +6756,158 @@ function handleBankExcel(file){
 }
 function bankTxnKey(t){ return t.acctNo+'|'+t.date+'|'+Math.round(t.debit*100)+'|'+Math.round(t.credit*100)+'|'+Math.round(t.balance*100)+'|'+(t.note||'').slice(0,40); }
 
+// ═══════════ CARD ↔ BANK 1:1 매칭 (Reconciliation) ═══════════
+var MATCH_DATE_MIN=-2, MATCH_DATE_MAX=4; // 은행 기재일 = 카드 사용일 -2 ~ +4일 (확신 범위)
+function _mToDate(s){
+  s=String(s||'').trim();
+  var m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);            // YYYY-MM-DD (카드)
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);  // DD/MM/YYYY (은행)
+  if(m){ var y=m[3].length===2?2000+(+m[3]):+m[3]; return new Date(y,+m[2]-1,+m[1]); }
+  return null;
+}
+function _mDayDiff(bankDate,cardDate){ var a=_mToDate(bankDate), b=_mToDate(cardDate); if(!a||!b) return 9999; return Math.round((a-b)/86400000); }
+function _cardAmt(x){ return Math.round(parseFloat(String(x.amount||'').replace(/,/g,''))||0); }
+function _bankDebit(t){ return Math.round(t.debit||0); }
+function _bankCandidates(card){
+  var amt=_cardAmt(card); if(amt<=0) return [];
+  return (state.bankTxns||[]).filter(function(t){
+    if(t.matchCardId) return false;
+    if(_bankDebit(t)!==amt) return false;
+    if((t.currency||'')!==(card.currency||'')) return false;
+    var dd=_mDayDiff(t.date,card.date);
+    return dd>=MATCH_DATE_MIN-8 && dd<=MATCH_DATE_MAX+8;
+  }).map(function(t){ return {t:t, dd:_mDayDiff(t.date,card.date)}; })
+    .sort(function(a,b){ return Math.abs(a.dd)-Math.abs(b.dd); });
+}
+function _cardMatchInfo(card){
+  if(card.matchTxnId){
+    var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;});
+    return {status:(card.matchStatus==='auto'?'auto':'manual'), txn:t||null, candidates:[]};
+  }
+  var cands=_bankCandidates(card);
+  var tight=cands.filter(function(c){ return c.dd>=MATCH_DATE_MIN && c.dd<=MATCH_DATE_MAX; });
+  if(tight.length===1) return {status:'confident', txn:tight[0].t, candidates:cands};
+  if(cands.length>=1) return {status:'review', txn:null, candidates:cands};
+  return {status:'none', txn:null, candidates:[]};
+}
+function _linkCardBank(card,txn,how){ card.matchTxnId=txn.id; card.matchStatus=how; card.matchedAt=nowStr(); txn.matchCardId=card.id; txn.matchStatus=how; txn.matchedAt=nowStr(); }
+function _unlinkCard(card){ if(card.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;}); if(t){ t.matchCardId=null; t.matchStatus=null; t.matchedAt=null; } } card.matchTxnId=null; card.matchStatus=null; card.matchedAt=null; }
+function _reconRefresh(){ saveState(); if(typeof renderCardBankRecon==='function') renderCardBankRecon(); if(typeof renderCard==='function') renderCard(); }
+function runAutoMatch(){
+  var cards=(state.cardExpenses||[]).filter(function(x){ return !x.matchTxnId; }).slice().sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
+  var n=0;
+  cards.forEach(function(card){ var info=_cardMatchInfo(card); if(info.status==='confident' && info.txn && !info.txn.matchCardId){ _linkCardBank(card,info.txn,'auto'); n++; } });
+  _reconRefresh();
+  showToast('자동 매칭 '+n+'건 확정 (재무확인은 별도) · Auto-matched '+n);
+}
+function matchCardBank(cardId,txnId,how){
+  var card=(state.cardExpenses||[]).find(function(x){return x.id===cardId;});
+  var txn=(state.bankTxns||[]).find(function(x){return x.id===txnId;});
+  if(!card||!txn){ return; }
+  if(txn.matchCardId){ showToast('이미 매칭된 은행 거래 · Bank line already matched'); return; }
+  _linkCardBank(card,txn,how||'manual'); _reconRefresh(); showToast('매칭 완료 · Matched');
+}
+function unmatchCard(cardId){ var card=(state.cardExpenses||[]).find(function(x){return x.id===cardId;}); if(!card) return; _unlinkCard(card); _reconRefresh(); showToast('매칭 해제 · Unmatched'); }
+function _reconScopedCards(){
+  var all=(state.cardExpenses||[]).slice();
+  if(!canViewAll('card')){ var u=cardCurrentUser(); var uid=u?u.id:null; all=all.filter(function(x){ return x.userId===uid; }); }
+  return all.sort(function(a,b){ return (b.date||'').localeCompare(a.date||'') || b.id-a.id; });
+}
+function _reconBankLineHtml(t){ return (t?('<span style="color:var(--text-3)">'+(t.date||'')+'</span> · '+(t.note||t.ref||t.type||'—')+' · <b>출금 '+fmtN(t.debit||0)+'</b>'):''); }
+function renderCardBankRecon(){
+  var box=document.getElementById('bankReconPane'); if(!box) return;
+  var cards=_reconScopedCards();
+  var auto=0,manual=0,confident=0,review=0,none=0; var openSum={};
+  var rowsHtml=cards.map(function(x){
+    var info=_cardMatchInfo(x); var st=info.status;
+    if(st==='auto')auto++; else if(st==='manual')manual++; else if(st==='confident')confident++; else if(st==='review')review++; else none++;
+    if(st==='confident'||st==='review'||st==='none'){ openSum[x.currency]=(openSum[x.currency]||0)+_cardAmt(x); }
+    var head='<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'
+      +_matchBadgeFor(x)
+      +'<span style="font-weight:700;font-size:13px">'+(x.merchant||'—')+'</span>'
+      +'<span style="font-size:11px;color:var(--text-3)">'+(x.date||'')+(x.card?' · *'+x.card:'')+(x.userName?' · '+x.userName:'')+'</span>'
+      +'<span style="margin-left:auto;font-weight:700;font-size:13px">'+x.currency+' '+cardFmtAmount(x.amount)+'</span>'
+      +'</div>';
+    var body='';
+    if(st==='auto'||st==='manual'){
+      body='<div style="display:flex;align-items:center;gap:8px;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);font-size:11px;color:var(--text-2)">'
+        +'<i class="ti ti-arrow-back-up" style="transform:scaleX(-1)"></i><span>은행: '+_reconBankLineHtml(info.txn)+'</span>'
+        +'<a href="javascript:void(0)" onclick="unmatchCard('+x.id+')" style="margin-left:auto;color:var(--danger);text-decoration:none">매칭 해제</a></div>';
+    } else if(st==='confident'){
+      var c=info.txn;
+      body='<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border);font-size:11px;color:var(--text-2)">'
+        +'추천 매칭(자동 가능): '+_reconBankLineHtml(c)
+        +'<div style="margin-top:6px"><button class="btn btn-dark" style="font-size:11px;padding:4px 10px" onclick="matchCardBank('+x.id+','+c.id+',\'auto\')"><i class="ti ti-check"></i> 이 매칭 확정</button></div></div>';
+    } else if(st==='review'){
+      body='<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border);font-size:11px;color:var(--text-2)">금액 같은 은행 출금 '+info.candidates.length+'건 — 선택해 확정:'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
+        +info.candidates.slice(0,6).map(function(c){ return '<button class="btn btn-outline" style="font-size:11px;padding:4px 9px" onclick="matchCardBank('+x.id+','+c.t.id+',\'manual\')">'+(c.t.date||'')+' · '+(c.t.note||c.t.ref||'').slice(0,18)+' 선택</button>'; }).join('')
+        +'</div></div>';
+    } else {
+      var opts=(state.bankTxns||[]).filter(function(t){ return !t.matchCardId && _bankDebit(t)>0 && (t.currency||'')===(x.currency||''); })
+        .sort(function(a,b){ return _mDayDiff(b.date,'1900-01-01')-_mDayDiff(a.date,'1900-01-01'); });
+      var sel='<select onchange="if(this.value)matchCardBank('+x.id+',parseInt(this.value),\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:100%"><option value="">수동 연결 — 은행 출금 선택…</option>'
+        +opts.slice(0,200).map(function(t){ return '<option value="'+t.id+'">'+(t.date||'')+' · '+fmtN(t.debit||0)+' · '+((t.note||t.ref||'').slice(0,24))+'</option>'; }).join('')+'</select>';
+      body='<div style="display:flex;align-items:center;gap:8px;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3)"><span>금액·기간 일치하는 은행 출금 없음</span><span style="margin-left:auto">'+sel+'</span></div>';
+    }
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;margin-bottom:8px">'+head+body+'</div>';
+  }).join('');
+  var kpi='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+    +_reconKpi('자동매칭',auto,'#15803d')+_reconKpi('수동매칭',manual,'#15803d')+_reconKpi('확정대기',confident,'#1d4ed8')+_reconKpi('검토필요',review,'#92400e')+_reconKpi('미매칭',none,'#6b7280')
+    +'</div>';
+  var openChips=Object.keys(openSum).length?('<div style="font-size:11px;color:var(--text-2);margin-bottom:12px">미매칭 합계 · Open: '+Object.keys(openSum).map(function(c){return '<b>'+c+' '+fmtN(openSum[c])+'</b>';}).join(' · ')+'</div>'):'';
+  var bar='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<button class="btn btn-dark" style="font-size:12px;padding:6px 13px" onclick="runAutoMatch()"><i class="ti ti-wand"></i> 자동 매칭 실행 · Run auto-match</button>'
+    +'<span style="font-size:11px;color:var(--text-3)">금액·통화 일치 & 날짜 차이 '+MATCH_DATE_MIN+'~+'+MATCH_DATE_MAX+'일이면 자동 확정. 재무확인(Confirm)은 별도입니다.</span>'
+    +'</div>';
+  box.innerHTML=bar+kpi+openChips+(cards.length?rowsHtml:'<div class="empty-state"><i class="ti ti-arrows-diff"></i><p>대사할 카드 지출이 없습니다 · No card expenses to reconcile</p></div>');
+}
+function _reconKpi(label,n,color){ return '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;min-width:92px"><div style="font-size:11px;color:var(--text-3)">'+label+'</div><div style="font-size:20px;font-weight:700;color:'+color+'">'+n+'</div></div>'; }
+function _matchBadgeFor(x){
+  if(x.matchTxnId) return '<span class="badge b-done" style="font-size:10px"><i class="ti ti-link"></i> 은행매칭'+(x.matchStatus==='auto'?' (자동)':'')+'</span>';
+  var info=_cardMatchInfo(x);
+  if(info.status==='confident') return '<span class="badge" style="font-size:10px;background:#dbeafe;color:#1d4ed8">확정대기</span>';
+  if(info.status==='review') return '<span class="badge" style="font-size:10px;background:#fef3c7;color:#92400e">검토필요</span>';
+  return '<span class="badge" style="font-size:10px;background:var(--surface-2);color:var(--text-3)">미매칭</span>';
+}
+
 function bankCategoryOptions(selected){
   var cats=(state.bankCategories||[]).slice();
   if(selected && cats.indexOf(selected)<0) cats.unshift(selected); // keep value even if removed from catalog
   return cats.map(function(c){ return '<option value="'+c.replace(/"/g,'&quot;')+'"'+(c===selected?' selected':'')+'>'+c+'</option>'; }).join('');
 }
+// ── 거래처(Vendor / Counterparty) ──
+function _bankVendorNames(){
+  var set={}, out=[];
+  (state.vendors||[]).forEach(function(v){ if(v&&v.name){ var n=String(v.name).trim(); if(n && !set[n.toLowerCase()]){ set[n.toLowerCase()]=1; out.push(n); } } });
+  (state.bankTxns||[]).forEach(function(t){ if(t&&t.vendor){ var n=String(t.vendor).trim(); if(n && !set[n.toLowerCase()]){ set[n.toLowerCase()]=1; out.push(n); } } });
+  return out.sort(function(a,b){ return a.localeCompare(b); });
+}
+function bankVendorDatalist(){ return '<datalist id="bankVendorList">'+_bankVendorNames().map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'; }).join('')+'</datalist>'; }
+// NOTE/적요 안에서 거래처 DB명을 찾아 best-effort 추출 (가장 긴 일치 우선)
+function _bankGuessVendor(note){
+  var n=String(note||'').toLowerCase(); if(!n) return '';
+  var best='';
+  (state.vendors||[]).forEach(function(v){ if(v&&v.name){ var nm=String(v.name).trim(); if(nm.length>=2 && n.indexOf(nm.toLowerCase())>=0 && nm.length>best.length) best=nm; } });
+  return best;
+}
+function setBankTxnVendor(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return; t.vendor=String(val||'').trim(); saveState(); }
+function bankAutoVendor(){
+  var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;}); if(!acc){ return; }
+  var n=0;
+  (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acc.acctNo && (!t.vendor||!t.vendor.trim())){ var g=_bankGuessVendor(t.note||t.ref||''); if(g){ t.vendor=g; n++; } } });
+  saveState(); renderBankList();
+  showToast('NOTE에서 거래처 '+n+'건 자동 인식 · '+n+' detected');
+}
+
 
 function renderBankList(){
   var el=document.getElementById('bankList'); if(!el) return;
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
   if(!acc){ el.innerHTML=''; return; }
   var txns=(state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;});
-  txns.sort(function(a,b){ var d=bankDateKey(b.date)-bankDateKey(a.date); return d!==0?d:(b.seq-a.seq); });
+  txns.sort(function(a,b){ var d=bankDateKey(b.date)-bankDateKey(a.date); return d!==0?d:(a.seq-b.seq); });
   // summary
   var sumEl=document.getElementById('bankSummary');
   var totDebit=0,totCredit=0,uncat=0;
@@ -6469,23 +6925,33 @@ function renderBankList(){
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
   var rows=txns.map(function(t){
     var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:180px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
+    var guess=(!t.vendor||!t.vendor.trim())?_bankGuessVendor(t.note||t.ref||''):'';
+    var vph=guess?('추천: '+guess.replace(/"/g,'&quot;')):'거래처 선택·입력';
+    var vendorInp='<input list="bankVendorList" value="'+String(t.vendor||'').replace(/"/g,'&quot;')+'" placeholder="'+vph+'" onchange="setBankTxnVendor('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);width:150px;'+((!t.vendor||!t.vendor.trim())?'background:#fffbeb':'')+'">'
+      +(guess?' <a href="javascript:void(0)" onclick="setBankTxnVendor('+t.id+',\''+guess.replace(/'/g,"\\'").replace(/"/g,'&quot;')+'\');renderBankList()" style="font-size:10px;color:#1d4ed8;text-decoration:none;white-space:nowrap" title="NOTE 추천 적용">적용</a>':'');
     return '<tr>'
       +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(t.date||'—')+'</td>'
       +'<td style="'+td+'">'+(t.type||'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#b91c1c">'+(t.debit?bankFmt(t.debit,acc.currency):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#15803d">'+(t.credit?bankFmt(t.credit,acc.currency):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:600">'+bankFmt(t.balance,acc.currency)+'</td>'
-      +'<td style="'+td+';max-width:300px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
+      +'<td style="'+td+';max-width:280px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
+      +'<td style="'+td+';white-space:nowrap">'+vendorInp+'</td>'
       +'<td style="'+td+'">'+catSel+'</td>'
       +'<td style="'+td+';text-align:right"><button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button></td>'
       +'</tr>';
   }).join('');
-  el.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1000px">'
+  var noVendor=txns.filter(function(t){ return !t.vendor||!t.vendor.trim(); }).length;
+  var vendorBar='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
+    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankAutoVendor()"><i class="ti ti-wand"></i> 거래처 자동인식 (NOTE→거래처)</button>'
+    +(noVendor?'<span style="font-size:11px;color:#92400e">거래처 미지정 '+noVendor+'건</span>':'<span style="font-size:11px;color:#15803d">거래처 지정 완료</span>')
+    +'</div>';
+  el.innerHTML=bankVendorDatalist()+vendorBar+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1160px">'
     +'<thead><tr>'
     +'<th style="'+th+'">Date · 날짜</th><th style="'+th+'">Type · 거래구분</th>'
     +'<th style="'+th+';text-align:right">Out · 출금</th><th style="'+th+';text-align:right">In · 입금</th>'
     +'<th style="'+th+';text-align:right">Balance · 잔액</th><th style="'+th+'">Note · 비고</th>'
-    +'<th style="'+th+'">Category · 분류</th><th style="'+th+';text-align:right"></th></tr></thead>'
+    +'<th style="'+th+'">Vendor · 거래처</th><th style="'+th+'">Category · 분류</th><th style="'+th+';text-align:right"></th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 function setBankTxnCategory(id,val){
@@ -6813,8 +7279,27 @@ const GATE_USERS = [
   {id:'JACOB',      pw:'JACOB',      name:'JACOB',        memberId:5},
 ];
 
+function _repairExtraMemberIds() {
+  // 동일 memberId 충돌 복구: 추가 사용자가 기본 사용자(1~5)나 다른 추가 사용자와
+  // memberId가 겹치면, 로그인 시 엉뚱한 사람으로 연동되는 문제 발생 → 고유 ID로 재배정.
+  if (typeof state === 'undefined' || !state || !Array.isArray(state.extraMembers) || !state.extraMembers.length) return;
+  var used = (typeof GATE_USERS !== 'undefined' ? GATE_USERS : []).map(function(g){ return g.memberId; });
+  var changed = false;
+  state.extraMembers.forEach(function(u){
+    var collides = (u.memberId == null) || (used.indexOf(u.memberId) >= 0);
+    if (collides) {
+      var nid = Math.max.apply(null, used.concat([state.memberSeq || 0, 5])) + 1;
+      u.memberId = nid;
+      changed = true;
+    }
+    used.push(u.memberId);
+    if ((state.memberSeq || 0) < u.memberId) state.memberSeq = u.memberId;
+  });
+  if (changed && typeof saveState === 'function') saveState();
+}
 function _syncExtraMembers() {
   if (typeof state === 'undefined' || !state || !state.extraMembers) return;
+  _repairExtraMemberIds();
   state.extraMembers.forEach(function(u){
     if (!MEMBERS.find(function(m){ return m.id === u.memberId; })) {
       MEMBERS.push({id:u.memberId, name:u.name, role:u.role||'STAFF', dept:u.dept||'COMMON', pw:u.pw, isAdmin:false});
@@ -6909,6 +7394,86 @@ function toggleBankType() {
       setTimeout(function(){ applyGateSession(uid); showHub(); }, 800);
     }
   }
+})();
+
+// ═══════════════════════════════════════════
+// BACKSPACE → 이전 화면 (전역 뒤로가기)
+// ═══════════════════════════════════════════
+(function(){
+  function _isEditable(el){
+    if(!el) return false;
+    var tag=(el.tagName||'').toLowerCase();
+    if(tag==='input'||tag==='textarea'||tag==='select') return true;
+    if(el.isContentEditable) return true;
+    return false;
+  }
+  function _visible(el){
+    if(!el) return false;
+    if(el.classList && el.classList.contains('open')) return true;
+    var st=window.getComputedStyle(el);
+    if(st.display==='none'||st.visibility==='hidden') return false;
+    return (el.offsetParent!==null) || st.position==='fixed';
+  }
+  var MODALS=[
+    ['pinModal',null],['taskFormModal','closeTaskForm'],['ctTplPreviewModal','closeCtTplPreview'],
+    ['contractTplModal','closeContractTpl'],['prModal','closePaymentRequest'],['contractModal','closeContractModal'],
+    ['quotePreviewModal',null],['imgUrlModal','closeImageUrlDialog'],['cardDetailModal',null],
+    ['slackImportModal','closeSlackImport'],['slackConfigModal','closeSlackConfig']
+  ];
+  function _closeTopModal(){
+    var best=null,bestZ=-1,bestFn=null;
+    MODALS.forEach(function(m){
+      var el=document.getElementById(m[0]);
+      if(el && _visible(el)){
+        var z=parseInt(window.getComputedStyle(el).zIndex)||0;
+        if(z>=bestZ){ bestZ=z; best=el; bestFn=m[1]; }
+      }
+    });
+    if(best){
+      if(bestFn && typeof window[bestFn]==='function'){ window[bestFn](); }
+      else { best.style.display='none'; if(best.classList) best.classList.remove('open'); }
+      return true;
+    }
+    return false;
+  }
+  var APPS=[
+    ['cardApp','closeCardApp'],['quoteApp','closeQuoteApp'],['reportApp','closeReportApp'],
+    ['bankApp','closeBankApp'],['projectApp','closeProjectApp'],['financeApp','closeFinanceApp']
+  ];
+  function _closeTopApp(){
+    for(var i=0;i<APPS.length;i++){
+      var el=document.getElementById(APPS[i][0]);
+      if(el && el.style.display!=='none' && _visible(el)){
+        var fn=APPS[i][1];
+        if(typeof window[fn]==='function'){ window[fn](); } else { el.style.display='none'; if(typeof showHub==='function') showHub(); }
+        return true;
+      }
+    }
+    return false;
+  }
+  function _onHub(){ var hub=document.getElementById('hubPage'); return !!(hub && hub.style.display!=='none' && _visible(hub)); }
+  function globalBack(){
+    var gate=document.getElementById('loginGate');
+    if(gate && !gate.classList.contains('hidden')) return;
+    if(_closeTopModal()) return;
+    if(_closeTopApp()) return;
+    if(_onHub()) return;
+    if(typeof _eaStack!=='undefined' && _eaStack.length>1){
+      _eaStack.pop();
+      var prev=_eaStack[_eaStack.length-1];
+      _navByBack=true; showPage(prev); _navByBack=false;
+      return;
+    }
+    if(typeof showHub==='function') showHub();
+  }
+  window.globalBack=globalBack;
+  document.addEventListener('keydown', function(e){
+    if(e.key!=='Backspace' && e.keyCode!==8) return;
+    if(e.altKey||e.ctrlKey||e.metaKey) return;
+    if(_isEditable(e.target)) return;
+    e.preventDefault();
+    globalBack();
+  });
 })();
 </script>
 
