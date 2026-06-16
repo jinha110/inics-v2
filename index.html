@@ -7535,6 +7535,13 @@ function matchDocBank(docId,txnId,how){
 function unmatchDoc(docId){ var doc=(state.docs||[]).find(function(x){return x.id===docId;}); if(!doc) return; _unlinkDoc(doc); _docReconRefresh(); showToast('매칭 해제 · Unmatched'); }
 function _docShort(d){ return d?((d.docNo?('['+d.docNo+'] '):'')+(d.title||'결재 Doc')):'결재 Doc'; }
 // ── 결재문서 읽기전용 뷰어 (은행 대사 등에서 매칭된 결재 내용 확인용) ──
+function _docViewerCmts(doc){
+  if(!(doc.comments&&doc.comments.length)) return '<div style="font-size:11px;color:var(--text-3)">결재 이력 없음 · No approval history</div>';
+  return '<div class="cmt-list">'+doc.comments.map(function(c){
+    var isApp=/^(승인|Approved)/.test(c.text||''); var isRej=/^(반려|Rejected)/.test(c.text||'');
+    return '<div class="cmt '+(isApp?'approve':isRej?'reject-cmt':'')+'"><div class="cmt-top"><span class="cmt-who">'+(c.who||'')+'<span class="cmt-role">'+(c.role||'')+'</span></span><span class="cmt-time">'+(c.time||'')+'</span></div><div class="cmt-txt">'+(c.text||'')+'</div></div>';
+  }).join('')+'</div>';
+}
 function openDocViewer(docId){
   var doc=(state.docs||[]).find(function(d){ return d.id==docId; });
   if(!doc){ showToast('문서를 찾을 수 없습니다 · Document not found'); return; }
@@ -7569,10 +7576,12 @@ function openDocViewer(docId){
       +row('결재선 · Approvers', (a1?esc(a1.name):'—')+(a2?(' → '+esc(a2.name)):''))
       +(doc.content?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px">내용 · Description</div><div style="font-size:13px;line-height:1.7;white-space:pre-wrap">'+esc(doc.content)+'</div></div>'):'')
       +(doc.descImage?'<img src="'+doc.descImage+'" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px;cursor:zoom-in" onclick="viewImageLightbox(this.src)">':'')
-      +(doc.expenseData?('<div style="margin-top:12px">'+(typeof expenseDetailHTML==='function'?expenseDetailHTML(doc.expenseData):'')+'</div>'):'')
+      +(doc.expenseData?('<div style="margin-top:12px">'+(typeof expenseDetailHTML==='function'?expenseDetailHTML(doc.expenseData):'')+'</div>')
+        : ((/지출결의서|계약체결/.test(doc.type||''))?'<div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);padding:10px 12px;font-size:12px;color:#92400e;line-height:1.6"><i class="ti ti-alert-triangle" style="margin-right:4px"></i> 이 문서에는 <b>거래처·은행·참조 정보가 저장되어 있지 않습니다</b>. (은행정보 저장 기능 수정 이전에 작성·승인된 문서일 수 있습니다.) 기안을 수정해 정보를 다시 입력·저장하면 표시됩니다. · Vendor/bank/reference info was not saved on this document — edit &amp; re-save to populate it.</div>':''))
       +(doc.contractAtts&&doc.contractAtts.length?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px"><i class="ti ti-file-certificate" style="color:#4338ca"></i> 계약서 첨부 · Contract</div>'+attListHTML(doc.contractAtts,false,doc.id,'contract')+'</div>'):'')
       +(doc.draftAtts&&doc.draftAtts.length?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px"><i class="ti ti-paperclip"></i> 첨부 · Attachments</div>'+attListHTML(doc.draftAtts,false,doc.id,'draft')+'</div>'):'')
       +(doc.payAtts&&doc.payAtts.length?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px"><i class="ti ti-credit-card"></i> 결제 증빙 · Payment proof</div>'+attListHTML(doc.payAtts,false,doc.id,'pay')+'</div>'):'')
+      +'<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">결재 이력 · Approval History</div>'+_docViewerCmts(doc)+'</div>'
     +'</div>'
   +'</div>';
   ov.innerHTML=H;
