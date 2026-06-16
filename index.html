@@ -561,6 +561,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-desc">계좌별 거래내역 · 회계 분류<br>Statements · Categorize</div>
       </div>
 
+      <div class="hub-card active-module" id="hubCard-contract" onclick="enterModule('contract')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#4338ca">Active</div>
+        <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca"><i class="ti ti-file-certificate"></i></div>
+        <div class="hub-card-title">계약서 · Contracts</div>
+        <div class="hub-card-desc">계약 정보 · 스캔본 보관<br>Contract Info · Signed Scans</div>
+      </div>
+
+      <div class="hub-card active-module" id="hubCard-invoice" onclick="enterModule('invoice')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#0e7490">Active</div>
+        <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-file-dollar"></i></div>
+        <div class="hub-card-title">인보이스 · Invoices</div>
+        <div class="hub-card-desc">발행 · 수취 인보이스 관리<br>Issued · Received Invoices</div>
+      </div>
+
     </div>
 
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>FURNITURE · 가구</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
@@ -739,7 +753,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:12px;color:var(--text-3);margin-bottom:18px">Per-account statement import &amp; categorization · 계좌별 거래내역 업로드 · 회계 분류</div>
     <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
       <button id="bankTabStmt" onclick="bankSwitchTab('stmt')" style="background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-file-spreadsheet"></i> Statements · 명세서</button>
-      <button id="bankTabRecon" onclick="bankSwitchTab('recon')" style="background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-arrows-diff"></i> Card Reconcile · 카드 대사</button>
       <button id="bankTabAcct" onclick="bankSwitchTab('acct')" style="display:none;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-adjustments-cog"></i> Accounting Admin · 회계 관리자</button>
     </div>
     <div id="bankStmtPane">
@@ -748,11 +761,87 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div id="bankSummary" style="margin-bottom:10px"></div>
       <div id="bankList"></div>
     </div>
-    <div id="bankReconPane" style="display:none"></div>
     <div id="bankAcctPane" style="display:none"></div>
   </div>
 </div>
 <input type="file" id="bankExcelInput" style="display:none" accept=".xlsx,.xls" onchange="handleBankExcel(this.files[0]);this.value=''">
+<input type="file" id="contractScanInput" style="display:none" accept="image/*,application/pdf" multiple onchange="handleContractScan(this.files);this.value=''">
+
+<div id="contractApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:1120px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closeContractApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub · 허브</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">Contracts · 계약서</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <span id="contractAvatarChip"></span><span id="contractUserName"></span>
+        <button class="btn btn-outline" onclick="hubLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">계약 정보 · 서명·날인 스캔본 · 전자결재 계약체결 문서 통합 보관 · Contract info, signed scans &amp; approval docs</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <input type="text" id="contractSearch" oninput="renderContractApp()" placeholder="검색 · Search (계약번호·고객·제목)" style="flex:1;min-width:220px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)">
+    </div>
+    <div id="contractSummary" style="margin-bottom:12px"></div>
+    <div id="contractList"></div>
+  </div>
+</div>
+
+<div id="invoiceApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:1120px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closeInvoiceApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub · 허브</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">Invoices · 인보이스</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <span id="invoiceUserName"></span>
+        <button class="btn btn-outline" onclick="hubLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">발행한 인보이스 · 수취한 인보이스 통합 관리 · Issued &amp; received invoice register</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <button id="invTabAll" onclick="invoiceSetTab('all')" style="font-size:12px;padding:6px 14px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">전체 · All</button>
+        <button id="invTabIssued" onclick="invoiceSetTab('issued')" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">발행 · Issued</button>
+        <button id="invTabReceived" onclick="invoiceSetTab('received')" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">수취 · Received</button>
+      </div>
+      <input type="text" id="invoiceSearch" oninput="renderInvoiceApp()" placeholder="검색 · Search (번호·거래처·비고)" style="flex:1;min-width:200px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)">
+      <button class="btn btn-dark" onclick="openInvoiceForm(null)" style="font-size:12px;padding:7px 13px"><i class="ti ti-plus"></i> 인보이스 추가 · Add</button>
+      <button class="btn btn-outline" onclick="invoiceGmailInfo()" style="font-size:12px;padding:7px 13px"><i class="ti ti-mail"></i> Gmail 가져오기</button>
+    </div>
+    <div id="invoiceSummary" style="margin-bottom:12px"></div>
+    <div id="invoiceList"></div>
+  </div>
+</div>
+
+<!-- Invoice add/edit modal -->
+<div id="invoiceModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:670;overflow-y:auto;padding:24px 12px">
+  <div style="max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border)">
+      <div style="font-size:15px;font-weight:700"><i class="ti ti-file-dollar"></i> <span id="invoiceModalTitle">인보이스 추가</span></div>
+      <button class="btn btn-outline" onclick="closeInvoiceForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
+    </div>
+    <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+      <div class="fg" style="margin:0"><label style="font-size:10px">구분 · Type</label><select id="invDir" style="font-size:13px;padding:6px 9px"><option value="issued">발행 · Issued (매출)</option><option value="received">수취 · Received (매입)</option></select></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">인보이스 번호 · No.</label><input type="text" id="invNo" autocomplete="off" style="font-size:13px;padding:6px 9px"></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">발행일 · Date</label><input type="date" id="invDate" style="font-size:13px;padding:6px 9px"></div>
+      <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">거래처 · Counterparty</label><input type="text" id="invVendor" list="invoiceVendorList" autocomplete="off" style="font-size:13px;padding:6px 9px"><datalist id="invoiceVendorList"></datalist></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">통화 · Currency</label><select id="invCurrency" style="font-size:13px;padding:6px 9px"><option>VND</option><option>USD</option><option>MXN</option><option>KRW</option></select></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">공급가액 · Subtotal</label><input type="text" id="invSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);invRecalc()" style="font-size:13px;padding:6px 9px"></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">VAT %</label><select id="invVatPct" onchange="invRecalc()" style="font-size:13px;padding:6px 9px"><option value="8">8%</option><option value="10">10%</option><option value="0">0%</option></select></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">합계 · Total</label><input type="text" id="invTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);invRecalcFromTotal()" style="font-size:13px;padding:6px 9px;font-weight:700"></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">분류 · Category</label><input type="text" id="invCategory" autocomplete="off" placeholder="예: 가구 매출 / 자재 매입" style="font-size:13px;padding:6px 9px"></div>
+      <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">비고 · Note</label><input type="text" id="invNote" autocomplete="off" style="font-size:13px;padding:6px 9px"></div>
+      <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">첨부 파일 · File (PDF/이미지)</label><input type="file" id="invFileInput" accept="image/*,application/pdf" onchange="handleInvoiceFile(this.files[0])" style="font-size:12px"><div id="invFileName" style="font-size:11px;color:var(--text-3);margin-top:4px"></div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border)">
+      <button class="btn btn-danger" id="invDeleteBtn" onclick="deleteInvoice()" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
+      <button class="btn btn-dark" onclick="saveInvoice()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
+    </div>
+  </div>
+</div>
 
 <!-- PROJECT MANAGEMENT — standalone overlay -->
 <div id="reportApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
@@ -844,6 +933,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-outline" onclick="saveContractOpts()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 설정 저장</button>
         <button class="btn btn-outline" onclick="openPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-cash"></i> 대금지급요청서</button>
+        <button class="btn btn-outline" onclick="document.getElementById('contractScanInput').click()" style="font-size:11px;padding:5px 10px"><i class="ti ti-paperclip"></i> 스캔본 업로드</button>
+        <button class="btn btn-dark" id="ctConfirmBtn" onclick="toggleContractConfirm()" style="font-size:11px;padding:5px 10px"><i class="ti ti-circle-check"></i> 계약 확정</button>
         <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄</button>
         <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
         <button class="btn btn-outline" onclick="closeContractModal()" style="font-size:11px;padding:5px 10px">닫기</button>
@@ -870,6 +961,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
       <div style="font-size:10px;color:var(--text-3);margin-top:5px">구매자 정보는 거래처 DB·프로젝트에서 자동 채워지고, 저장 시 DB에 반영됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정.</div>
       <div style="font-size:11px;color:var(--text-3);margin-top:6px">납품 장소 · Delivery Place: <span id="ctDeliveryPlace"></span></div>
+      <div id="contractScansBar" style="margin-top:8px"></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
       <span style="font-size:11px;color:var(--text-3);font-weight:600">미리보기 · Preview</span>
@@ -903,12 +995,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px">
         <div class="fg" style="margin:0"><label style="font-size:10px">PR 번호 · No.</label><input type="text" id="prNo" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px;font-family:var(--mono)"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">회차 · Installment</label><select id="prKind" onchange="prOnKindChange()" style="font-size:12px;padding:5px 8px"><option value="deposit">선금 · Advance (Đợt 1)</option><option value="balance">잔금 · Balance (Đợt 2)</option><option value="full">전액 · Full</option><option value="custom">직접입력 · Custom</option></select></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">선금/후금 · Timing</label><select id="prTiming" onchange="renderPRPreview()" style="font-size:12px;padding:5px 8px"><option value="advance">선금 · Advance</option><option value="after">후금 · Balance/After</option></select></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">요청 금액 · Amount</label><input type="text" id="prAmount" inputmode="decimal" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">통화 · Currency</label><input type="text" id="prCurrency" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">요청일 · Date</label><input type="date" id="prDate" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">지급기한 · Due Date</label><input type="date" id="prDue" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Hạng mục · 항목 (Vi)</label><input type="text" id="prItem" oninput="renderPRPreview()" placeholder="VD: Cung cấp và bàn giao 39 ghế văn phòng FURSYS" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item · 항목 (En)</label><input type="text" id="prItemEn" oninput="renderPRPreview()" placeholder="e.g. Supply and Delivery of 39 FURSYS Task Chairs" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank</label><input type="text" id="prBank" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No.</label><input type="text" id="prAcct" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder</label><input type="text" id="prHolder" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
@@ -1025,7 +1120,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fg"><label>고객 타입 · Cust. Type</label><select id="projCustType" onchange="toggleEndCust()"><option>B2B</option><option>B2C</option><option>END USER</option></select></div>
         <div class="fg" id="projEndCustWrap" style="grid-column:1/-1;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px"><label style="color:#b45309"><i class="ti ti-users"></i> 최종 고객 정보 · End Customer (B2B)</label><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px"><input type="text" id="projEndName" placeholder="최종 고객사명 · Name" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndRep" placeholder="담당/대표 · Rep." autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndAddr" placeholder="주소 · Address" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndContact" placeholder="연락처 · Contact" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"></div></div>
         <div class="fg"><label>단계 · Stage</label><select id="projStage" onchange="onProjStageChange()"></select></div>
-        <div class="fg"><label>예상금액 · Amount <span>부가세 제외 · Excl. VAT</span></label><input type="text" id="projAmount" placeholder="0" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this)"></div>
+        <div class="fg"><label>예상금액 · Amount <span>부가세 포함 · Incl. VAT</span></label><input type="text" id="projAmount" placeholder="0" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this)"></div>
+        <div class="fg"><label>부가세 · VAT</label><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:6px;align-items:center;white-space:nowrap;margin-top:7px"><input type="checkbox" id="projVatApplied" checked style="width:auto;margin:0"> 적용됨 · Applied</label></div>
         <div class="fg"><label>통화 · Currency</label><select id="projCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
         <div class="fg"><label>등록일 · Reg. Date</label><input type="date" id="projRegDate"></div>
         <div class="fg"><label>목표 프로젝트 완료일 · Target</label><input type="date" id="projTargetDate"></div>
@@ -1043,31 +1139,30 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
         <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px">매출 · Sales</div>
         <div class="fgrid">
-          <div class="fg"><label>통화 · Currency</label><select id="salesCurrency" onchange="recalcProjFinance()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
-          <div class="fg"><label>VAT %</label><select id="salesVat" onchange="recalcProjFinance()"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
-          <div class="fg"><label>공급가액 · Subtotal <span>VAT 제외</span></label><input type="text" id="salesSubtotal" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>부가세 · VAT</label><input type="text" id="salesVatAmt" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>매출 합계 · Total <span>선금+잔금 (VAT 포함)</span></label><input type="text" id="salesTotal" readonly style="background:var(--surface-2);color:var(--text-2);font-weight:700"></div>
-          <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="salesDeposit" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance()"></div>
-          <div class="fg"><label>선금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesDepositPaid" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesDepositDate" style="flex:1"></div></div>
-          <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="salesBalance" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance()"></div>
-          <div class="fg"><label>잔금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesBalancePaid" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesBalanceDate" style="flex:1"></div></div>
-          <div class="fg"><label>인보이스 발행 · Invoice</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesInvoiceIssued" onchange="recalcProjFinance()" style="width:auto;margin:0"> 발행됨</label><input type="text" id="salesInvoiceNo" placeholder="인보이스 번호" autocomplete="off" style="flex:1"></div></div>
-          <div class="fg"><label>인보이스 금액 / 발행일 <span>미입력=총액</span></label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="salesInvoiceAmount" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance()" placeholder="발행 금액" style="flex:1"><input type="date" id="salesInvoiceDate" style="flex:1"></div></div>
+          <div class="fg"><label>통화 · Currency</label><select id="salesCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
+          <div class="fg"><label>VAT %</label><select id="salesVat" onchange="recalcProjFinance('salesVat')"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
+          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="salesSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('salesSubtotal')"></div>
+          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="salesVatAmt" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>매출 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="salesTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('salesTotal')" style="font-weight:700"></div>
+          <div class="fg"><label>선금 % · Deposit %</label><input type="text" id="salesDepositPct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance('salesDepositPct')"></div>
+          <div class="fg"><label>잔금 % · Balance % <span>자동</span></label><input type="text" id="salesBalancePct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance('salesBalancePct')"></div>
+          <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="salesDeposit" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
+          <div class="fg"><label>선금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesDepositDate" style="flex:1"></div></div>
+          <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="salesBalance" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
+          <div class="fg"><label>잔금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesBalancePaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesBalanceDate" style="flex:1"></div></div>
+          <div class="fg"><label>인보이스 발행 · Invoice</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesInvoiceIssued" onchange="projMarginRefresh()" style="width:auto;margin:0"> 발행됨</label><input type="text" id="salesInvoiceNo" placeholder="인보이스 번호" autocomplete="off" style="flex:1"></div></div>
+          <div class="fg"><label>인보이스 금액 / 발행일 <span>미입력=총액</span></label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="salesInvoiceAmount" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()" placeholder="발행 금액" style="flex:1"><input type="date" id="salesInvoiceDate" style="flex:1"></div></div>
         </div>
 
         <div style="font-size:12px;font-weight:700;color:#b45309;margin:14px 0 8px">매입 · Purchase</div>
         <div class="fgrid">
           <div class="fg"><label>거래처 · Vendor</label><input type="text" id="purchaseVendor" list="projectClients" autocomplete="off"></div>
-          <div class="fg"><label>통화 · Currency</label><select id="purchaseCurrency" onchange="recalcProjFinance()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
-          <div class="fg"><label>VAT %</label><select id="purchaseVat" onchange="recalcProjFinance()"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
-          <div class="fg"><label>공급가액 · Subtotal <span>VAT 제외</span></label><input type="text" id="purchaseSubtotal" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>부가세 · VAT</label><input type="text" id="purchaseVatAmt" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>매입 합계 · Total <span>선금+잔금 (VAT 포함)</span></label><input type="text" id="purchaseTotal" readonly style="background:var(--surface-2);color:var(--text-2);font-weight:700"></div>
-          <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="purchaseDeposit" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance()"></div>
-          <div class="fg"><label>선금 지급</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseDepositPaid" style="width:auto;margin:0"> 지급완료</label><input type="date" id="purchaseDepositDate" style="flex:1"></div></div>
-          <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="purchaseBalance" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance()"></div>
-          <div class="fg"><label>잔금 지급</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseBalancePaid" style="width:auto;margin:0"> 지급완료</label><input type="date" id="purchaseBalanceDate" style="flex:1"></div></div>
+          <div class="fg"><label>통화 · Currency</label><select id="purchaseCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
+          <div class="fg"><label>VAT %</label><select id="purchaseVat" onchange="recalcProjFinance('purchaseVat')"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
+          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="purchaseSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('purchaseSubtotal')"></div>
+          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="purchaseVatAmt" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>매입 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="purchaseTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('purchaseTotal')" style="font-weight:700"></div>
+          <div class="fg" style="grid-column:1/-1"><label>전액 선금 지급 · Full advance <span style="color:#b45309">(매입은 선금 일괄)</span></label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 지급완료 · Paid</label><input type="date" id="purchaseDepositDate" style="flex:1"></div></div>
         </div>
         <div class="line-preview" id="projMarginPreview" style="margin-top:10px">마진 —</div>
       </div>
@@ -1075,6 +1170,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button class="btn btn-danger" id="projDeleteBtn" onclick="deleteProject(_editingProjId)" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
         <button class="btn btn-outline" id="projContractBtn" onclick="openContractModal(_editingProjId)" style="display:none"><i class="ti ti-file-text"></i> 계약서 · Contract</button>
+        <button class="btn btn-outline" id="projPrBtn" onclick="openPaymentRequestForProject()" style="display:none"><i class="ti ti-cash"></i> 대금지급요청서 · PR</button>
         <button class="btn btn-dark" onclick="saveProject()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
       </div>
       </div>
@@ -1767,7 +1863,7 @@ let state = {
   cardExpenses:[], cardSeq:0, cardMerchants:[], modulePerms:{}, viewScope:{},
   products:[], quotes:[], quoteSeq:0,
   projects:[], projectSeq:0, projLocations:['HANOI','HCMC'], projRegionsX:[],
-  docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','기타 · Other']
+  docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','계약체결 · Contract Signing','기타 · Other']
 };
 let curPage='dashboard', curFilter='all', curDocId=null;
 let mineUserId=null, mineFilter='all', mineDocId=null;
@@ -1845,6 +1941,13 @@ async function loadState() {
     if(!state.projRegionsX)state.projRegionsX=[];
     if(!state.bankTxns)state.bankTxns=[];
     if(state.bankSeq===undefined)state.bankSeq=0;
+    if(!state.paymentRequests)state.paymentRequests=[];
+    if(!state.invoices)state.invoices=[];
+    if(state.invoiceSeq===undefined)state.invoiceSeq=0;
+    if(state.docTypes && state.docTypes.indexOf('계약체결 · Contract Signing')<0){
+      var _io=state.docTypes.indexOf('기타 · Other');
+      if(_io>=0) state.docTypes.splice(_io,0,'계약체결 · Contract Signing'); else state.docTypes.push('계약체결 · Contract Signing');
+    }
   }
   if(typeof bankSeedOnce==='function') bankSeedOnce();
   // apply saved passwords
@@ -2120,7 +2223,7 @@ function showDetail(id,wrapId='detailWrap'){
   if(doc.needPayment)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('pay'),'credit-card')}<div class="flabel">PAYMENT</div><div class="fsub">결제</div></div>`;
   flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('done'),'circle-check')}<div class="flabel">Done · 완료</div></div>`;
 
-  const cmts=doc.comments?.length?doc.comments.map(c=>{const isApp=c.text==='승인';const isRej=c.text==='반려';return`<div class="cmt ${isApp?'approve':isRej?'reject-cmt':''}"><div class="cmt-top"><span class="cmt-who">${c.who}<span class="cmt-role">${c.role}</span></span><span class="cmt-time">${c.time}</span></div><div class="cmt-txt">${c.text}</div></div>`;}).join(''):'<div style="font-size:11px;color:var(--text-3)">No comments · 의견 없음</div>';
+  const cmts=doc.comments?.length?doc.comments.map(c=>{const isApp=/^(승인|Approved)/.test(c.text||'');const isRej=/^(반려|Rejected)/.test(c.text||'');return`<div class="cmt ${isApp?'approve':isRej?'reject-cmt':''}"><div class="cmt-top"><span class="cmt-who">${c.who}<span class="cmt-role">${c.role}</span></span><span class="cmt-time">${c.time}</span></div><div class="cmt-txt">${c.text}</div></div>`;}).join(''):'<div style="font-size:11px;color:var(--text-3)">No comments · 의견 없음</div>';
   const _cuid=mineUserId||parseInt(sessionStorage.getItem('inics_uid')||'0')||newAuthId;
   const _cname=(gm(_cuid)&&gm(_cuid).name)||(window._gateUser&&window._gateUser.name)||'';
   const _cadm=sessionIsAdmin||(gm(_cuid)&&gm(_cuid).isAdmin);
@@ -2139,6 +2242,9 @@ function showDetail(id,wrapId='detailWrap'){
   if(s==='pending1'||s==='pending2'){
     const step=s==='pending1'?1:2;
     actionHTML=`<div class="action-box"><div class="action-box-title"><i class="ti ti-stamp"></i> ${step}${step===1?'st':'nd'} Approval · ${step}차 결재 처리</div><textarea class="action-comment" id="actionComment" placeholder="Comment (optional) · 의견 선택 입력"></textarea><div class="btn-row"><button class="btn btn-success" onclick="doApproval(${id},${step},'approve','${wrapId}')"><i class="ti ti-check"></i> Approve · 승인</button><button class="btn btn-danger" onclick="doApproval(${id},${step},'reject','${wrapId}')"><i class="ti ti-x"></i> Reject · 반려</button></div></div>`;
+  }
+  if(canCancelApproval(doc)){
+    actionHTML+=`<div class="action-box" style="margin-top:10px"><div class="action-box-title"><i class="ti ti-arrow-back-up"></i> Cancel My Approval · 승인 취소</div><div style="font-size:11px;color:var(--text-3);margin-bottom:8px">아직 다음 결재자가 승인하지 않아 내 승인을 취소할 수 있습니다. · You can undo your approval (no later approver has approved yet).</div><div class="btn-row"><button class="btn btn-outline" style="color:var(--danger)" onclick="cancelApproval(${id},'${wrapId}')"><i class="ti ti-arrow-back-up"></i> Cancel approval · 승인 취소</button></div></div>`;
   }
   if(s==='payment'){
     const pa=doc.payAtts||[];
@@ -2691,6 +2797,36 @@ function submitDoc(){
 }
 function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');descImageData=null;var dp=document.getElementById('descImagePreview');if(dp)dp.innerHTML='';var dn=document.getElementById('descImageName');if(dn)dn.textContent='';document.getElementById('docCurrency').value='VND';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
 function resubmit(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.docNo)doc.docNo=genDocNo(doc.dept);doc.status='pending1';saveState();if(wrapId==='detailWrap')renderList();else renderMineList();showToast('Submitted · 결재 상신 완료');}
+function canCancelApproval(doc){
+  if(!doc) return false;
+  var uid = parseInt(sessionStorage.getItem('inics_uid')||'0');
+  if(!uid) return false;
+  var s=doc.status;
+  // 1차 승인자: 승인 후 status가 pending2(2차 미승인)일 때만 취소 가능
+  if(uid===doc.a1Id && doc.a1Id){
+    if(doc.a2Id){ return s==='pending2'; }   // 2차 존재 → 2차가 아직 승인 안 했을 때만
+    return (s==='payment');                  // 2차 없음 → 결제 대기 중이면 취소 가능 (결제완료/done 이후 불가)
+  }
+  // 2차 승인자: 승인 후 결제 대기(payment)면 취소 가능, 결제 완료(done)면 불가
+  if(uid===doc.a2Id && doc.a2Id){ return (s==='payment'); }
+  return false;
+}
+function cancelApproval(id,wrapId){
+  var doc=state.docs.find(function(d){return d.id===id;}); if(!doc) return;
+  if(!canCancelApproval(doc)){ showToast('이미 다음 결재자가 승인하여 취소할 수 없습니다 · Cannot cancel — later approval exists'); return; }
+  var uid = parseInt(sessionStorage.getItem('inics_uid')||'0');
+  var step = (uid===doc.a1Id)?1:2;
+  doc.status = step===1 ? 'pending1' : 'pending2';
+  doc.doneAt='';
+  if(doc.comments&&doc.comments.length){
+    var me=gm(uid); var nm=me?me.name:'';
+    for(var i=doc.comments.length-1;i>=0;i--){ var c=doc.comments[i]; if(c.who===nm && /^(승인|Approved)/.test(c.text||'')){ doc.comments.splice(i,1); break; } }
+  }
+  saveState();
+  if(wrapId==='detailWrap'){ curDocId=id; renderList(); } else { mineDocId=id; renderMineList(); }
+  if(typeof renderDashboard==='function') renderDashboard();
+  showToast('승인을 취소했습니다 · Approval cancelled');
+}
 function doApproval(id,step,action,wrapId){
   const doc=state.docs.find(d=>d.id===id);if(!doc)return;
   const approverId=step===1?doc.a1Id:doc.a2Id;const approver=gm(approverId);if(!approver)return;
@@ -2701,7 +2837,7 @@ function doApproval(id,step,action,wrapId){
   }
   const comment=document.getElementById('actionComment')?.value.trim();
   doc.comments=doc.comments||[];
-  doc.comments.push({who:approver.name,role:`${step}${step===1?'st':'nd'} Approver · ${step}차 승인자`,text:comment||(action==='approve'?'승인':'반려'),time:nowStr()});
+  doc.comments.push({who:approver.name,role:`${step}${step===1?'st':'nd'} Approver · ${step}차 승인자`,text:comment||(action==='approve'?'Approved · 승인':'Rejected · 반려'),time:nowStr()});
   if(action==='approve'){if(step===1&&doc.a2Id){doc.status='pending2';showToast('1st approved · 1차 승인 → 2nd pending · 2차 대기');}else{if(doc.needPayment){doc.status='payment';showToast('Approved · 승인 → Payment · 결제 단계');}else{doc.status='done';doc.doneAt=today();showToast('Fully approved · 결재 완료');}}}
   else{doc.status='rejected';doc.rejectedBy=step;showToast(`Rejected at step ${step} · ${step}차 반려`);}
   saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();
@@ -2951,7 +3087,7 @@ function buildVendorMap(){
       var v=ensure(p.client);
       if(v){
         var sd=p.sales||{};
-        var sAmt=qNum(sd.invoiceAmount)||(qNum(sd.deposit)+qNum(sd.balance))||qNum(p.amount);
+        var sAmt=qNum(sd.invoiceAmount)||qNum(sd.total)||(qNum(sd.deposit)+qNum(sd.balance))||qNum(p.amount);
         var sCur=sd.currency||p.currency||'';
         v.srcs.project=true;
         v.docs.push({src:'project', no:'PJ-'+p.id, title:'프로젝트 · '+(projStage(p.stage).label), id:p.id, cur:sCur, amt:sAmt, date:p.regDate||''});
@@ -2963,7 +3099,7 @@ function buildVendorMap(){
       var v2=ensure(p.purchase.vendor);
       if(v2){
         var pu=p.purchase;
-        var pAmt=(qNum(pu.deposit)+qNum(pu.balance));
+        var pAmt=qNum(pu.total)||(qNum(pu.deposit)+qNum(pu.balance));
         var pCur=pu.currency||'';
         v2.srcs.project=true;
         v2.docs.push({src:'project', no:'PJ-'+p.id, title:'프로젝트(매입) · '+(p.client||''), id:p.id, cur:pCur, amt:pAmt, date:p.regDate||''});
@@ -4539,7 +4675,7 @@ function moduleAllowed(key, u){
 function setModulePerm(uid, key, allowed){
   if(!state.modulePerms) state.modulePerms={};
   var p=state.modulePerms[uid];
-  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,acctAdmin:false}; state.modulePerms[uid]=p; }
+  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,contract:true,invoice:true,acctAdmin:false}; state.modulePerms[uid]=p; }
   p[key]=!!allowed;
   saveState();
   showToast('모듈 권한 저장됨 · Access saved');
@@ -4702,9 +4838,284 @@ function openContractModal(projId){
   document.getElementById('ctBuyerTax').value=o.buyerTax||_b.tax||p.buyerTax||'';
   document.getElementById('ctDeliveryPlace').innerHTML = p.deliveryPlace ? '<b>'+p.deliveryPlace+'</b>' : '<span style="color:#b91c1c">미입력 — 프로젝트 PO 단계의 "납품 장소"에 입력</span>';
   document.getElementById('contractModal').style.display='block';
+  renderContractScans();
+  updateContractConfirmBtn();
   renderContractPreview();
 }
+function updateContractConfirmBtn(){
+  var btn=document.getElementById('ctConfirmBtn'); if(!btn) return;
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
+  if(p&&p.contractConfirmed){ btn.className='btn btn-outline'; btn.innerHTML='<i class="ti ti-circle-check-filled"></i> 확정됨 · Confirmed (취소)'; btn.style.color='#15803d'; }
+  else { btn.className='btn btn-dark'; btn.innerHTML='<i class="ti ti-circle-check"></i> 계약 확정 · Confirm'; btn.style.color=''; }
+}
+function toggleContractConfirm(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p){ return; }
+  if(p.contractConfirmed){
+    if(!confirm('계약 확정을 취소할까요? 계약서 모듈에서 제외됩니다.\nUn-confirm this contract?')) return;
+    p.contractConfirmed=false; p.contractConfirmedAt=''; p.contractConfirmedBy='';
+    saveState(); updateContractConfirmBtn(); showToast('확정 취소 · Un-confirmed');
+  } else {
+    // 확정 전 현재 설정 저장
+    var o=_readContractOpts();
+    if(!o.contractNo){ showToast('계약번호가 필요합니다 · Contract no. required'); return; }
+    p.contractOpts=o; saveBuyerToDB(p.client,_buyerOf(o));
+    var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
+    p.contractConfirmed=true; p.contractConfirmedAt=nowStr(); p.contractConfirmedBy=(u?u.name:'');
+    saveState(); updateContractConfirmBtn();
+    showToast('계약 확정 · 계약서 모듈에 등록됨 · Confirmed');
+    if(typeof contractAppOpen!=='undefined' && contractAppOpen && typeof renderContractApp==='function') renderContractApp();
+  }
+}
+function renderContractScans(){
+  var box=document.getElementById('contractScansBar'); if(!box) return;
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
+  var scans=(p&&p.contractScans)||[];
+  var head='<div style="font-size:10px;color:var(--text-3);font-weight:700;margin-bottom:4px">스캔본 · Signed scans ('+scans.length+')</div>';
+  if(!scans.length){ box.innerHTML=head+'<div style="font-size:11px;color:var(--text-3)">업로드된 스캔본 없음 — 「스캔본 업로드」로 서명·날인본을 첨부하세요 · No scan uploaded.</div>'; return; }
+  box.innerHTML=head+'<div style="display:flex;gap:6px;flex-wrap:wrap">'+scans.map(function(s,i){
+    var isImg=/^data:image\//.test(s.data||'');
+    var thumb=isImg?'<img src="'+s.data+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">':'<i class="ti ti-file-type-pdf" style="font-size:22px;color:#b91c1c"></i>';
+    return '<div style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--surface)">'
+      +'<a href="javascript:void(0)" onclick="viewContractScan('+i+')" title="열기 · Open" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text)">'+thumb+'<span style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(s.name||('scan-'+(i+1)))+'</span></a>'
+      +'<a href="javascript:void(0)" onclick="deleteContractScan('+i+')" title="삭제 · Delete" style="color:var(--danger);text-decoration:none"><i class="ti ti-x"></i></a></div>';
+  }).join('')+'</div>';
+}
+function handleContractScan(files){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p){ showToast('계약을 먼저 여세요'); return; }
+  if(!files||!files.length) return;
+  if(!p.contractScans) p.contractScans=[];
+  var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
+  var arr=Array.prototype.slice.call(files), done=0;
+  arr.forEach(function(f){
+    var r=new FileReader();
+    r.onload=function(){ p.contractScans.push({name:f.name, type:f.type, data:r.result, uploadedAt:nowStr(), uploadedBy:(u?u.name:'')}); done++; if(done===arr.length){ saveState(); renderContractScans(); showToast('스캔본 '+arr.length+'개 업로드 · '+arr.length+' uploaded'); } };
+    r.readAsDataURL(f);
+  });
+}
+function viewContractScan(idx){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p||!p.contractScans) return;
+  var s=p.contractScans[idx]; if(!s) return; viewImageLightbox(s.data);
+}
+function deleteContractScan(idx){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p||!p.contractScans) return;
+  if(!confirm('이 스캔본을 삭제할까요? · Delete this scan?')) return;
+  p.contractScans.splice(idx,1); saveState(); renderContractScans();
+}
+
+// ═══════════ CONTRACTS MODULE · 계약서 모듈 ═══════════
+var contractAppOpen=false;
+function showContractApp(){
+  var hub=document.getElementById('hubPage'); if(hub) hub.style.display='none';
+  var app=document.getElementById('contractApp'); if(app) app.style.display='block';
+  contractAppOpen=true;
+  var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
+  var nm=document.getElementById('contractUserName'); if(nm) nm.textContent=u?u.name:'';
+  renderContractApp();
+}
+function closeContractApp(){ var app=document.getElementById('contractApp'); if(app) app.style.display='none'; contractAppOpen=false; if(typeof showHub==='function') showHub(); }
+function _contractTotal(p){
+  var o=p.contractOpts||{}; var qs=_projQuotesC(p); var q=o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0];
+  var sub=(q?(q.lines||[]):[]).reduce(function(s,l){return s+qNum(l.amount);},0);
+  return {total:sub*(1+(qNum(o.vatRate)||0)/100), cur:(q?(q.currency||'VND'):'VND')};
+}
+function openContractFromApp(projId){ openContractModal(projId); }
+function viewProjScan(projId,idx){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);}); if(!p||!p.contractScans) return; var s=p.contractScans[idx]; if(s) viewImageLightbox(s.data); }
+function renderContractApp(){
+  var box=document.getElementById('contractList'); if(!box) return;
+  var q=((document.getElementById('contractSearch')||{}).value||'').trim().toLowerCase();
+  var projs=(state.projects||[]).filter(function(p){return p&&p.contractOpts&&p.contractConfirmed;});
+  var sdocs=(state.docs||[]).filter(function(d){return /계약체결/.test(d.type||'');});
+  function pHay(p){ var o=p.contractOpts||{}; return [o.contractNo,p.clientFull,p.client,p.title,o.date].join(' ').toLowerCase(); }
+  function dHay(d){ return [d.docNo,d.title,d.type,d.dept].join(' ').toLowerCase(); }
+  if(q){ var ts=q.split(/\s+/);
+    projs=projs.filter(function(p){ return ts.every(function(t){return pHay(p).indexOf(t)>=0;}); });
+    sdocs=sdocs.filter(function(d){ return ts.every(function(t){return dHay(d).indexOf(t)>=0;}); });
+  }
+  projs.sort(function(a,b){ return String((b.contractOpts||{}).date||'').localeCompare(String((a.contractOpts||{}).date||'')); });
+  var sEl=document.getElementById('contractSummary');
+  if(sEl){ var scanCount=projs.reduce(function(s,p){return s+((p.contractScans||[]).length);},0);
+    sEl.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +_reconKpi('계약 · Contracts',projs.length,'#4338ca')+_reconKpi('스캔본 · Scans',scanCount,'#15803d')+_reconKpi('계약체결 결재 · Approvals',sdocs.length,'#92400e')+'</div>';
+  }
+  var html='';
+  var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
+  var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
+  // 1) 프로젝트 기반 계약 — 테이블
+  html+='<div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin:6px 0 8px">계약 · Contracts <span style="font-weight:400;color:var(--text-3);text-transform:none">(확정된 계약만 · confirmed only)</span></div>';
+  if(!projs.length){ html+='<div style="font-size:12px;color:var(--text-3);margin-bottom:16px">확정된 계약 없음 — 계약서에서 「계약 확정」을 누르면 등록됩니다 · No confirmed contracts.</div>'; }
+  else {
+    var prows=projs.map(function(p){
+      var o=p.contractOpts||{}; var tt=_contractTotal(p);
+      var prCnt=(state.paymentRequests||[]).filter(function(r){return String(r.projId)===String(p.id);}).length;
+      var scans=(p.contractScans||[]);
+      var scanCell=scans.length?scans.map(function(s,i){
+        var isImg=/^data:image\//.test(s.data||'');
+        var thumb=isImg?'<img src="'+s.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle">':'<i class="ti ti-file-type-pdf" style="font-size:16px;color:#b91c1c;vertical-align:middle"></i>';
+        return '<a href="javascript:void(0)" onclick="viewProjScan('+p.id+','+i+')" title="'+(s.name||'').replace(/"/g,'&quot;')+'" style="display:inline-block;margin-right:3px">'+thumb+'</a>';
+      }).join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
+      return '<tr>'
+        +'<td style="'+td+';font-family:var(--mono);font-weight:700;color:#4338ca;white-space:nowrap">'+(o.contractNo||'—')+'</td>'
+        +'<td style="'+td+';font-weight:600">'+(p.clientFull||p.client||'—')+(p.title?'<div style="font-size:10px;color:var(--text-3);font-weight:400">'+p.title+'</div>':'')+'</td>'
+        +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(o.date||'')+'</td>'
+        +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+tt.cur+' '+fmtN(Math.round(tt.total))+'</td>'
+        +'<td style="'+td+';white-space:nowrap;color:var(--text-2);font-size:11px">선금 '+(o.depositPct==null?'-':o.depositPct)+'% / 잔금 '+(o.balancePct==null?'-':o.balancePct)+'%</td>'
+        +'<td style="'+td+';white-space:nowrap">'+scanCell+'</td>'
+        +'<td style="'+td+';text-align:center">'+prCnt+'</td>'
+        +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openContractFromApp('+p.id+')"><i class="ti ti-edit"></i> 열기</button> <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="_contractProjId='+p.id+';document.getElementById(\'contractScanInput\').click()"><i class="ti ti-paperclip"></i> 스캔</button></td>'
+      +'</tr>';
+    }).join('');
+    html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px"><table style="width:100%;border-collapse:collapse;min-width:900px">'
+      +'<thead><tr><th style="'+th+'">계약번호 · No.</th><th style="'+th+'">고객 · Client</th><th style="'+th+'">계약일 · Date</th><th style="'+th+';text-align:right">금액 · Amount</th><th style="'+th+'">선금/잔금</th><th style="'+th+'">스캔본 · Scan</th><th style="'+th+';text-align:center">PR</th><th style="'+th+';text-align:right">작업</th></tr></thead>'
+      +'<tbody>'+prows+'</tbody></table></div>';
+  }
+  // 2) 전자결재 계약체결 문서 — 테이블
+  html+='<div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px">계약체결 결재 · Contract-signing approvals</div>';
+  if(!sdocs.length){ html+='<div style="font-size:12px;color:var(--text-3)">전자결재에서 「계약체결」 유형으로 기안하면 여기로 모입니다 · File a 계약체결 approval to collect here.</div>'; }
+  else {
+    var drows=sdocs.slice().reverse().map(function(d){
+      var atts=(d.draftAtts||[]).concat(d.payAtts||[]);
+      var attCell=atts.length?atts.map(function(a,i){
+        var isImg=/^data:image\//.test(a.data||'');
+        if(isImg) return '<a href="javascript:void(0)" onclick="viewImageLightbox(\'\')" title="'+(a.name||'').replace(/"/g,'&quot;')+'"><img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:3px;cursor:zoom-in"></a>';
+        return '<a href="'+(a.data||'#')+'" download="'+(a.name||'file')+'" title="'+(a.name||'').replace(/"/g,'&quot;')+'" style="margin-right:3px"><i class="ti ti-file" style="font-size:16px;color:var(--text-3);vertical-align:middle"></i></a>';
+      }).join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
+      return '<tr>'
+        +'<td style="'+td+';font-family:var(--mono);font-size:11px;color:var(--text-3);white-space:nowrap">'+(d.docNo||'—')+'</td>'
+        +'<td style="'+td+';font-weight:600">'+(d.title||'—')+'</td>'
+        +'<td style="'+td+'"><span class="badge b-'+(d.dept==='FURNITURE'?'furniture':'sourcing')+'" style="font-size:10px">'+(d.dept||'')+'</span></td>'
+        +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(d.createdAt||'')+'</td>'
+        +'<td style="'+td+';white-space:nowrap">'+attCell+'</td>'
+        +'<td style="'+td+';color:var(--text-2);font-size:11px;white-space:nowrap">'+(typeof sLabel==='function'?sLabel(d.status):d.status)+'</td>'
+      +'</tr>';
+    }).join('');
+    html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:720px">'
+      +'<thead><tr><th style="'+th+'">문서번호 · No.</th><th style="'+th+'">제목 · Title</th><th style="'+th+'">부서</th><th style="'+th+'">기안일</th><th style="'+th+'">첨부 · Files</th><th style="'+th+'">상태</th></tr></thead>'
+      +'<tbody>'+drows+'</tbody></table></div>';
+  }
+  box.innerHTML=html;
+}
 function closeContractModal(){ document.getElementById('contractModal').style.display='none'; }
+
+// ═══════════ INVOICE MODULE · 인보이스 모듈 ═══════════
+var invoiceAppOpen=false, _invTab='all', _invEditId=null, _invFileBuf=null;
+function showInvoiceApp(){
+  var hub=document.getElementById('hubPage'); if(hub) hub.style.display='none';
+  var app=document.getElementById('invoiceApp'); if(app) app.style.display='block';
+  invoiceAppOpen=true;
+  var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
+  var nm=document.getElementById('invoiceUserName'); if(nm) nm.textContent=u?u.name:'';
+  renderInvoiceApp();
+}
+function closeInvoiceApp(){ var app=document.getElementById('invoiceApp'); if(app) app.style.display='none'; invoiceAppOpen=false; if(typeof showHub==='function') showHub(); }
+function invoiceSetTab(t){ _invTab=t;
+  [['invTabAll','all'],['invTabIssued','issued'],['invTabReceived','received']].forEach(function(p){ var b=document.getElementById(p[0]); if(!b)return; var on=_invTab===p[1]; b.style.background=on?'var(--text)':'var(--surface)'; b.style.color=on?'#fff':'var(--text-2)'; });
+  renderInvoiceApp();
+}
+function _invFmt(n,cur){ return (cur||'')+' '+fmtN(Math.round(n||0)); }
+function renderInvoiceApp(){
+  var box=document.getElementById('invoiceList'); if(!box) return;
+  var q=((document.getElementById('invoiceSearch')||{}).value||'').trim().toLowerCase();
+  var list=(state.invoices||[]).slice();
+  if(_invTab!=='all') list=list.filter(function(v){ return v.dir===_invTab; });
+  if(q){ var ts=q.split(/\s+/); list=list.filter(function(v){ var hay=[v.invoiceNo,v.vendor,v.note,v.category,v.date].join(' ').toLowerCase(); return ts.every(function(t){return hay.indexOf(t)>=0;}); }); }
+  list.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')) || (b.id-a.id); });
+  // summary by currency
+  var all=(state.invoices||[]);
+  function sumBy(dir){ var m={}; all.filter(function(v){return v.dir===dir;}).forEach(function(v){ var c=v.currency||'VND'; m[c]=(m[c]||0)+qNum(v.total); }); return m; }
+  var iss=sumBy('issued'), rec=sumBy('received');
+  function chips(m){ var ks=Object.keys(m).filter(function(c){return m[c];}); return ks.length?ks.map(function(c){return _invFmt(m[c],c);}).join(' · '):'—'; }
+  var sEl=document.getElementById('invoiceSummary');
+  if(sEl){ sEl.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +_reconKpi('발행 · Issued ('+all.filter(function(v){return v.dir==='issued';}).length+')',chips(iss),'#15803d')
+    +_reconKpi('수취 · Received ('+all.filter(function(v){return v.dir==='received';}).length+')',chips(rec),'#b45309')
+    +'</div>'; }
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--text-3)">인보이스 없음 — 「인보이스 추가」로 등록하세요 · No invoices.</div>'; return; }
+  var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
+  var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
+  var rows=list.map(function(v){
+    var dirBadge=v.dir==='issued'?'<span class="badge b-done" style="font-size:10px">발행·Issued</span>':'<span class="badge b-payment" style="font-size:10px">수취·Received</span>';
+    var fileCell=v.fileData?('<a href="javascript:void(0)" onclick="viewInvoiceFile(\''+v.id+'\')" title="'+(v.fileName||'').replace(/"/g,'&quot;')+'"><i class="ti '+(/^data:image\//.test(v.fileData)?'ti-photo':'ti-file-type-pdf')+'" style="font-size:18px;color:#0e7490"></i></a>'):'<span style="color:var(--text-3)">—</span>';
+    return '<tr>'
+      +'<td style="'+td+'">'+dirBadge+'</td>'
+      +'<td style="'+td+';font-family:var(--mono);font-weight:600;white-space:nowrap">'+(v.invoiceNo||'—')+'</td>'
+      +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(v.date||'')+'</td>'
+      +'<td style="'+td+';font-weight:600">'+(v.vendor||'—')+'</td>'
+      +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+_invFmt(v.total,v.currency)+'</td>'
+      +'<td style="'+td+';color:var(--text-2);font-size:11px">'+(v.category||'')+'</td>'
+      +'<td style="'+td+';text-align:center">'+fileCell+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openInvoiceForm(\''+v.id+'\')"><i class="ti ti-edit"></i> 수정</button></td>'
+      +'</tr>';
+  }).join('');
+  box.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:840px">'
+    +'<thead><tr><th style="'+th+'">구분</th><th style="'+th+'">번호 · No.</th><th style="'+th+'">발행일 · Date</th><th style="'+th+'">거래처 · Party</th><th style="'+th+';text-align:right">합계 · Total</th><th style="'+th+'">분류</th><th style="'+th+';text-align:center">파일</th><th style="'+th+';text-align:right">작업</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div>';
+}
+function invRecalc(){ var sub=qNum(document.getElementById('invSubtotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var tot=sub*(1+r); document.getElementById('invTotal').value=fmtN(Math.round(tot)); }
+function invRecalcFromTotal(){ var tot=qNum(document.getElementById('invTotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var sub=r>0?tot/(1+r):tot; document.getElementById('invSubtotal').value=fmtN(Math.round(sub)); }
+function _invVendorDatalist(){ var names=[]; try{ var vm=(typeof buildVendorMap==='function')?buildVendorMap():{}; names=Object.keys(vm).map(function(k){return vm[k].name||'';}); }catch(e){} var dl=document.getElementById('invoiceVendorList'); if(dl) dl.innerHTML=qDistinct(names).map(function(c){return '<option value="'+String(c).replace(/"/g,'&quot;')+'">';}).join(''); }
+function openInvoiceForm(id){
+  _invEditId=id||null; _invFileBuf=null;
+  var v=id?(state.invoices||[]).find(function(x){return String(x.id)===String(id);}):null;
+  document.getElementById('invoiceModalTitle').textContent=v?'인보이스 수정':'인보이스 추가';
+  document.getElementById('invDir').value=v?v.dir:(_invTab==='received'?'received':'issued');
+  document.getElementById('invNo').value=v?(v.invoiceNo||''):'';
+  document.getElementById('invDate').value=v?(v.date||''):projTodayISO();
+  document.getElementById('invVendor').value=v?(v.vendor||''):'';
+  document.getElementById('invCurrency').value=v?(v.currency||'VND'):'VND';
+  document.getElementById('invSubtotal').value=v&&v.subtotal!=null?fmtN(v.subtotal):'';
+  document.getElementById('invVatPct').value=v&&v.vatPct!=null?v.vatPct:'8';
+  document.getElementById('invTotal').value=v&&v.total!=null?fmtN(v.total):'';
+  document.getElementById('invCategory').value=v?(v.category||''):'';
+  document.getElementById('invNote').value=v?(v.note||''):'';
+  document.getElementById('invFileName').textContent=v&&v.fileName?('현재 파일: '+v.fileName):'';
+  document.getElementById('invFileInput').value='';
+  document.getElementById('invDeleteBtn').style.display=v?'inline-flex':'none';
+  _invVendorDatalist();
+  document.getElementById('invoiceModal').style.display='block';
+}
+function closeInvoiceForm(){ document.getElementById('invoiceModal').style.display='none'; }
+function handleInvoiceFile(f){ if(!f) return; var r=new FileReader(); r.onload=function(){ _invFileBuf={name:f.name,type:f.type,data:r.result}; document.getElementById('invFileName').textContent='첨부됨: '+f.name; }; r.readAsDataURL(f); }
+function saveInvoice(){
+  var gv=function(id){ return (document.getElementById(id).value||'').replace(/,/g,'').trim(); };
+  var no=(document.getElementById('invNo').value||'').trim();
+  var vendor=(document.getElementById('invVendor').value||'').trim();
+  if(!no && !vendor){ showToast('인보이스 번호 또는 거래처를 입력하세요 · Enter invoice no. or party'); return; }
+  var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
+  var rec={
+    dir:document.getElementById('invDir').value,
+    invoiceNo:no, date:document.getElementById('invDate').value||projTodayISO(),
+    vendor:vendor, currency:document.getElementById('invCurrency').value||'VND',
+    subtotal:gv('invSubtotal'), vatPct:document.getElementById('invVatPct').value, total:gv('invTotal'),
+    category:(document.getElementById('invCategory').value||'').trim(), note:(document.getElementById('invNote').value||'').trim()
+  };
+  if(!state.invoices) state.invoices=[];
+  if(_invEditId){
+    var ex=(state.invoices).find(function(x){return String(x.id)===String(_invEditId);});
+    if(ex){ Object.keys(rec).forEach(function(k){ ex[k]=rec[k]; }); if(_invFileBuf){ ex.fileName=_invFileBuf.name; ex.fileType=_invFileBuf.type; ex.fileData=_invFileBuf.data; } ex.updatedAt=nowStr(); }
+  } else {
+    rec.id='INV'+Date.now(); rec.seq=(state.invoiceSeq=(state.invoiceSeq||0)+1);
+    if(_invFileBuf){ rec.fileName=_invFileBuf.name; rec.fileType=_invFileBuf.type; rec.fileData=_invFileBuf.data; }
+    rec.createdAt=nowStr(); rec.createdBy=(u?u.name:'');
+    state.invoices.push(rec);
+  }
+  saveState(); closeInvoiceForm(); renderInvoiceApp(); showToast('인보이스 저장 · Invoice saved');
+}
+function deleteInvoice(){
+  if(!_invEditId) return;
+  if(!confirm('이 인보이스를 삭제할까요? · Delete this invoice?')) return;
+  state.invoices=(state.invoices||[]).filter(function(x){return String(x.id)!==String(_invEditId);});
+  saveState(); closeInvoiceForm(); renderInvoiceApp(); showToast('삭제 완료 · Deleted');
+}
+function viewInvoiceFile(id){ var v=(state.invoices||[]).find(function(x){return String(x.id)===String(id);}); if(v&&v.fileData) viewImageLightbox(v.fileData); }
+function invoiceGmailInfo(){
+  alert('Gmail 자동 가져오기 · Import from Gmail\n\n'
+    +'현재 이 시스템은 GitHub Pages + Firebase 기반의 정적 웹앱이라, 별도 설정 없이 Gmail 사서함에 직접 접근할 수는 없습니다.\n\n'
+    +'가능하게 하려면 다음이 필요합니다:\n'
+    +'1) Google Cloud 프로젝트 + OAuth 2.0 클라이언트 ID (웹) — 승인된 자바스크립트 원본: https://jinha110.github.io\n'
+    +'2) Gmail API 사용 설정 (scope: gmail.readonly)\n'
+    +'3) 브라우저에서 Google 로그인 동의 → 인보이스 메일/첨부를 검색·가져오기\n\n'
+    +'클라이언트 ID를 발급해 주시면 이 모듈에 「Gmail 연동」 기능(인보이스 자동 수집)을 붙여드리겠습니다.\n현재는 PDF/이미지 파일을 직접 첨부해 등록하실 수 있습니다.');
+}
 function _readContractOpts(){
   return {
     contractNo:(document.getElementById('ctNo').value||'').trim(),
@@ -4811,7 +5222,12 @@ function _prNextSeq(projId){ var mx=0; _prList(projId).forEach(function(r){ if((
 function _prNoFor(contractNo,seq){ return String(contractNo||'').replace(/^HD-/,'PR-')+'-'+_pad(seq,2); }
 function _prKindLabel(kind,langKo){ if(kind==='deposit')return langKo?'선금 (Đợt 1)':'Advance Payment (Đợt 1)'; if(kind==='balance')return langKo?'잔금 (Đợt 2)':'Balance Payment (Đợt 2)'; if(kind==='full')return langKo?'전액':'Full Payment'; return langKo?'기타':'Payment'; }
 function _prComputeAmount(d,kind){ if(!d)return 0; if(kind==='deposit')return d.depAmt; if(kind==='balance')return d.balAmt; if(kind==='full')return d.total; return 0; }
-function prOnKindChange(){ var d=_prContractData(); var kEl=document.getElementById('prKind'); if(!kEl)return; var kind=kEl.value; if(kind!=='custom'){ document.getElementById('prAmount').value=fmtN(Math.round(_prComputeAmount(d,kind))); } renderPRPreview(); }
+function prOnKindChange(){ var d=_prContractData(); var kEl=document.getElementById('prKind'); if(!kEl)return; var kind=kEl.value; if(kind!=='custom'){ document.getElementById('prAmount').value=fmtN(Math.round(_prComputeAmount(d,kind))); } var tEl=document.getElementById('prTiming'); if(tEl){ tEl.value=(kind==='balance')?'after':'advance'; } renderPRPreview(); }
+function openPaymentRequestForProject(){
+  if(!_editingProjId){ showToast('프로젝트를 먼저 저장하세요 · Save the project first'); return; }
+  _contractProjId=_editingProjId;
+  openPaymentRequest();
+}
 function openPaymentRequest(){
   var d=_prContractData();
   if(!d){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요'); return; }
@@ -4829,7 +5245,9 @@ function openPaymentRequest(){
   var acc=accs.filter(function(a){return a.currency===d.cur;})[0]||accs[0];
   document.getElementById('prBank').value='Shinhan Bank Vietnam';
   document.getElementById('prAcct').value=acc?acc.acctNo:'';
-  document.getElementById('prHolder').value=(acc&&acc.name)||INICS_INFO.nameEn;
+  document.getElementById('prHolder').value=(acc&&acc.name)||INICS_INFO.nameVi;
+  var itEl=document.getElementById('prItem'); if(itEl) itEl.value=(p.contractItem||p.note||p.title||'');
+  var itEnEl=document.getElementById('prItemEn'); if(itEnEl) itEnEl.value=(p.contractItemEn||'');
   prOnKindChange();
   renderPRHistory();
   document.getElementById('prModal').style.display='block';
@@ -4840,6 +5258,9 @@ function _readPR(){
   return {
     prNo:(document.getElementById('prNo').value||'').trim(),
     kind:document.getElementById('prKind').value,
+    timing:(document.getElementById('prTiming')||{}).value||'advance',
+    item:(document.getElementById('prItem')||{}).value||'',
+    itemEn:(document.getElementById('prItemEn')||{}).value||'',
     amount:qNum(document.getElementById('prAmount').value)||0,
     currency:(document.getElementById('prCurrency').value||'VND').trim(),
     date:document.getElementById('prDate').value||projTodayISO(),
@@ -4878,7 +5299,7 @@ function issuePaymentRequest(){
   if(!pr.prNo) pr.prNo=_prNoFor(d.o.contractNo,seq);
   var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
   var rec={ id:'PR'+Date.now(), projId:d.p.id, contractNo:d.o.contractNo, seq:seq,
-    prNo:pr.prNo, kind:pr.kind, amount:pr.amount, currency:pr.currency, date:pr.date, due:pr.due,
+    prNo:pr.prNo, kind:pr.kind, timing:pr.timing, item:pr.item, itemEn:pr.itemEn, amount:pr.amount, currency:pr.currency, date:pr.date, due:pr.due,
     bank:pr.bank, acct:pr.acct, holder:pr.holder, note:pr.note,
     createdAt:nowStr(), createdBy:(u?u.name:'') };
   state.paymentRequests.push(rec);
@@ -4926,88 +5347,98 @@ function downloadPaymentRequestPDF(){
     pdf.save((pr.prNo||'PaymentRequest').replace(/[^a-zA-Z0-9_-]/g,'_')+'.pdf'); document.body.removeChild(wrap);
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
 }
+function numToWordsEn(num){
+  num=Math.round(Math.abs(num||0)); if(num===0) return 'Zero';
+  var ones=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+  var tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+  function b3(n){ var s=''; if(n>=100){ s+=ones[Math.floor(n/100)]+' hundred'; n%=100; if(n) s+=' '; } if(n>=20){ s+=tens[Math.floor(n/10)]; n%=10; if(n) s+='-'+ones[n]; } else if(n>0){ s+=ones[n]; } return s; }
+  var scales=['','thousand','million','billion','trillion']; var parts=[]; var i=0;
+  while(num>0){ var c=num%1000; if(c){ parts.unshift(b3(c)+(scales[i]?' '+scales[i]:'')); } num=Math.floor(num/1000); i++; }
+  var r=parts.join(' '); return r.charAt(0).toUpperCase()+r.slice(1);
+}
+function numToWordsVi(num){
+  num=Math.round(Math.abs(num||0)); if(num===0) return 'Không';
+  var d=['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'];
+  function triple(n,full){ var tr=Math.floor(n/100),ch=Math.floor((n%100)/10),dv=n%10,s='';
+    if(tr>0){ s+=d[tr]+' trăm'; } else if(full){ s+='không trăm'; }
+    if(ch>1){ s+=(s?' ':'')+d[ch]+' mươi'; if(dv===1)s+=' mốt'; else if(dv===5)s+=' lăm'; else if(dv>0)s+=' '+d[dv]; }
+    else if(ch===1){ s+=(s?' ':'')+'mười'; if(dv===5)s+=' lăm'; else if(dv>0)s+=' '+d[dv]; }
+    else if(dv>0){ if(tr>0||full) s+=(s?' ':'')+'lẻ '+d[dv]; else s+=(s?' ':'')+d[dv]; }
+    return s.trim();
+  }
+  var scales=['','nghìn','triệu','tỷ']; var groups=[]; while(num>0){ groups.unshift(num%1000); num=Math.floor(num/1000); }
+  var parts=[]; for(var i=0;i<groups.length;i++){ var g=groups[i]; if(g===0) continue; var scaleIdx=groups.length-1-i; parts.push(triple(g,i!==0)+(scales[scaleIdx]?' '+scales[scaleIdx]:'')); }
+  var r=parts.join(' ').replace(/\s+/g,' ').trim(); return r.charAt(0).toUpperCase()+r.slice(1);
+}
+function _prViDate(iso){ if(!iso) return ''; var m=String(iso).split('-'); if(m.length<3) return iso; return 'HCM, Ngày '+parseInt(m[2],10)+' tháng '+parseInt(m[1],10)+' năm '+m[0]; }
+function _prTotalFor(p,o){ var qs=_projQuotesC(p); var q=o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0]; var sub=(q?(q.lines||[]):[]).reduce(function(s,l){return s+qNum(l.amount);},0); return sub*(1+(qNum(o.vatRate)||0)/100); }
 function buildPaymentRequestHtml(p,o,pr){
   function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   var cur=pr.currency||'VND';
-  var amtStr=fmtN(Math.round(pr.amount||0))+' '+cur;
-  var buyerName=esc(p.clientFull||p.client||'');
-  var buyerAddr=esc(o.buyerAddr||p.location||'');
-  var buyerRep=o.buyerRep?esc((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'';
-  var kindVi=(pr.kind==='deposit')?'Tạm ứng (Đợt 1)':(pr.kind==='balance')?'Thanh toán đợt cuối (Đợt 2)':(pr.kind==='full')?'Thanh toán toàn bộ':'Thanh toán';
-  var kindEn=_prKindLabel(pr.kind,false);
-  var html='<div style="width:794px;max-width:100%;margin:0 auto;background:#fff;color:#111;font-family:Arial,\'Helvetica Neue\',sans-serif;padding:30px 34px;box-sizing:border-box;font-size:11px;line-height:1.55">';
-  // header
-  html+='<div class="ct-blk" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid #111;padding-bottom:10px">'
-    +'<div style="max-width:60%">'
-      +'<div style="font-size:13px;font-weight:800">'+esc(INICS_INFO.nameVi)+' / '+esc(INICS_INFO.nameEn)+'</div>'
-      +'<div style="font-size:9px;color:#444;margin-top:2px">'+esc(INICS_INFO.addr)+'</div>'
-      +'<div style="font-size:9px;color:#444">MST: '+esc(INICS_INFO.mst)+' · Tel: '+esc(INICS_INFO.tel)+'</div>'
-    +'</div>'
-    +'<div style="text-align:right">'
-      +'<div style="font-size:15px;font-weight:800;letter-spacing:.02em">GIẤY ĐỀ NGHỊ THANH TOÁN</div>'
-      +'<div style="font-size:12px;font-weight:700;color:#333">PAYMENT REQUEST · 대금지급요청서</div>'
-      +'<div style="font-size:10px;margin-top:4px">Số / No.: <b>'+esc(pr.prNo||'')+'</b></div>'
-      +'<div style="font-size:10px">Ngày / Date: '+esc(pr.date||'')+'</div>'
-    +'</div>'
+  var amt=Math.round(pr.amount||0);
+  var amtStr=fmtN(amt)+' '+(cur==='VND'?'VNĐ':cur);
+  var buyerName=esc(p.clientFull||p.client||'………');
+  var buyerAddr=esc(o.buyerAddr||p.buyerAddr||p.location||'');
+  var hd=esc(o.contractNo||'');
+  var total=_prTotalFor(p,o);
+  var pct = pr.kind==='full'?100 : pr.kind==='deposit'?(o.depositPct==null?100:qNum(o.depositPct)) : pr.kind==='balance'?(o.balancePct==null?0:qNum(o.balancePct)) : (total>0?Math.round(amt/total*100):0);
+  var timing=pr.timing||(pr.kind==='balance'?'after':'advance');
+  var timingKo=timing==='after'?'후금':'선금';
+  var timingVi=timing==='after'?'thanh toán đợt cuối · sau giao hàng':'tạm ứng · trước';
+  var itemVi=esc(pr.item||''), itemEn=esc(pr.itemEn||'');
+  var wVi=numToWordsVi(amt), wEn=numToWordsEn(amt);
+  var inicsVi=esc(INICS_INFO.nameVi||'CÔNG TY TNHH INICS VINA');
+  var H='<div style="width:794px;max-width:100%;margin:0 auto;background:#fff;color:#111;font-family:\'Times New Roman\',Georgia,serif;padding:42px 54px;box-sizing:border-box;font-size:13px;line-height:1.65">';
+  // national header
+  H+='<div style="text-align:center">'
+    +'<div style="font-weight:700">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>'
+    +'<div style="font-weight:700">Độc lập – Tự do – Hạnh phúc</div>'
+    +'<div style="font-size:11px;font-style:italic;color:#333">THE SOCIALIST REPUBLIC OF VIETNAM</div>'
+    +'<div style="font-size:11px;font-style:italic;color:#333">Independence – Freedom – Happiness</div>'
+    +'<div style="margin:4px 0;letter-spacing:1px">----0o0o----</div>'
   +'</div>';
-  // to / reference
-  html+='<div class="ct-blk" style="margin-top:14px;display:flex;gap:14px">'
-    +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
-      +'<div style="font-weight:700;font-size:10px">Kính gửi / To · 수신</div>'
-      +'<div style="font-weight:700;margin-top:2px">'+(buyerName||'………')+'</div>'
-      +(buyerRep?'<div style="font-size:10px">Đại diện / Rep.: '+buyerRep+(o.buyerTitle?' – '+esc(o.buyerTitle):'')+'</div>':'')
-      +(buyerAddr?'<div style="font-size:9.5px;color:#444">'+buyerAddr+'</div>':'')
-    +'</div>'
-    +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
-      +'<div style="font-weight:700;font-size:10px">Hợp đồng / Contract · 연결 계약</div>'
-      +'<div style="font-weight:700;margin-top:2px;font-family:monospace">'+esc(o.contractNo||'')+'</div>'
-      +'<div style="font-size:9.5px;color:#444">Ngày HĐ / Contract date: '+esc(o.date||'')+'</div>'
-    +'</div>'
+  // title
+  H+='<div style="text-align:center;margin-top:16px">'
+    +'<div style="font-size:19px;font-weight:800">GIẤY ĐỀ NGHỊ THANH TOÁN</div>'
+    +'<div style="font-size:14px;font-weight:700;color:#222">PAYMENT REQUEST</div>'
   +'</div>';
-  // intro
-  html+='<div class="ct-blk" style="margin-top:12px;font-size:10.5px">'
-    +'Căn cứ Hợp đồng cung cấp hàng hóa số <b>'+esc(o.contractNo||'')+'</b>, '+esc(INICS_INFO.nameEn)+' trân trọng đề nghị Quý Công ty thanh toán khoản sau / '
-    +'Pursuant to Supply Contract No. <b>'+esc(o.contractNo||'')+'</b>, '+esc(INICS_INFO.nameEn)+' respectfully requests payment of the following:'
+  // no + date
+  H+='<div style="margin-top:14px">Số / No.: <b>'+esc(pr.prNo||'')+'</b></div>';
+  H+='<div style="text-align:right;font-style:italic">'+esc(_prViDate(pr.date))+'</div>';
+  // item
+  H+='<div style="margin-top:12px"><b>Hạng mục:</b> '+(itemVi||'………')+'</div>';
+  H+='<div style="font-style:italic;color:#222"><b>Item:</b> '+(itemEn||'')+'</div>';
+  // to
+  H+='<div style="margin-top:12px"><b>Kính gửi:</b></div>';
+  H+='<div>Company Name: <b>'+buyerName+'</b></div>';
+  H+='<div>Địa chỉ / Address: '+(buyerAddr||'………')+'</div>';
+  // reference
+  H+='<div style="margin-top:12px">Theo hợp đồng kinh tế số <b>'+hd+'</b> giữa '+inicsVi+' và <b>'+buyerName+'</b></div>';
+  H+='<div>Công ty chúng tôi đề nghị Quý Công ty thanh toán số tiền chi tiết như sau:</div>';
+  H+='<div style="margin-top:4px"><b>'+pct+'% giá trị hợp đồng (bao gồm thuế VAT): '+amtStr+'</b> <span style="color:#444">('+timingKo+' · '+timingVi+')</span></div>';
+  H+='<div style="margin-top:8px;font-style:italic;color:#222">Follow economic contract sign '+hd+' between '+buyerName+' &amp; '+esc(INICS_INFO.nameEn||'INICS VINA COMPANY LIMITED')+'</div>';
+  H+='<div style="font-style:italic;color:#222">We would like to request your company to payment amount:</div>';
+  H+='<div style="font-style:italic;color:#222"><b>'+pct+'% value of contract (include VAT): '+amtStr+'</b></div>';
+  // in words
+  H+='<div style="margin-top:12px"><b>Bằng chữ:</b> '+wVi+' đồng chẵn.</div>';
+  H+='<div style="font-style:italic;color:#222"><b>In words:</b> '+wEn+' Vietnamese Dong</div>';
+  // bank
+  H+='<div style="margin-top:12px">Xin hãy chuyển số tiền trên vào tài khoản của Công ty chúng tôi</div>';
+  H+='<div style="font-style:italic;color:#222">Please transfer the above sum of money into our company\u2019s account</div>';
+  H+='<div style="margin-top:6px">Tên ngân hàng / Bank name : <b>'+esc(pr.bank||'Shinhan Bank Vietnam')+'</b></div>';
+  H+='<div>Chủ tài khoản / Beneficiary name : <b>'+esc(pr.holder||inicsVi)+'</b></div>';
+  H+='<div>Số tài khoản / Beneficiary account : <b>'+esc(pr.acct||'')+'</b></div>';
+  if(pr.note){ H+='<div style="margin-top:8px;color:#444">Ghi chú / Note: '+esc(pr.note)+'</div>'; }
+  // closing + signature
+  H+='<div style="margin-top:16px">Kính mong sự hợp tác! Thanks for your cooperation</div>';
+  H+='<div style="text-align:right;margin-top:18px">'
+    +'<div style="font-style:italic">Trân trọng / Yours sincerely</div>'
+    +'<div style="font-weight:700;margin-top:2px">'+inicsVi+'</div>'
+    +'<div style="height:70px"></div>'
+    +'<div style="font-weight:700">'+esc(INICS_INFO.rep||'LEE JINHA')+'</div>'
   +'</div>';
-  // table
-  html+='<table class="ct-blk" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:10.5px">'
-    +'<thead><tr style="background:#f1f5f9">'
-      +'<th style="border:1px solid #999;padding:6px;width:8%">No</th>'
-      +'<th style="border:1px solid #999;padding:6px;text-align:left">Nội dung / Description · 내용</th>'
-      +'<th style="border:1px solid #999;padding:6px;width:32%;text-align:right">Số tiền / Amount</th>'
-    +'</tr></thead><tbody>'
-      +'<tr>'
-        +'<td style="border:1px solid #999;padding:6px;text-align:center">1</td>'
-        +'<td style="border:1px solid #999;padding:6px">'+kindVi+' / '+kindEn+'<div style="font-size:9px;color:#555">theo HĐ / under Contract '+esc(o.contractNo||'')+'</div></td>'
-        +'<td style="border:1px solid #999;padding:6px;text-align:right;font-weight:700">'+amtStr+'</td>'
-      +'</tr>'
-    +'</tbody><tfoot style="break-inside:avoid;page-break-inside:avoid">'
-      +'<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL · 합계</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>'
-    +'</tfoot></table>';
-  // payment info
-  html+='<div class="ct-blk" style="margin-top:12px;border:1px solid #999;padding:9px 11px;background:#fbfbfb">'
-    +'<div style="font-weight:700;font-size:10px;margin-bottom:4px">Thông tin thanh toán / Payment Details · 입금 정보</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:10px">'
-      +'<div>Ngân hàng / Bank: <b>'+esc(pr.bank||'')+'</b></div>'
-      +'<div>Số TK / Account No.: <b>'+esc(pr.acct||'')+'</b></div>'
-      +'<div style="grid-column:span 2">Chủ TK / Account holder: <b>'+esc(pr.holder||'')+'</b></div>'
-      +'<div>Hạn thanh toán / Due date: <b>'+(pr.due?esc(pr.due):'………')+'</b></div>'
-      +'<div>Số tiền / Amount: <b>'+amtStr+'</b></div>'
-    +'</div>'
-  +'</div>';
-  if(pr.note){ html+='<div class="ct-blk" style="margin-top:8px;font-size:10px;color:#444">Ghi chú / Note: '+esc(pr.note)+'</div>'; }
-  // signature
-  html+='<div class="ct-blk" style="display:flex;gap:18px;margin-top:30px;text-align:center;font-size:10px">'
-    +'<div style="flex:1"></div>'
-    +'<div style="flex:1">'
-      +'<div style="font-weight:700">'+esc(INICS_INFO.nameEn)+'</div>'
-      +'<div style="font-size:8px;color:#777;margin-top:2px">(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)</div>'
-      +'<div style="height:80px"></div>'
-      +'<div style="border-top:1px solid #111;padding-top:4px">Bà '+esc(INICS_INFO.rep)+' – '+esc(INICS_INFO.repTitleEn)+'</div>'
-    +'</div>'
-  +'</div>';
-  html+='</div>';
-  return html;
+  H+='</div>';
+  return H;
 }
 
 // ─ 관리자: 계약서 템플릿 편집 ─
@@ -5829,6 +6260,7 @@ function _openProjectForm(id){
   document.getElementById('projStage').innerHTML=PROJ_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+' · '+s.sub+'</option>'; }).join('');
   document.getElementById('projLostReason').innerHTML=PROJ_LOST_REASONS.map(function(r){ return '<option>'+r+'</option>'; }).join('');
   var _cbtn=document.getElementById('projContractBtn'); if(_cbtn)_cbtn.style.display=id?'inline-flex':'none';
+  var _prbtn=document.getElementById('projPrBtn'); if(_prbtn)_prbtn.style.display=id?'inline-flex':'none';
   var cu=cardCurrentUser();
   var delBtn=document.getElementById('projDeleteBtn');
   function setFin(s,p){
@@ -5836,6 +6268,11 @@ function _openProjectForm(id){
     var _fa=function(v){ return (v!=null&&v!=='')?fmtN(v):''; };
     document.getElementById('salesCurrency').value=s.currency||'VND';
     document.getElementById('salesVat').value=(s.vat!=null&&s.vat!=='')?s.vat:'8';
+    document.getElementById('salesSubtotal').value=_fa(s.subtotal);
+    document.getElementById('salesVatAmt').value=_fa(s.vatAmt);
+    document.getElementById('salesTotal').value=_fa(s.total);
+    document.getElementById('salesDepositPct').value=(s.depositPct!=null&&s.depositPct!=='')?s.depositPct:'';
+    document.getElementById('salesBalancePct').value=(s.balancePct!=null&&s.balancePct!=='')?s.balancePct:'';
     document.getElementById('salesDeposit').value=_fa(s.deposit);
     document.getElementById('salesDepositPaid').checked=!!s.depositPaid;
     document.getElementById('salesDepositDate').value=s.depositDate||'';
@@ -5849,12 +6286,12 @@ function _openProjectForm(id){
     document.getElementById('purchaseVendor').value=p.vendor||'';
     document.getElementById('purchaseCurrency').value=p.currency||'VND';
     document.getElementById('purchaseVat').value=(p.vat!=null&&p.vat!=='')?p.vat:'8';
-    document.getElementById('purchaseDeposit').value=_fa(p.deposit);
+    document.getElementById('purchaseSubtotal').value=_fa(p.subtotal);
+    document.getElementById('purchaseVatAmt').value=_fa(p.vatAmt);
+    document.getElementById('purchaseTotal').value=_fa(p.total!=null&&p.total!==''?p.total:p.deposit);
     document.getElementById('purchaseDepositPaid').checked=!!p.depositPaid;
     document.getElementById('purchaseDepositDate').value=p.depositDate||'';
-    document.getElementById('purchaseBalance').value=_fa(p.balance);
-    document.getElementById('purchaseBalancePaid').checked=!!p.balancePaid;
-    document.getElementById('purchaseBalanceDate').value=p.balanceDate||'';
+    if(typeof recalcProjFinance==='function') recalcProjFinance('');
   }
   if(id){
     var p=(state.projects||[]).find(function(x){ return x.id===id; }); if(!p){ _editingProjId=null; }
@@ -5874,6 +6311,7 @@ function _openProjectForm(id){
       document.getElementById('projCustType').value=p.custType||'B2B';
       document.getElementById('projStage').value=p.stage||'lead';
       document.getElementById('projAmount').value=(p.amount!=null&&p.amount!=='')?fmtN(p.amount):'';
+      document.getElementById('projVatApplied').checked=(p.vatApplied!==false);
       document.getElementById('projCurrency').value=p.currency||'VND';
       document.getElementById('projRegDate').value=p.regDate||projTodayISO();
       document.getElementById('projTargetDate').value=p.targetDate||'';
@@ -5898,6 +6336,7 @@ function _openProjectForm(id){
     document.getElementById('projCustType').value='B2B';
     document.getElementById('projStage').value='lead';
     document.getElementById('projAmount').value='';
+    document.getElementById('projVatApplied').checked=true;
     document.getElementById('projCurrency').value='VND';
     document.getElementById('projRegDate').value=projTodayISO();
     document.getElementById('projTargetDate').value='';
@@ -5906,7 +6345,7 @@ function _openProjectForm(id){
     delBtn.style.display='none';
   }
   onProjStageChange();
-  recalcProjFinance();
+  recalcProjFinance('');
   var _ocu=cardCurrentUser(); var _oadm=sessionIsAdmin||(_ocu&&_ocu.isAdmin);
   var _osel=document.getElementById('projOwnerSelect'), _oinp=document.getElementById('projOwnerName');
   if(_oadm&&_osel){ _osel.innerHTML=MEMBERS.map(function(m){return '<option value="'+m.id+'">'+m.name+'</option>';}).join(''); _osel.value=_projFormOwnerId; _osel.style.display=''; _oinp.style.display='none'; }
@@ -6021,37 +6460,56 @@ function onProjStageChange(){
   document.getElementById('projFinanceWrap').style.display = projWonPlus(st)?'block':'none';
 }
 function fmtAmtInput(el){ if(!el)return; var v=String(el.value||'').replace(/[^\d]/g,''); el.value=v?Number(v).toLocaleString('en-US'):''; }
-function recalcProjFinance(){
-  var sd=qNum(document.getElementById('salesDeposit').value), sb=qNum(document.getElementById('salesBalance').value);
-  var pd=qNum(document.getElementById('purchaseDeposit').value), pb=qNum(document.getElementById('purchaseBalance').value);
-  var sCur=document.getElementById('salesCurrency').value, pCur=document.getElementById('purchaseCurrency').value;
-  var sTotal=sd+sb, pTotal=pd+pb;
-  var sVatR=qNum(document.getElementById('salesVat').value), pVatR=qNum(document.getElementById('purchaseVat').value);
-  var sSub=sVatR>0?sTotal/(1+sVatR/100):sTotal, sVatAmt=sTotal-sSub;
-  var pSub=pVatR>0?pTotal/(1+pVatR/100):pTotal, pVatAmt=pTotal-pSub;
-  document.getElementById('salesSubtotal').value=fmtN(sSub);
-  document.getElementById('salesVatAmt').value=fmtN(sVatAmt);
-  document.getElementById('salesTotal').value=fmtN(sTotal);
-  document.getElementById('purchaseSubtotal').value=fmtN(pSub);
-  document.getElementById('purchaseVatAmt').value=fmtN(pVatAmt);
-  document.getElementById('purchaseTotal').value=fmtN(pTotal);
-  var prev=document.getElementById('projMarginPreview');
-  var sTot=sd+sb;
-  var invIssued=document.getElementById('salesInvoiceIssued').checked;
-  var invAmt=qNum(document.getElementById('salesInvoiceAmount').value);
+function _pfEl(id){ return document.getElementById(id); }
+function _pfV(id){ var e=document.getElementById(id); return e?qNum(e.value):0; }
+function _pfSet(id,n){ var e=document.getElementById(id); if(e) e.value=fmtN(Math.round(n)); }
+function recalcProjFinance(source){
+  source=source||'';
+  // ── SALES: 공급가액 ↔ 매출합계 양방향, 부가세 자동 ──
+  var sR=_pfV('salesVat')/100;
+  var sSub=_pfV('salesSubtotal'), sTot=_pfV('salesTotal');
+  if(source==='salesTotal'){ sSub=sR>0?sTot/(1+sR):sTot; _pfSet('salesSubtotal',sSub); _pfSet('salesVatAmt',sTot-sSub); }
+  else if(source==='salesSubtotal'){ sTot=sSub*(1+sR); _pfSet('salesTotal',sTot); _pfSet('salesVatAmt',sSub*sR); }
+  else if(source==='salesVat'){ if(sSub>0){ sTot=sSub*(1+sR); _pfSet('salesTotal',sTot); _pfSet('salesVatAmt',sSub*sR); } else { sSub=sR>0?sTot/(1+sR):sTot; _pfSet('salesSubtotal',sSub); _pfSet('salesVatAmt',sTot-sSub); } }
+  else { sTot=_pfV('salesTotal'); sSub=_pfV('salesSubtotal'); if(sSub>0 && sTot<=0){ sTot=sSub*(1+sR); _pfSet('salesTotal',sTot); _pfSet('salesVatAmt',sSub*sR); } }
+  // 선금%/잔금% → 금액
+  var sDpEl=_pfEl('salesDepositPct'), sBpEl=_pfEl('salesBalancePct');
+  if(source==='salesBalancePct'){ var sBp=Math.max(0,Math.min(100,_pfV('salesBalancePct'))); if(sDpEl) sDpEl.value=String(Math.round((100-sBp)*100)/100); }
+  else if(sDpEl && (sDpEl.value||'').trim()!==''){ var sDp0=Math.max(0,Math.min(100,_pfV('salesDepositPct'))); if(sBpEl) sBpEl.value=String(Math.round((100-sDp0)*100)/100); }
+  var sDp=_pfV('salesDepositPct');
+  if((source==='salesDepositPct'||source==='salesBalancePct'||source==='salesTotal'||source==='salesSubtotal'||source==='salesVat') && sDpEl && (sDpEl.value||'').trim()!==''){
+    _pfSet('salesDeposit', sTot*sDp/100); _pfSet('salesBalance', sTot*(100-sDp)/100);
+  }
+  // ── PURCHASE: 공급가액 ↔ 매입합계, 전액 선금 ──
+  var pR=_pfV('purchaseVat')/100;
+  var pSub=_pfV('purchaseSubtotal'), pTot=_pfV('purchaseTotal');
+  if(source==='purchaseTotal'){ pSub=pR>0?pTot/(1+pR):pTot; _pfSet('purchaseSubtotal',pSub); _pfSet('purchaseVatAmt',pTot-pSub); }
+  else if(source==='purchaseSubtotal'){ pTot=pSub*(1+pR); _pfSet('purchaseTotal',pTot); _pfSet('purchaseVatAmt',pSub*pR); }
+  else if(source==='purchaseVat'){ if(pSub>0){ pTot=pSub*(1+pR); _pfSet('purchaseTotal',pTot); _pfSet('purchaseVatAmt',pSub*pR); } else { pSub=pR>0?pTot/(1+pR):pTot; _pfSet('purchaseSubtotal',pSub); _pfSet('purchaseVatAmt',pTot-pSub); } }
+  else { pTot=_pfV('purchaseTotal'); pSub=_pfV('purchaseSubtotal'); if(pSub>0 && pTot<=0){ pTot=pSub*(1+pR); _pfSet('purchaseTotal',pTot); _pfSet('purchaseVatAmt',pSub*pR); } }
+  projMarginRefresh();
+}
+function projMarginRefresh(){
+  var prev=document.getElementById('projMarginPreview'); if(!prev) return;
+  var sCur=(document.getElementById('salesCurrency')||{}).value||'VND';
+  var pCur=(document.getElementById('purchaseCurrency')||{}).value||'VND';
+  var sTot=_pfV('salesTotal'); var pTot=_pfV('purchaseTotal');
+  var invIssued=(document.getElementById('salesInvoiceIssued')||{}).checked;
+  var invAmt=_pfV('salesInvoiceAmount');
   var issued=invIssued?(invAmt||sTot):0; if(issued>sTot) issued=sTot;
   var uninv=sTot-issued;
   var invLine='<div style="margin-top:4px;font-size:11px">인보이스 발행 '+sCur+' '+fmtN(issued)+(uninv>0?(' · <span style="color:var(--danger)">미발행 '+fmtN(uninv)+'</span>'):' · <span style="color:#15803d">전액 발행</span>')+'</div>';
-  if(sCur===pCur){ var m=(sd+sb)-(pd+pb); prev.innerHTML='마진 · Margin: <b style="color:'+(m>=0?'#15803d':'var(--danger)')+'">'+sCur+' '+fmtN(m)+'</b>  (매출 '+fmtN(sd+sb)+' − 매입 '+fmtN(pd+pb)+')'+invLine; }
-  else { prev.innerHTML='매출 '+sCur+' '+fmtN(sd+sb)+' · 매입 '+pCur+' '+fmtN(pd+pb)+' <span style="color:var(--text-3)">(통화 상이 — 마진 미산출)</span>'+invLine; }
+  if(sCur===pCur){ var m=sTot-pTot; prev.innerHTML='마진 · Margin: <b style="color:'+(m>=0?'#15803d':'var(--danger)')+'">'+sCur+' '+fmtN(m)+'</b>  (매출 '+fmtN(sTot)+' − 매입 '+fmtN(pTot)+')'+invLine; }
+  else { prev.innerHTML='매출 '+sCur+' '+fmtN(sTot)+' · 매입 '+pCur+' '+fmtN(pTot)+' <span style="color:var(--text-3)">(통화 상이 — 마진 미산출)</span>'+invLine; }
 }
 
 function saveProject(){
   var client=(document.getElementById('projClient').value||'').trim();
   if(!client){ showToast('고객사를 입력하세요 · Enter client'); return; }
   var gv=function(id){ return (document.getElementById(id).value||'').replace(/,/g,'').trim(); };
-  var sales={ currency:document.getElementById('salesCurrency').value, vat:document.getElementById('salesVat').value, deposit:gv('salesDeposit'), depositPaid:document.getElementById('salesDepositPaid').checked, depositDate:document.getElementById('salesDepositDate').value, balance:gv('salesBalance'), balancePaid:document.getElementById('salesBalancePaid').checked, balanceDate:document.getElementById('salesBalanceDate').value, invoiceIssued:document.getElementById('salesInvoiceIssued').checked, invoiceNo:(document.getElementById('salesInvoiceNo').value||'').trim(), invoiceAmount:gv('salesInvoiceAmount'), invoiceDate:document.getElementById('salesInvoiceDate').value };
-  var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, vat:document.getElementById('purchaseVat').value, deposit:gv('purchaseDeposit'), depositPaid:document.getElementById('purchaseDepositPaid').checked, depositDate:document.getElementById('purchaseDepositDate').value, balance:gv('purchaseBalance'), balancePaid:document.getElementById('purchaseBalancePaid').checked, balanceDate:document.getElementById('purchaseBalanceDate').value };
+  var pTotalV=gv('purchaseTotal');
+  var sales={ currency:document.getElementById('salesCurrency').value, vat:document.getElementById('salesVat').value, subtotal:gv('salesSubtotal'), vatAmt:gv('salesVatAmt'), total:gv('salesTotal'), depositPct:(document.getElementById('salesDepositPct').value||'').trim(), balancePct:(document.getElementById('salesBalancePct').value||'').trim(), deposit:gv('salesDeposit'), depositPaid:document.getElementById('salesDepositPaid').checked, depositDate:document.getElementById('salesDepositDate').value, balance:gv('salesBalance'), balancePaid:document.getElementById('salesBalancePaid').checked, balanceDate:document.getElementById('salesBalanceDate').value, invoiceIssued:document.getElementById('salesInvoiceIssued').checked, invoiceNo:(document.getElementById('salesInvoiceNo').value||'').trim(), invoiceAmount:gv('salesInvoiceAmount'), invoiceDate:document.getElementById('salesInvoiceDate').value };
+  var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, vat:document.getElementById('purchaseVat').value, subtotal:gv('purchaseSubtotal'), vatAmt:gv('purchaseVatAmt'), total:pTotalV, deposit:pTotalV, depositPaid:document.getElementById('purchaseDepositPaid').checked, depositDate:document.getElementById('purchaseDepositDate').value, balance:'', balancePaid:false, balanceDate:'' };
   var data={
     client:client,
     ownerId:_projFormOwnerId,
@@ -6066,6 +6524,7 @@ function saveProject(){
     custType:document.getElementById('projCustType').value||'',
     stage:document.getElementById('projStage').value||'lead',
     amount:(document.getElementById('projAmount').value||'').replace(/,/g,'').trim(),
+    vatApplied:document.getElementById('projVatApplied').checked,
     currency:document.getElementById('projCurrency').value||'VND',
     regDate:document.getElementById('projRegDate').value||projTodayISO(),
     targetDate:document.getElementById('projTargetDate').value||'',
@@ -6080,10 +6539,10 @@ function saveProject(){
   var u=cardCurrentUser();
   if(_editingProjId){
     var idx=state.projects.findIndex(function(x){ return x.id===_editingProjId; });
-    if(idx>=0){ var _prev=state.projects[idx]; data.id=_editingProjId; data.createdAt=_prev.createdAt; data.createdBy=_prev.createdBy; data.updatedAt=nowStr(); data.logs=_prev.logs||[]; data.stageHistory=_prev.stageHistory||[]; data.contractOpts=_prev.contractOpts; if(_prev.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } state.projects[idx]=data; }
+    if(idx>=0){ var _prev=state.projects[idx]; data.id=_editingProjId; data.createdAt=_prev.createdAt; data.createdBy=_prev.createdBy; data.updatedAt=nowStr(); data.logs=_prev.logs||[]; data.stageHistory=_prev.stageHistory||[]; data.contractOpts=_prev.contractOpts; data.contractScans=_prev.contractScans||[]; data.contractSeq=_prev.contractSeq; data.contractConfirmed=_prev.contractConfirmed; data.contractConfirmedAt=_prev.contractConfirmedAt; data.contractConfirmedBy=_prev.contractConfirmedBy; if(_prev.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } state.projects[idx]=data; }
   } else {
     var ex=state.projects.find(function(x){ return (x.client||'').toLowerCase()===client.toLowerCase(); });
-    if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신'); }
+    if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; data.contractScans=ex.contractScans||[]; data.contractSeq=ex.contractSeq; data.contractConfirmed=ex.contractConfirmed; data.contractConfirmedAt=ex.contractConfirmedAt; data.contractConfirmedBy=ex.contractConfirmedBy; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신'); }
     else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); data.logs=[]; data.stageHistory=[{stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:''),first:true}]; state.projects.push(data); showToast('프로젝트 등록 완료'); }
   }
   saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList();
@@ -6457,14 +6916,14 @@ function finCalc(p, cur){
   var r={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, hasS:false, hasP:false };
   if((s.currency||'VND')===cur){
     var sd=qNum(s.deposit), sb=qNum(s.balance);
-    r.sTotal=sd+sb; r.sRecv=(s.depositPaid?sd:0)+(s.balancePaid?sb:0); r.sOut=r.sTotal-r.sRecv;
+    r.sTotal=qNum(s.total)||(sd+sb); r.sRecv=(s.depositPaid?sd:0)+(s.balancePaid?sb:0); r.sOut=r.sTotal-r.sRecv;
     var iss = s.invoiceIssued ? (qNum(s.invoiceAmount)||r.sTotal) : 0; if(iss>r.sTotal) iss=r.sTotal;
     r.sInvoiced=iss; r.sUninvoiced=r.sTotal-iss;
     r.hasS = r.sTotal>0;
   }
   if((pu.currency||'VND')===cur){
     var pd=qNum(pu.deposit), pb=qNum(pu.balance);
-    r.pTotal=pd+pb; r.pPaid=(pu.depositPaid?pd:0)+(pu.balancePaid?pb:0); r.pOut=r.pTotal-r.pPaid;
+    r.pTotal=qNum(pu.total)||(pd+pb); r.pPaid=(pu.depositPaid?(qNum(pu.total)||pd):0); r.pOut=r.pTotal-r.pPaid;
     r.hasP = r.pTotal>0;
   }
   r.margin = r.sTotal - r.pTotal;
@@ -6630,7 +7089,7 @@ function closeBankApp(){
   if(typeof showHub==='function') showHub();
 }
 function bankStyleTabs(){
-  [['bankTabStmt','stmt'],['bankTabRecon','recon'],['bankTabAcct','acct']].forEach(function(p){
+  [['bankTabStmt','stmt'],['bankTabAcct','acct']].forEach(function(p){
     var b=document.getElementById(p[0]); if(!b) return;
     var on=bankTab===p[1];
     b.style.color = on?'var(--text)':'var(--text-3)';
@@ -6641,11 +7100,9 @@ function bankSwitchTab(tab){
   if(tab==='acct' && !acctAdminAllowed()){ showToast('회계 관리자 권한이 없습니다 · No accounting-admin access'); return; }
   bankTab=tab;
   document.getElementById('bankStmtPane').style.display = tab==='stmt'?'':'none';
-  var rp=document.getElementById('bankReconPane'); if(rp) rp.style.display = tab==='recon'?'':'none';
   document.getElementById('bankAcctPane').style.display = tab==='acct'?'':'none';
   bankStyleTabs();
   if(tab==='acct') renderBankAcctAdmin();
-  if(tab==='recon') renderCardBankRecon();
 }
 
 function renderBankApp(){
@@ -6656,7 +7113,6 @@ function renderBankApp(){
   renderBankUploadBar();
   renderBankList();
   if(bankTab==='acct') renderBankAcctAdmin();
-  if(bankTab==='recon') renderCardBankRecon();
 }
 
 function bankAcctBalance(acctNo){
@@ -6793,7 +7249,39 @@ function _cardMatchInfo(card){
 }
 function _linkCardBank(card,txn,how){ card.matchTxnId=txn.id; card.matchStatus=how; card.matchedAt=nowStr(); txn.matchCardId=card.id; txn.matchStatus=how; txn.matchedAt=nowStr(); }
 function _unlinkCard(card){ if(card.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;}); if(t){ t.matchCardId=null; t.matchStatus=null; t.matchedAt=null; } } card.matchTxnId=null; card.matchStatus=null; card.matchedAt=null; }
-function _reconRefresh(){ saveState(); if(typeof renderCardBankRecon==='function') renderCardBankRecon(); if(typeof renderCard==='function') renderCard(); }
+function _reconRefresh(){ saveState(); if(typeof renderBankList==='function') renderBankList(); if(typeof renderCard==='function') renderCard(); if(typeof renderCardBankRecon==='function' && document.getElementById('bankReconPane')) renderCardBankRecon(); }
+// 은행 행(체크카드결제) → 카드 매칭 (명세서 페이지 통합용)
+function _isCardTxn(t){ return /카드/.test(String(t.type||'')) && _bankDebit(t)>0; }
+function _bankCardCandidates(txn){
+  var amt=_bankDebit(txn); if(amt<=0) return [];
+  return (state.cardExpenses||[]).filter(function(c){
+    if(c.matchTxnId) return false;
+    if(_cardAmt(c)!==amt) return false;
+    if((c.currency||'')!==(txn.currency||'')) return false;
+    var dd=_mDayDiff(txn.date,c.date);
+    return dd>=MATCH_DATE_MIN-8 && dd<=MATCH_DATE_MAX+8;
+  }).map(function(c){ return {c:c, dd:_mDayDiff(txn.date,c.date)}; }).sort(function(a,b){ return Math.abs(a.dd)-Math.abs(b.dd); });
+}
+function _bankCardInfo(txn){
+  if(txn.matchCardId){ var c=(state.cardExpenses||[]).find(function(x){return x.id===txn.matchCardId;}); return {status:(txn.matchStatus==='auto'?'auto':'manual'), card:c||null, candidates:[]}; }
+  var cands=_bankCardCandidates(txn);
+  var tight=cands.filter(function(x){ return x.dd>=MATCH_DATE_MIN && x.dd<=MATCH_DATE_MAX; });
+  if(tight.length===1) return {status:'confident', card:tight[0].c, candidates:cands};
+  if(cands.length>=1) return {status:'review', card:null, candidates:cands};
+  return {status:'none', card:null, candidates:cands};
+}
+// 공용 이미지 라이트박스 (영수증/스캔본)
+function viewImageLightbox(src){
+  if(!src) return;
+  var ov=document.getElementById('cardLightbox');
+  if(!ov){ ov=document.createElement('div'); ov.id='cardLightbox';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out';
+    ov.onclick=function(){ ov.style.display='none'; ov.innerHTML=''; }; document.body.appendChild(ov);
+  }
+  if(/^data:application\/pdf|\.pdf($|\?)/i.test(src)){ var w=window.open(); if(w){ w.document.write('<iframe src="'+src+'" style="border:0;width:100%;height:100%"></iframe>'); } return; }
+  ov.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.4)">';
+  ov.style.display='flex';
+}
 function runAutoMatch(){
   var cards=(state.cardExpenses||[]).filter(function(x){ return !x.matchTxnId; }).slice().sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
   var n=0;
@@ -6938,35 +7426,74 @@ function renderBankList(){
   var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
   var rows=txns.map(function(t){
-    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:180px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
+    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:150px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
     var guess=(!t.vendor||!t.vendor.trim())?_bankAutoVendorName(t.note||t.ref||''):'';
     var vph=guess?('추천: '+guess.replace(/"/g,'&quot;')):'거래처 선택·입력';
-    var vendorInp='<input list="bankVendorList" value="'+String(t.vendor||'').replace(/"/g,'&quot;')+'" placeholder="'+vph+'" onchange="setBankTxnVendor('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);width:150px;'+((!t.vendor||!t.vendor.trim())?'background:#fffbeb':'')+'">'
-      +(guess?' <a href="javascript:void(0)" onclick="setBankTxnVendor('+t.id+',\''+guess.replace(/'/g,"\\'").replace(/"/g,'&quot;')+'\');renderBankList()" style="font-size:10px;color:#1d4ed8;text-decoration:none;white-space:nowrap" title="NOTE 추천 적용">적용</a>':'');
+    var vendorInp='<div style="display:flex;align-items:center;gap:4px"><input list="bankVendorList" value="'+String(t.vendor||'').replace(/"/g,'&quot;')+'" placeholder="'+vph+'" onchange="setBankTxnVendor('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);width:130px;'+((!t.vendor||!t.vendor.trim())?'background:#fffbeb':'')+'">'
+      +(guess?'<label title="추천 거래처 적용 · Apply suggestion" style="display:inline-flex;align-items:center;gap:2px;font-size:10px;color:#1d4ed8;cursor:pointer;white-space:nowrap"><input type="checkbox" onchange="applyBankVendorGuess('+t.id+')" style="width:auto;margin:0">추천</label>':'')+'</div>';
     return '<tr>'
       +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(t.date||'—')+'</td>'
-      +'<td style="'+td+'">'+(t.type||'')+'</td>'
+      +'<td style="'+td+';white-space:nowrap">'+_bankTypeShort(t.type)+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#b91c1c">'+(t.debit?bankFmt(t.debit,acc.currency):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#15803d">'+(t.credit?bankFmt(t.credit,acc.currency):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:600">'+bankFmt(t.balance,acc.currency)+'</td>'
-      +'<td style="'+td+';max-width:280px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
-      +'<td style="'+td+';white-space:nowrap">'+vendorInp+'</td>'
+      +'<td style="'+td+';max-width:260px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
       +'<td style="'+td+'">'+catSel+'</td>'
+      +'<td style="'+td+';white-space:nowrap">'+vendorInp+'</td>'
+      +'<td style="'+td+'">'+_bankCardCell(t)+'</td>'
+      +'<td style="'+td+';text-align:center"><input type="checkbox" '+(_bankInvoiceChecked(t)?'checked':'')+' onchange="toggleBankInvoice('+t.id+',this.checked)" title="인보이스 보유 · Has invoice" style="width:16px;height:16px;cursor:pointer"></td>'
       +'<td style="'+td+';text-align:right"><button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button></td>'
       +'</tr>';
   }).join('');
   var noVendor=txns.filter(function(t){ return !t.vendor||!t.vendor.trim(); }).length;
+  var cardTx=txns.filter(_isCardTxn); var cardMatched=cardTx.filter(function(t){return t.matchCardId;}).length;
   var vendorBar='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
-    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankAutoVendor()"><i class="ti ti-wand"></i> 거래처 자동인식 (NOTE→거래처)</button>'
-    +(noVendor?'<span style="font-size:11px;color:#92400e">거래처 미지정 '+noVendor+'건</span>':'<span style="font-size:11px;color:#15803d">거래처 지정 완료</span>')
+    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankAutoVendor()"><i class="ti ti-wand"></i> 거래처 자동인식 · Auto-vendor</button>'
+    +(noVendor?'<span style="font-size:11px;color:#92400e">거래처 미지정 · No vendor '+noVendor+'</span>':'<span style="font-size:11px;color:#15803d">거래처 지정 완료 · Done</span>')
+    +'<span style="width:1px;height:18px;background:var(--border);margin:0 4px"></span>'
+    +'<button class="btn btn-dark" style="font-size:11px;padding:5px 11px" onclick="runAutoMatch()"><i class="ti ti-arrows-diff"></i> 카드 자동매칭 · Auto-match cards</button>'
+    +(cardTx.length?'<span style="font-size:11px;color:'+(cardMatched===cardTx.length?'#15803d':'#92400e')+'">카드 · Card '+cardMatched+'/'+cardTx.length+' 매칭 · matched</span>':'')
     +'</div>';
-  el.innerHTML=bankVendorDatalist()+vendorBar+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1160px">'
+  el.innerHTML=bankVendorDatalist()+vendorBar+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1300px">'
     +'<thead><tr>'
-    +'<th style="'+th+'">Date · 날짜</th><th style="'+th+'">Type · 거래구분</th>'
+    +'<th style="'+th+'">Date · 날짜</th><th style="'+th+'">Type · 거래</th>'
     +'<th style="'+th+';text-align:right">Out · 출금</th><th style="'+th+';text-align:right">In · 입금</th>'
     +'<th style="'+th+';text-align:right">Balance · 잔액</th><th style="'+th+'">Note · 비고</th>'
-    +'<th style="'+th+'">Vendor · 거래처</th><th style="'+th+'">Category · 분류</th><th style="'+th+';text-align:right"></th></tr></thead>'
+    +'<th style="'+th+'">Category · 분류</th><th style="'+th+'">Vendor · 거래처</th><th style="'+th+'">Card · 카드</th><th style="'+th+';text-align:center">Inv · 인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
+}
+function _bankTypeShort(ty){ ty=String(ty||''); if(/카드/.test(ty)) return '카드'; return ty; }
+function applyBankVendorGuess(id){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; saveState(); renderBankList(); } }
+function _bankInvoiceChecked(t){
+  if(t.invoice===true) return true;
+  if(t.invoice===false) return false;
+  if(t.matchCardId){ var c=(state.cardExpenses||[]).find(function(x){return x.id===t.matchCardId;}); if(c&&c.invoiceIssued) return true; }
+  return false;
+}
+function toggleBankInvoice(id,checked){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.invoice=!!checked; saveState(); }
+function _bankCardCell(t){
+  if(!_isCardTxn(t)) return '<span style="color:var(--text-3)">—</span>';
+  var info=_bankCardInfo(t);
+  function thumb(c){ return (c&&c.receipt)?'<img src="'+c.receipt+'" onclick="viewCardDetail('+c.id+')" title="카드 사용 전체 보기 · View full card detail" style="width:26px;height:26px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;vertical-align:middle;margin-right:5px">':''; }
+  if(info.status==='auto'||info.status==='manual'){
+    var c=info.card;
+    return '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">'+thumb(c)
+      +'<span class="badge b-done" style="font-size:10px;cursor:pointer" onclick="'+(c?('viewCardDetail('+c.id+')'):'')+'" title="카드 사용 전체 보기 · Card detail"><i class="ti ti-link"></i> '+(c?(c.merchant||'카드 Card'):'카드 Card')+(info.status==='auto'?' (자동·Auto)':'')+'</span>'
+      +'<a href="javascript:void(0)" onclick="unmatchCard('+(c?c.id:0)+')" title="매칭 해제 · Unmatch" style="color:var(--danger);text-decoration:none;font-size:12px"><i class="ti ti-x"></i></a></div>';
+  }
+  if(info.status==='confident'){
+    var cc=info.card;
+    return '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">'+thumb(cc)
+      +'<button class="btn btn-dark" style="font-size:10px;padding:3px 7px" onclick="matchCardBank('+cc.id+','+t.id+',\'auto\')" title="추천 · Suggested: '+((cc.merchant||'').replace(/"/g,'&quot;'))+'"><i class="ti ti-check"></i> '+(cc.merchant||'카드')+' 확정·Confirm</button></div>';
+  }
+  if(info.status==='review'){
+    return '<select onchange="if(this.value)matchCardBank(parseInt(this.value),'+t.id+',\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:170px"><option value="">검토 · Review '+info.candidates.length+'개 카드…</option>'
+      +info.candidates.map(function(x){ return '<option value="'+x.c.id+'">'+(x.c.date||'')+' · '+(x.c.merchant||'')+'</option>'; }).join('')+'</select>';
+  }
+  var opts=(state.cardExpenses||[]).filter(function(c){ return !c.matchTxnId && (c.currency||'')===(t.currency||''); }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  if(!opts.length) return '<span style="color:var(--text-3);font-size:11px">미매칭 · Unmatched</span>';
+  return '<select onchange="if(this.value)matchCardBank(parseInt(this.value),'+t.id+',\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:170px"><option value="">수동 연결 · Link card…</option>'
+    +opts.slice(0,200).map(function(c){ return '<option value="'+c.id+'">'+(c.date||'')+' · '+(c.currency||'')+' '+cardFmtAmount(c.amount)+' · '+(c.merchant||'')+'</option>'; }).join('')+'</select>';
 }
 function setBankTxnCategory(id,val){
   var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return;
@@ -7049,6 +7576,10 @@ function enterModule(module) {
     showReportApp();
   } else if(module === 'bankstmt') {
     showBankApp();
+  } else if(module === 'contract') {
+    showContractApp();
+  } else if(module === 'invoice') {
+    showInvoiceApp();
   } else if(module === 'admin') {
     showPage('admin');
   }
@@ -7452,7 +7983,7 @@ function toggleBankType() {
   }
   var APPS=[
     ['cardApp','closeCardApp'],['quoteApp','closeQuoteApp'],['reportApp','closeReportApp'],
-    ['bankApp','closeBankApp'],['projectApp','closeProjectApp'],['financeApp','closeFinanceApp']
+    ['bankApp','closeBankApp'],['projectApp','closeProjectApp'],['financeApp','closeFinanceApp'],['contractApp','closeContractApp'],['invoiceApp','closeInvoiceApp']
   ];
   function _closeTopApp(){
     for(var i=0;i<APPS.length;i++){
