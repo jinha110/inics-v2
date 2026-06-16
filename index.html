@@ -878,7 +878,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
       <div class="fg" style="margin-bottom:10px"><label>업무 내용 · Task *</label><input type="text" id="tskTitle" placeholder="예: 건설사 미팅 — 회사 소개·협업 요청" autocomplete="off"></div>
       <div class="fg" style="margin-bottom:10px"><label>업무 유형 · Type</label><select id="tskType" onchange="updateTaskFormFields()"></select></div>
-      <div class="fg" id="tskProjectWrap" style="margin-bottom:10px"><label>연관 프로젝트 · Projects <span style="font-weight:400;color:var(--text-3)">(여러 개 선택 가능 · multi-select)</span></label><div id="tskProjectChips" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);min-height:38px;align-content:flex-start"></div></div>
+      <div class="fg" id="tskProjectWrap" style="margin-bottom:10px"><label>연관 프로젝트 · Projects <span style="font-weight:400;color:var(--text-3)">(여러 개 선택 · multi-select)</span></label><div style="position:relative"><button type="button" id="tskProjDropBtn" onclick="tskToggleProjDrop()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);font-family:var(--sans);color:var(--text);cursor:pointer;text-align:left"><span id="tskProjSummary" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">공통/기타 · Common</span><i class="ti ti-chevron-down" id="tskProjChev" style="font-size:15px;flex-shrink:0;transition:transform .15s"></i></button><div id="tskProjDropPanel" style="display:none;position:absolute;z-index:10;top:calc(100% + 4px);left:0;right:0;max-height:240px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 6px 20px rgba(0,0,0,.15)"></div></div></div>
       <div class="fg" id="tskNetCompanyWrap" style="margin-bottom:10px;display:none"><label>업체명 · Company (네트워킹)</label><input type="text" id="tskNetCompany" list="quoteClients" placeholder="만난 업체명 — 거래처 DB에 등록됨" autocomplete="off"></div>
       <div id="tskNewProjWrap" style="margin-bottom:10px;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px">
         <label style="font-size:11px;color:var(--text-2);display:block;margin-bottom:5px">새 프로젝트 · New Project (고객사명)</label>
@@ -1007,8 +1007,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fg" style="margin:0"><label style="font-size:10px">지급기한 · Due Date</label><input type="date" id="prDue" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
-        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Hạng mục</label><input type="text" id="prItem" oninput="renderPRPreview()" placeholder="VD: Cung cấp và bàn giao 39 ghế văn phòng FURSYS" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item</label><input type="text" id="prItemEn" oninput="renderPRPreview()" placeholder="e.g. Supply and Delivery of 39 FURSYS Task Chairs" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item (VN) · 항목 (베트남어)</label><input type="text" id="prItem" oninput="renderPRPreview()" placeholder="VD: Cung cấp và bàn giao 39 ghế văn phòng FURSYS" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item (EN) · 항목 (영문)</label><input type="text" id="prItemEn" oninput="renderPRPreview()" placeholder="e.g. Supply and Delivery of 39 FURSYS Task Chairs" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prBank" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No. <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prAcct" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prHolder" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
@@ -5943,6 +5943,7 @@ function taskProjectIds(t){
 function taskProjLabels(t){ var ids=taskProjectIds(t); return ids.length? ids.map(function(id){return taskProjLabel(id);}) : ['공통/기타 · Common']; }
 // In-form selected projects (array of project-id strings, or ['common'])
 var _tskSelProjects=['common'];
+var _tskProjDropOpen=false;
 function _tskToggleCommon(){ _tskSelProjects=['common']; renderTaskProjectChips(); }
 function tskToggleProject(pid){
   pid=String(pid);
@@ -5958,18 +5959,34 @@ function tskToggleNewProjBox(){
   np.style.display=show?'':'none';
   if(show){ var inp=document.getElementById('tskNewProjName'); if(inp)setTimeout(function(){inp.focus();},30); }
 }
-function renderTaskProjectChips(){
-  var box=document.getElementById('tskProjectChips'); if(!box)return;
+function tskToggleProjDrop(){
+  _tskProjDropOpen=!_tskProjDropOpen;
+  var panel=document.getElementById('tskProjDropPanel'); if(panel)panel.style.display=_tskProjDropOpen?'block':'none';
+  var chev=document.getElementById('tskProjChev'); if(chev)chev.style.transform=_tskProjDropOpen?'rotate(180deg)':'';
+  if(_tskProjDropOpen) renderTaskProjectChips();
+}
+function _tskProjSummaryText(){
   var sel=(_tskSelProjects&&_tskSelProjects.length)?_tskSelProjects:['common'];
-  function chip(active,label,onclick,dashed){
-    return '<span onclick="'+onclick+'" style="cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:14px;border:1px '+(dashed?'dashed':'solid')+' '+(active?'var(--text)':'var(--border)')+';background:'+(active?'var(--text)':'var(--surface)')+';color:'+(active?'#fff':'var(--text-2)')+'">'+(active?'<i class="ti ti-check" style="font-size:11px"></i>':'')+label+'</span>';
-  }
-  var html=chip(sel.indexOf('common')>=0,'공통/기타 · Common','_tskToggleCommon()',false);
+  if(sel.indexOf('common')>=0) return '공통/기타 · Common';
+  var labels=sel.map(function(id){return taskProjLabel(id);});
+  if(!labels.length) return '공통/기타 · Common';
+  if(labels.length<=2) return labels.join(', ');
+  return labels.slice(0,2).join(', ')+' 외 '+(labels.length-2)+'개';
+}
+// Renders the dropdown summary + (when open) the checkbox panel. Name kept for existing callers.
+function renderTaskProjectChips(){
+  var sum=document.getElementById('tskProjSummary'); if(sum)sum.textContent=_tskProjSummaryText();
+  var panel=document.getElementById('tskProjDropPanel'); if(!panel)return;
+  var sel=(_tskSelProjects&&_tskSelProjects.length)?_tskSelProjects:['common'];
+  function chk(active){ return '<span style="width:16px;height:16px;border:1.5px solid '+(active?'var(--text)':'var(--border)')+';border-radius:4px;display:inline-flex;align-items:center;justify-content:center;background:'+(active?'var(--text)':'transparent')+';flex-shrink:0">'+(active?'<i class="ti ti-check" style="font-size:11px;color:#fff"></i>':'')+'</span>'; }
+  function row(inner,onclick){ return '<div onclick="'+onclick+'" style="display:flex;align-items:center;gap:9px;padding:8px 11px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">'+inner+'</div>'; }
+  var html=row(chk(sel.indexOf('common')>=0)+'<span>공통/기타 · Common</span>','_tskToggleCommon()');
   (state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).forEach(function(p){
-    html+=chip(sel.indexOf(String(p.id))>=0,(p.client||'?')+' · '+projStage(p.stage).label,"tskToggleProject('"+p.id+"')",false);
+    var active=sel.indexOf(String(p.id))>=0;
+    html+=row(chk(active)+'<span>'+(p.client||'?')+' · '+projStage(p.stage).label+'</span>',"tskToggleProject('"+p.id+"')");
   });
-  html+=chip(false,'➕ 새 프로젝트 · New','tskToggleNewProjBox()',true);
-  box.innerHTML=html;
+  html+=row('<i class="ti ti-plus" style="font-size:14px;width:16px;color:#b45309"></i><span style="color:#b45309;font-weight:600">새 프로젝트 추가 · New project</span>','tskToggleNewProjBox()');
+  panel.innerHTML=html;
 }
 function taskProjectOptions(sel){
   return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타 · Common] 회의·행정</option>'
@@ -5996,6 +6013,9 @@ function openTaskForm(id){
   var t=id?(state.tasks||[]).find(function(x){return x.id===id;}):null;
   _tskSelProjects = t ? taskProjectIds(t) : [];
   if(!_tskSelProjects.length) _tskSelProjects=['common'];
+  _tskProjDropOpen=false;
+  var _pp=document.getElementById('tskProjDropPanel'); if(_pp)_pp.style.display='none';
+  var _pc=document.getElementById('tskProjChev'); if(_pc)_pc.style.transform='';
   renderTaskProjectChips();
   var _npb=document.getElementById('tskNewProjWrap'); if(_npb)_npb.style.display='none';
   document.getElementById('taskFormTitle').textContent=t?'업무 수정 · Edit Task':'새 업무 · New Task';
@@ -7003,7 +7023,7 @@ var PROJ_SEED = [
 "stage": "po",
 "regDate": "2026-04-01",
 "targetDate": "2026-05-28",
-"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-01 · 발주 2026-04-08 · 납품 2026-05-28 · 견적상태 Confirmed",
+"note": "",
 "remark": ""
 },
 {
@@ -7015,7 +7035,7 @@ var PROJ_SEED = [
 "stage": "po",
 "regDate": "2026-04-08",
 "targetDate": "2026-06-02",
-"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-03 · 발주 2026-04-17 · 납품 2026-06-02 · 견적상태 Confirmed",
+"note": "",
 "remark": ""
 },
 {
@@ -7027,7 +7047,7 @@ var PROJ_SEED = [
 "stage": "po",
 "regDate": "2026-04-08",
 "targetDate": "2026-04-24",
-"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-13 · 발주 2026-04-16 · 납품 2026-04-24 · 견적상태 Confirmed",
+"note": "",
 "remark": ""
 },
 {
@@ -7051,7 +7071,7 @@ var PROJ_SEED = [
 "stage": "po",
 "regDate": "2026-04-17",
 "targetDate": "2026-06-01",
-"note": "• Contract, and Full Payment Processed at Once\n견적일 2026-04-20 · 발주 2026-04-23 · 납품 2026-06-01 · 견적상태 Confirmed",
+"note": "",
 "remark": ""
 },
 {
@@ -7204,6 +7224,7 @@ function projMigrate(){
   var changed=false;
   state.projects.forEach(function(p){ if(p.stage==='production'||p.stage==='install'){ p.stage='po'; changed=true; } });
   if(!state.projOwnerMigrated){ state.projects.forEach(function(p){ p.ownerId=2; }); state.projOwnerMigrated=true; changed=true; }
+  if(!state.projNoteCleaned){ state.projects.forEach(function(p){ if(p.note && p.note.indexOf('Full Payment Processed at Once')>=0){ p.note=''; changed=true; } }); state.projNoteCleaned=true; changed=true; }
   if(changed && typeof saveState==='function') saveState();
 }
 function projSeedOnce(){
