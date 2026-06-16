@@ -2328,9 +2328,15 @@ function closeDetail(wrapId){
 function attListHTML(atts,deletable,docId,type){
   if(!atts||!atts.length)return '<div style="font-size:11px;color:var(--text-3);padding:3px 0">No attachments</div>';
   return atts.map(function(a,i){
-    var dlBtn = a.data ? '<button class="att-del" style="color:var(--success)" onclick="downloadAtt('+String(docId)+String(",")+JSON.stringify(type)+String(",")+String(i)+')" title="DL"><i class="ti ti-download" style="font-size:13px"></i></button>' : '';
-    var delBtn = deletable ? '<button class="att-del" onclick="removeAtt('+String(docId)+String(",")+JSON.stringify(type)+String(",")+String(i)+')" title="Del"><i class="ti ti-x" style="font-size:13px"></i></button>' : '';
-    return '<div class="att-item"><i class="ti '+fileIcon(a.name)+' att-icon"></i><span class="att-name">'+a.name+'</span><span class="att-size">'+a.size+'</span>'+dlBtn+delBtn+'</div>';
+    var tj=JSON.stringify(type);
+    var canPrev = a.data && (/\.(png|jpe?g|gif|webp|bmp|pdf)$/i.test(a.name||'') || /^data:(image\/|application\/pdf)/i.test(a.data));
+    var nameCell = canPrev
+      ? '<span class="att-name" style="cursor:pointer;color:#2563eb;text-decoration:underline;text-underline-offset:2px" onclick="previewAtt('+docId+','+tj+','+i+')" title="미리보기 · Click to preview">'+a.name+'</span>'
+      : '<span class="att-name">'+a.name+'</span>';
+    var prevBtn = canPrev ? '<button class="att-del" style="color:#2563eb" onclick="previewAtt('+docId+','+tj+','+i+')" title="미리보기 · Preview"><i class="ti ti-eye" style="font-size:13px"></i></button>' : '';
+    var dlBtn = a.data ? '<button class="att-del" style="color:var(--success)" onclick="downloadAtt('+docId+','+tj+','+i+')" title="다운로드 · Download"><i class="ti ti-download" style="font-size:13px"></i></button>' : '';
+    var delBtn = deletable ? '<button class="att-del" onclick="removeAtt('+docId+','+tj+','+i+')" title="Del"><i class="ti ti-x" style="font-size:13px"></i></button>' : '';
+    return '<div class="att-item"><i class="ti '+fileIcon(a.name)+' att-icon"></i>'+nameCell+'<span class="att-size">'+a.size+'</span>'+prevBtn+dlBtn+delBtn+'</div>';
   }).join('');
 }
 
@@ -2368,6 +2374,51 @@ function downloadAtt(docId, type, idx){
   if(isBlob){ setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(_){} }, 5000); }
   showToast('Downloading: ' + att.name);
 }
+
+// 첨부 미리보기 — 이미지는 라이트박스, PDF는 인앱 뷰어, 그 외는 다운로드로 폴백
+function previewAtt(docId, type, idx){
+  var doc = state.docs.find(function(d){ return d.id == docId; });
+  if(!doc) return;
+  var atts = _attsFor(doc, type);
+  var att = atts && atts[idx];
+  if(!att || !att.data){ showToast('미리볼 파일 데이터가 없습니다 · No file data — re-attach'); return; }
+  var name = att.name || 'file';
+  var isImg = /\.(png|jpe?g|gif|webp|bmp)$/i.test(name) || /^data:image\//i.test(att.data);
+  var isPdf = /\.pdf$/i.test(name) || /^data:application\/pdf/i.test(att.data);
+  if(isImg){ if(typeof viewImageLightbox==='function') viewImageLightbox(att.data); return; }
+  if(isPdf){
+    var url = att.data, blob = null;
+    if(/^data:/.test(att.data)){ blob = _attDataUrlToBlob(att.data); if(blob) url = URL.createObjectURL(blob); }
+    openAttPreviewModal(url, name, type, docId, idx, /^blob:/.test(url));
+    return;
+  }
+  // 미리보기 미지원 형식 (xlsx/docx 등) → 다운로드
+  showToast('이 형식은 미리보기를 지원하지 않아 다운로드합니다 · Preview not supported, downloading');
+  downloadAtt(docId, type, idx);
+}
+function openAttPreviewModal(url, name, type, docId, idx, isBlob){
+  var ov = document.getElementById('attPreviewOverlay');
+  if(!ov){
+    ov = document.createElement('div'); ov.id='attPreviewOverlay';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:10000;display:flex;flex-direction:column;padding:16px';
+    ov.onclick=function(e){ if(e.target===ov) closeAttPreview(); };
+    document.body.appendChild(ov);
+  }
+  if(ov._blobUrl){ try{ URL.revokeObjectURL(ov._blobUrl); }catch(_){} }
+  ov._blobUrl = isBlob ? url : null;
+  var safeName = String(name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  ov.innerHTML = '<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;color:#fff;margin-bottom:10px;flex-wrap:wrap">'
+    + '<div style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i class="ti ti-file-type-pdf" style="margin-right:5px"></i>'+safeName+'</div>'
+    + '<div style="display:flex;gap:8px;flex-shrink:0">'
+      + '<a href="'+url+'" target="_blank" rel="noopener" class="btn btn-outline" style="font-size:12px;padding:6px 11px;background:#fff;text-decoration:none"><i class="ti ti-external-link"></i> 새 탭 · Open</a>'
+      + '<button class="btn btn-dark" style="font-size:12px;padding:6px 11px" onclick="downloadAtt('+docId+','+JSON.stringify(type)+','+idx+')"><i class="ti ti-download"></i> 다운로드 · Download</button>'
+      + '<button class="btn btn-outline" style="font-size:12px;padding:6px 11px;background:#fff" onclick="closeAttPreview()"><i class="ti ti-x"></i> 닫기 · Close</button>'
+    + '</div></div>'
+    + '<iframe src="'+url+'" title="preview" style="flex:1;border:0;border-radius:8px;background:#fff;width:100%;min-height:0"></iframe>'
+    + '<div style="color:#cbd5e1;font-size:11px;margin-top:8px;text-align:center">미리보기가 안 보이면 「새 탭」을 눌러주세요 · If the preview is blank, tap “Open”.</div>';
+  ov.style.display='flex';
+}
+function closeAttPreview(){ var ov=document.getElementById('attPreviewOverlay'); if(ov){ if(ov._blobUrl){ try{ URL.revokeObjectURL(ov._blobUrl); }catch(_){} ov._blobUrl=null; } ov.style.display='none'; ov.innerHTML=''; } }
 
 function removeAtt(docId,type,idx){const doc=state.docs.find(d=>d.id===docId);if(!doc)return;var arr=_attsFor(doc,type);if(arr)arr.splice(idx,1);saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();}
 
