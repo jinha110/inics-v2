@@ -1009,8 +1009,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fg" style="margin:0"><label style="font-size:10px">지급기한 · Due Date</label><input type="date" id="prDue" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
-        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Hạng mục (Vi)</label><input type="text" id="prItem" oninput="renderPRPreview()" placeholder="VD: Cung cấp và bàn giao 39 ghế văn phòng FURSYS" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item (En)</label><input type="text" id="prItemEn" oninput="renderPRPreview()" placeholder="e.g. Supply and Delivery of 39 FURSYS Task Chairs" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Hạng mục</label><input type="text" id="prItem" oninput="renderPRPreview()" placeholder="VD: Cung cấp và bàn giao 39 ghế văn phòng FURSYS" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item</label><input type="text" id="prItemEn" oninput="renderPRPreview()" placeholder="e.g. Supply and Delivery of 39 FURSYS Task Chairs" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prBank" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No. <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prAcct" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prHolder" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
@@ -4546,17 +4546,36 @@ function renderSavedQuotes(){
   var q=((document.getElementById('qSavedSearch')||{}).value||'').toLowerCase().trim();
   var list=(state.quotes||[]).slice().sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
   if(q){ var t=q.split(/\s+/); list=list.filter(function(x){ var hay=[x.quoteNo,x.client,x.date].join(' ').toLowerCase(); return t.every(function(k){ return hay.indexOf(k)>=0; }); }); }
-  if(!list.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-folder"></i><p>저장된 견적 없음</p></div>'; return; }
-  el.innerHTML=list.map(function(x){
+  if(!list.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-folder"></i><p>저장된 견적 없음 · No saved quotes</p></div>'; return; }
+  var th='font-size:11px;color:var(--text-3);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
+  var td='font-size:12px;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle';
+  var rows=list.map(function(x){
     var tot=(x.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
-    return '<div class="detail-panel" style="margin-bottom:8px"><div style="display:flex;gap:10px;align-items:center;padding:11px 13px">'
-      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+(x.client||'—')+' <span style="font-size:11px;color:var(--text-3);font-weight:400;font-family:var(--mono)">'+(x.quoteNo||'')+'</span></div>'
-      +'<div style="font-size:11px;color:var(--text-3);margin-top:2px">'+(x.date||'')+' · '+(x.lines||[]).length+'개 품목 · '+(x.currency||'')+' '+fmtN(tot)+'</div></div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+')"><i class="ti ti-edit"></i> 열기</button>'
-      +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+',true)"><i class="ti ti-file-type-pdf"></i> PDF</button>'
-      +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteQuote('+x.id+')"><i class="ti ti-trash"></i></button></div>'
-      +'</div></div>';
+    var vatLbl=(x.vat==='exempt')?'면세':(x.vat!=null?('VAT '+x.vat+'%'):'');
+    return '<tr>'
+      +'<td style="'+td+';white-space:nowrap;color:var(--text-2)">'+(x.date||'—')+'</td>'
+      +'<td style="'+td+';font-family:var(--mono);white-space:nowrap">'+(x.quoteNo||'—')+'</td>'
+      +'<td style="'+td+';font-weight:600">'+(x.client||'—')+'</td>'
+      +'<td style="'+td+';text-align:center;color:var(--text-2)">'+((x.lines||[]).length)+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700">'+(x.currency||'')+' '+fmtN(tot)+(vatLbl?(' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+vatLbl+'</span>'):'')+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap">'
+        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+')"><i class="ti ti-edit"></i> 열기</button> '
+        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+',true)"><i class="ti ti-file-type-pdf"></i> PDF</button> '
+        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteQuote('+x.id+')"><i class="ti ti-trash"></i></button>'
+      +'</td>'
+      +'</tr>';
   }).join('');
+  el.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)">'
+    +'<table style="width:100%;border-collapse:collapse;min-width:640px">'
+    +'<thead><tr>'
+      +'<th style="'+th+'">날짜 · Date</th>'
+      +'<th style="'+th+'">견적번호 · No.</th>'
+      +'<th style="'+th+'">고객사 · Client</th>'
+      +'<th style="'+th+';text-align:center">품목 · Items</th>'
+      +'<th style="'+th+';text-align:right">합계 · Total</th>'
+      +'<th style="'+th+';text-align:right">작업 · Actions</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div style="font-size:11px;color:var(--text-3);margin-top:8px">총 '+list.length+'건 · '+list.length+' quotes</div>';
 }
 function loadQuote(id, pdf){
   var x=(state.quotes||[]).find(function(e){ return e.id===id; }); if(!x) return;
@@ -5505,7 +5524,7 @@ function buildPaymentRequestHtml(p,o,pr){
     +'</div>'
     +'<div style="text-align:right">'
       +'<div style="font-size:16px;font-weight:800;letter-spacing:.02em">GIẤY ĐỀ NGHỊ THANH TOÁN</div>'
-      +'<div style="font-size:11px;font-weight:700;color:#333">PAYMENT REQUEST · 대금지급요청서</div>'
+      +'<div style="font-size:11px;font-weight:700;color:#333">PAYMENT REQUEST</div>'
       +'<div style="font-size:10px;margin-top:4px">Số / No.: <b>'+esc(pr.prNo||'')+'</b></div>'
       +'<div style="font-size:10px">Ngày / Date: '+esc(pr.date||'')+'</div>'
     +'</div>'
@@ -5513,13 +5532,13 @@ function buildPaymentRequestHtml(p,o,pr){
   // to / contract boxes
   H+='<div class="ct-blk" style="margin-top:14px;display:flex;gap:14px">'
     +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
-      +'<div style="font-weight:700;font-size:10px">Kính gửi / To · 수신</div>'
+      +'<div style="font-weight:700;font-size:10px">Kính gửi / To</div>'
       +'<div style="font-weight:700;margin-top:2px">'+(buyerName||'………')+'</div>'
       +(buyerRep?'<div style="font-size:10px">Đại diện / Rep.: '+buyerRep+(buyerTitle?' – '+buyerTitle:'')+'</div>':'')
       +(buyerAddr?'<div style="font-size:9.5px;color:#444">'+buyerAddr+'</div>':'')
     +'</div>'
     +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
-      +'<div style="font-weight:700;font-size:10px">Hợp đồng / Contract · 연결 계약</div>'
+      +'<div style="font-weight:700;font-size:10px">Hợp đồng / Contract</div>'
       +'<div style="font-weight:700;margin-top:2px;font-family:monospace">'+hd+'</div>'
       +'<div style="font-size:9.5px;color:#444">Ngày HĐ / Contract date: '+esc(o.date||'')+'</div>'
     +'</div>'
@@ -5529,28 +5548,28 @@ function buildPaymentRequestHtml(p,o,pr){
     +'Căn cứ Hợp đồng cung cấp hàng hóa số <b>'+hd+'</b>, '+inicsEn+' trân trọng đề nghị Quý Công ty thanh toán khoản sau / '
     +'Pursuant to Supply Contract No. <b>'+hd+'</b>, '+inicsEn+' respectfully requests payment of the following:'
   +'</div>';
-  // table — 내용에 선금/잔금/100% 명기
+  // table — description shows advance/balance/100% label
   H+='<table class="ct-blk" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:10.5px">'
     +'<thead><tr style="background:#f1f5f9">'
       +'<th style="border:1px solid #999;padding:6px;width:8%">No</th>'
-      +'<th style="border:1px solid #999;padding:6px;text-align:left">Nội dung / Description · 내용</th>'
+      +'<th style="border:1px solid #999;padding:6px;text-align:left">Nội dung / Description</th>'
       +'<th style="border:1px solid #999;padding:6px;width:32%;text-align:right">Số tiền / Amount</th>'
     +'</tr></thead><tbody>'
       +'<tr>'
         +'<td style="border:1px solid #999;padding:6px;text-align:center">1</td>'
         +'<td style="border:1px solid #999;padding:6px">'
-          +'<div style="font-weight:700">'+lbl.vi+' / '+lbl.en+' · <span style="color:#1d4ed8">'+lbl.ko+'</span></div>'
+          +'<div style="font-weight:700">'+lbl.vi+' / '+lbl.en+'</div>'
           +(itemVi||itemEn?('<div style="font-size:9.5px;color:#444;margin-top:2px">'+(itemVi||'')+(itemVi&&itemEn?' / ':'')+(itemEn||'')+'</div>'):'')
           +'<div style="font-size:9px;color:#555;margin-top:2px">theo HĐ / under Contract '+hd+'</div>'
         +'</td>'
         +'<td style="border:1px solid #999;padding:6px;text-align:right;font-weight:700">'+amtStr+'</td>'
       +'</tr>'
     +'</tbody><tfoot style="break-inside:avoid;page-break-inside:avoid">'
-      +'<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL · 합계</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>'
+      +'<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>'
     +'</tfoot></table>';
   // payment info
   H+='<div class="ct-blk" style="margin-top:12px;border:1px solid #999;padding:9px 11px;background:#fbfbfb">'
-    +'<div style="font-weight:700;font-size:10px;margin-bottom:4px">Thông tin thanh toán / Payment Details · 입금 정보</div>'
+    +'<div style="font-weight:700;font-size:10px;margin-bottom:4px">Thông tin thanh toán / Payment Details</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:10px">'
       +'<div>Ngân hàng / Bank: <b>'+esc(pr.bank||'Shinhan Bank Vietnam')+'</b></div>'
       +'<div>Số TK / Account No.: <b>'+esc(pr.acct||'')+'</b></div>'
@@ -7296,6 +7315,8 @@ function bankClearAcct(acctNo){
   if(!confirm('Delete all imported transactions for '+acctNo+'?\n'+acctNo+' 거래내역을 모두 삭제할까요?')) return;
   var removedIds={}; (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acctNo && t.matchCardId!=null) removedIds[t.matchCardId]=true; });
   (state.cardExpenses||[]).forEach(function(c){ if(c.matchTxnId!=null && removedIds[c.id]){ c.matchTxnId=null; c.matchStatus=null; c.matchedAt=null; } });
+  var removedDocIds={}; (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acctNo && t.matchDocId!=null) removedDocIds[t.matchDocId]=true; });
+  (state.docs||[]).forEach(function(d){ if(d.matchTxnId!=null && removedDocIds[d.id]){ d.matchTxnId=null; d.matchStatus=null; d.matchedAt=null; } });
   state.bankTxns=(state.bankTxns||[]).filter(function(t){return t.acctNo!==acctNo;});
   saveState(); renderBankApp(); showToast('Cleared · 초기화 완료');
 }
@@ -7361,7 +7382,7 @@ function _bankDebit(t){ return Math.round(t.debit||0); }
 function _bankCandidates(card){
   var amt=_cardAmt(card); if(amt<=0) return [];
   return (state.bankTxns||[]).filter(function(t){
-    if(t.matchCardId) return false;
+    if(t.matchCardId||t.matchDocId) return false;
     if(_bankDebit(t)!==amt) return false;
     if((t.currency||'')!==(card.currency||'')) return false;
     var dd=_mDayDiff(t.date,card.date);
@@ -7403,6 +7424,108 @@ function _bankCardInfo(txn){
   if(cands.length>=1) return {status:'review', card:null, candidates:cands};
   return {status:'none', card:null, candidates:cands};
 }
+
+// ═══════════ 전자결재(문서) ↔ BANK 매칭 — 명세서 내 인라인 (카드와 동일 방식) ═══════════
+// state.docs(전자결재) 금액 ↔ 은행 출금(debit)을 금액·통화 기준 매칭. 은행 1건은 카드 또는 전자결재 중 한 쪽에만 연결.
+function _docAmtCents(d){ return Math.round((parseFloat(String(d&&d.amount||'').replace(/[^0-9.\-]/g,''))||0)*100); }
+function _bankDebitCents(t){ return Math.round((t.debit||0)*100); }
+function _txnTaken(t){ return !!(t.matchCardId || t.matchDocId); }
+function _docPayable(d){
+  if(!d) return false;
+  if(_docAmtCents(d)<=0) return false;
+  if(d.status==='draft' || d.status==='rejected') return false;
+  return d.needPayment===true || d.status==='payment' || d.status==='done';
+}
+// 비카드 출금만 전자결재 대상 (카드 출금은 카드 열에서 처리)
+function _isDocTxn(t){ return _bankDebit(t)>0 && !_isCardTxn(t); }
+// doc → bank 후보 (금액·통화 일치하는 미연결 출금)
+function _docBankCandidates(doc){
+  var cents=_docAmtCents(doc); if(cents<=0) return [];
+  return (state.bankTxns||[]).filter(function(t){
+    if(_txnTaken(t)) return false;
+    if(_bankDebitCents(t)!==cents) return false;
+    if((t.currency||'')!==(doc.currency||'')) return false;
+    return true;
+  }).sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')); });
+}
+function _docMatchInfo(doc){
+  if(doc.matchTxnId){
+    var t=(state.bankTxns||[]).find(function(x){return x.id===doc.matchTxnId;});
+    return {status:(doc.matchStatus==='auto'?'auto':'manual'), txn:t||null, candidates:[]};
+  }
+  var cands=_docBankCandidates(doc);
+  if(cands.length===1) return {status:'confident', txn:cands[0], candidates:cands};
+  if(cands.length>=2) return {status:'review', txn:null, candidates:cands};
+  return {status:'none', txn:null, candidates:[]};
+}
+// bank → doc 후보 (이 출금 금액·통화와 일치하는 미연결 결재문서)
+function _bankDocCandidates(txn){
+  var cents=_bankDebitCents(txn); if(cents<=0) return [];
+  return (state.docs||[]).filter(function(d){
+    if(!_docPayable(d)) return false;
+    if(d.matchTxnId) return false;
+    if(_docAmtCents(d)!==cents) return false;
+    if((d.currency||'')!==(txn.currency||'')) return false;
+    return true;
+  }).sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+}
+function _bankDocInfo(txn){
+  if(txn.matchDocId){ var d=(state.docs||[]).find(function(x){return x.id===txn.matchDocId;}); return {status:(txn.matchDocStatus==='auto'?'auto':'manual'), doc:d||null, candidates:[]}; }
+  var cands=_bankDocCandidates(txn);
+  if(cands.length===1) return {status:'confident', doc:cands[0], candidates:cands};
+  if(cands.length>=2) return {status:'review', doc:null, candidates:cands};
+  return {status:'none', doc:null, candidates:cands};
+}
+function _linkDocBank(doc,txn,how){ doc.matchTxnId=txn.id; doc.matchStatus=how; doc.matchedAt=nowStr(); txn.matchDocId=doc.id; txn.matchDocStatus=how; txn.matchDocAt=nowStr(); }
+function _unlinkDoc(doc){ if(doc.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===doc.matchTxnId;}); if(t){ t.matchDocId=null; t.matchDocStatus=null; t.matchDocAt=null; } } doc.matchTxnId=null; doc.matchStatus=null; doc.matchedAt=null; }
+function _docReconRefresh(){ saveState(); if(typeof renderBankList==='function') renderBankList(); }
+function runDocAutoMatch(){
+  var docs=(state.docs||[]).filter(_docPayable).filter(function(d){ return !d.matchTxnId; });
+  var n=0;
+  docs.forEach(function(d){
+    var info=_docMatchInfo(d);
+    if(info.status==='confident' && info.txn && !_txnTaken(info.txn)){
+      // 은행 출금 쪽에서도 이 문서 하나만 후보일 때만 자동 확정 (금액 경합 시 수동으로 남김)
+      var back=_bankDocInfo(info.txn);
+      if(back.status==='confident' && back.doc && back.doc.id===d.id){ _linkDocBank(d,info.txn,'auto'); n++; }
+    }
+  });
+  _docReconRefresh();
+  showToast('전자결재 자동 매칭 '+n+'건 · Auto-matched '+n);
+}
+function matchDocBank(docId,txnId,how){
+  var doc=(state.docs||[]).find(function(x){return x.id===docId;});
+  var txn=(state.bankTxns||[]).find(function(x){return x.id===txnId;});
+  if(!doc||!txn){ return; }
+  if(_txnTaken(txn)){ showToast('이미 매칭된 은행 거래 · Bank line already matched'); return; }
+  _linkDocBank(doc,txn,how||'manual'); _docReconRefresh(); showToast('매칭 완료 · Matched');
+}
+function unmatchDoc(docId){ var doc=(state.docs||[]).find(function(x){return x.id===docId;}); if(!doc) return; _unlinkDoc(doc); _docReconRefresh(); showToast('매칭 해제 · Unmatched'); }
+function _docShort(d){ return d?((d.docNo?('['+d.docNo+'] '):'')+(d.title||'결재 Doc')):'결재 Doc'; }
+// 명세서 행의 「전자결재」 열 — 카드 열과 동일 패턴
+function _bankDocCell(t){
+  if(!_isDocTxn(t)) return '<span style="color:var(--text-3)">—</span>';
+  var info=_bankDocInfo(t);
+  if(info.status==='auto'||info.status==='manual'){
+    var d=info.doc;
+    return '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">'
+      +'<span class="badge b-done" style="font-size:10px" title="'+String(_docShort(d)).replace(/"/g,'&quot;')+'"><i class="ti ti-check"></i> '+String(_docShort(d)).slice(0,18)+'</span>'
+      +'<a href="javascript:void(0)" onclick="unmatchDoc('+(d?d.id:0)+')" title="매칭 해제 · Unmatch" style="color:var(--danger);text-decoration:none;font-size:12px"><i class="ti ti-x"></i></a></div>';
+  }
+  if(info.status==='confident'){
+    var dc=info.doc;
+    return '<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchDocBank('+dc.id+','+t.id+',\'auto\')" title="이 결재문서로 매칭 · Match: '+String(_docShort(dc)).replace(/"/g,'&quot;')+'"><i class="ti ti-check"></i> '+String(dc.title||'결재').slice(0,16)+'</button>';
+  }
+  if(info.status==='review'){
+    return '<select onchange="if(this.value)matchDocBank(parseInt(this.value),'+t.id+',\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:180px"><option value="">검토 · Review '+info.candidates.length+'개 결재…</option>'
+      +info.candidates.map(function(d){ return '<option value="'+d.id+'">'+(d.docNo||'')+' · '+(d.title||'').slice(0,18)+'</option>'; }).join('')+'</select>';
+  }
+  var opts=(state.docs||[]).filter(function(d){ return _docPayable(d) && !d.matchTxnId && (d.currency||'')===(t.currency||''); }).sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+  if(!opts.length) return '<span style="color:var(--text-3);font-size:11px">미매칭 · Unmatched</span>';
+  return '<select onchange="if(this.value)matchDocBank(parseInt(this.value),'+t.id+',\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:180px"><option value="">수동 연결 · Link approval…</option>'
+    +opts.slice(0,200).map(function(d){ return '<option value="'+d.id+'">'+(d.docNo||'')+' · '+(d.currency||'')+' '+String(d.amount||'')+' · '+(d.title||'').slice(0,18)+'</option>'; }).join('')+'</select>';
+}
+
 // 공용 이미지 라이트박스 (영수증/스캔본)
 function viewImageLightbox(src){
   if(!src) return;
@@ -7574,25 +7697,30 @@ function renderBankList(){
       +'<td style="'+td+'">'+catSel+'</td>'
       +'<td style="'+td+';white-space:nowrap">'+vendorInp+'</td>'
       +'<td style="'+td+'">'+_bankCardCell(t)+'</td>'
+      +'<td style="'+td+'">'+_bankDocCell(t)+'</td>'
       +'<td style="'+td+';text-align:center"><input type="checkbox" '+(_bankInvoiceChecked(t)?'checked':'')+' onchange="toggleBankInvoice('+t.id+',this.checked)" title="인보이스 보유 · Has invoice" style="width:16px;height:16px;cursor:pointer"></td>'
       +'<td style="'+td+';text-align:right"><button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button></td>'
       +'</tr>';
   }).join('');
   var noVendor=txns.filter(function(t){ return !t.vendor||!t.vendor.trim(); }).length;
   var cardTx=txns.filter(_isCardTxn); var cardMatched=cardTx.filter(function(t){return t.matchCardId;}).length;
+  var payDocs=(state.docs||[]).filter(_docPayable); var docMatched=payDocs.filter(function(d){return d.matchTxnId;}).length;
   var vendorBar='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
     +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankAutoVendor()"><i class="ti ti-wand"></i> 거래처 자동인식 · Auto-vendor</button>'
     +(noVendor?'<span style="font-size:11px;color:#92400e">거래처 미지정 · No vendor '+noVendor+'</span>':'<span style="font-size:11px;color:#15803d">거래처 지정 완료 · Done</span>')
     +'<span style="width:1px;height:18px;background:var(--border);margin:0 4px"></span>'
     +'<button class="btn btn-dark" style="font-size:11px;padding:5px 11px" onclick="runAutoMatch()"><i class="ti ti-arrows-diff"></i> 카드 자동매칭 · Auto-match cards</button>'
     +(cardTx.length?'<span style="font-size:11px;color:'+(cardMatched===cardTx.length?'#15803d':'#92400e')+'">카드 · Card '+cardMatched+'/'+cardTx.length+' 매칭 · matched</span>':'')
+    +'<span style="width:1px;height:18px;background:var(--border);margin:0 4px"></span>'
+    +'<button class="btn btn-dark" style="font-size:11px;padding:5px 11px" onclick="runDocAutoMatch()"><i class="ti ti-arrows-diff"></i> 전자결재 자동매칭 · Auto-match approvals</button>'
+    +(payDocs.length?'<span style="font-size:11px;color:'+(docMatched===payDocs.length?'#15803d':'#92400e')+'">전자결재 · Approval '+docMatched+'/'+payDocs.length+' 매칭 · matched</span>':'')
     +'</div>';
-  el.innerHTML=bankVendorDatalist()+vendorBar+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1300px">'
+  el.innerHTML=bankVendorDatalist()+vendorBar+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1480px">'
     +'<thead><tr>'
     +'<th style="'+th+'">Date<br>날짜</th><th style="'+th+';max-width:64px">Type<br>거래</th>'
     +'<th style="'+th+';text-align:right">Out<br>출금</th><th style="'+th+';text-align:right">In<br>입금</th>'
     +'<th style="'+th+';text-align:right">Balance<br>잔액</th><th style="'+th+'">Note<br>비고</th>'
-    +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+';text-align:center">Inv<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
+    +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+'">Approval<br>전자결재</th><th style="'+th+';text-align:center">Inv<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 function _bankTypeShort(ty){ ty=String(ty||''); if(/카드/.test(ty)) return '카드'; return ty; }
@@ -7635,6 +7763,11 @@ function setBankTxnCategory(id,val){
   renderBankList();
 }
 function deleteBankTxn(id){
+  var _t=(state.bankTxns||[]).find(function(x){return x.id===id;});
+  if(_t){
+    if(_t.matchCardId!=null){ var _c=(state.cardExpenses||[]).find(function(x){return x.id===_t.matchCardId;}); if(_c){ _c.matchTxnId=null; _c.matchStatus=null; _c.matchedAt=null; } }
+    if(_t.matchDocId!=null){ var _d=(state.docs||[]).find(function(x){return x.id===_t.matchDocId;}); if(_d){ _d.matchTxnId=null; _d.matchStatus=null; _d.matchedAt=null; } }
+  }
   state.bankTxns=(state.bankTxns||[]).filter(function(x){return x.id!==id;});
   saveState(); renderBankApp(); showToast('Deleted · 삭제');
 }
