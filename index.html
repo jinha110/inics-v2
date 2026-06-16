@@ -554,6 +554,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-title">거래처 DB · Vendor Database</div>
         <div class="hub-card-desc">거래처 · 은행정보 · 문서 검색<br>Vendor · Bank Info · Search</div>
       </div>
+      <div class="hub-card active-module" id="hubCard-bankstmt" onclick="enterModule('bankstmt')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
+        <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-building-bank"></i></div>
+        <div class="hub-card-title">은행 명세서 · Bank Statement</div>
+        <div class="hub-card-desc">계좌별 거래내역 · 회계 분류<br>Statements · Categorize</div>
+      </div>
 
     </div>
 
@@ -716,6 +722,35 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <!-- QUOTATION — standalone overlay -->
+
+<!-- BANK STATEMENT — standalone overlay -->
+<div id="bankApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:1180px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closeBankApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub · 허브</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">Bank Statement · 은행 명세서</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <span id="bankAvatarChip"></span><span id="bankUserName"></span>
+        <button class="btn btn-outline" onclick="hubLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:18px">Per-account statement import &amp; categorization · 계좌별 거래내역 업로드 · 회계 분류</div>
+    <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
+      <button id="bankTabStmt" onclick="bankSwitchTab('stmt')" style="background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-file-spreadsheet"></i> Statements · 명세서</button>
+      <button id="bankTabAcct" onclick="bankSwitchTab('acct')" style="display:none;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-adjustments-cog"></i> Accounting Admin · 회계 관리자</button>
+    </div>
+    <div id="bankStmtPane">
+      <div id="bankAccountBar" style="margin-bottom:14px"></div>
+      <div id="bankUploadBar" style="margin-bottom:14px"></div>
+      <div id="bankSummary" style="margin-bottom:10px"></div>
+      <div id="bankList"></div>
+    </div>
+    <div id="bankAcctPane" style="display:none"></div>
+  </div>
+</div>
+<input type="file" id="bankExcelInput" style="display:none" accept=".xlsx,.xls" onchange="handleBankExcel(this.files[0]);this.value=''">
 
 <!-- PROJECT MANAGEMENT — standalone overlay -->
 <div id="reportApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
@@ -1549,6 +1584,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
             <div class="admin-card-hdr"><i class="ti ti-users"></i> Members · 구성원</div>
             <div class="admin-card-body" id="adminMemberList"></div>
           </div>
+          <!-- Approval Lines -->
+          <div class="admin-card" style="grid-column:1/-1">
+            <div class="admin-card-hdr"><i class="ti ti-route"></i> Approval Lines · 부서별 결재선</div>
+            <div class="admin-card-body">
+              <div style="font-size:11px;color:var(--text-3);margin-bottom:10px">부서별 1차·2차 결재자를 지정합니다. 저장 즉시 <b>신규 기안</b>에 적용됩니다 · Applies to new drafts immediately.</div>
+              <div id="adminApproverLines"></div>
+            </div>
+          </div>
           <!-- Change Password -->
           <div class="admin-card">
             <div class="admin-card-hdr"><i class="ti ti-key"></i> Change Password · 비밀번호 변경</div>
@@ -1756,17 +1799,14 @@ async function loadState() {
     if(state.projectSeq===undefined)state.projectSeq=0;
     if(!state.projLocations||!state.projLocations.length)state.projLocations=['HANOI','HCMC'];
     if(!state.projRegionsX)state.projRegionsX=[];
+    if(!state.bankTxns)state.bankTxns=[];
+    if(state.bankSeq===undefined)state.bankSeq=0;
   }
+  if(typeof bankSeedOnce==='function') bankSeedOnce();
   // apply saved passwords
-  if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
+  if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});} if(state.memberNames){Object.entries(state.memberNames).forEach(([id,nm])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.name=nm;});}
   // restore extra members added by admin
-  if(state.extraMembers){
-    state.extraMembers.forEach(function(u){
-      if(!MEMBERS.find(function(m){ return m.id===u.memberId; })){
-        // re-add if missing (e.g. page reload)
-      }
-    });
-  }
+  if(typeof _syncExtraMembers==='function') _syncExtraMembers();
   populateSelects(); render();
   if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
   // realtime listener
@@ -1776,8 +1816,10 @@ async function loadState() {
       if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
       if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(!state.viewScope)state.viewScope={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
       if(!state.projects)state.projects=[]; if(state.projectSeq===undefined)state.projectSeq=0;
-      if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});}
+      if(!state.bankTxns)state.bankTxns=[]; if(state.bankSeq===undefined)state.bankSeq=0; if(typeof bankSeedOnce==='function') bankSeedOnce();
+      if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});} if(state.memberNames){Object.entries(state.memberNames).forEach(([id,nm])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.name=nm;});}
       if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
+      if(typeof _syncExtraMembers==='function') _syncExtraMembers();
       render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } if(typeof projectAppOpen!=='undefined' && projectAppOpen && typeof renderProjectBoard==='function'){ renderProjectBoard(); } setSyncStatus('ok','Live sync · 실시간 동기화');
     });
   }
@@ -2287,7 +2329,7 @@ function addMember() {
 
   // Add to gate users (stored in state for persistence)
   if(!state.extraMembers) state.extraMembers = [];
-  state.extraMembers.push({id:loginId, pw:pw, name:name, memberId:newId});
+  state.extraMembers.push({id:loginId, pw:pw, name:name, memberId:newId, role:role, dept:dept});
 
   saveState();
   populateSelects();
@@ -2327,8 +2369,8 @@ function renderAdmin(){
       <input type="file" accept="image/*" onchange="handlePhotoUpload(${m.id},this.files[0])">
     </label>
     <div class="member-info">
-      <div class="member-name">${m.name}${m.isAdmin?` <span class="badge b-admin" style="font-size:9px">Admin</span>`:''}</div>
-      <div class="member-role">${m.role} · ${m.dept}</div>
+      <div class="member-name">${m.name}${m.isAdmin?` <span class="badge b-admin" style="font-size:9px">Admin</span>`:''} <i class="ti ti-pencil" title="Rename · 이름 변경" onclick="renameMember(${m.id})" style="font-size:13px;color:var(--text-3);cursor:pointer;margin-left:4px"></i></div>
+      <div class="member-role">${m.role} · ${m.dept}<span style="color:var(--text-3)"> · ID: ${memberLoginId(m)}</span></div>
     </div>
     <div class="pw-dot">●●●●</div>
   </div>`).join('');}
@@ -2362,9 +2404,37 @@ function changePassword(){
   m.pw=newPw;
   if(!state.memberPasswords)state.memberPasswords={};
   state.memberPasswords[id]=newPw;
+  // keep gate login (extraMembers) password in sync
+  if(state.extraMembers){ state.extraMembers.forEach(function(u){ if(u.memberId===id) u.pw=newPw; }); }
   saveState();document.getElementById('pwNew').value='';
   showToast(`${m.name} password updated · 비밀번호 변경 완료`);
   renderAdmin();
+}
+
+// 로그인 ID 조회 (GATE_USERS 또는 추가 멤버)
+function memberLoginId(m){
+  if(!m) return '—';
+  var g=(typeof GATE_USERS!=='undefined'?GATE_USERS:[]).find(function(u){return u.memberId===m.id;});
+  if(g) return g.id;
+  var e=((state&&state.extraMembers)||[]).find(function(u){return u.memberId===m.id;});
+  if(e) return e.id;
+  return '—';
+}
+// 구성원 이름 변경 (영구 저장)
+function renameMember(id){
+  var m=MEMBERS.find(function(x){return x.id===id;}); if(!m) return;
+  var nv=prompt('New name · 새 이름:', m.name);
+  if(nv===null) return;
+  nv=nv.trim().toUpperCase();
+  if(!nv){ showToast('이름을 입력하세요 · Enter a name'); return; }
+  m.name=nv;
+  if(!state.memberNames) state.memberNames={};
+  state.memberNames[id]=nv;
+  if(state.extraMembers){ state.extraMembers.forEach(function(u){ if(u.memberId===id) u.name=nv; }); }
+  saveState();
+  if(typeof populateSelects==='function') populateSelects();
+  renderAdmin();
+  showToast('Renamed · 이름 변경: '+nv);
 }
 
 function clearDone(){
@@ -3550,9 +3620,9 @@ function renderCard(){
   var sumEl=document.getElementById('cardSummary');
   if(sumEl){
     var pending=items.filter(function(x){ return !x.confirmed; }).length;
-    var pendChip = pending ? '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;margin-left:4px">확인대기 '+pending+'건</span>' : '<span style="background:#dcfce7;color:#15803d;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;margin-left:4px">전체 확인완료</span>';
+    var pendChip = pending ? '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;margin-left:4px">Pending '+pending+'</span>' : '<span style="background:#dcfce7;color:#15803d;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;margin-left:4px">All confirmed</span>';
     var chips=Object.keys(sums).map(function(c){ return '<span style="background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;margin-right:6px">'+c+' '+sums[c].toLocaleString()+'</span>'; }).join('');
-    sumEl.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:12px;color:var(--text-2);margin-right:4px">합계 · '+items.length+'건</span>'+(chips||'<span style="font-size:12px;color:var(--text-3)">—</span>')+pendChip+'</div>';
+    sumEl.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:12px;color:var(--text-2);margin-right:4px">Total · '+items.length+'</span>'+(chips||'<span style="font-size:12px;color:var(--text-3)">—</span>')+pendChip+'</div>';
   }
   if(!items.length){ listEl.innerHTML='<div class="empty-state"><i class="ti ti-credit-card"></i><p>'+(q?'검색 결과 없음 · No results':'등록된 카드 지출 없음 · No card expenses')+'</p></div>'; return; }
   var me=cardCurrentUser();
@@ -3560,10 +3630,10 @@ function renderCard(){
   var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
   var rows=items.map(function(x){
     var inv = x.invoiceIssued ? '<span class="badge b-done" style="font-size:10px">INV ✓'+(x.invoiceNo?' '+x.invoiceNo:'')+'</span>' : '<span class="badge b-rejected" style="font-size:10px">INV ✗</span>';
-    var confBadge = x.confirmed ? '<span class="badge b-done" style="font-size:10px">재무확인 ✓</span>' : '<span class="badge" style="font-size:10px;background:#fef3c7;color:#92400e">확인대기</span>';
+    var confBadge = x.confirmed ? '<span class="badge b-done" style="font-size:10px">Confirmed ✓</span>' : '<span class="badge" style="font-size:10px;background:#fef3c7;color:#92400e">Pending</span>';
     var canEdit = isAdmin || (me && x.userId===me.id);
     var editBtn = canEdit ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();editCardExpense('+x.id+')" title="수정"><i class="ti ti-edit"></i></button>' : '';
-    var confBtn = canConfirmCard() ? '<button class="btn '+(x.confirmed?'btn-outline':'btn-dark')+'" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();confirmCardExpense('+x.id+')">'+(x.confirmed?'확인취소':'재무확인')+'</button>' : '';
+    var confBtn = canConfirmCard() ? '<button class="btn '+(x.confirmed?'btn-outline':'btn-dark')+'" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();confirmCardExpense('+x.id+')">'+(x.confirmed?'Unconfirm':'Confirm')+'</button>' : '';
     var del = (isAdmin || (me && x.userId===me.id)) ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();deleteCardExpense('+x.id+')"><i class="ti ti-trash"></i></button>' : '';
     var rcpt = x.receipt ? '<img src="'+x.receipt+'" onclick="event.stopPropagation();viewCardReceipt('+x.id+')" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:zoom-in" title="영수증 확대">' : '<span style="color:var(--text-3);font-size:11px">—</span>';
     var td='padding:8px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
@@ -3578,7 +3648,7 @@ function renderCard(){
       +'</tr>';
   }).join('');
   listEl.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:840px">'
-    +'<thead><tr><th style="'+th+'">영수증</th><th style="'+th+'">날짜</th><th style="'+th+'">가맹점·분류</th><th style="'+th+'">부서·사용자</th><th style="'+th+';text-align:right">금액</th><th style="'+th+'">상태</th><th style="'+th+';text-align:right">작업</th></tr></thead>'
+    +'<thead><tr><th style="'+th+'">Receipt</th><th style="'+th+'">Date</th><th style="'+th+'">Merchant · Category</th><th style="'+th+'">Dept · User</th><th style="'+th+';text-align:right">Amount</th><th style="'+th+'">Status</th><th style="'+th+';text-align:right">Action</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 
@@ -4378,7 +4448,7 @@ function showHub() {
   var hubPage = document.getElementById('hubPage');
   if(hubPage) hubPage.style.display = 'block';
   // Per-user module access
-  ['approval','vendors','card','quote','project','finance','report'].forEach(function(k){
+  ['approval','vendors','card','quote','project','finance','report','bankstmt'].forEach(function(k){
     var c=document.getElementById('hubCard-'+k);
     if(c) c.style.display = moduleAllowed(k) ? '' : 'none';
   });
@@ -4412,11 +4482,13 @@ function moduleAllowed(key, u){
 function setModulePerm(uid, key, allowed){
   if(!state.modulePerms) state.modulePerms={};
   var p=state.modulePerms[uid];
-  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true}; state.modulePerms[uid]=p; }
+  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,acctAdmin:false}; state.modulePerms[uid]=p; }
   p[key]=!!allowed;
   saveState();
   showToast('모듈 권한 저장됨 · Access saved');
 }
+// 회계 관리자 패널 접근 권한 (기본 비활성 — 관리자 또는 명시적 허용자만)
+function acctAdminAllowed(u){ u=u||cardCurrentUser(); if(!u)return false; if(u.isAdmin||sessionIsAdmin)return true; var p=(state.modulePerms||{})[u.id]; if(!p)return false; return p.acctAdmin===true; }
 function canViewAll(module){ var u=cardCurrentUser(); if(!u)return true; if(u.isAdmin||sessionIsAdmin)return true; var sc=(state.viewScope||{})[u.id]; if(!sc)return true; return sc[module]!=='own'; }
 function setViewScope(uid,mod,val){ if(!state.viewScope)state.viewScope={}; if(!state.viewScope[uid])state.viewScope[uid]={}; state.viewScope[uid][mod]=val; saveState(); showToast('조회 범위 저장됨 · View scope saved'); }
 function renderViewScope(){
@@ -4435,17 +4507,17 @@ function renderViewScope(){
 }
 function renderModulePerms(){
   var el=document.getElementById('adminModulePerms'); if(!el) return;
-  var mods=[['approval','전자결재'],['card','카드'],['report','업무'],['vendors','거래처'],['quote','견적'],['project','프로젝트'],['finance','정산']];
+  var mods=[['approval','전자결재'],['card','카드'],['report','업무'],['vendors','거래처'],['quote','견적'],['project','프로젝트'],['finance','정산'],['bankstmt','은행'],['acctAdmin','회계관리자']];
   var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1">사용자 · User</div>'+mods.map(function(m){ return '<div style="width:62px;text-align:center">'+m[1]+'</div>'; }).join('')+'</div>';
   var rows=MEMBERS.map(function(m){
     var cells=mods.map(function(md){
       if(m.isAdmin) return '<div style="width:62px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
-      var allowed=moduleAllowed(md[0], m);
+      var allowed = (md[0]==='acctAdmin') ? acctAdminAllowed(m) : moduleAllowed(md[0], m);
       return '<div style="width:62px;text-align:center"><input type="checkbox" '+(allowed?'checked':'')+' onchange="setModulePerm('+m.id+',\''+md[0]+'\',this.checked)" style="width:16px;height:16px;cursor:pointer"></div>';
     }).join('');
     return '<div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:9px 8px"><div style="flex:1;font-size:13px;font-weight:600">'+m.name+' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+m.role+'</span></div>'+cells+'</div>';
   }).join('');
-  el.innerHTML=head+rows+'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. 관리자는 항상 전체 접근.</div>';
+  el.innerHTML=head+rows+'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. <b>회계관리자</b>는 기본 비활성 — 체크 시 은행 명세서의 「Accounting Admin · 회계 관리자」 탭(카테고리 카탈로그 편집)에 접근할 수 있습니다. 관리자는 항상 전체 접근.</div>';
 }
 
 // ═══════════════════════════════════════════
@@ -6181,6 +6253,301 @@ function renderFinanceDashboard(){
 function showProjectAppToEdit(id){ closeFinanceApp(); if(typeof showProjectApp==='function'){ showProjectApp(); setTimeout(function(){ editProject(id); }, 60); } }
 
 
+// ═══════════════════════════════════════════
+// BANK STATEMENT (은행 명세서) — per-account statement import & categorization
+// ═══════════════════════════════════════════
+var bankAppOpen = false;
+var bankTab = 'stmt';
+var bankCurrentAcct = null; // selected account number (formatted)
+
+var BANK_DEFAULT_ACCOUNTS = [
+  {id:1, name:'CONG TY TNHH INICS VINA', acctNo:'700-041-429979', currency:'VND', balance:276520493},
+  {id:2, name:'CONG TY TNHH INICS VINA', acctNo:'700-041-302704', currency:'VND', balance:118975735},
+  {id:3, name:'CONG TY TNHH INICS VINA', acctNo:'700-041-302729', currency:'USD', balance:0},
+  {id:4, name:'CONG TY TNHH INICS VINA', acctNo:'700-041-302751', currency:'USD', balance:69978}
+];
+var BANK_DEFAULT_CATEGORIES = [
+  'Sales Revenue','Purchase / COGS','Internet & Telecom','Utilities','Office Rent',
+  'Salary & Wages','Bank Charges','Tax / VAT','Office Supplies','Travel & Transport',
+  'Meals & Entertainment','Owner / Capital Transfer','Inter-account Transfer','Refund','Uncategorized'
+];
+
+function bankSeedOnce(){
+  if(!state) return;
+  if(!Array.isArray(state.bankAccounts) || !state.bankAccounts.length){
+    state.bankAccounts = JSON.parse(JSON.stringify(BANK_DEFAULT_ACCOUNTS));
+  }
+  if(!Array.isArray(state.bankCategories) || !state.bankCategories.length){
+    state.bankCategories = BANK_DEFAULT_CATEGORIES.slice();
+  }
+  if(!Array.isArray(state.bankTxns)) state.bankTxns = [];
+  if(state.bankSeq===undefined) state.bankSeq = 0;
+}
+
+function bankAcctDigits(s){ return String(s||'').replace(/\D/g,''); }
+function bankParseNum(v){
+  if(v===null||v===undefined) return 0;
+  if(typeof v==='number') return v;
+  var s=String(v).trim();
+  if(s===''||s==='-'||s==='—') return 0;
+  s=s.replace(/,/g,'').replace(/[^0-9.\-]/g,'');
+  var n=parseFloat(s); return isNaN(n)?0:n;
+}
+function bankFmt(n,cur){
+  n = n||0;
+  if(cur==='USD') return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return Math.round(n).toLocaleString('en-US');
+}
+function bankCurrentUser(){ return (typeof cardCurrentUser==='function') ? cardCurrentUser() : (window._gateUser||null); }
+
+function showBankApp(){
+  bankSeedOnce();
+  bankAppOpen = true;
+  var el = document.getElementById('bankApp'); if(el) el.style.display='block';
+  var hub = document.getElementById('hubPage'); if(hub) hub.style.display='none';
+  var gu = bankCurrentUser();
+  if(gu){
+    var nm=document.getElementById('bankUserName'); if(nm) nm.textContent=gu.name;
+    var av=document.getElementById('bankAvatarChip'); if(av && typeof getAvatar==='function') av.innerHTML=getAvatar(gu.id,'sm');
+  }
+  if(!bankCurrentAcct && state.bankAccounts && state.bankAccounts.length) bankCurrentAcct = state.bankAccounts[0].acctNo;
+  bankTab='stmt';
+  renderBankApp();
+}
+function closeBankApp(){
+  bankAppOpen=false;
+  var el=document.getElementById('bankApp'); if(el) el.style.display='none';
+  if(typeof showHub==='function') showHub();
+}
+function bankStyleTabs(){
+  [['bankTabStmt','stmt'],['bankTabAcct','acct']].forEach(function(p){
+    var b=document.getElementById(p[0]); if(!b) return;
+    var on=bankTab===p[1];
+    b.style.color = on?'var(--text)':'var(--text-3)';
+    b.style.borderBottom = '2px solid '+(on?'var(--text)':'transparent');
+  });
+}
+function bankSwitchTab(tab){
+  if(tab==='acct' && !acctAdminAllowed()){ showToast('회계 관리자 권한이 없습니다 · No accounting-admin access'); return; }
+  bankTab=tab;
+  document.getElementById('bankStmtPane').style.display = tab==='stmt'?'':'none';
+  document.getElementById('bankAcctPane').style.display = tab==='acct'?'':'none';
+  bankStyleTabs();
+  if(tab==='acct') renderBankAcctAdmin();
+}
+
+function renderBankApp(){
+  // Accounting Admin tab visibility
+  var t=document.getElementById('bankTabAcct'); if(t) t.style.display = acctAdminAllowed()?'':'none';
+  bankStyleTabs();
+  renderBankAccountBar();
+  renderBankUploadBar();
+  renderBankList();
+  if(bankTab==='acct') renderBankAcctAdmin();
+}
+
+function bankAcctBalance(acctNo){
+  var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===acctNo;});
+  var txns=(state.bankTxns||[]).filter(function(t){return t.acctNo===acctNo;});
+  if(!txns.length) return acc?acc.balance:0;
+  // newest by date then seq
+  var newest=txns.slice().sort(function(a,b){ var d=bankDateKey(b.date)-bankDateKey(a.date); return d!==0?d:(b.seq-a.seq); })[0];
+  return (newest && typeof newest.balance==='number') ? newest.balance : (acc?acc.balance:0);
+}
+function bankDateKey(s){ // DD/MM/YYYY -> number
+  var m=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(!m) return 0; var y=m[3].length===2?('20'+m[3]):m[3];
+  return parseInt(y)*10000+parseInt(m[2])*100+parseInt(m[1]);
+}
+
+function renderBankAccountBar(){
+  var el=document.getElementById('bankAccountBar'); if(!el) return;
+  var accs=state.bankAccounts||[];
+  el.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap">'+accs.map(function(a){
+    var on=a.acctNo===bankCurrentAcct;
+    var bal=bankAcctBalance(a.acctNo);
+    var cnt=(state.bankTxns||[]).filter(function(t){return t.acctNo===a.acctNo;}).length;
+    return '<div onclick="bankSelectAcct(\''+a.acctNo+'\')" style="cursor:pointer;flex:1;min-width:215px;border:1px solid '+(on?'var(--text)':'var(--border)')+';background:'+(on?'var(--surface-2)':'#fff')+';border-radius:var(--radius);padding:12px 14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.03em">'+a.acctNo+'</span><span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border)">'+a.currency+'</span></div>'
+      +'<div style="font-size:18px;font-weight:700;margin-top:6px">'+a.currency+' '+bankFmt(bal,a.currency)+'</div>'
+      +'<div style="font-size:11px;color:var(--text-3);margin-top:2px">'+cnt+' txns · '+(a.name||'')+'</div>'
+      +'</div>';
+  }).join('')+'</div>';
+}
+function bankSelectAcct(acctNo){ bankCurrentAcct=acctNo; renderBankApp(); }
+
+function renderBankUploadBar(){
+  var el=document.getElementById('bankUploadBar'); if(!el) return;
+  var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
+  if(!acc){ el.innerHTML=''; return; }
+  var cnt=(state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;}).length;
+  el.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px">'
+    +'<div style="font-size:12px;color:var(--text-2)">Upload statement for <b>'+acc.acctNo+'</b> ('+acc.currency+') · 명세서 업로드</div>'
+    +'<div style="flex:1"></div>'
+    +'<button class="btn btn-dark" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'bankExcelInput\').click()"><i class="ti ti-upload"></i> Upload Excel · 엑셀 업로드</button>'
+    +(cnt?'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px;color:var(--danger)" onclick="bankClearAcct(\''+acc.acctNo+'\')"><i class="ti ti-trash"></i> Clear · 초기화</button>':'')
+    +'</div>'
+    +'<div style="font-size:10px;color:var(--text-3);margin-top:6px">Format · 인식 컬럼: <b>날짜 · 거래구분 · 출금 · 입금 · 잔액 · 참조번호 · 비고</b> (SHB export). Duplicate rows are skipped · 중복 자동 제외.</div>';
+}
+
+function bankClearAcct(acctNo){
+  if(!confirm('Delete all imported transactions for '+acctNo+'?\n'+acctNo+' 거래내역을 모두 삭제할까요?')) return;
+  state.bankTxns=(state.bankTxns||[]).filter(function(t){return t.acctNo!==acctNo;});
+  saveState(); renderBankApp(); showToast('Cleared · 초기화 완료');
+}
+
+function handleBankExcel(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){ showToast('Excel 모듈 로드 실패 · reload'); return; }
+  var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
+  if(!acc){ showToast('계좌를 먼저 선택하세요 · Select an account'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!rows.length){ showToast('빈 파일 · Empty file'); return; }
+      // detect header row
+      var start=0;
+      var first=(rows[0]||[]).join(' ');
+      if(/날짜|Date|거래구분/.test(first)) start=1;
+      // existing dedup keys for this account
+      var existing={};
+      (state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;}).forEach(function(t){ existing[bankTxnKey(t)]=true; });
+      var added=0, skipped=0;
+      for(var i=start;i<rows.length;i++){
+        var r=rows[i]||[];
+        var date=String(r[0]||'').trim();
+        var type=String(r[1]||'').trim();
+        var debit=bankParseNum(r[2]);
+        var credit=bankParseNum(r[3]);
+        var bal=bankParseNum(r[4]);
+        var ref=String(r[5]||'').trim();
+        var note=String(r[6]||'').trim();
+        if(!date && !type && !debit && !credit && !note) continue;
+        var txn={id:++state.bankSeq, acctNo:acc.acctNo, currency:acc.currency, date:date, type:type, debit:debit, credit:credit, balance:bal, ref:ref, note:note, category:'Uncategorized', seq:state.bankSeq};
+        var k=bankTxnKey(txn);
+        if(existing[k]){ skipped++; continue; }
+        existing[k]=true;
+        state.bankTxns.push(txn); added++;
+      }
+      saveState(); renderBankApp();
+      showToast('Imported · 등록 '+added+' · skipped '+skipped+' (중복)');
+    }catch(err){ console.error(err); showToast('파싱 오류 · Parse error: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function bankTxnKey(t){ return t.acctNo+'|'+t.date+'|'+Math.round(t.debit*100)+'|'+Math.round(t.credit*100)+'|'+Math.round(t.balance*100)+'|'+(t.note||'').slice(0,40); }
+
+function bankCategoryOptions(selected){
+  var cats=(state.bankCategories||[]).slice();
+  if(selected && cats.indexOf(selected)<0) cats.unshift(selected); // keep value even if removed from catalog
+  return cats.map(function(c){ return '<option value="'+c.replace(/"/g,'&quot;')+'"'+(c===selected?' selected':'')+'>'+c+'</option>'; }).join('');
+}
+
+function renderBankList(){
+  var el=document.getElementById('bankList'); if(!el) return;
+  var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
+  if(!acc){ el.innerHTML=''; return; }
+  var txns=(state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;});
+  txns.sort(function(a,b){ var d=bankDateKey(b.date)-bankDateKey(a.date); return d!==0?d:(b.seq-a.seq); });
+  // summary
+  var sumEl=document.getElementById('bankSummary');
+  var totDebit=0,totCredit=0,uncat=0;
+  txns.forEach(function(t){ totDebit+=t.debit; totCredit+=t.credit; if(!t.category||t.category==='Uncategorized') uncat++; });
+  if(sumEl){
+    sumEl.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">'
+      +'<span style="font-size:12px;color:var(--text-2);margin-right:4px">'+txns.length+' txns</span>'
+      +'<span style="background:#fef2f2;color:#b91c1c;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">Out · 출금 '+bankFmt(totDebit,acc.currency)+'</span>'
+      +'<span style="background:#ecfdf5;color:#15803d;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">In · 입금 '+bankFmt(totCredit,acc.currency)+'</span>'
+      +(uncat?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">Uncategorized · 미분류 '+uncat+'</span>':'<span style="background:#dcfce7;color:#15803d;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">All categorized · 분류 완료</span>')
+      +'</div>';
+  }
+  if(!txns.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-file-spreadsheet"></i><p>No transactions · 거래내역 없음 — Upload an Excel statement · 엑셀 업로드</p></div>'; return; }
+  var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
+  var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
+  var rows=txns.map(function(t){
+    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:180px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
+    return '<tr>'
+      +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(t.date||'—')+'</td>'
+      +'<td style="'+td+'">'+(t.type||'')+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;color:#b91c1c">'+(t.debit?bankFmt(t.debit,acc.currency):'')+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;color:#15803d">'+(t.credit?bankFmt(t.credit,acc.currency):'')+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:600">'+bankFmt(t.balance,acc.currency)+'</td>'
+      +'<td style="'+td+';max-width:300px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
+      +'<td style="'+td+'">'+catSel+'</td>'
+      +'<td style="'+td+';text-align:right"><button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button></td>'
+      +'</tr>';
+  }).join('');
+  el.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1000px">'
+    +'<thead><tr>'
+    +'<th style="'+th+'">Date · 날짜</th><th style="'+th+'">Type · 거래구분</th>'
+    +'<th style="'+th+';text-align:right">Out · 출금</th><th style="'+th+';text-align:right">In · 입금</th>'
+    +'<th style="'+th+';text-align:right">Balance · 잔액</th><th style="'+th+'">Note · 비고</th>'
+    +'<th style="'+th+'">Category · 분류</th><th style="'+th+';text-align:right"></th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div>';
+}
+function setBankTxnCategory(id,val){
+  var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return;
+  t.category=val; saveState();
+  // light refresh of summary only
+  renderBankList();
+}
+function deleteBankTxn(id){
+  state.bankTxns=(state.bankTxns||[]).filter(function(x){return x.id!==id;});
+  saveState(); renderBankApp(); showToast('Deleted · 삭제');
+}
+
+// ── Accounting Admin: category catalog ──
+function renderBankAcctAdmin(){
+  var el=document.getElementById('bankAcctPane'); if(!el) return;
+  if(!acctAdminAllowed()){ el.innerHTML='<div class="empty-state"><i class="ti ti-lock"></i><p>No access · 접근 권한 없음</p></div>'; return; }
+  var cats=state.bankCategories||[];
+  var list=cats.map(function(c,i){
+    var used=(state.bankTxns||[]).filter(function(t){return t.category===c;}).length;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'
+      +'<input value="'+c.replace(/"/g,'&quot;')+'" onchange="renameBankCategory('+i+',this.value)" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none">'
+      +'<span style="font-size:11px;color:var(--text-3);width:70px;text-align:right">'+used+' txns</span>'
+      +'<button class="btn btn-outline" style="font-size:10px;padding:4px 8px;color:var(--danger)" onclick="removeBankCategory('+i+')"><i class="ti ti-trash"></i></button>'
+      +'</div>';
+  }).join('');
+  el.innerHTML='<div style="max-width:640px">'
+    +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">Accounting Category Catalog · 회계 계정 카탈로그</div>'
+    +'<div style="font-size:12px;color:var(--text-3);margin-bottom:14px">These categories appear in every Bank Statement row · 은행 명세서 분류 드롭다운에 사용됩니다. (English accounting accounts)</div>'
+    +'<div id="bankCatList">'+list+'</div>'
+    +'<div style="display:flex;gap:7px;margin-top:14px">'
+    +'<input type="text" id="newBankCat" placeholder="New category · 새 계정 (e.g. Insurance)" style="flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none" onkeydown="if(event.key===\'Enter\')addBankCategory()">'
+    +'<button class="btn btn-dark" style="font-size:12px;padding:8px 14px" onclick="addBankCategory()"><i class="ti ti-plus"></i> Add · 추가</button>'
+    +'</div></div>';
+}
+function addBankCategory(){
+  var inp=document.getElementById('newBankCat'); var v=(inp.value||'').trim(); if(!v) return;
+  if(!state.bankCategories) state.bankCategories=[];
+  if(state.bankCategories.indexOf(v)>=0){ showToast('Already exists · 이미 존재'); return; }
+  state.bankCategories.push(v); inp.value='';
+  saveState(); renderBankAcctAdmin(); renderBankList(); showToast('Added · 추가: '+v);
+}
+function renameBankCategory(i,val){
+  val=(val||'').trim(); if(!val) { renderBankAcctAdmin(); return; }
+  var old=state.bankCategories[i];
+  if(old===val) return;
+  state.bankCategories[i]=val;
+  // migrate assigned txns
+  (state.bankTxns||[]).forEach(function(t){ if(t.category===old) t.category=val; });
+  saveState(); renderBankAcctAdmin(); renderBankList(); showToast('Renamed · 변경: '+val);
+}
+function removeBankCategory(i){
+  var c=state.bankCategories[i];
+  var used=(state.bankTxns||[]).filter(function(t){return t.category===c;}).length;
+  if(!confirm('Remove category "'+c+'"?'+(used?'\n'+used+' transactions will become Uncategorized.\n'+used+'건이 미분류로 바뀝니다.':''))) return;
+  state.bankCategories.splice(i,1);
+  (state.bankTxns||[]).forEach(function(t){ if(t.category===c) t.category='Uncategorized'; });
+  if(state.bankCategories.indexOf('Uncategorized')<0) state.bankCategories.push('Uncategorized');
+  saveState(); renderBankAcctAdmin(); renderBankList(); showToast('Removed · 삭제');
+}
+
+
 function enterModule(module) {
   if(module==='admin'){ var _cu=cardCurrentUser(); if(!(sessionIsAdmin||(_cu&&_cu.isAdmin))){ showToast('관리자 전용 · Admin only'); return; } }
   else if(!moduleAllowed(module)){ showToast('접근 권한이 없습니다 · No access'); if(typeof showHub==='function') showHub(); return; }
@@ -6200,6 +6567,8 @@ function enterModule(module) {
     showFinanceApp();
   } else if(module === 'report') {
     showReportApp();
+  } else if(module === 'bankstmt') {
+    showBankApp();
   } else if(module === 'admin') {
     showPage('admin');
   }
@@ -6221,6 +6590,9 @@ function hubLogout() {
   var cardA = document.getElementById('cardApp');
   if(cardA) cardA.style.display = 'none';
   cardAppOpen = false;
+  var bankA = document.getElementById('bankApp');
+  if(bankA) bankA.style.display = 'none';
+  bankAppOpen = false;
   // Reset session chip
   var chip = document.getElementById('sessionChip');
   if(chip) chip.style.display = 'none';
@@ -6441,10 +6813,20 @@ const GATE_USERS = [
   {id:'JACOB',      pw:'JACOB',      name:'JACOB',        memberId:5},
 ];
 
+function _syncExtraMembers() {
+  if (typeof state === 'undefined' || !state || !state.extraMembers) return;
+  state.extraMembers.forEach(function(u){
+    if (!MEMBERS.find(function(m){ return m.id === u.memberId; })) {
+      MEMBERS.push({id:u.memberId, name:u.name, role:u.role||'STAFF', dept:u.dept||'COMMON', pw:u.pw, isAdmin:false});
+    }
+  });
+}
 function gateLogin() {
   const id   = document.getElementById('gateId').value.trim().toUpperCase();
   const pw   = document.getElementById('gatePw').value;
-  const user = GATE_USERS.find(u => u.id === id && u.pw === pw);
+  _syncExtraMembers();
+  const extra = (typeof state!=='undefined' && state && state.extraMembers) ? state.extraMembers : [];
+  const user = GATE_USERS.concat(extra).find(u => u.id === id && u.pw === pw);
   if (!user) { document.getElementById('gateErr').style.display = 'block'; return; }
   document.getElementById('gateErr').style.display = 'none';
   document.getElementById('loginGate').classList.add('hidden');
