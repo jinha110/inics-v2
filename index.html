@@ -554,13 +554,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-title">거래처 DB · Vendor Database</div>
         <div class="hub-card-desc">거래처 · 은행정보 · 문서 검색<br>Vendor · Bank Info · Search</div>
       </div>
-      <div class="hub-card active-module" id="hubCard-bankstmt" onclick="enterModule('bankstmt')">
-        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
-        <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-building-bank"></i></div>
-        <div class="hub-card-title">은행 명세서 · Bank Statement</div>
-        <div class="hub-card-desc">계좌별 거래내역 · 회계 분류<br>Statements · Categorize</div>
-      </div>
-
       <div class="hub-card active-module" id="hubCard-contract" onclick="enterModule('contract')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#4338ca">Active</div>
         <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca"><i class="ti ti-file-certificate"></i></div>
@@ -568,17 +561,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-desc">계약 정보 · 스캔본 보관<br>Contract Info · Signed Scans</div>
       </div>
 
-      <div class="hub-card active-module" id="hubCard-invoice" onclick="enterModule('invoice')">
-        <div class="hub-card-badge" style="background:var(--surface-2);color:#0e7490">Active</div>
-        <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-file-dollar"></i></div>
-        <div class="hub-card-title">인보이스 · Invoices</div>
-        <div class="hub-card-desc">발행 · 수취 인보이스 관리<br>Issued · Received Invoices</div>
-      </div>
-
     </div>
 
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>FURNITURE · 가구</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
-    <div class="hub-grid">
+    <div class="hub-grid" style="margin-bottom:26px">
 
       <div class="hub-card active-module" id="hubCard-quote" onclick="enterModule('quote')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
@@ -594,6 +580,25 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-desc">영업 파이프라인 · 단계 현황<br>Sales Pipeline · Kanban</div>
       </div>
 
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>ACCOUNTING · 회계</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
+    <div class="hub-grid">
+
+      <div class="hub-card active-module" id="hubCard-bankstmt" onclick="enterModule('bankstmt')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
+        <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-building-bank"></i></div>
+        <div class="hub-card-title">은행 명세서 · Bank Statement</div>
+        <div class="hub-card-desc">계좌별 거래내역 · 회계 분류<br>Statements · Categorize</div>
+      </div>
+
+      <div class="hub-card active-module" id="hubCard-invoice" onclick="enterModule('invoice')">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#0e7490">Active</div>
+        <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-file-dollar"></i></div>
+        <div class="hub-card-title">인보이스 · Invoices</div>
+        <div class="hub-card-desc">발행 · 수취 인보이스 관리<br>Issued · Received Invoices</div>
+      </div>
+
       <div class="hub-card active-module" id="hubCard-finance" onclick="enterModule('finance')">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#ecfdf5;color:#047857"><i class="ti ti-report-money"></i></div>
@@ -602,6 +607,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
 
     </div>
+
 
     <div id="hubAdminSection" style="display:none">
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:26px 0 10px;display:flex;align-items:center;gap:8px"><span>ADMIN · 관리자</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
@@ -1664,6 +1670,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           </div>
           <div class="line-preview" id="linePreview"></div>
         </div>
+        <div class="form-card" id="contractAttCard" style="display:none">
+          <div class="form-card-title" style="justify-content:space-between;display:flex">
+            <span><i class="ti ti-file-certificate" style="color:#4338ca"></i> 계약서 첨부 · Contract File <span id="contractAttCnt" class="cnt-badge" style="margin-left:5px">0</span></span>
+            <button class="btn btn-outline" onclick="triggerContractFile()" style="font-size:11px;padding:3px 9px"><i class="ti ti-plus"></i> Add · 추가</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin:2px 0 8px">서명·날인된 계약서를 올리면 <b>계약서 모듈</b>로 자동 연동됩니다 · Uploaded contract links to the Contracts module.</div>
+          <div id="contractAttList">
+            <div class="upload-zone" onclick="triggerContractFile()">
+              <i class="ti ti-file-certificate" style="font-size:22px;display:block;margin-bottom:6px;color:#4338ca"></i>
+              <strong style="display:block;margin-bottom:2px;color:var(--text-2)">계약서 · Signed Contract (PDF · Image · Word)</strong>
+              <span style="font-size:11px">계약서 모듈 연동 대상 · Linked to Contracts module</span>
+            </div>
+          </div>
+        </div>
         <div class="form-card">
           <div class="form-card-title" style="justify-content:space-between;display:flex">
             <span><i class="ti ti-paperclip"></i> Attachments · 첨부 파일 <span id="draftAttCnt" class="cnt-badge" style="margin-left:5px">0</span></span>
@@ -1852,6 +1872,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 <div class="toast" id="toast"></div>
 <input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple onchange="handleDraftFile(event)">
+<input type="file" id="contractAttInput" style="display:none" accept="image/*,.pdf,.docx,.doc" multiple onchange="handleContractAtt(event)">
 <input type="file" id="payFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.docx" onchange="handlePayFile(event)">
 
 <script>
@@ -1875,13 +1896,13 @@ let state = {
   cardExpenses:[], cardSeq:0, cardMerchants:[], modulePerms:{}, viewScope:{},
   products:[], quotes:[], quoteSeq:0,
   projects:[], projectSeq:0, projLocations:['HANOI','HCMC'], projRegionsX:[],
-  docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','계약체결 · Contract Signing','계약 · Contract','기타 · Other']
+  docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','계약체결 · Contract Signing','기타 · Other']
 };
 let curPage='dashboard', curFilter='all', curDocId=null;
 let mineUserId=null, mineFilter='all', mineDocId=null;
 let newAuthId=null, sessionIsAdmin=false;
 let pinCb=null, pendingPayFileDocId=null;
-let draftAtts=[], fbReady=false;
+let draftAtts=[], contractAtts=[], fbReady=false;
 
 // ═══════════════════════════════════════════
 // FIREBASE BRIDGE
@@ -1960,10 +1981,8 @@ async function loadState() {
       var _io=state.docTypes.indexOf('기타 · Other');
       if(_io>=0) state.docTypes.splice(_io,0,'계약체결 · Contract Signing'); else state.docTypes.push('계약체결 · Contract Signing');
     }
-    if(state.docTypes && state.docTypes.indexOf('계약 · Contract')<0){
-      var _io2=state.docTypes.indexOf('기타 · Other');
-      if(_io2>=0) state.docTypes.splice(_io2,0,'계약 · Contract'); else state.docTypes.push('계약 · Contract');
-    }
+    // 단독 '계약 · Contract' 유형 제거 (계약체결로 통합)
+    if(state.docTypes){ state.docTypes=state.docTypes.filter(function(t){ return t!=='계약 · Contract'; }); }
   }
   if(typeof bankSeedOnce==='function') bankSeedOnce();
   // apply saved passwords
@@ -2252,6 +2271,7 @@ function showDetail(id,wrapId='detailWrap'){
   }).join('')||'<div style="font-size:11px;color:var(--text-3)">아직 의견 없음 · No comments</div>';
   const notesHTML=`<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Comments · 의견</div><div class="cmt-list">${dnotes}</div><textarea class="action-comment" id="docNoteInput_${wrapId}" placeholder="의견을 입력하세요 · Add a comment" oninput="_docNoteBuf['${wrapId}']=this.value">${(_docNoteBuf[wrapId]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea><div class="btn-row"><button class="btn btn-dark" onclick="addDocComment(${id},'${wrapId}')"><i class="ti ti-message-plus"></i> 의견 등록 · Add</button></div>`;
 
+  const contractAttHTML = (doc.contractAtts && doc.contractAtts.length) ? `<div class="att-section"><div class="att-hdr"><div class="att-hdr-title"><i class="ti ti-file-certificate" style="font-size:13px;color:#4338ca"></i> 계약서 첨부 · Contract File <span class="cnt-badge">${doc.contractAtts.length}</span></div></div><div class="att-body">${attListHTML(doc.contractAtts,false,id,'contract')}</div></div>` : '';
   const draftAttHTML=`<div class="att-section"><div class="att-hdr"><div class="att-hdr-title"><i class="ti ti-paperclip" style="font-size:13px"></i> Attachments · 기안 첨부 ${doc.draftAtts?.length?`<span class="cnt-badge">${doc.draftAtts.length}</span>`:''}</div>${s==='draft'?`<button class="btn btn-outline" onclick="triggerAddAtt(${id})" style="font-size:11px;padding:3px 9px"><i class="ti ti-plus"></i> Add · 추가</button>`:''}</div><div class="att-body">${attListHTML(doc.draftAtts,s==='draft',id,'draft')}</div></div>`;
 
   let actionHTML='';
@@ -2295,7 +2315,7 @@ function showDetail(id,wrapId='detailWrap'){
 
   document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?'<img src="'+doc.descImage+'" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px">':''}` + '</div>':''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
-      ${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${notesHTML}${actionHTML}</div></div>`;
+      ${contractAttHTML}${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${notesHTML}${actionHTML}</div></div>`;
   document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
@@ -2718,6 +2738,26 @@ function onDeptChange(){
 }
 
 function triggerDraftFile(){document.getElementById('draftFileInput').click();}
+function triggerContractFile(){document.getElementById('contractAttInput').click();}
+function handleContractAtt(e){
+  var files=Array.from(e.target.files); var loaded=0;
+  files.forEach(function(f){ var reader=new FileReader(); reader.onload=function(ev){
+    contractAtts.push({name:f.name, size:fmtSize(f.size), addedAt:nowStr(), data:ev.target.result, type:f.type});
+    loaded++; if(loaded===files.length){ renderContractAttList(); showToast(files.length+' 계약서 첨부 · contract file(s)'); }
+  }; reader.readAsDataURL(f); });
+  e.target.value='';
+}
+function removeContractAtt(idx){ contractAtts.splice(idx,1); renderContractAttList(); }
+function renderContractAttList(){
+  var cnt=document.getElementById('contractAttCnt'); if(cnt) cnt.textContent=contractAtts.length;
+  var el=document.getElementById('contractAttList'); if(!el) return;
+  if(!contractAtts.length){ el.innerHTML='<div class="upload-zone" onclick="triggerContractFile()"><i class="ti ti-file-certificate" style="font-size:22px;display:block;margin-bottom:6px;color:#4338ca"></i><strong style="display:block;margin-bottom:2px;color:var(--text-2)">계약서 · Signed Contract (PDF · Image · Word)</strong><span style="font-size:11px">계약서 모듈 연동 대상 · Linked to Contracts module</span></div>'; return; }
+  el.innerHTML=contractAtts.map(function(a,i){
+    var isImg=/^data:image\//.test(a.data||'');
+    var thumb=isImg?'<img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:30px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in">':'<i class="ti ti-file-certificate" style="font-size:20px;color:#4338ca"></i>';
+    return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;margin-bottom:6px">'+thumb+'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.name||'contract')+'</span><span style="font-size:10px;color:var(--text-3)">'+(a.size||'')+'</span><button class="btn btn-outline" style="font-size:10px;padding:3px 7px;color:var(--danger)" onclick="removeContractAtt('+i+')"><i class="ti ti-x"></i></button></div>';
+  }).join('');
+}
 function handleDraftFile(e){
   var files = Array.from(e.target.files);
   var loaded = 0;
@@ -2781,7 +2821,7 @@ function handlePayFile(e){
   e.target.value='';
 }
 
-function buildDoc(status){const dept=document.getElementById('docDept').value;const line=(state.approverLines&&state.approverLines[dept])||LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),descImage:descImageData||null,needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],payAtts:[],expenseData:getExpenseData()};}
+function buildDoc(status){const dept=document.getElementById('docDept').value;const line=(state.approverLines&&state.approverLines[dept])||LINES[dept]||{a1:1,a2:null};const docNo=status==='pending1'?genDocNo(dept):null;return{id:state.nextId++,docNo,dept,type:document.getElementById('docType').value,drafterId:newAuthId,title:document.getElementById('docTitle').value.trim(),currency:document.getElementById('docCurrency').value,amount:document.getElementById('docAmount').value.trim(),content:document.getElementById('docContent').value.trim(),descImage:descImageData||null,needPayment:getRadio('needPayment')==='yes',a1Id:line.a1,a2Id:line.a2,status,createdAt:today(),comments:[],draftAtts:[...draftAtts],contractAtts:[...contractAtts],payAtts:[],expenseData:getExpenseData()};}
 function saveDraft(){if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}state.docs.push(buildDoc('draft'));saveState();clearForm();showToast('Saved as draft · 임시저장 완료');showPage('list');}
 function submitDoc(){
   if(!document.getElementById('docTitle').value.trim()){showToast('Enter a title · 제목 입력 필요');return;}
@@ -2801,6 +2841,7 @@ function submitDoc(){
       existing.needPayment = getRadio('needPayment')==='yes';
       existing.a1Id = line.a1; existing.a2Id = line.a2;
       existing.draftAtts = [...draftAtts];
+      existing.contractAtts = [...contractAtts];
       existing.expenseData = getExpenseData();
       if(descImageData) existing.descImage = descImageData;
       existing.status = 'pending1';
@@ -2815,7 +2856,7 @@ function submitDoc(){
   }
   const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast('Submitted · 결재 상신 — '+doc.docNo);showPage('list');
 }
-function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');descImageData=null;var dp=document.getElementById('descImagePreview');if(dp)dp.innerHTML='';var dn=document.getElementById('descImageName');if(dn)dn.textContent='';document.getElementById('docCurrency').value='VND';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();clearExpenseForm();toggleExpenseDetail();}
+function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');descImageData=null;var dp=document.getElementById('descImagePreview');if(dp)dp.innerHTML='';var dn=document.getElementById('descImageName');if(dn)dn.textContent='';document.getElementById('docCurrency').value='VND';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();contractAtts=[];renderContractAttList();clearExpenseForm();toggleExpenseDetail();}
 function resubmit(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.docNo)doc.docNo=genDocNo(doc.dept);doc.status='pending1';saveState();if(wrapId==='detailWrap')renderList();else renderMineList();showToast('Submitted · 결재 상신 완료');}
 function canCancelApproval(doc){
   if(!doc) return false;
@@ -2970,6 +3011,8 @@ function editDoc(id, wrapId) {
 
   // Attachments
   draftAtts = doc.draftAtts ? doc.draftAtts.slice() : [];
+  contractAtts = doc.contractAtts ? doc.contractAtts.slice() : [];
+  if(typeof renderContractAttList==='function') renderContractAttList();
   renderDraftAttList();
 
   // Desc image
@@ -4957,7 +5000,7 @@ function renderContractApp(){
   var cfilter=((document.getElementById('contractFilter')||{}).value)||'all';
   if(cfilter==='confirmed') projs=projs.filter(function(p){return p.contractConfirmed;});
   else if(cfilter==='draft') projs=projs.filter(function(p){return !p.contractConfirmed;});
-  var sdocs=(state.docs||[]).filter(function(d){return /계약/.test(d.type||'');});
+  var sdocs=(state.docs||[]).filter(function(d){return /계약체결/.test(d.type||'');});
   function pHay(p){ var o=p.contractOpts||{}; return [o.contractNo,p.clientFull,p.client,p.title,o.date].join(' ').toLowerCase(); }
   function dHay(d){ return [d.docNo,d.title,d.type,d.dept].join(' ').toLowerCase(); }
   if(q){ var ts=q.split(/\s+/);
@@ -5010,7 +5053,7 @@ function renderContractApp(){
   if(!sdocs.length){ html+='<div style="font-size:12px;color:var(--text-3)">전자결재에서 「계약」 또는 「계약체결」 유형으로 기안하면 여기로 모입니다 · File a 계약 approval to collect here.</div>'; }
   else {
     var drows=sdocs.slice().reverse().map(function(d){
-      var atts=(d.draftAtts||[]).concat(d.payAtts||[]);
+      var atts=(d.contractAtts||[]).concat(d.draftAtts||[]).concat(d.payAtts||[]);
       var attCell=atts.length?atts.map(function(a,i){
         var isImg=/^data:image\//.test(a.data||'');
         if(isImg) return '<a href="javascript:void(0)" onclick="viewImageLightbox(\'\')" title="'+(a.name||'').replace(/"/g,'&quot;')+'"><img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:3px;cursor:zoom-in"></a>';
@@ -5428,71 +5471,104 @@ function numToWordsVi(num){
 }
 function _prViDate(iso){ if(!iso) return ''; var m=String(iso).split('-'); if(m.length<3) return iso; return 'HCM, Ngày '+parseInt(m[2],10)+' tháng '+parseInt(m[1],10)+' năm '+m[0]; }
 function _prTotalFor(p,o){ var qs=_projQuotesC(p); var q=o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0]; var sub=(q?(q.lines||[]):[]).reduce(function(s,l){return s+qNum(l.amount);},0); return sub*(1+(qNum(o.vatRate)||0)/100); }
+function _prDescLabel(pr,pct){
+  var k=pr.kind, timing=pr.timing||(k==='balance'?'after':'advance');
+  if(k==='deposit') return {vi:'Tạm ứng – Đợt 1 ('+pct+'%)', en:'Advance Payment ('+pct+'%)', ko:'선금 '+pct+'%'};
+  if(k==='balance') return {vi:'Thanh toán đợt cuối – Đợt 2 ('+pct+'%)', en:'Balance Payment ('+pct+'%)', ko:'잔금 '+pct+'%'};
+  if(k==='full') return {vi:'Thanh toán toàn bộ (100%)', en:'Full Payment (100%)', ko:'100% 전액 ('+(timing==='after'?'후금':'선금')+')'};
+  return {vi:pct+'% giá trị hợp đồng', en:'Payment ('+pct+'%)', ko:pct+'%'};
+}
 function buildPaymentRequestHtml(p,o,pr){
   function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   var cur=pr.currency||'VND';
+  var curLbl=(cur==='VND'?'VND':cur);
   var amt=Math.round(pr.amount||0);
-  var amtStr=fmtN(amt)+' '+(cur==='VND'?'VNĐ':cur);
+  var amtStr=fmtN(amt)+' '+curLbl;
   var buyerName=esc(p.clientFull||p.client||'………');
   var buyerAddr=esc(o.buyerAddr||p.buyerAddr||p.location||'');
+  var buyerRep=o.buyerRep?esc((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'';
+  var buyerTitle=esc(o.buyerTitle||'');
   var hd=esc(o.contractNo||'');
   var total=_prTotalFor(p,o);
   var pct = pr.kind==='full'?100 : pr.kind==='deposit'?(o.depositPct==null?100:qNum(o.depositPct)) : pr.kind==='balance'?(o.balancePct==null?0:qNum(o.balancePct)) : (total>0?Math.round(amt/total*100):0);
-  var timing=pr.timing||(pr.kind==='balance'?'after':'advance');
-  var timingVi=timing==='after'?'thanh toán đợt cuối · sau giao hàng':'tạm ứng · trước';
+  var lbl=_prDescLabel(pr,pct);
   var itemVi=esc(pr.item||''), itemEn=esc(pr.itemEn||'');
-  var wVi=numToWordsVi(amt), wEn=numToWordsEn(amt);
   var inicsVi=esc(INICS_INFO.nameVi||'CÔNG TY TNHH INICS VINA');
-  var H='<div style="width:794px;max-width:100%;margin:0 auto;background:#fff;color:#111;font-family:\'Times New Roman\',Georgia,serif;padding:42px 54px;box-sizing:border-box;font-size:13px;line-height:1.65">';
-  // national header
-  H+='<div style="text-align:center">'
-    +'<div style="font-weight:700">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>'
-    +'<div style="font-weight:700">Độc lập – Tự do – Hạnh phúc</div>'
-    +'<div style="font-size:11px;font-style:italic;color:#333">THE SOCIALIST REPUBLIC OF VIETNAM</div>'
-    +'<div style="font-size:11px;font-style:italic;color:#333">Independence – Freedom – Happiness</div>'
-    +'<div style="margin:4px 0;letter-spacing:1px">----0o0o----</div>'
-  +'</div>';
-  // title
-  H+='<div style="text-align:center;margin-top:16px">'
-    +'<div style="font-size:19px;font-weight:800">GIẤY ĐỀ NGHỊ THANH TOÁN</div>'
-    +'<div style="font-size:14px;font-weight:700;color:#222">PAYMENT REQUEST</div>'
-  +'</div>';
-  // no + date
-  H+='<div style="margin-top:14px">Số / No.: <b>'+esc(pr.prNo||'')+'</b></div>';
-  H+='<div style="text-align:right;font-style:italic">'+esc(_prViDate(pr.date))+'</div>';
-  // item
-  H+='<div style="margin-top:12px"><b>Hạng mục:</b> '+(itemVi||'………')+'</div>';
-  H+='<div style="font-style:italic;color:#222"><b>Item:</b> '+(itemEn||'')+'</div>';
-  // to
-  H+='<div style="margin-top:12px"><b>Kính gửi:</b></div>';
-  H+='<div>Company Name: <b>'+buyerName+'</b></div>';
-  H+='<div>Địa chỉ / Address: '+(buyerAddr||'………')+'</div>';
-  // reference
-  H+='<div style="margin-top:12px">Theo hợp đồng kinh tế số <b>'+hd+'</b> giữa '+inicsVi+' và <b>'+buyerName+'</b></div>';
-  H+='<div>Công ty chúng tôi đề nghị Quý Công ty thanh toán số tiền chi tiết như sau:</div>';
-  H+='<div style="margin-top:4px"><b>'+pct+'% giá trị hợp đồng (bao gồm thuế VAT): '+amtStr+'</b> <span style="color:#444">('+timingVi+')</span></div>';
-  H+='<div style="margin-top:8px;font-style:italic;color:#222">Follow economic contract sign '+hd+' between '+buyerName+' &amp; '+esc(INICS_INFO.nameEn||'INICS VINA COMPANY LIMITED')+'</div>';
-  H+='<div style="font-style:italic;color:#222">We would like to request your company to payment amount:</div>';
-  H+='<div style="font-style:italic;color:#222"><b>'+pct+'% value of contract (include VAT): '+amtStr+'</b></div>';
-  // in words
-  H+='<div style="margin-top:12px"><b>Bằng chữ:</b> '+wVi+' đồng chẵn.</div>';
-  H+='<div style="font-style:italic;color:#222"><b>In words:</b> '+wEn+' Vietnamese Dong</div>';
-  // bank
-  H+='<div style="margin-top:12px">Xin hãy chuyển số tiền trên vào tài khoản của Công ty chúng tôi</div>';
-  H+='<div style="font-style:italic;color:#222">Please transfer the above sum of money into our company\u2019s account</div>';
-  H+='<div style="margin-top:6px">Tên ngân hàng / Bank name : <b>'+esc(pr.bank||'Shinhan Bank Vietnam')+'</b></div>';
-  H+='<div>Chủ tài khoản / Beneficiary name : <b>'+esc(pr.holder||inicsVi)+'</b></div>';
-  H+='<div>Số tài khoản / Beneficiary account : <b>'+esc(pr.acct||'')+'</b></div>';
-  if(pr.note){ H+='<div style="margin-top:8px;color:#444">Ghi chú / Note: '+esc(pr.note)+'</div>'; }
-  // closing + signature
-  H+='<div style="margin-top:16px">Kính mong sự hợp tác! Thanks for your cooperation</div>';
-  H+='<div style="text-align:right;margin-top:18px">'
-    +'<div style="font-style:italic">Trân trọng / Yours sincerely</div>'
-    +'<div style="font-weight:700;margin-top:2px">'+inicsVi+'</div>'
-    +'<div style="height:170px;position:relative">'
-      +'<div style="position:absolute;right:24px;top:6px;width:150px;height:150px;border:1px dashed #cbd5e1;border-radius:50%;color:#cbd5e1;font-size:10px;display:flex;align-items:center;justify-content:center;text-align:center">Ký tên &amp; đóng dấu<br>Signature &amp; Seal</div>'
+  var inicsEn=esc(INICS_INFO.nameEn||'INICS VINA CO., LTD');
+  var H='<div style="width:794px;max-width:100%;margin:0 auto;background:#fff;color:#111;font-family:Arial,\'Helvetica Neue\',sans-serif;padding:30px 34px;box-sizing:border-box;font-size:11px;line-height:1.55">';
+  // header
+  H+='<div class="ct-blk" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid #111;padding-bottom:10px">'
+    +'<div style="max-width:58%">'
+      +'<div style="font-size:13px;font-weight:800">'+inicsVi+' / '+inicsEn+'</div>'
+      +'<div style="font-size:9px;color:#444;margin-top:2px">'+esc(INICS_INFO.addr)+'</div>'
+      +'<div style="font-size:9px;color:#444">MST: '+esc(INICS_INFO.mst)+' · Tel: '+esc(INICS_INFO.tel)+'</div>'
     +'</div>'
-    +'<div style="font-weight:700;font-size:14px">'+esc(INICS_INFO.rep||'LEE JINHA')+'</div>'
+    +'<div style="text-align:right">'
+      +'<div style="font-size:16px;font-weight:800;letter-spacing:.02em">GIẤY ĐỀ NGHỊ THANH TOÁN</div>'
+      +'<div style="font-size:11px;font-weight:700;color:#333">PAYMENT REQUEST · 대금지급요청서</div>'
+      +'<div style="font-size:10px;margin-top:4px">Số / No.: <b>'+esc(pr.prNo||'')+'</b></div>'
+      +'<div style="font-size:10px">Ngày / Date: '+esc(pr.date||'')+'</div>'
+    +'</div>'
+  +'</div>';
+  // to / contract boxes
+  H+='<div class="ct-blk" style="margin-top:14px;display:flex;gap:14px">'
+    +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
+      +'<div style="font-weight:700;font-size:10px">Kính gửi / To · 수신</div>'
+      +'<div style="font-weight:700;margin-top:2px">'+(buyerName||'………')+'</div>'
+      +(buyerRep?'<div style="font-size:10px">Đại diện / Rep.: '+buyerRep+(buyerTitle?' – '+buyerTitle:'')+'</div>':'')
+      +(buyerAddr?'<div style="font-size:9.5px;color:#444">'+buyerAddr+'</div>':'')
+    +'</div>'
+    +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
+      +'<div style="font-weight:700;font-size:10px">Hợp đồng / Contract · 연결 계약</div>'
+      +'<div style="font-weight:700;margin-top:2px;font-family:monospace">'+hd+'</div>'
+      +'<div style="font-size:9.5px;color:#444">Ngày HĐ / Contract date: '+esc(o.date||'')+'</div>'
+    +'</div>'
+  +'</div>';
+  // intro
+  H+='<div class="ct-blk" style="margin-top:12px;font-size:10.5px">'
+    +'Căn cứ Hợp đồng cung cấp hàng hóa số <b>'+hd+'</b>, '+inicsEn+' trân trọng đề nghị Quý Công ty thanh toán khoản sau / '
+    +'Pursuant to Supply Contract No. <b>'+hd+'</b>, '+inicsEn+' respectfully requests payment of the following:'
+  +'</div>';
+  // table — 내용에 선금/잔금/100% 명기
+  H+='<table class="ct-blk" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:10.5px">'
+    +'<thead><tr style="background:#f1f5f9">'
+      +'<th style="border:1px solid #999;padding:6px;width:8%">No</th>'
+      +'<th style="border:1px solid #999;padding:6px;text-align:left">Nội dung / Description · 내용</th>'
+      +'<th style="border:1px solid #999;padding:6px;width:32%;text-align:right">Số tiền / Amount</th>'
+    +'</tr></thead><tbody>'
+      +'<tr>'
+        +'<td style="border:1px solid #999;padding:6px;text-align:center">1</td>'
+        +'<td style="border:1px solid #999;padding:6px">'
+          +'<div style="font-weight:700">'+lbl.vi+' / '+lbl.en+' · <span style="color:#1d4ed8">'+lbl.ko+'</span></div>'
+          +(itemVi||itemEn?('<div style="font-size:9.5px;color:#444;margin-top:2px">'+(itemVi||'')+(itemVi&&itemEn?' / ':'')+(itemEn||'')+'</div>'):'')
+          +'<div style="font-size:9px;color:#555;margin-top:2px">theo HĐ / under Contract '+hd+'</div>'
+        +'</td>'
+        +'<td style="border:1px solid #999;padding:6px;text-align:right;font-weight:700">'+amtStr+'</td>'
+      +'</tr>'
+    +'</tbody><tfoot style="break-inside:avoid;page-break-inside:avoid">'
+      +'<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL · 합계</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>'
+    +'</tfoot></table>';
+  // payment info
+  H+='<div class="ct-blk" style="margin-top:12px;border:1px solid #999;padding:9px 11px;background:#fbfbfb">'
+    +'<div style="font-weight:700;font-size:10px;margin-bottom:4px">Thông tin thanh toán / Payment Details · 입금 정보</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:10px">'
+      +'<div>Ngân hàng / Bank: <b>'+esc(pr.bank||'Shinhan Bank Vietnam')+'</b></div>'
+      +'<div>Số TK / Account No.: <b>'+esc(pr.acct||'')+'</b></div>'
+      +'<div style="grid-column:span 2">Chủ TK / Account holder: <b>'+esc(pr.holder||inicsVi)+'</b></div>'
+      +'<div>Hạn thanh toán / Due date: <b>'+(pr.due?esc(pr.due):'………')+'</b></div>'
+      +'<div>Số tiền / Amount: <b>'+amtStr+'</b></div>'
+    +'</div>'
+  +'</div>';
+  if(pr.note){ H+='<div class="ct-blk" style="margin-top:8px;font-size:10px;color:#444">Ghi chú / Note: '+esc(pr.note)+'</div>'; }
+  // signature (no gender prefix before LEE JINHA)
+  H+='<div class="ct-blk" style="display:flex;gap:18px;margin-top:30px;text-align:center;font-size:10px">'
+    +'<div style="flex:1"></div>'
+    +'<div style="flex:1">'
+      +'<div style="font-weight:700">'+inicsEn+'</div>'
+      +'<div style="font-size:8px;color:#777;margin-top:2px">(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)</div>'
+      +'<div style="height:96px"></div>'
+      +'<div style="border-top:1px solid #111;padding-top:4px">'+esc(INICS_INFO.rep||'LEE JINHA')+' – '+esc(INICS_INFO.repTitleEn||'Legal Representative')+'</div>'
+    +'</div>'
   +'</div>';
   H+='</div>';
   return H;
@@ -7211,7 +7287,7 @@ function renderBankUploadBar(){
     +'<div style="font-size:12px;color:var(--text-2)">Upload statement for <b>'+acc.acctNo+'</b> ('+acc.currency+') · 명세서 업로드</div>'
     +'<div style="flex:1"></div>'
     +'<button class="btn btn-dark" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'bankExcelInput\').click()"><i class="ti ti-upload"></i> Upload Excel · 엑셀 업로드</button>'
-    +(cnt?'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px;color:var(--danger)" onclick="bankClearAcct(\''+acc.acctNo+'\')"><i class="ti ti-trash"></i> Clear · 초기화</button>':'')
+    +((cnt && (sessionIsAdmin||(cardCurrentUser&&cardCurrentUser()&&cardCurrentUser().isAdmin)))?'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px;color:var(--danger)" onclick="bankClearAcct(\''+acc.acctNo+'\')"><i class="ti ti-trash"></i> Clear · 초기화 <span style="font-size:9px;color:var(--text-3)">(admin)</span></button>':'')
     +'</div>'
     +'<div style="font-size:10px;color:var(--text-3);margin-top:6px">Format · 인식 컬럼: <b>날짜 · 거래구분 · 출금 · 입금 · 잔액 · 참조번호 · 비고</b> (SHB export). Duplicate rows are skipped · 중복 자동 제외.</div>';
 }
@@ -7490,7 +7566,7 @@ function renderBankList(){
       +(guess?' <a href="javascript:void(0)" onclick="applyBankVendorGuess('+t.id+')" style="font-size:10px;color:#1d4ed8;text-decoration:none;white-space:nowrap" title="추천 거래처 적용 · Apply suggestion">Apply</a>':'');
     return '<tr>'
       +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(t.date||'—')+'</td>'
-      +'<td style="'+td+';white-space:nowrap">'+_bankTypeShort(t.type)+'</td>'
+      +'<td style="'+td+';white-space:nowrap;max-width:64px;overflow:hidden;text-overflow:ellipsis;font-size:11px">'+_bankTypeShort(t.type)+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#b91c1c">'+(t.debit?bankFmt(t.debit,acc.currency):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#15803d">'+(t.credit?bankFmt(t.credit,acc.currency):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:600">'+bankFmt(t.balance,acc.currency)+'</td>'
@@ -7513,10 +7589,10 @@ function renderBankList(){
     +'</div>';
   el.innerHTML=bankVendorDatalist()+vendorBar+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1300px">'
     +'<thead><tr>'
-    +'<th style="'+th+'">Date · 날짜</th><th style="'+th+'">Type · 거래</th>'
-    +'<th style="'+th+';text-align:right">Out · 출금</th><th style="'+th+';text-align:right">In · 입금</th>'
-    +'<th style="'+th+';text-align:right">Balance · 잔액</th><th style="'+th+'">Note · 비고</th>'
-    +'<th style="'+th+'">Category · 분류</th><th style="'+th+'">Vendor · 거래처</th><th style="'+th+'">Card · 카드</th><th style="'+th+';text-align:center">Inv · 인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
+    +'<th style="'+th+'">Date<br>날짜</th><th style="'+th+';max-width:64px">Type<br>거래</th>'
+    +'<th style="'+th+';text-align:right">Out<br>출금</th><th style="'+th+';text-align:right">In<br>입금</th>'
+    +'<th style="'+th+';text-align:right">Balance<br>잔액</th><th style="'+th+'">Note<br>비고</th>'
+    +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+';text-align:center">Inv<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 function _bankTypeShort(ty){ ty=String(ty||''); if(/카드/.test(ty)) return '카드'; return ty; }
@@ -7535,13 +7611,13 @@ function _bankCardCell(t){
   if(info.status==='auto'||info.status==='manual'){
     var c=info.card;
     return '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">'+thumb(c)
-      +'<span class="badge b-done" style="font-size:10px;cursor:pointer" onclick="'+(c?('viewCardDetail('+c.id+')'):'')+'" title="카드 사용 전체 보기 · Card detail"><i class="ti ti-link"></i> '+(c?(c.merchant||'카드 Card'):'카드 Card')+(info.status==='auto'?' (자동·Auto)':'')+'</span>'
+      +'<span class="badge b-done" style="font-size:10px;cursor:pointer" onclick="'+(c?('viewCardDetail('+c.id+')'):'')+'" title="카드 사용 전체 보기 · Card detail"><i class="ti ti-check"></i> '+(c?(c.merchant||'카드 Card'):'카드 Card')+'</span>'
       +'<a href="javascript:void(0)" onclick="unmatchCard('+(c?c.id:0)+')" title="매칭 해제 · Unmatch" style="color:var(--danger);text-decoration:none;font-size:12px"><i class="ti ti-x"></i></a></div>';
   }
   if(info.status==='confident'){
     var cc=info.card;
     return '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">'+thumb(cc)
-      +'<button class="btn btn-dark" style="font-size:10px;padding:3px 7px" onclick="matchCardBank('+cc.id+','+t.id+',\'auto\')" title="추천 · Suggested: '+((cc.merchant||'').replace(/"/g,'&quot;'))+'"><i class="ti ti-check"></i> '+(cc.merchant||'카드')+' 확정·Confirm</button></div>';
+      +'<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchCardBank('+cc.id+','+t.id+',\'auto\')" title="이 카드로 매칭 · Match: '+((cc.merchant||'').replace(/"/g,'&quot;'))+'"><i class="ti ti-check"></i> '+(cc.merchant||'카드')+'</button></div>';
   }
   if(info.status==='review'){
     return '<select onchange="if(this.value)matchCardBank(parseInt(this.value),'+t.id+',\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:170px"><option value="">검토 · Review '+info.candidates.length+'개 카드…</option>'
@@ -7771,9 +7847,13 @@ function handleDescImage(e) {
 
 function toggleExpenseDetail() {
   var type = document.getElementById('docType') ? document.getElementById('docType').value : '';
+  var isExp = type.includes('지출결의서');
+  var isContract = type.includes('계약체결');
   var el = document.getElementById('expenseDetail');
-  if (el) el.style.display = type.includes('지출결의서') ? 'block' : 'none';
+  if (el) el.style.display = (isExp || isContract) ? 'block' : 'none';
   if (el && el.style.display === 'block') populateVendorDatalist();
+  var cc = document.getElementById('contractAttCard');
+  if (cc) cc.style.display = isContract ? 'block' : 'none';
 }
 
 function toggleBankType() {
