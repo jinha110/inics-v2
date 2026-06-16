@@ -877,10 +877,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <button class="btn btn-outline" onclick="closeTaskForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
       </div>
       <div class="fg" style="margin-bottom:10px"><label>업무 내용 · Task *</label><input type="text" id="tskTitle" placeholder="예: 건설사 미팅 — 회사 소개·협업 요청" autocomplete="off"></div>
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="fg"><label>업무 유형 · Type</label><select id="tskType" onchange="updateTaskFormFields()"></select></div>
-        <div class="fg" id="tskProjectWrap"><label>연관 프로젝트 · Project *</label><select id="tskProject" onchange="updateTaskFormFields()"></select></div>
-      </div>
+      <div class="fg" style="margin-bottom:10px"><label>업무 유형 · Type</label><select id="tskType" onchange="updateTaskFormFields()"></select></div>
+      <div class="fg" id="tskProjectWrap" style="margin-bottom:10px"><label>연관 프로젝트 · Projects <span style="font-weight:400;color:var(--text-3)">(여러 개 선택 가능 · multi-select)</span></label><div id="tskProjectChips" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);min-height:38px;align-content:flex-start"></div></div>
       <div class="fg" id="tskNetCompanyWrap" style="margin-bottom:10px;display:none"><label>업체명 · Company (네트워킹)</label><input type="text" id="tskNetCompany" list="quoteClients" placeholder="만난 업체명 — 거래처 DB에 등록됨" autocomplete="off"></div>
       <div id="tskNewProjWrap" style="margin-bottom:10px;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px">
         <label style="font-size:11px;color:var(--text-2);display:block;margin-bottom:5px">새 프로젝트 · New Project (고객사명)</label>
@@ -5936,6 +5934,43 @@ function taskDelay(t){ var end=t.status==='done'?t.closedDate:projTodayISO(); re
 function isReportMember(uid){ var rm=state.reportMembers; if(!rm||!Object.keys(rm).length)return true; return !!rm[uid]; }
 function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
 function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; if(pid==='networking')return '네트워킹 · Networking'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
+// Normalized list of project IDs linked to a task (supports legacy single projectId)
+function taskProjectIds(t){
+  if(t && Array.isArray(t.projectIds) && t.projectIds.length) return t.projectIds.slice();
+  if(t && t.projectId && t.projectId!=='common' && t.projectId!=='networking') return [String(t.projectId)];
+  return [];
+}
+function taskProjLabels(t){ var ids=taskProjectIds(t); return ids.length? ids.map(function(id){return taskProjLabel(id);}) : ['공통/기타 · Common']; }
+// In-form selected projects (array of project-id strings, or ['common'])
+var _tskSelProjects=['common'];
+function _tskToggleCommon(){ _tskSelProjects=['common']; renderTaskProjectChips(); }
+function tskToggleProject(pid){
+  pid=String(pid);
+  _tskSelProjects=_tskSelProjects.filter(function(x){return x!=='common';});
+  var i=_tskSelProjects.indexOf(pid);
+  if(i>=0) _tskSelProjects.splice(i,1); else _tskSelProjects.push(pid);
+  if(!_tskSelProjects.length) _tskSelProjects=['common'];
+  renderTaskProjectChips();
+}
+function tskToggleNewProjBox(){
+  var np=document.getElementById('tskNewProjWrap'); if(!np)return;
+  var show=(np.style.display==='none'||!np.style.display);
+  np.style.display=show?'':'none';
+  if(show){ var inp=document.getElementById('tskNewProjName'); if(inp)setTimeout(function(){inp.focus();},30); }
+}
+function renderTaskProjectChips(){
+  var box=document.getElementById('tskProjectChips'); if(!box)return;
+  var sel=(_tskSelProjects&&_tskSelProjects.length)?_tskSelProjects:['common'];
+  function chip(active,label,onclick,dashed){
+    return '<span onclick="'+onclick+'" style="cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:14px;border:1px '+(dashed?'dashed':'solid')+' '+(active?'var(--text)':'var(--border)')+';background:'+(active?'var(--text)':'var(--surface)')+';color:'+(active?'#fff':'var(--text-2)')+'">'+(active?'<i class="ti ti-check" style="font-size:11px"></i>':'')+label+'</span>';
+  }
+  var html=chip(sel.indexOf('common')>=0,'공통/기타 · Common','_tskToggleCommon()',false);
+  (state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).forEach(function(p){
+    html+=chip(sel.indexOf(String(p.id))>=0,(p.client||'?')+' · '+projStage(p.stage).label,"tskToggleProject('"+p.id+"')",false);
+  });
+  html+=chip(false,'➕ 새 프로젝트 · New','tskToggleNewProjBox()',true);
+  box.innerHTML=html;
+}
 function taskProjectOptions(sel){
   return '<option value="common"'+(sel==='common'||!sel?' selected':'')+'>[공통/기타 · Common] 회의·행정</option>'
     +(state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).map(function(p){
@@ -5959,7 +5994,10 @@ function openTaskForm(id){
   document.getElementById('tskType').innerHTML=TASK_TYPES.map(function(t){return '<option value="'+t.k+'">'+t.l+'</option>';}).join('');
   document.getElementById('tskSignal').innerHTML=TASK_SIGNALS.map(function(sg){return '<option value="'+sg.k+'">'+sg.l+'</option>';}).join('');
   var t=id?(state.tasks||[]).find(function(x){return x.id===id;}):null;
-  document.getElementById('tskProject').innerHTML=taskProjectOptions(t?t.projectId:'common');
+  _tskSelProjects = t ? taskProjectIds(t) : [];
+  if(!_tskSelProjects.length) _tskSelProjects=['common'];
+  renderTaskProjectChips();
+  var _npb=document.getElementById('tskNewProjWrap'); if(_npb)_npb.style.display='none';
   document.getElementById('taskFormTitle').textContent=t?'업무 수정 · Edit Task':'새 업무 · New Task';
   document.getElementById('tskTitle').value=t?(t.title||''):'';
   document.getElementById('tskPurpose').value=t?(t.purpose||''):'';
@@ -5989,12 +6027,11 @@ function openTaskForm(id){
 }
 function updateTaskFormFields(){
   var type=document.getElementById("tskType").value;
-  var proj=document.getElementById("tskProject").value;
   var isNet=(type==="networking");
   var w=document.getElementById("tskStartWrap"); if(w)w.style.display=(type==="meeting"||isNet)?"none":"";
   var nc=document.getElementById("tskNetCompanyWrap"); if(nc)nc.style.display=isNet?"":"none";
   var pw=document.getElementById("tskProjectWrap"); if(pw)pw.style.display=isNet?"none":"";
-  var np=document.getElementById("tskNewProjWrap"); if(np)np.style.display=(!isNet&&proj==="__new__")?"":"none";
+  if(isNet){ var np=document.getElementById("tskNewProjWrap"); if(np)np.style.display="none"; }
 }
 function addVendorByName(name){ name=(name||"").trim(); if(!name)return; if(!state.vendors)state.vendors=[]; if(getAllVendors()[name.toLowerCase()])return; state.vendors.push({name:name, source:"networking", createdAt:nowStr()}); }
 function createQuickProject(){
@@ -6004,8 +6041,11 @@ function createQuickProject(){
   if(!state.projects)state.projects=[];
   var pj={ id:(state.projectSeq=(state.projectSeq||0)+1), client:name, clientFull:"", ownerId:(u?u.id:null), region:"", location:"", deliveryPlace:"", type:"", custType:"B2B", stage:"lead", amount:"", currency:"VND", regDate:projTodayISO(), targetDate:"", note:"", createdAt:nowStr(), createdBy:(u?u.name:""), logs:[], stageHistory:[{stage:"lead",label:projStage("lead").label,at:nowStr(),by:(u?u.name:""),first:true}] };
   state.projects.push(pj); saveState();
-  document.getElementById("tskProject").innerHTML=taskProjectOptions(pj.id);
+  _tskSelProjects=_tskSelProjects.filter(function(x){return x!=='common';});
+  _tskSelProjects.push(String(pj.id));
+  renderTaskProjectChips();
   document.getElementById("tskNewProjName").value="";
+  var _npb=document.getElementById("tskNewProjWrap"); if(_npb)_npb.style.display="none";
   updateTaskFormFields();
   showToast("새 프로젝트 생성 · "+name);
 }
@@ -6016,14 +6056,15 @@ function saveTask(){
   var u=reportTargetUser(); var uid=u?u.id:null, uname=u?u.name:'';
   var _type=document.getElementById('tskType').value||'etc';
   var _isNet=(_type==='networking');
-  var _proj=document.getElementById('tskProject').value||'common';
-  if(!_isNet && _proj==='__new__'){ showToast('새 프로젝트를 먼저 생성하세요'); return; }
+  var _projIds = _isNet ? [] : (_tskSelProjects||[]).filter(function(x){return x && x!=='common' && x!=='networking';});
+  _projIds = _projIds.filter(function(x,i){return _projIds.indexOf(x)===i;}); // dedupe
   var _netCo=_isNet?(document.getElementById('tskNetCompany').value||'').trim():'';
   if(_isNet && _netCo){ addVendorByName(_netCo); }
   var data={
     title:title,
     purpose:(document.getElementById('tskPurpose').value||'').trim(),
-    projectId:_isNet?'common':_proj,
+    projectId:_isNet?'common':(_projIds[0]||'common'),
+    projectIds:_projIds,
     taskType:_type,
     netCompany:_netCo,
     signal:document.getElementById('tskSignal').value||'green',
@@ -6034,9 +6075,11 @@ function saveTask(){
   if(!state.tasks)state.tasks=[];
   if(_editingTaskId){
     var t=state.tasks.find(function(x){return x.id===_editingTaskId;});
-    if(t){ Object.assign(t,data); t.updatedAt=nowStr(); if(t.status==='done')syncTaskToProject(t); }
+    if(t){ Object.assign(t,data); t.updatedAt=nowStr(); syncTaskToProjects(t); }
   } else {
-    state.tasks.push(Object.assign({id:(state.taskSeq=(state.taskSeq||0)+1),userId:uid,userName:uname,status:'open',closedDate:'',doneNote:'',createdAt:nowStr(),updatedAt:nowStr()},data));
+    var _nt=Object.assign({id:(state.taskSeq=(state.taskSeq||0)+1),userId:uid,userName:uname,status:'open',closedDate:'',doneNote:'',createdAt:nowStr(),updatedAt:nowStr()},data);
+    state.tasks.push(_nt);
+    syncTaskToProjects(_nt);
   }
   saveState(); closeTaskForm(); renderTaskApp(); showToast('업무 저장 · Saved');
 }
@@ -6062,13 +6105,23 @@ function reopenTask(id){
   (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
   saveState(); renderTaskApp(); showToast('재개됨 · Reopened');
 }
-function syncTaskToProject(t){
-  if(!t.projectId||t.projectId==='common')return;
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(t.projectId);}); if(!p)return;
-  p.logs=p.logs||[];
-  p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===t.id);});
-  p.logs.push({text:'[업무 '+t.closedDate+'] '+t.doneNote+(t.estHours?' ('+t.estHours+'h)':''), at:nowStr(), by:t.userName, source:'task', taskId:t.id, date:t.closedDate});
+function syncTaskToProjects(t){
+  if(!t)return;
+  // Remove this task's prior logs from ALL projects (project set may have changed)
+  (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===t.id);}); });
+  var ids=taskProjectIds(t); if(!ids.length)return;
+  var done=t.status==='done';
+  var txt = done
+    ? '[업무완료 '+(t.closedDate||'')+'] '+(t.doneNote||t.title)+(t.estHours?' ('+t.estHours+'h)':'')
+    : '[업무 '+(t.startDate||projTodayISO())+'] '+t.title+(t.purpose?' — '+t.purpose:'')+(t.issue?' / '+t.issue:'');
+  ids.forEach(function(pid){
+    var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); if(!p)return;
+    p.logs=p.logs||[];
+    p.logs.push({text:txt, at:nowStr(), by:t.userName, source:'task', taskId:t.id, date:(done?t.closedDate:t.startDate)});
+  });
 }
+// Backward-compatible alias
+function syncTaskToProject(t){ return syncTaskToProjects(t); }
 function renderTaskApp(){
   [['Mytasks','내 업무 · My Tasks'],['Daily','일일 · Daily'],['Weekly','주간 · Weekly'],['Monthly','월간 · Monthly']].forEach(function(p){
     var b=document.getElementById('tskTab'+p[0]); if(b){ var on=_taskTab===p[0].toLowerCase(); b.innerHTML=p[1]; b.style.cssText='background:none;border:none;border-bottom:2px solid '+(on?'var(--text)':'transparent')+';color:'+(on?'var(--text)':'var(--text-3)')+';font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;font-family:var(--sans)'; }
@@ -6083,7 +6136,7 @@ function taskCard(t, compact){
   var sg=taskSignal(t.signal); var delay=taskDelay(t); var done=t.status==='done';
   var delayTag = (!done && delay>0) ? '<span style="font-size:10px;font-weight:700;color:#b91c1c;background:#b91c1c14;padding:1px 7px;border-radius:8px">D+'+delay+' 지연</span>' : ((!done && delay===0) ? '<span style="font-size:10px;color:var(--text-3)">오늘 시작</span>':'');
   var typeTag='<span style="font-size:10px;color:var(--text-3);background:var(--surface-2);padding:1px 7px;border-radius:8px">'+taskTypeLabel(t.taskType)+'</span>';
-  var projTag='<span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px"><i class="ti ti-folder"></i> '+taskProjLabel(t.projectId)+'</span>';
+  var projTag=taskProjLabels(t).map(function(lb){ return '<span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px"><i class="ti ti-folder"></i> '+lb+'</span>'; }).join(' ');
   var hrs=t.estHours?'<span style="font-size:10px;color:var(--text-3)"><i class="ti ti-clock"></i> '+t.estHours+'h</span>':'';
   var actions = done
     ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="reopenTask('+t.id+')"><i class="ti ti-arrow-back-up"></i> 재개</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>'
@@ -6188,7 +6241,7 @@ function renderRollup(){
     var done=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate>=start && t.closedDate<=end && t.taskType!=='networking';});
     if(!done.length)return; any=true;
     var totH=done.reduce(function(s,t){return s+(parseFloat(t.estHours)||0);},0);
-    var byProj={}; done.forEach(function(t){ var k=taskProjLabel(t.projectId); (byProj[k]=byProj[k]||[]).push(t); });
+    var byProj={}; done.forEach(function(t){ taskProjLabels(t).forEach(function(k){ (byProj[k]=byProj[k]||[]).push(t); }); });
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px"><span style="font-size:14px;font-weight:700">'+m.name+'</span><span style="font-size:11px;color:var(--text-3)">완료 '+done.length+'건'+(totH?' · '+totH+'h':'')+'</span></div>';
     Object.keys(byProj).sort().forEach(function(pn){
@@ -6225,7 +6278,7 @@ function taskRow(t){
    +'<td style="padding:6px 8px"><input type="checkbox" class="tskRowChk" data-id="'+t.id+'" '+(_taskSel[t.id]?'checked':'')+' onclick="toggleTaskSel('+t.id+',this)" style="width:auto;margin:0"></td>'
    +'<td style="padding:6px 8px">'+signalDot(t.signal)+'</td>'
    +'<td style="padding:6px 8px;font-size:12px'+(done?';text-decoration:line-through;color:var(--text-3)':'')+'">'+t.title+(done&&t.doneNote?'<div style="font-size:11px;color:var(--text-3);text-decoration:none">✓ '+t.doneNote+'</div>':'')+(t.issue?'<div style="font-size:10px;color:#b91c1c">⚠ '+t.issue+'</div>':'')+'</td>'
-   +'<td style="padding:6px 8px;font-size:11px;color:#b45309;white-space:nowrap">'+taskProjLabel(t.projectId)+'</td>'
+   +'<td style="padding:6px 8px;font-size:11px;color:#b45309;white-space:nowrap">'+taskProjLabels(t).join(', ')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+taskTypeLabel(t.taskType)+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+(t.startDate||'')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;white-space:nowrap">'+(!done&&delay>0?'<span style="color:#b91c1c;font-weight:700">D+'+delay+'</span>':(done?'<span style="color:#15803d">완료</span>':'-'))+'</td>'
