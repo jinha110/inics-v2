@@ -3117,20 +3117,26 @@ function buildVendorMap(){
     return vendors[key];
   }
 
-  // 1) 전자결재 지출결의서 (state.docs) — 매입 거래처
+  // 1) 전자결재 문서 (state.docs) — expenseData.vendorName 또는 수동연동(vendorLink)
   (state.docs||[]).forEach(function(doc){
-    if(!doc.expenseData || !doc.expenseData.vendorName) return;
+    var manualKey = (doc.vendorLink||'').trim();
     var e = doc.expenseData;
-    var v = ensure(e.vendorName); if(!v) return;
-    if(e.vendorReg) v.reg = e.vendorReg;
-    v.bank = {
-      type: e.bankType,
-      bankVN: e.bankVN||'', acctVN: e.bankVNAcct||'', holderVN: e.bankVNHolder||'', branchVN: e.bankVNBranch||'',
-      bankForeign: e.bankForeignName||'', swift: e.bankSwift||'', acctForeign: e.bankForeignAcct||'', holderForeign: e.bankForeignHolder||''
-    };
+    var autoKey = (e && e.vendorName) ? String(e.vendorName).trim() : '';
+    var key = manualKey || autoKey;
+    if(!key) return;
+    var v = ensure(key); if(!v) return;
+    // 은행/사업자번호는 자동(expenseData) 출처일 때만 반영 — 수동연동은 거래처 오귀속 방지
+    if(e && !manualKey){
+      if(e.vendorReg) v.reg = e.vendorReg;
+      v.bank = {
+        type: e.bankType,
+        bankVN: e.bankVN||'', acctVN: e.bankVNAcct||'', holderVN: e.bankVNHolder||'', branchVN: e.bankVNBranch||'',
+        bankForeign: e.bankForeignName||'', swift: e.bankSwift||'', acctForeign: e.bankForeignAcct||'', holderForeign: e.bankForeignHolder||''
+      };
+    }
     var _isCt = /계약체결|계약/.test(doc.type||'');
     if(_isCt){ v.srcs.contract = true; } else { v.srcs.expense = true; }
-    v.docs.push({src: _isCt?'contract':'expense', no:doc.docNo||('D-'+doc.id), title:doc.title||(_isCt?'계약체결 · Contract':'지출결의서'), id:doc.id, po:e.poNumber||'', inv:e.invoiceNumber||''});
+    v.docs.push({src: _isCt?'contract':'expense', no:doc.docNo||('D-'+doc.id), title:doc.title||(_isCt?'계약체결 · Contract':'지출결의서'), id:doc.id, po:(e&&e.poNumber)||'', inv:(e&&e.invoiceNumber)||'', manual: !!manualKey});
   });
 
   // 2) 거래처 마스터 (state.vendors) — 은행정보 권위 소스 + 문서 없는 거래처 포함
@@ -3203,6 +3209,28 @@ function buildVendorMap(){
   return vendors;
 }
 var VENDOR_TYPES=['매출처','매입처','판관비','기타'];
+// ── 거래처 강제 연동 (재기안 없이 기존 결재문서를 거래처에 수동 연결) ──
+function forceLinkDocToVendor(vendorName, docId){
+  vendorName=(vendorName||'').trim();
+  var doc=(state.docs||[]).find(function(d){ return d.id==docId; });
+  if(!doc || !vendorName){ showToast('연동할 문서·거래처를 확인하세요'); return; }
+  doc.vendorLink=vendorName;
+  saveState(); if(typeof populateQuoteProductCodes==='function') populateQuoteProductCodes(); renderVendorDB();
+  showToast('강제 연동 완료 · Linked: '+(doc.docNo||('D-'+doc.id))+' → '+vendorName);
+}
+function unlinkDocFromVendor(docId){
+  var doc=(state.docs||[]).find(function(d){ return d.id==docId; });
+  if(!doc) return;
+  if(!confirm('이 문서의 수동 연동을 해제할까요?\nUnlink this document?')) return;
+  doc.vendorLink=null;
+  saveState(); renderVendorDB();
+  showToast('연동 해제 · Unlinked');
+}
+function forceLinkSelected(vi){
+  var sel=document.getElementById('forceLinkSel-'+vi);
+  if(!sel || !sel.value){ showToast('연동할 결재문서를 선택하세요 · Select a document'); return; }
+  forceLinkDocToVendor(sel.getAttribute('data-vname')||'', parseInt(sel.value,10));
+}
 function setVendorType(name,type){
   name=(name||'').trim(); if(!name) return;
   if(!state.vendors) state.vendors=[];
@@ -3272,15 +3300,26 @@ function renderVendorDB() {
               : d.src==='card'  ? 'openRelatedCard('+d.id+')'
               : d.src==='project' ? 'openRelatedProject('+d.id+')'
               : 'openDocViewer('+d.id+')';
-      return '<a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)">'
+      return '<div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap"><a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)">'
         +'<i class="ti '+c.icon+'" style="font-size:13px;color:'+c.color+'"></i>'
-        +'<span class="docno">'+d.no+'</span> '+d.title+amt+meta+dt+'</a>';
+        +'<span class="docno">'+d.no+'</span> '+d.title+amt+meta+dt+'</a>'
+        +(d.manual?'<span style="font-size:9px;font-weight:700;color:#7c3aed;background:#7c3aed14;padding:1px 6px;border-radius:8px">수동연동</span><a href="javascript:void(0)" onclick="unlinkDocFromVendor('+d.id+')" title="연동 해제 · Unlink" style="color:var(--danger);text-decoration:none;font-size:12px"><i class="ti ti-unlink"></i></a>':'')
+        +'</div>';
     }).join('<br>') : '<span style="color:var(--text-3)">— No related docs · 관련 문서 없음</span>';
 
     var _tc={'매출처':'#1d4ed8','매입처':'#b45309','판관비':'#15803d','기타':'#64748b'};
     var typeChip='<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:700;color:#fff;background:'+(_tc[v.type]||'#64748b')+';padding:2px 8px;border-radius:10px;margin-left:6px">'+(v.type||'기타')+'</span>';
     var _vesc=v.name.replace(/"/g,'&quot;');
     var typeSel='<div class="ifield"><div class="lbl">거래처 종류 · Type <span style="font-weight:400;color:var(--text-3)">(견적 고객사 드롭다운은 매출처만 노출)</span></div><div class="val"><select data-vname="'+_vesc+'" onchange="setVendorType(this.dataset.vname,this.value)" style="font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);background:var(--surface)">'+VENDOR_TYPES.map(function(t){return '<option'+(v.type===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select></div></div>';
+    var _linkedIds={}; (v.docs||[]).forEach(function(d){ _linkedIds[d.id]=1; });
+    var _linkOpts=(state.docs||[]).slice().sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); })
+      .filter(function(d){ return !_linkedIds[d.id]; })
+      .map(function(d){ var _ty=String(d.type||'').split('·')[0].trim(); var _l=(d.docNo||('D-'+d.id))+(_ty?(' · '+_ty):'')+' · '+String(d.title||'').slice(0,26)+(d.amount?(' · '+(d.currency||'')+' '+d.amount):''); return '<option value="'+d.id+'">'+_l.replace(/</g,'&lt;')+'</option>'; }).join('');
+    var forceLinkHtml='<div class="ifield" style="margin-top:10px"><div class="lbl">강제 연동 · Force-link <span style="font-weight:400;color:var(--text-3)">(재기안 없이 기존 결재문서를 이 거래처에 연결)</span></div>'
+      +'<div class="val" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px">'
+      +'<select id="forceLinkSel-'+vi+'" data-vname="'+_vesc+'" style="font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);flex:1;min-width:240px;max-width:100%"><option value="">결재문서 선택 · Select approval document…</option>'+_linkOpts+'</select>'
+      +'<button class="btn btn-dark" style="font-size:11px;padding:6px 12px;white-space:nowrap" onclick="forceLinkSelected('+vi+')"><i class="ti ti-link"></i> 연동 · Link</button>'
+      +'</div></div>';
     return '<div class="detail-panel" style="margin-bottom:10px">'
       +'<div class="detail-hdr" onclick="toggleVendorDetail('+vi+')" style="cursor:pointer">'
       +'<div style="flex:1"><div class="detail-title">'+v.name+typeChip+srcChips+'</div></div>'
@@ -3290,7 +3329,7 @@ function renderVendorDB() {
       +'<div id="vdet-'+vi+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">'
       +'<div style="margin-bottom:8px"><span class="badge b-draft">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">사업자 · '+v.reg+'</span>':'')+'</div>'
       +typeSel
-      +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+'</div></div>'+settleHtml+custLogHtml
+      +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+'</div></div>'+settleHtml+custLogHtml+forceLinkHtml
       +'</div>'
       +'</div></div>';
   }).join('');
