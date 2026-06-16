@@ -2334,22 +2334,42 @@ function attListHTML(atts,deletable,docId,type){
   }).join('');
 }
 
+function _attDataUrlToBlob(dataUrl){
+  try{
+    var parts=String(dataUrl).split(',');
+    var meta=parts[0]||''; var b64=parts.slice(1).join(',');
+    var mime=(meta.match(/data:([^;]+)/)||[])[1]||'application/octet-stream';
+    var bin=atob(b64); var len=bin.length; var u8=new Uint8Array(len);
+    for(var i=0;i<len;i++) u8[i]=bin.charCodeAt(i);
+    return new Blob([u8],{type:mime});
+  }catch(e){ return null; }
+}
+function _attsFor(doc, type){
+  if(type==='draft') return doc.draftAtts;
+  if(type==='contract') return doc.contractAtts;
+  if(type==='pay') return doc.payAtts;
+  return doc.draftAtts;
+}
 function downloadAtt(docId, type, idx){
   var doc = state.docs.find(function(d){ return d.id == docId; });
   if(!doc) return;
-  var atts = type === 'draft' ? doc.draftAtts : doc.payAtts;
+  var atts = _attsFor(doc, type);
   var att = atts && atts[idx];
   if(!att || !att.data){ showToast('No file data - re-attach file'); return; }
   var a = document.createElement('a');
-  a.href = att.data;
-  a.download = att.name;
+  var url = att.data, isBlob = false;
+  if(/^data:/.test(att.data)){ var b=_attDataUrlToBlob(att.data); if(b){ url=URL.createObjectURL(b); isBlob=true; } }
+  a.href = url;
+  a.download = att.name || 'attachment';
+  a.rel = 'noopener';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  if(isBlob){ setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(_){} }, 5000); }
   showToast('Downloading: ' + att.name);
 }
 
-function removeAtt(docId,type,idx){const doc=state.docs.find(d=>d.id===docId);if(!doc)return;if(type==='draft')doc.draftAtts.splice(idx,1);else doc.payAtts.splice(idx,1);saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();}
+function removeAtt(docId,type,idx){const doc=state.docs.find(d=>d.id===docId);if(!doc)return;var arr=_attsFor(doc,type);if(arr)arr.splice(idx,1);saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();}
 
 // ═══════════════════════════════════════════
 // PIN MODAL
@@ -3108,8 +3128,9 @@ function buildVendorMap(){
       bankVN: e.bankVN||'', acctVN: e.bankVNAcct||'', holderVN: e.bankVNHolder||'', branchVN: e.bankVNBranch||'',
       bankForeign: e.bankForeignName||'', swift: e.bankSwift||'', acctForeign: e.bankForeignAcct||'', holderForeign: e.bankForeignHolder||''
     };
-    v.srcs.expense = true;
-    v.docs.push({src:'expense', no:doc.docNo||('D-'+doc.id), title:doc.title||'지출결의서', id:doc.id, po:e.poNumber||'', inv:e.invoiceNumber||''});
+    var _isCt = /계약체결|계약/.test(doc.type||'');
+    if(_isCt){ v.srcs.contract = true; } else { v.srcs.expense = true; }
+    v.docs.push({src: _isCt?'contract':'expense', no:doc.docNo||('D-'+doc.id), title:doc.title||(_isCt?'계약체결 · Contract':'지출결의서'), id:doc.id, po:e.poNumber||'', inv:e.invoiceNumber||''});
   });
 
   // 2) 거래처 마스터 (state.vendors) — 은행정보 권위 소스 + 문서 없는 거래처 포함
@@ -3174,7 +3195,7 @@ function buildVendorMap(){
   // 종류 자동 분류 (명시 지정이 없을 때): 견적/프로젝트매출=매출처, 전자결재=매입처, 카드=판관비, 그 외=기타
   Object.keys(vendors).forEach(function(k){ var v=vendors[k]; if(!v.type){
     if(v.srcs.quote || (v.sales && Object.keys(v.sales).some(function(c){return v.sales[c];}))) v.type='매출처';
-    else if(v.srcs.expense) v.type='매입처';
+    else if(v.srcs.expense || v.srcs.contract) v.type='매입처';
     else if(v.srcs.card) v.type='판관비';
     else v.type='기타';
   }});
@@ -3218,7 +3239,8 @@ function renderVendorDB() {
     expense:{label:'전자결재', icon:'ti-file-text', color:'#475569'},
     quote:  {label:'견적', icon:'ti-file-invoice', color:'#1d4ed8'},
     card:   {label:'카드', icon:'ti-credit-card', color:'#15803d'},
-    project:{label:'프로젝트', icon:'ti-folder', color:'#b45309'}
+    project:{label:'프로젝트', icon:'ti-folder', color:'#b45309'},
+    contract:{label:'계약', icon:'ti-file-certificate', color:'#4338ca'}
   };
 
   el.innerHTML = list.map(function(v,vi){
@@ -3237,7 +3259,7 @@ function renderVendorDB() {
     var custLogHtml=_logs.length ? '<div class="ifield" style="margin-top:10px"><div class="lbl">고객 대화 로그 · Customer Log ('+_logs.length+')</div><div class="val" style="font-size:12px;line-height:1.6">'+_logs.slice().reverse().slice(0,8).map(function(l){ return '<div style="padding:4px 0;border-bottom:1px solid var(--border)"><div style="white-space:pre-wrap">'+(l.text||'')+'</div><div style="font-size:10px;color:var(--text-3)">'+(l.by?l.by+' · ':'')+(l.at||'')+'</div></div>'; }).join('')+'</div></div>' : '';
 
     // source chips
-    var srcChips = ['expense','quote','card','project'].filter(function(s){ return v.srcs[s]; }).map(function(s){
+    var srcChips = ['expense','contract','quote','card','project'].filter(function(s){ return v.srcs[s]; }).map(function(s){
       var c=SRC[s]; return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:'+c.color+';background:'+c.color+'14;padding:2px 7px;border-radius:10px;margin-left:5px"><i class="ti '+c.icon+'" style="font-size:11px"></i>'+c.label+'</span>';
     }).join('');
 
@@ -3249,7 +3271,7 @@ function renderVendorDB() {
       var act = d.src==='quote' ? 'openRelatedQuote('+d.id+')'
               : d.src==='card'  ? 'openRelatedCard('+d.id+')'
               : d.src==='project' ? 'openRelatedProject('+d.id+')'
-              : "showPage('list');setTimeout(function(){showDetail("+d.id+",'detailWrap');},80)";
+              : 'openDocViewer('+d.id+')';
       return '<a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)">'
         +'<i class="ti '+c.icon+'" style="font-size:13px;color:'+c.color+'"></i>'
         +'<span class="docno">'+d.no+'</span> '+d.title+amt+meta+dt+'</a>';
@@ -5503,6 +5525,11 @@ function buildPaymentRequestHtml(p,o,pr){
   var curLbl=(cur==='VND'?'VND':cur);
   var amt=Math.round(pr.amount||0);
   var amtStr=fmtN(amt)+' '+curLbl;
+  var _vr=qNum(o&&o.vatRate)||0;
+  var _net = _vr>0 ? Math.round(amt/(1+_vr/100)) : amt;
+  var _vat = amt - _net;
+  var netStr=fmtN(_net)+' '+curLbl, vatStr=fmtN(_vat)+' '+curLbl;
+  var lineAmtStr = _vr>0 ? netStr : amtStr;
   var buyerName=esc(p.clientFull||p.client||'………');
   var buyerAddr=esc(o.buyerAddr||p.buyerAddr||p.location||'');
   var buyerRep=o.buyerRep?esc((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'';
@@ -5562,10 +5589,14 @@ function buildPaymentRequestHtml(p,o,pr){
           +(itemVi||itemEn?('<div style="font-size:9.5px;color:#444;margin-top:2px">'+(itemVi||'')+(itemVi&&itemEn?' / ':'')+(itemEn||'')+'</div>'):'')
           +'<div style="font-size:9px;color:#555;margin-top:2px">theo HĐ / under Contract '+hd+'</div>'
         +'</td>'
-        +'<td style="border:1px solid #999;padding:6px;text-align:right;font-weight:700">'+amtStr+'</td>'
+        +'<td style="border:1px solid #999;padding:6px;text-align:right;font-weight:700">'+lineAmtStr+'</td>'
       +'</tr>'
     +'</tbody><tfoot style="break-inside:avoid;page-break-inside:avoid">'
-      +'<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>'
+      +(_vr>0
+        ? '<tr><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:600">Cộng tiền hàng / Subtotal (chưa VAT · pre-VAT)</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:600">'+netStr+'</td></tr>'
+          +'<tr><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:600">Thuế GTGT / VAT ('+_vr+'%)</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:600">'+vatStr+'</td></tr>'
+          +'<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG CỘNG / TOTAL (đã gồm VAT · incl. VAT)</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>'
+        : '<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>')
     +'</tfoot></table>';
   // payment info
   H+='<div class="ct-blk" style="margin-top:12px;border:1px solid #999;padding:9px 11px;background:#fbfbfb">'
@@ -5575,7 +5606,8 @@ function buildPaymentRequestHtml(p,o,pr){
       +'<div>Số TK / Account No.: <b>'+esc(pr.acct||'')+'</b></div>'
       +'<div style="grid-column:span 2">Chủ TK / Account holder: <b>'+esc(pr.holder||inicsVi)+'</b></div>'
       +'<div>Hạn thanh toán / Due date: <b>'+(pr.due?esc(pr.due):'………')+'</b></div>'
-      +'<div>Số tiền / Amount: <b>'+amtStr+'</b></div>'
+      +'<div>Số tiền / Amount: <b>'+amtStr+'</b>'+(_vr>0?' <span style="color:#555;font-weight:400">(đã gồm VAT · incl. VAT '+_vr+'%)</span>':'')+'</div>'
+      +(_vr>0?'<div style="grid-column:span 2;color:#555">Trong đó / Of which — Chưa VAT · pre-VAT: <b>'+netStr+'</b> · Thuế GTGT · VAT '+_vr+'%: <b>'+vatStr+'</b></div>':'')
     +'</div>'
   +'</div>';
   if(pr.note){ H+='<div class="ct-blk" style="margin-top:8px;font-size:10px;color:#444">Ghi chú / Note: '+esc(pr.note)+'</div>'; }
@@ -6528,15 +6560,15 @@ function projCustomerInfoHTML(name){
   var map; try{ map=buildVendorMap(); }catch(e){ return ''; }
   var v=null; Object.keys(map).forEach(function(k){ if(k.toLowerCase()===name.toLowerCase()) v=map[k]; });
   if(!v){ return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;font-size:11px;color:var(--text-3);margin-bottom:12px"><i class="ti ti-database-off"></i> 고객 DB에 연동된 거래처·문서 정보가 없습니다.</div>'; }
-  var SRC={expense:{label:'전자결재',color:'#475569',icon:'ti-file-text'},quote:{label:'견적',color:'#1d4ed8',icon:'ti-file-invoice'},card:{label:'카드',color:'#15803d',icon:'ti-credit-card'},project:{label:'프로젝트',color:'#b45309',icon:'ti-folder'},master:{label:'마스터',color:'#6b7280',icon:'ti-database'}};
-  var chips=['expense','quote','card','project','master'].filter(function(x){return v.srcs&&v.srcs[x];}).map(function(x){var c=SRC[x];return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:'+c.color+';background:'+c.color+'14;padding:2px 6px;border-radius:10px;margin-left:4px"><i class="ti '+c.icon+'" style="font-size:10px"></i>'+c.label+'</span>';}).join('');
+  var SRC={expense:{label:'전자결재',color:'#475569',icon:'ti-file-text'},contract:{label:'계약',color:'#4338ca',icon:'ti-file-certificate'},quote:{label:'견적',color:'#1d4ed8',icon:'ti-file-invoice'},card:{label:'카드',color:'#15803d',icon:'ti-credit-card'},project:{label:'프로젝트',color:'#b45309',icon:'ti-folder'},master:{label:'마스터',color:'#6b7280',icon:'ti-database'}};
+  var chips=['expense','contract','quote','card','project','master'].filter(function(x){return v.srcs&&v.srcs[x];}).map(function(x){var c=SRC[x];return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:'+c.color+';background:'+c.color+'14;padding:2px 6px;border-radius:10px;margin-left:4px"><i class="ti '+c.icon+'" style="font-size:10px"></i>'+c.label+'</span>';}).join('');
   var bankInfo = (v.bank&&v.bank.type==='vn')
     ? ((v.bank.bankVN||'\u2014')+' | '+(v.bank.acctVN||'\u2014')+' | '+(v.bank.holderVN||'\u2014'))
     : (v.bank ? ((v.bank.bankForeign||'\u2014')+' | SWIFT '+(v.bank.swift||'\u2014')+' | '+(v.bank.acctForeign||'\u2014')) : '\u2014');
   var docLinks=(v.docs&&v.docs.length)? v.docs.map(function(d){
     var c=SRC[d.src]||SRC.expense;
     var amt=(d.amt!=null&&d.amt!==''&&d.amt!==0)?' <span class="docno">'+(d.cur||'')+' '+fmtN(d.amt)+'</span>':'';
-    var act=d.src==='quote'?"closeProjectForm();openRelatedQuote("+d.id+")":d.src==='card'?"closeProjectForm();openRelatedCard("+d.id+")":d.src==='project'?"editProject("+d.id+")":"closeProjectForm();showPage('list');setTimeout(function(){showDetail("+d.id+",'detailWrap');},80)";
+    var act=d.src==='quote'?"closeProjectForm();openRelatedQuote("+d.id+")":d.src==='card'?"closeProjectForm();openRelatedCard("+d.id+")":d.src==='project'?"editProject("+d.id+")":"openDocViewer("+d.id+")";
     return '<a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)"><i class="ti '+c.icon+'" style="font-size:12px;color:'+c.color+'"></i><span class="docno">'+d.no+'</span> '+d.title+amt+'</a>';
   }).join('<br>') : '<span style="color:var(--text-3)">관련 문서 없음</span>';
   var sk=Object.keys(v.sales||{}).filter(function(c){return v.sales[c];});
@@ -7432,9 +7464,9 @@ function _bankDebitCents(t){ return Math.round((t.debit||0)*100); }
 function _txnTaken(t){ return !!(t.matchCardId || t.matchDocId); }
 function _docPayable(d){
   if(!d) return false;
-  if(_docAmtCents(d)<=0) return false;
+  if(_docAmtCents(d)<=0) return false;            // 금액이 있어야 금액 기준 매칭 가능
   if(d.status==='draft' || d.status==='rejected') return false;
-  return d.needPayment===true || d.status==='payment' || d.status==='done';
+  return true;                                     // 금액 있는 승인진행/완료 문서는 모두 은행 연동 대상 (계약체결 포함)
 }
 // 비카드 출금만 전자결재 대상 (카드 출금은 카드 열에서 처리)
 function _isDocTxn(t){ return _bankDebit(t)>0 && !_isCardTxn(t); }
@@ -7502,6 +7534,51 @@ function matchDocBank(docId,txnId,how){
 }
 function unmatchDoc(docId){ var doc=(state.docs||[]).find(function(x){return x.id===docId;}); if(!doc) return; _unlinkDoc(doc); _docReconRefresh(); showToast('매칭 해제 · Unmatched'); }
 function _docShort(d){ return d?((d.docNo?('['+d.docNo+'] '):'')+(d.title||'결재 Doc')):'결재 Doc'; }
+// ── 결재문서 읽기전용 뷰어 (은행 대사 등에서 매칭된 결재 내용 확인용) ──
+function openDocViewer(docId){
+  var doc=(state.docs||[]).find(function(d){ return d.id==docId; });
+  if(!doc){ showToast('문서를 찾을 수 없습니다 · Document not found'); return; }
+  var ov=document.getElementById('docViewerOverlay');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='docViewerOverlay';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
+    ov.onclick=function(e){ if(e.target===ov) closeDocViewer(); };
+    document.body.appendChild(ov);
+  }
+  function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function row(l,v){ return '<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div style="width:128px;flex-shrink:0;font-size:11px;color:var(--text-3)">'+l+'</div><div style="font-size:13px;font-weight:500">'+(v||'—')+'</div></div>'; }
+  var drafter=(typeof gm==='function'?gm(doc.drafterId):null), a1=(typeof gm==='function'?gm(doc.a1Id):null), a2=(typeof gm==='function'?gm(doc.a2Id):null);
+  var amtTxt = doc.amount ? ((doc.currency||'')+' '+Number(String(doc.amount).replace(/,/g,'')).toLocaleString()) : '';
+  var H='<div style="background:var(--surface);max-width:720px;width:100%;border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden;margin:auto">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1">'
+      +'<div style="font-size:15px;font-weight:700"><i class="ti ti-file-text" style="margin-right:5px"></i>결재 문서 · Approval Document</div>'
+      +'<button onclick="closeDocViewer()" class="btn btn-outline" style="padding:5px 9px;font-size:11px"><i class="ti ti-x"></i></button>'
+    +'</div>'
+    +'<div style="padding:14px 16px">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+        +(doc.docNo?'<span style="font-family:var(--mono);font-size:11px;color:var(--text-3)">'+esc(doc.docNo)+'</span>':'')
+        +'<span style="font-size:16px;font-weight:700">'+esc(doc.title||'—')+'</span>'
+        +'<span class="badge '+sBadge(doc.status)+'">'+sLabel(doc.status)+'</span>'
+        +(doc.needPayment?'<span class="badge b-payment" style="font-size:9px">PAYMENT</span>':'')
+      +'</div>'
+      +row('유형 · Type', esc(doc.type))
+      +row('부서 · Dept', esc(doc.dept))
+      +row('기안자 · Drafter', drafter?esc(drafter.name):'—')
+      +row('기안일 · Date', esc(doc.createdAt))
+      +(amtTxt?row('금액 · Amount', '<b>'+esc(amtTxt)+'</b>'):'')
+      +row('결재선 · Approvers', (a1?esc(a1.name):'—')+(a2?(' → '+esc(a2.name)):''))
+      +(doc.content?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px">내용 · Description</div><div style="font-size:13px;line-height:1.7;white-space:pre-wrap">'+esc(doc.content)+'</div></div>'):'')
+      +(doc.descImage?'<img src="'+doc.descImage+'" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px;cursor:zoom-in" onclick="viewImageLightbox(this.src)">':'')
+      +(doc.expenseData?('<div style="margin-top:12px">'+(typeof expenseDetailHTML==='function'?expenseDetailHTML(doc.expenseData):'')+'</div>'):'')
+      +(doc.contractAtts&&doc.contractAtts.length?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px"><i class="ti ti-file-certificate" style="color:#4338ca"></i> 계약서 첨부 · Contract</div>'+attListHTML(doc.contractAtts,false,doc.id,'contract')+'</div>'):'')
+      +(doc.draftAtts&&doc.draftAtts.length?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px"><i class="ti ti-paperclip"></i> 첨부 · Attachments</div>'+attListHTML(doc.draftAtts,false,doc.id,'draft')+'</div>'):'')
+      +(doc.payAtts&&doc.payAtts.length?('<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:5px"><i class="ti ti-credit-card"></i> 결제 증빙 · Payment proof</div>'+attListHTML(doc.payAtts,false,doc.id,'pay')+'</div>'):'')
+    +'</div>'
+  +'</div>';
+  ov.innerHTML=H;
+  ov.style.display='flex';
+}
+function closeDocViewer(){ var ov=document.getElementById('docViewerOverlay'); if(ov){ ov.style.display='none'; ov.innerHTML=''; } }
 // 명세서 행의 「전자결재」 열 — 카드 열과 동일 패턴
 function _bankDocCell(t){
   if(!_isDocTxn(t)) return '<span style="color:var(--text-3)">—</span>';
@@ -7509,7 +7586,7 @@ function _bankDocCell(t){
   if(info.status==='auto'||info.status==='manual'){
     var d=info.doc;
     return '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">'
-      +'<span class="badge b-done" style="font-size:10px" title="'+String(_docShort(d)).replace(/"/g,'&quot;')+'"><i class="ti ti-check"></i> '+String(_docShort(d)).slice(0,18)+'</span>'
+      +'<span class="badge b-done" style="font-size:10px;cursor:pointer" onclick="openDocViewer('+(d?d.id:0)+')" title="결재문서 보기 · View approval doc"><i class="ti ti-check"></i> '+String(_docShort(d)).slice(0,18)+'</span>'
       +'<a href="javascript:void(0)" onclick="unmatchDoc('+(d?d.id:0)+')" title="매칭 해제 · Unmatch" style="color:var(--danger);text-decoration:none;font-size:12px"><i class="ti ti-x"></i></a></div>';
   }
   if(info.status==='confident'){
@@ -8000,7 +8077,7 @@ function toggleBankType() {
 
 function getExpenseData() {
   var type = document.getElementById('docType') ? document.getElementById('docType').value : '';
-  if (!type.includes('지출결의서')) return null;
+  if (!type.includes('지출결의서') && !type.includes('계약체결')) return null;
   var bankType = document.querySelector('input[name="bankType"]:checked');
   bankType = bankType ? bankType.value : 'vn';
   var budget = document.querySelector('input[name="expBudget"]:checked');
