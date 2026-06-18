@@ -32,10 +32,52 @@
   var BASE = "https://inics-approval-default-rtdb.asia-southeast1.firebasedatabase.app";
   var PATH = "/inics_approval/state.json";
 
+  // 보호 대상 컬렉션 (이 중 하나라도 치명적으로 줄어들면 저장 차단)
+  var GUARD_KEYS = ["docs","quotes","products","vendors","cardExpenses","projects","paymentRequests","invoices","bankTxns","tasks"];
+
   window._fbSave = async function(state) {
     // Always save to localStorage as backup
     try { localStorage.setItem("inics_local", JSON.stringify(state)); } catch(_){}
     try {
+      // ── 안전장치 1: 치명적 축소 방지 (오래된 탭이 전체를 빈 상태로 덮는 사고 차단) ──
+      var remote = null;
+      try {
+        var rr = await fetch(BASE + PATH, {cache:"no-cache"});
+        if (rr.ok) remote = await rr.json();
+      } catch(_){}
+      if (remote) {
+        for (var gi=0; gi<GUARD_KEYS.length; gi++) {
+          var gk = GUARD_KEYS[gi];
+          var rn = (remote[gk] && remote[gk].length) || 0;
+          var ln = (state[gk] && state[gk].length) || 0;
+          // 원격에 5건 이상 있는데 30% 미만으로 줄여 저장하려 하면 = 오래된/빈 탭으로 판단 → 차단
+          if (rn >= 5 && ln < rn * 0.3) {
+            console.warn("⛔ 저장 차단: '"+gk+"' 원격 "+rn+"건 → 로컬 "+ln+"건. 오래된 탭으로 판단되어 최신 데이터로 새로고침합니다.");
+            setSyncStatus('error','저장 보류 · 최신 데이터로 새로고침됨 (데이터 보호)');
+            if (typeof loadState === "function") { try { await loadState(); } catch(_){} }
+            return; // PUT 하지 않음 → 데이터 보호
+          }
+        }
+        // ── 안전장치 2: 직전 상태 자동 백업 (최근 30개 순환 보관) ──
+        if (remote.docs !== undefined || remote.quotes !== undefined) {
+          try {
+            var ts = Date.now();
+            await fetch(BASE + "/inics_approval/backups/snap_" + ts + ".json", {
+              method:"PUT", headers:{"Content-Type":"application/json"},
+              body: JSON.stringify({ _ts: ts, _at: new Date(ts).toISOString(), data: remote })
+            });
+            var bl = await (await fetch(BASE + "/inics_approval/backups.json?shallow=true", {cache:"no-cache"})).json();
+            if (bl) {
+              var bkeys = Object.keys(bl).sort();
+              while (bkeys.length > 30) {
+                var old = bkeys.shift();
+                try { await fetch(BASE + "/inics_approval/backups/" + old + ".json", {method:"DELETE"}); } catch(_){}
+              }
+            }
+          } catch(_){}
+        }
+      }
+      // ── 실제 저장 ──
       var r = await fetch(BASE + PATH, {
         method: "PUT",
         mode: "cors",
@@ -48,6 +90,27 @@
       console.error("Firebase save error:", e);
       setSyncStatus('ok','Local mode · 로컬 저장');
     }
+  };
+
+  // 백업에서 복원하는 도구 (콘솔에서 호출)
+  window.inicsListBackups = async function() {
+    try {
+      var bl = await (await fetch(BASE + "/inics_approval/backups.json?shallow=true", {cache:"no-cache"})).json();
+      if (!bl) { console.log("백업 없음"); return []; }
+      var keys = Object.keys(bl).sort().reverse();
+      console.log("📦 백업 "+keys.length+"개 (최신순):");
+      keys.forEach(function(k){ var ts = parseInt(k.replace("snap_",""),10); console.log("   "+k+"  ·  "+new Date(ts).toLocaleString()); });
+      return keys;
+    } catch(e){ console.log("실패:", e.message); return []; }
+  };
+  window.inicsRestore = async function(snapKey) {
+    if (!snapKey) { console.log("사용법: inicsRestore('snap_숫자') — 먼저 inicsListBackups() 로 목록 확인"); return; }
+    try {
+      var snap = await (await fetch(BASE + "/inics_approval/backups/" + snapKey + ".json", {cache:"no-cache"})).json();
+      if (!snap || !snap.data) { console.log("해당 백업을 찾을 수 없음:", snapKey); return; }
+      var r = await fetch(BASE + PATH, {method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(snap.data)});
+      console.log(r.ok ? "✅ 복원 완료 ("+snapKey+", "+(snap._at||'')+") — 앱 새로고침하세요" : "❌ 실패 "+r.status);
+    } catch(e){ console.log("실패:", e.message); }
   };
 
   window._fbLoad = async function() {
