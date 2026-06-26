@@ -29,157 +29,214 @@
      ════════════════════════════════════════════════ -->
 <script>
 (function() {
-  var BASE = "https://inics-approval-default-rtdb.asia-southeast1.firebasedatabase.app";
-  var PATH = "/inics_approval/state.json";
+  // ════════════════════════════════════════════════════════════════
+  //  PER-DOCUMENT SYNC LAYER  ·  항목 단위 저장 (v2)
+  //  · 메모리상 state(배열형)는 그대로 유지 — 앱 코드 변경 최소화
+  //  · 저장 시 "마지막 동기화 스냅샷"과 diff → 바뀐 항목만 PATCH
+  //  · 내가 모르는 키는 절대 쓰지/지우지 않음 → 동시 편집 충돌·삭제 원천 차단
+  // ════════════════════════════════════════════════════════════════
+  var BASE   = "https://inics-approval-default-rtdb.asia-southeast1.firebasedatabase.app";
+  var ROOT   = "/inics_approval";
+  var V2     = ROOT + "/state2";            // 신규: 항목별 노드 레이아웃
+  var LEGACY = ROOT + "/state.json";        // 구: 단일 blob (읽기 폴백·보존)
+  function V2URL(p){ return BASE + V2 + (p||""); }
 
-  // 보호 대상 컬렉션 (이 중 하나라도 치명적으로 줄어들면 저장 차단)
-  var GUARD_KEYS = ["docs","quotes","products","vendors","cardExpenses","projects","paymentRequests","invoices","bankTxns","tasks"];
+  // 배열형 컬렉션 → 항목별 노드. 그 외는 모두 meta(설정/카운터)로 묶음.
+  var COLLECTIONS = ["docs","vendors","vendorRequests","cardExpenses","cardMerchants",
+                     "products","quotes","projects","bankTxns","invoices","paymentRequests","tasks"];
+  var _isColl = {}; COLLECTIONS.forEach(function(c){ _isColl[c]=1; });
 
-  window._fbSave = async function(state) {
-    // Always save to localStorage as backup
-    try { localStorage.setItem("inics_local", JSON.stringify(state)); } catch(_){}
-    try {
-      // ── 안전장치 1: 치명적 축소 방지 (오래된 탭이 전체를 빈 상태로 덮는 사고 차단) ──
-      var remote = null;
-      try {
-        var rr = await fetch(BASE + PATH, {cache:"no-cache"});
-        if (rr.ok) remote = await rr.json();
-      } catch(_){}
-      if (remote) {
-        for (var gi=0; gi<GUARD_KEYS.length; gi++) {
-          var gk = GUARD_KEYS[gi];
-          var rn = (remote[gk] && remote[gk].length) || 0;
-          var ln = (state[gk] && state[gk].length) || 0;
-          // 원격에 5건 이상 있는데 30% 미만으로 줄여 저장하려 하면 = 오래된/빈 탭으로 판단 → 차단
-          if (rn >= 5 && ln < rn * 0.3) {
-            console.warn("⛔ 저장 차단: '"+gk+"' 원격 "+rn+"건 → 로컬 "+ln+"건. 오래된 탭으로 판단되어 최신 데이터로 새로고침합니다.");
-            setSyncStatus('error','저장 보류 · 최신 데이터로 새로고침됨 (데이터 보호)');
-            if (typeof loadState === "function") { try { await loadState(); } catch(_){} }
-            return; // PUT 하지 않음 → 데이터 보호
-          }
-        }
-        // ── 안전장치 2: 직전 상태 자동 백업 (최근 30개 순환 보관) ──
-        if (remote.docs !== undefined || remote.quotes !== undefined) {
-          try {
-            var ts = Date.now();
-            await fetch(BASE + "/inics_approval/backups/snap_" + ts + ".json", {
-              method:"PUT", headers:{"Content-Type":"application/json"},
-              body: JSON.stringify({ _ts: ts, _at: new Date(ts).toISOString(), data: remote })
-            });
-            var bl = await (await fetch(BASE + "/inics_approval/backups.json?shallow=true", {cache:"no-cache"})).json();
-            if (bl) {
-              var bkeys = Object.keys(bl).sort();
-              while (bkeys.length > 30) {
-                var old = bkeys.shift();
-                try { await fetch(BASE + "/inics_approval/backups/" + old + ".json", {method:"DELETE"}); } catch(_){}
-              }
-            }
-          } catch(_){}
-        }
+  // ── 순수 변환 헬퍼 ──
+  function _clone(o){ try{ return JSON.parse(JSON.stringify(o)); }catch(_){ return o; } }
+  function _eq(a,b){ return JSON.stringify(a)===JSON.stringify(b); }
+  function _hash(s){ var h=5381,i=s.length; while(i) h=(h*33)^s.charCodeAt(--i); return (h>>>0).toString(36); }
+  function _sanitize(k){ return String(k).replace(/[.#$\[\]\/\s]/g,"_").slice(0,200) || "_"; }
+  function _keyOf(item){
+    if(item===null||item===undefined) return null;
+    if(typeof item!=="object") return "p_"+_hash(String(item));          // 원시값(예: 가맹점 문자열)
+    var k = (item.id!=null)?item.id
+          : (item.code!=null)?item.code
+          : (item.no!=null)?item.no
+          : (item.name!=null)?item.name : null;
+    if(k===null||k==="") k = "h_"+_hash(JSON.stringify(item));           // 식별자 없으면 내용 해시
+    return _sanitize(k);
+  }
+  function _toMap(arr){
+    var m={}; if(!Array.isArray(arr)) return m;
+    for(var i=0;i<arr.length;i++){ var it=arr[i]; var k=_keyOf(it); if(k===null) continue;
+      if(m[k]!==undefined) k=k+"~"+i; m[k]=it; }
+    return m;
+  }
+  function _toArr(map){ if(!map||typeof map!=="object") return []; return Object.keys(map).map(function(k){ return map[k]; }); }
+
+  // v2 트리(맵형) → 메모리 state(배열형)
+  function _reassemble(tree){
+    var st={};
+    if(tree && tree.meta) for(var k in tree.meta) st[k]=tree.meta[k];
+    for(var i=0;i<COLLECTIONS.length;i++){ var c=COLLECTIONS[i]; st[c]=_toArr(tree && tree[c]); }
+    if(st.docs===undefined) st.docs=[];      // 로더 rehydrate 트리거 보장
+    return st;
+  }
+  // 메모리 state(배열형) → v2 트리(맵형) 전체
+  function _assembleFull(st){
+    var tree={ __v:2, meta:{} };
+    for(var k in st){ if(!_isColl[k]) tree.meta[k]=st[k]; }
+    for(var j=0;j<COLLECTIONS.length;j++){ var c=COLLECTIONS[j]; tree[c]=_toMap(st[c]); }
+    return tree;
+  }
+
+  // 마지막 동기화 스냅샷 (diff 기준). load·save·remote 적용 시마다 갱신.
+  window._fbSnapshotFromState = function(st){
+    var snap={ meta:{}, colls:{} };
+    for(var k in st){ if(!_isColl[k]) snap.meta[k]=_clone(st[k]); }
+    for(var j=0;j<COLLECTIONS.length;j++){ var c=COLLECTIONS[j]; snap.colls[c]=_clone(_toMap(st[c])); }
+    window._lastSynced = snap;
+  };
+
+  // ── 저장: 바뀐 항목만 PATCH ──
+  window._fbSave = async function(state){
+    try{ localStorage.setItem("inics_local", JSON.stringify(state)); }catch(_){}
+
+    // 스냅샷이 없으면(저장이 로드보다 먼저 불린 드문 경우) 안전하게 기준선부터 확보
+    if(!window._lastSynced){
+      try{
+        var rr=await fetch(V2URL(".json"),{cache:'no-cache'});
+        var dd=rr.ok?await rr.json():null;
+        if(dd && dd.__v){ window._fbSnapshotFromState(_reassemble(dd)); }
+        else { await _migrate(state); setSyncStatus('ok','Synced · 동기화 완료'); return; }
+      }catch(e){ window._fbSnapshotFromState(state); setSyncStatus('error','Sync failed · 오프라인 (local 보관)'); return; }
+    }
+
+    var prev=window._lastSynced, writes=[];
+    // 컬렉션별 델타 (변경·추가 → 값, 삭제 → null)
+    for(var i=0;i<COLLECTIONS.length;i++){
+      var c=COLLECTIONS[i], cur=_toMap(state[c]), old=prev.colls[c]||{}, patch={}, ch=false;
+      for(var k in cur){ if(!_eq(cur[k],old[k])){ patch[k]=cur[k]; ch=true; } }
+      for(var k2 in old){ if(!(k2 in cur)){ patch[k2]=null; ch=true; } }
+      if(ch) writes.push({ url:V2URL("/"+c+".json"), body:patch });
+    }
+    // meta 델타
+    var curMeta={}; for(var mk in state){ if(!_isColl[mk]) curMeta[mk]=state[mk]; }
+    var mp={}, mc=false;
+    for(var a in curMeta){ if(!_eq(curMeta[a],prev.meta[a])){ mp[a]=curMeta[a]; mc=true; } }
+    for(var b in prev.meta){ if(!(b in curMeta)){ mp[b]=null; mc=true; } }
+    if(mc) writes.push({ url:V2URL("/meta.json"), body:mp });
+
+    if(!writes.length){ setSyncStatus('ok','Synced · 동기화 완료'); return; }
+    try{
+      for(var w=0;w<writes.length;w++){
+        var r=await fetch(writes[w].url,{ method:"PATCH", mode:"cors", headers:{"Content-Type":"application/json"}, body:JSON.stringify(writes[w].body) });
+        if(!r.ok) throw new Error("HTTP "+r.status);
       }
-      // ── 실제 저장 ──
-      var r = await fetch(BASE + PATH, {
-        method: "PUT",
-        mode: "cors",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(state)
-      });
-      if (!r.ok) throw new Error("HTTP " + r.status);
+      window._fbSnapshotFromState(state);     // 성공분만 기준선 갱신
       setSyncStatus('ok','Synced · 동기화 완료');
-    } catch(e) {
-      console.error("Firebase save error:", e);
-      setSyncStatus('ok','Local mode · 로컬 저장');
+      _maybeBackup(state);
+    }catch(e){
+      console.error("Firebase save error:",e);
+      setSyncStatus('error','Sync failed · 동기화 실패 (local 보관)');
     }
   };
 
-  // 백업에서 복원하는 도구 (콘솔에서 호출)
-  window.inicsListBackups = async function() {
-    try {
-      var bl = await (await fetch(BASE + "/inics_approval/backups.json?shallow=true", {cache:"no-cache"})).json();
-      if (!bl) { console.log("백업 없음"); return []; }
-      var keys = Object.keys(bl).sort().reverse();
-      console.log("📦 백업 "+keys.length+"개 (최신순):");
-      keys.forEach(function(k){ var ts = parseInt(k.replace("snap_",""),10); console.log("   "+k+"  ·  "+new Date(ts).toLocaleString()); });
-      return keys;
-    } catch(e){ console.log("실패:", e.message); return []; }
-  };
-  window.inicsRestore = async function(snapKey) {
-    if (!snapKey) { console.log("사용법: inicsRestore('snap_숫자') — 먼저 inicsListBackups() 로 목록 확인"); return; }
-    try {
-      var snap = await (await fetch(BASE + "/inics_approval/backups/" + snapKey + ".json", {cache:"no-cache"})).json();
-      if (!snap || !snap.data) { console.log("해당 백업을 찾을 수 없음:", snapKey); return; }
-      var r = await fetch(BASE + PATH, {method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(snap.data)});
-      console.log(r.ok ? "✅ 복원 완료 ("+snapKey+", "+(snap._at||'')+") — 앱 새로고침하세요" : "❌ 실패 "+r.status);
-    } catch(e){ console.log("실패:", e.message); }
-  };
+  // ── 마이그레이션: 레거시 blob → v2 (최초 1회, 전체 PUT) ──
+  async function _migrate(stateObj){
+    var tree=_assembleFull(stateObj);
+    var r=await fetch(V2URL(".json"),{ method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(tree) });
+    if(!r.ok) throw new Error("migrate HTTP "+r.status);
+    window._fbSnapshotFromState(stateObj);
+    try{ await _backupTree(tree); }catch(_){}
+    console.log("✅ INICS: per-document 구조(v2)로 전환 완료. 레거시 blob은 보존됨.");
+  }
 
-  window._fbLoad = async function() {
-    try {
-      var r = await fetch(BASE + PATH, {mode:'cors', cache:'no-cache'});
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      var data = await r.json();
-      setSyncStatus('ok','Live sync · 실시간 동기화');
-      return data;
-    } catch(e) {
-      console.error("Firebase load error:", e);
-      // Try localStorage fallback
-      try {
-        var s = localStorage.getItem('inics_local');
-        if(s) { setSyncStatus('ok','Local mode · 로컬 모드'); return JSON.parse(s); }
-      } catch(_){}
+  // ── 로드 ──
+  window._fbLoad = async function(){
+    try{
+      var r=await fetch(V2URL(".json"),{mode:'cors',cache:'no-cache'});
+      var data=r.ok?await r.json():null;
+      if(data && data.__v){                                   // 이미 v2
+        var st=_reassemble(data); window._fbSnapshotFromState(st);
+        setSyncStatus('ok','Live sync · 실시간 동기화'); return st;
+      }
+      // v2 없음 → 레거시 blob 1회 변환
+      var lr=await fetch(BASE+LEGACY,{mode:'cors',cache:'no-cache'});
+      var legacy=lr.ok?await lr.json():null;
+      var base=(legacy && legacy.docs!==undefined)?legacy:{docs:[]};
+      try{ await _migrate(base); }catch(e){ console.error("migrate fail",e); window._fbSnapshotFromState(base); }
+      setSyncStatus('ok', legacy?'Migrated · 구조 전환 완료':'Connected · Firebase 연결됨');
+      return base;
+    }catch(e){
+      console.error("Firebase load error:",e);
+      try{ var s=localStorage.getItem('inics_local'); if(s){ var lo=JSON.parse(s); window._fbSnapshotFromState(lo); setSyncStatus('ok','Local mode · 로컬 모드'); return lo; } }catch(_){}
       return null;
     }
   };
 
-  window._fbListen = function(cb) {
-    // ── A안: 진짜 실시간 푸시 리스너 (Firebase REST 스트리밍 · SSE) ──
-    // 데이터가 실제로 바뀔 때만 콜백 → 평소엔 재렌더 0회 (입력 중 새로고침 현상 제거)
-    function refetch() {
-      fetch(BASE + PATH, {cache:'no-cache'})
-        .then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(d){ if (d && d.docs) cb(d); })
+  // ── 실시간 리스너: 변경 시 v2 전체 재조회 후 배열형으로 재조립 ──
+  window._fbListen = function(cb){
+    function deliver(){
+      fetch(V2URL(".json"),{cache:'no-cache'})
+        .then(function(r){ return r.ok?r.json():null; })
+        .then(function(d){ if(d && d.__v) cb(_reassemble(d)); })
         .catch(function(){});
     }
-    function startSSE() {
+    function startSSE(){
       var es;
-      try { es = new EventSource(BASE + PATH); }
-      catch(e) { console.warn("SSE 미지원 → 30초 폴링 폴백", e); return startPoll(); }
-      es.addEventListener("put", function(ev){
-        try {
-          var msg = JSON.parse(ev.data);
-          if (msg && msg.path === "/" && msg.data && msg.data.docs) cb(msg.data); // 전체 상태 푸시
-          else refetch();                                                          // 부분 변경 → 전체 재조회
-          setSyncStatus('ok','Live sync · 실시간 동기화');
-        } catch(_) { refetch(); }
-      });
-      es.addEventListener("patch", function(){ refetch(); setSyncStatus('ok','Live sync · 실시간 동기화'); });
-      es.addEventListener("keep-alive", function(){ setSyncStatus('ok','Live sync · 실시간 동기화'); });
-      es.onerror = function(){
-        setSyncStatus('error','Reconnecting · 재연결 중');
-        if (es.readyState === 2) { try{ es.close(); }catch(_){ } setTimeout(startSSE, 4000); } // 완전 종료 시 수동 재연결
-      };
-      window._fbES = es;
+      try{ es=new EventSource(V2URL(".json")); }
+      catch(e){ console.warn("SSE 미지원 → 30초 폴링",e); return startPoll(); }
+      es.addEventListener("put",       function(){ deliver(); setSyncStatus('ok','Live sync · 실시간 동기화'); });
+      es.addEventListener("patch",     function(){ deliver(); setSyncStatus('ok','Live sync · 실시간 동기화'); });
+      es.addEventListener("keep-alive",function(){ setSyncStatus('ok','Live sync · 실시간 동기화'); });
+      es.onerror=function(){ setSyncStatus('error','Reconnecting · 재연결 중'); if(es.readyState===2){ try{es.close();}catch(_){ } setTimeout(startSSE,4000); } };
+      window._fbES=es;
     }
-    // 폴백: SSE가 차단된 환경에서만 폴링 (5초 → 30초로 완화)
-    function startPoll() {
-      window._fbPollId = setInterval(async function() {
-        try {
-          var r = await fetch(BASE + PATH, {mode:'cors', cache:'no-cache'});
-          if (r.ok) { var d = await r.json(); if (d && d.docs) cb(d); }
-        } catch(e) {}
-      }, 30000);
-    }
+    function startPoll(){ window._fbPollId=setInterval(deliver,30000); }
     startSSE();
+  };
+
+  // ── 백업: 2시간마다 전체 스냅샷 1개, 30개 순환 보관 ──
+  async function _backupTree(tree){
+    var ts=Date.now();
+    await fetch(BASE+ROOT+"/backups/snap_"+ts+".json",{ method:"PUT", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({_ts:ts,_at:new Date(ts).toISOString(),data:tree}) });
+    try{
+      var bl=await (await fetch(BASE+ROOT+"/backups.json?shallow=true",{cache:"no-cache"})).json();
+      if(bl){ var ks=Object.keys(bl).sort(); while(ks.length>30){ var old=ks.shift(); try{ await fetch(BASE+ROOT+"/backups/"+old+".json",{method:"DELETE"}); }catch(_){ } } }
+    }catch(_){}
+  }
+  async function _maybeBackup(state){
+    try{
+      var last=parseInt(localStorage.getItem("inics_bk")||"0",10);
+      if(Date.now()-last < 2*3600*1000) return;
+      localStorage.setItem("inics_bk", String(Date.now()));
+      await _backupTree(_assembleFull(state));
+    }catch(_){}
+  }
+
+  // ── 콘솔 복구 도구 ──
+  window.inicsListBackups = async function(){
+    try{
+      var bl=await (await fetch(BASE+ROOT+"/backups.json?shallow=true",{cache:"no-cache"})).json();
+      if(!bl){ console.log("백업 없음"); return []; }
+      var keys=Object.keys(bl).sort().reverse();
+      console.log("📦 백업 "+keys.length+"개 (최신순):");
+      keys.forEach(function(k){ var ts=parseInt(k.replace("snap_",""),10); console.log("   "+k+"  ·  "+new Date(ts).toLocaleString()); });
+      return keys;
+    }catch(e){ console.log("실패:",e.message); return []; }
+  };
+  window.inicsRestore = async function(snapKey){
+    if(!snapKey){ console.log("사용법: inicsRestore('snap_숫자') — 먼저 inicsListBackups()"); return; }
+    try{
+      var snap=await (await fetch(BASE+ROOT+"/backups/"+snapKey+".json",{cache:"no-cache"})).json();
+      if(!snap||!snap.data){ console.log("백업 없음:",snapKey); return; }
+      var tree=snap.data; if(tree.__v===undefined) tree=_assembleFull(tree);   // 레거시 백업도 v2로 변환 복원
+      var r=await fetch(V2URL(".json"),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(tree)});
+      console.log(r.ok?"✅ 복원 완료 ("+snapKey+") — 새로고침하세요":"❌ 실패 "+r.status);
+    }catch(e){ console.log("실패:",e.message); }
   };
 
   window._firebaseReady = true;
   window._fbInitDone = true;
-
-  if (typeof window._onFirebaseReady === 'function') {
-    window._onFirebaseReady();
-  } else {
-    document.dispatchEvent(new Event("firebaseReady"));
-  }
+  if (typeof window._onFirebaseReady === 'function') { window._onFirebaseReady(); }
+  else { document.dispatchEvent(new Event("firebaseReady")); }
 })();
 </script>
 
@@ -2471,6 +2528,7 @@ async function loadState() {
   if(typeof _syncExtraMembers==='function') _syncExtraMembers();
   populateSelects(); render();
   if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
+  if(window._fbSnapshotFromState) window._fbSnapshotFromState(state); // rehydrate/seed 반영 후 기준선 확정
   // realtime listener
   if(fbReady && window._fbListen){
     var _applyRemote=function(remote){
@@ -2483,6 +2541,7 @@ async function loadState() {
       if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
       if(typeof _syncExtraMembers==='function') _syncExtraMembers();
       render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } if(typeof projectAppOpen!=='undefined' && projectAppOpen && typeof renderProjectBoard==='function'){ renderProjectBoard(); } setSyncStatus('ok','Live sync · 실시간 동기화');
+      if(window._fbSnapshotFromState) window._fbSnapshotFromState(state); // diff 기준선 = 방금 받은 원격
     };
     window._pendingRemote=null;
     window._fbListen(function(remote){
