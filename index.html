@@ -1,26 +1,26 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0045)file:///C:/Users/jinha/Downloads/index_3.html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>INICS — Electronic Approval System 전자결재 시스템</title>
 <!-- PWA -->
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="file:///C:/Users/jinha/Downloads/manifest.webmanifest">
 <meta name="theme-color" content="#1a1a18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="INICS">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="apple-touch-icon" href="file:///C:/Users/jinha/Downloads/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="file:///C:/Users/jinha/Downloads/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="./index_files/css2" rel="stylesheet">
+<link rel="stylesheet" href="./index_files/tabler-icons.min.css">
+<script src="./index_files/jspdf.umd.min.js.다운로드"></script>
+<script src="./index_files/html2canvas.min.js.다운로드"></script>
+<script src="./index_files/xlsx.full.min.js.다운로드"></script>
+<script src="./index_files/jszip.min.js.다운로드"></script>
 
 <!-- ════════════════════════════════════════════════
      FIREBASE CONFIG
@@ -132,15 +132,44 @@
   };
 
   window._fbListen = function(cb) {
-    setInterval(async function() {
-      try {
-        var r = await fetch(BASE + PATH, {mode:'cors', cache:'no-cache'});
-        if (r.ok) {
-          var d = await r.json();
-          if (d && d.docs) cb(d);
-        }
-      } catch(e) {}
-    }, 5000);
+    // ── A안: 진짜 실시간 푸시 리스너 (Firebase REST 스트리밍 · SSE) ──
+    // 데이터가 실제로 바뀔 때만 콜백 → 평소엔 재렌더 0회 (입력 중 새로고침 현상 제거)
+    function refetch() {
+      fetch(BASE + PATH, {cache:'no-cache'})
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){ if (d && d.docs) cb(d); })
+        .catch(function(){});
+    }
+    function startSSE() {
+      var es;
+      try { es = new EventSource(BASE + PATH); }
+      catch(e) { console.warn("SSE 미지원 → 30초 폴링 폴백", e); return startPoll(); }
+      es.addEventListener("put", function(ev){
+        try {
+          var msg = JSON.parse(ev.data);
+          if (msg && msg.path === "/" && msg.data && msg.data.docs) cb(msg.data); // 전체 상태 푸시
+          else refetch();                                                          // 부분 변경 → 전체 재조회
+          setSyncStatus('ok','Live sync · 실시간 동기화');
+        } catch(_) { refetch(); }
+      });
+      es.addEventListener("patch", function(){ refetch(); setSyncStatus('ok','Live sync · 실시간 동기화'); });
+      es.addEventListener("keep-alive", function(){ setSyncStatus('ok','Live sync · 실시간 동기화'); });
+      es.onerror = function(){
+        setSyncStatus('error','Reconnecting · 재연결 중');
+        if (es.readyState === 2) { try{ es.close(); }catch(_){ } setTimeout(startSSE, 4000); } // 완전 종료 시 수동 재연결
+      };
+      window._fbES = es;
+    }
+    // 폴백: SSE가 차단된 환경에서만 폴링 (5초 → 30초로 완화)
+    function startPoll() {
+      window._fbPollId = setInterval(async function() {
+        try {
+          var r = await fetch(BASE + PATH, {mode:'cors', cache:'no-cache'});
+          if (r.ok) { var d = await r.json(); if (d && d.docs) cb(d); }
+        } catch(e) {}
+      }, 30000);
+    }
+    startSSE();
   };
 
   window._firebaseReady = true;
@@ -557,11 +586,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="login-sub">Electronic Approval System · 전자결재 시스템<br>FURNITURE &amp; SOURCING Division</div>
     <div class="login-field">
       <label>ID · 아이디</label>
-      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key==='Enter')document.getElementById('gatePw').focus()">
+      <input type="text" id="gateId" placeholder="Enter your ID · 아이디 입력" onkeydown="if(event.key===&#39;Enter&#39;)document.getElementById(&#39;gatePw&#39;).focus()">
     </div>
     <div class="login-field">
       <label>Password · 비밀번호</label>
-      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')gateLogin()">
+      <input type="password" id="gatePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)gateLogin()">
     </div>
     <div class="login-err" id="gateErr">Incorrect ID or password · 아이디 또는 비밀번호 오류</div>
     <button class="login-btn" onclick="gateLogin()">Sign in · 로그인</button>
@@ -589,7 +618,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>COMMON · 공통</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
     <div class="hub-grid" style="margin-bottom:26px">
 
-      <div class="hub-card active-module" id="hubCard-approval" onclick="enterModule('approval')">
+      <div class="hub-card active-module" id="hubCard-approval" onclick="enterModule(&#39;approval&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#eff6ff;color:#1d4ed8"><i class="ti ti-file-check"></i></div>
         <div class="hub-card-title">전자결재 · Electronic Approval</div>
@@ -597,27 +626,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div id="hubApprovalBadge" style="display:none;margin-top:10px"><span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px"></span></div>
       </div>
 
-      <div class="hub-card active-module" id="hubCard-card" onclick="enterModule('card')">
+      <div class="hub-card active-module" id="hubCard-card" onclick="enterModule(&#39;card&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div>
         <div class="hub-card-title">카드사용 · Card Usage</div>
         <div class="hub-card-desc">법인카드 지출 관리<br>Corporate Card Management</div>
       </div>
 
-      <div class="hub-card active-module" id="hubCard-report" onclick="enterModule('report')">
+      <div class="hub-card active-module" id="hubCard-report" onclick="enterModule(&#39;report&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#15803d">Active</div>
         <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d"><i class="ti ti-report"></i></div>
         <div class="hub-card-title">업무 관리 · Task Management</div>
         <div class="hub-card-desc">TODO · 일일 · 주간 · 월간<br>Tasks · Daily · Weekly</div>
       </div>
 
-      <div class="hub-card active-module" id="hubCard-vendors" onclick="enterModule('vendors')">
+      <div class="hub-card active-module" id="hubCard-vendors" onclick="enterModule(&#39;vendors&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d"><i class="ti ti-building-store"></i></div>
         <div class="hub-card-title">거래처 DB · Vendor Database</div>
         <div class="hub-card-desc">거래처 · 은행정보 · 문서 검색<br>Vendor · Bank Info · Search</div>
       </div>
-      <div class="hub-card active-module" id="hubCard-contract" onclick="enterModule('contract')">
+      <div class="hub-card active-module" id="hubCard-contract" onclick="enterModule(&#39;contract&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#4338ca">Active</div>
         <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca"><i class="ti ti-file-certificate"></i></div>
         <div class="hub-card-title">계약서 · Contracts</div>
@@ -629,14 +658,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>FURNITURE · 가구</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
     <div class="hub-grid" style="margin-bottom:26px">
 
-      <div class="hub-card active-module" id="hubCard-quote" onclick="enterModule('quote')">
+      <div class="hub-card active-module" id="hubCard-quote" onclick="enterModule(&#39;quote&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca"><i class="ti ti-file-invoice"></i></div>
         <div class="hub-card-title">견적서 · Quotation</div>
         <div class="hub-card-desc">제품 DB · 마진 · PDF 출력<br>Product DB · Margin · PDF</div>
       </div>
 
-      <div class="hub-card active-module" id="hubCard-project" onclick="enterModule('project')">
+      <div class="hub-card active-module" id="hubCard-project" onclick="enterModule(&#39;project&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#f5f3ff;color:#7c3aed"><i class="ti ti-layout-kanban"></i></div>
         <div class="hub-card-title">프로젝트 관리 · Projects</div>
@@ -648,21 +677,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px;display:flex;align-items:center;gap:8px"><span>ACCOUNTING · 회계</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
     <div class="hub-grid">
 
-      <div class="hub-card active-module" id="hubCard-bankstmt" onclick="enterModule('bankstmt')">
+      <div class="hub-card active-module" id="hubCard-bankstmt" onclick="enterModule(&#39;bankstmt&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-building-bank"></i></div>
         <div class="hub-card-title">은행 명세서 · Bank Statement</div>
         <div class="hub-card-desc">계좌별 거래내역 · 회계 분류<br>Statements · Categorize</div>
       </div>
 
-      <div class="hub-card active-module" id="hubCard-invoice" onclick="enterModule('invoice')">
+      <div class="hub-card active-module" id="hubCard-invoice" onclick="enterModule(&#39;invoice&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#0e7490">Active</div>
         <div class="hub-card-icon" style="background:#ecfeff;color:#0e7490"><i class="ti ti-file-dollar"></i></div>
         <div class="hub-card-title">인보이스 · Invoices</div>
         <div class="hub-card-desc">발행 · 수취 인보이스 관리<br>Issued · Received Invoices</div>
       </div>
 
-      <div class="hub-card active-module" id="hubCard-finance" onclick="enterModule('finance')">
+      <div class="hub-card active-module" id="hubCard-finance" onclick="enterModule(&#39;finance&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#ecfdf5;color:#047857"><i class="ti ti-report-money"></i></div>
         <div class="hub-card-title">매입/매출 정산 · Finance</div>
@@ -675,7 +704,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div id="hubAdminSection" style="display:none">
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin:26px 0 10px;display:flex;align-items:center;gap:8px"><span>ADMIN · 관리자</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
       <div class="hub-grid">
-        <div class="hub-card active-module" id="hubCard-admin" onclick="enterModule('admin')">
+        <div class="hub-card active-module" id="hubCard-admin" onclick="enterModule(&#39;admin&#39;)">
           <div class="hub-card-badge" style="background:var(--surface-2);color:#b45309">Admin</div>
           <div class="hub-card-icon" style="background:#fef3c7;color:#b45309"><i class="ti ti-shield-check"></i></div>
           <div class="hub-card-title">관리자 패널 · Admin Panel</div>
@@ -704,8 +733,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- Tabs -->
     <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
-      <button id="cardTabDash" onclick="cardSwitchTab('dash')"><i class="ti ti-chart-bar"></i> 대시보드 · Dashboard</button>
-      <button id="cardTabList" onclick="cardSwitchTab('list')"><i class="ti ti-list"></i> 내역 · Records</button>
+      <button id="cardTabDash" onclick="cardSwitchTab(&#39;dash&#39;)"><i class="ti ti-chart-bar"></i> 대시보드 · Dashboard</button>
+      <button id="cardTabList" onclick="cardSwitchTab(&#39;list&#39;)"><i class="ti ti-list"></i> 내역 · Records</button>
     </div>
 
     <!-- Dashboard view -->
@@ -734,7 +763,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fgrid">
           <div class="fg"><label>사용일 · Date</label><input type="date" id="cardDate"></div>
           <div class="fg"><label>부서 · Department</label><select id="cardDept"></select></div>
-          <div class="fg"><label>사용자 · User</label><input type="text" id="cardUser" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>사용자 · User</label><input type="text" id="cardUser" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
           <div class="fg"><label>카드 · Card</label><select id="cardName"><option value="5505">법인카드 *5505</option><option value="2451">법인카드 *2451</option></select></div>
           <div class="fg"><label>사용처 · Merchant <span style="color:var(--text-3);font-weight:400">— 검색·추가</span></label>
             <div style="position:relative">
@@ -757,7 +786,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="fg"><label>Invoice 발행 여부 · Invoice</label>
             <div class="radio-row">
               <label class="radio-label"><input type="radio" name="cardInvoice" value="yes" onchange="toggleCardInvoiceNo()"> 발행 · Issued</label>
-              <label class="radio-label"><input type="radio" name="cardInvoice" value="no" checked onchange="toggleCardInvoiceNo()"> 미발행 · None</label>
+              <label class="radio-label"><input type="radio" name="cardInvoice" value="no" checked="" onchange="toggleCardInvoiceNo()"> 미발행 · None</label>
             </div>
           </div>
           <div class="fg" id="cardInvoiceNoWrap" style="display:none"><label>Invoice 번호 · No.</label><input type="text" id="cardInvoiceNo" placeholder="인보이스/세금계산서 번호"></div>
@@ -821,8 +850,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div style="font-size:12px;color:var(--text-3);margin-bottom:18px">Per-account statement import &amp; categorization · 계좌별 거래내역 업로드 · 회계 분류</div>
     <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
-      <button id="bankTabStmt" onclick="bankSwitchTab('stmt')" style="background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-file-spreadsheet"></i> Statements · 명세서</button>
-      <button id="bankTabAcct" onclick="bankSwitchTab('acct')" style="display:none;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-adjustments-cog"></i> Accounting Admin · 회계 관리자</button>
+      <button id="bankTabStmt" onclick="bankSwitchTab(&#39;stmt&#39;)" style="background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-file-spreadsheet"></i> Statements · 명세서</button>
+      <button id="bankTabAcct" onclick="bankSwitchTab(&#39;acct&#39;)" style="display:none;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;margin-bottom:-1px"><i class="ti ti-adjustments-cog"></i> Accounting Admin · 회계 관리자</button>
     </div>
     <div id="bankStmtPane">
       <div id="bankAccountBar" style="margin-bottom:14px"></div>
@@ -833,8 +862,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div id="bankAcctPane" style="display:none"></div>
   </div>
 </div>
-<input type="file" id="bankExcelInput" style="display:none" accept=".xlsx,.xls" onchange="handleBankExcel(this.files[0]);this.value=''">
-<input type="file" id="contractScanInput" style="display:none" accept="image/*,application/pdf" multiple onchange="handleContractScan(this.files);this.value=''">
+<input type="file" id="bankExcelInput" style="display:none" accept=".xlsx,.xls" onchange="handleBankExcel(this.files[0]);this.value=&#39;&#39;">
+<input type="file" id="contractScanInput" style="display:none" accept="image/*,application/pdf" multiple="" onchange="handleContractScan(this.files);this.value=&#39;&#39;">
 
 <div id="contractApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
   <div style="max-width:1120px;margin:0 auto;padding:28px 24px 60px">
@@ -873,9 +902,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">발행한 인보이스 · 수취한 인보이스 통합 관리 · Issued &amp; received invoice register</div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-        <button id="invTabAll" onclick="invoiceSetTab('all')" style="font-size:12px;padding:6px 14px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">전체 · All</button>
-        <button id="invTabIssued" onclick="invoiceSetTab('issued')" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">발행 · Issued</button>
-        <button id="invTabReceived" onclick="invoiceSetTab('received')" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">수취 · Received</button>
+        <button id="invTabAll" onclick="invoiceSetTab(&#39;all&#39;)" style="font-size:12px;padding:6px 14px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">전체 · All</button>
+        <button id="invTabIssued" onclick="invoiceSetTab(&#39;issued&#39;)" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">발행 · Issued</button>
+        <button id="invTabReceived" onclick="invoiceSetTab(&#39;received&#39;)" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">수취 · Received</button>
       </div>
       <input type="text" id="invoiceSearch" oninput="renderInvoiceApp()" placeholder="검색 · Search (번호·거래처·비고)" style="flex:1;min-width:200px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)">
       <button class="btn btn-dark" onclick="openInvoiceForm(null)" style="font-size:12px;padding:7px 13px"><i class="ti ti-plus"></i> 인보이스 추가 · Add</button>
@@ -925,10 +954,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">개인별 TODO → 완료(CLOSING) 시 그날 일일 보고에 자동 반영 · 주간·월간 자동 집계</div>
     <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);margin-bottom:18px;gap:2px;flex-wrap:wrap">
-      <button id="tskTabMytasks" onclick="taskSwitchTab('mytasks')"></button>
-      <button id="tskTabDaily" onclick="taskSwitchTab('daily')"></button>
-      <button id="tskTabWeekly" onclick="taskSwitchTab('weekly')"></button>
-      <button id="tskTabMonthly" onclick="taskSwitchTab('monthly')"></button>
+      <button id="tskTabMytasks" onclick="taskSwitchTab(&#39;mytasks&#39;)"></button>
+      <button id="tskTabDaily" onclick="taskSwitchTab(&#39;daily&#39;)"></button>
+      <button id="tskTabWeekly" onclick="taskSwitchTab(&#39;weekly&#39;)"></button>
+      <button id="tskTabMonthly" onclick="taskSwitchTab(&#39;monthly&#39;)"></button>
     </div>
     <div id="reportBody"></div>
   </div>
@@ -986,7 +1015,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px">업무 관리 대상 멤버 · Members</div>
       <div id="reportMemberMap" style="margin-bottom:14px"></div>
       <div class="fg" style="margin-bottom:10px"><label>Slack Worker URL</label><input type="text" id="slackWorkerUrl" placeholder="https://your-worker.workers.dev" autocomplete="off"></div>
-      <div class="fg" style="margin-bottom:10px"><label>채널 · Channels (한 줄에 하나: 채널ID 이름)</label><textarea id="slackChannel" rows="3" placeholder="C0123ABCD 영업방&#10;C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans);font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);resize:vertical;box-sizing:border-box"></textarea><div style="font-size:10px;color:var(--text-3);margin-top:3px">봇을 각 채널에 모두 초대(/invite)해야 합니다.</div></div>
+      <div class="fg" style="margin-bottom:10px"><label>채널 · Channels (한 줄에 하나: 채널ID 이름)</label><textarea id="slackChannel" rows="3" placeholder="C0123ABCD 영업방
+C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans);font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);resize:vertical;box-sizing:border-box"></textarea><div style="font-size:10px;color:var(--text-3);margin-top:3px">봇을 각 채널에 모두 초대(/invite)해야 합니다.</div></div>
       <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">멤버별 Slack User ID</div>
       <div id="slackUserMap"></div>
       <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-dark" onclick="saveSlackConfig()"><i class="ti ti-device-floppy"></i> 저장 · Save</button></div>
@@ -1001,7 +1031,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-outline" onclick="saveContractOpts()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 설정 저장</button>
         <button class="btn btn-outline" onclick="openPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-cash"></i> 대금지급요청서</button>
-        <button class="btn btn-outline" onclick="document.getElementById('contractScanInput').click()" style="font-size:11px;padding:5px 10px"><i class="ti ti-paperclip"></i> 스캔본 업로드</button>
+        <button class="btn btn-outline" onclick="document.getElementById(&#39;contractScanInput&#39;).click()" style="font-size:11px;padding:5px 10px"><i class="ti ti-paperclip"></i> 스캔본 업로드</button>
         <button class="btn btn-dark" id="ctConfirmBtn" onclick="toggleContractConfirm()" style="font-size:11px;padding:5px 10px"><i class="ti ti-circle-check"></i> 계약 확정</button>
         <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄</button>
         <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
@@ -1034,8 +1064,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
       <span style="font-size:11px;color:var(--text-3);font-weight:600">미리보기 · Preview</span>
       <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-        <button id="ctLangVnen" onclick="setContractPrevLang('vnen')" style="font-size:11px;padding:4px 10px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">베트남어+영문 (출력본)</button>
-        <button id="ctLangKo" onclick="setContractPrevLang('ko')" style="font-size:11px;padding:4px 10px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">한국어 (참고본)</button>
+        <button id="ctLangVnen" onclick="setContractPrevLang(&#39;vnen&#39;)" style="font-size:11px;padding:4px 10px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">베트남어+영문 (출력본)</button>
+        <button id="ctLangKo" onclick="setContractPrevLang(&#39;ko&#39;)" style="font-size:11px;padding:4px 10px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">한국어 (참고본)</button>
       </div>
       <div style="display:flex;gap:4px;align-items:center;margin-left:auto">
         <button onclick="ctPrevZoom(-15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">−</button>
@@ -1059,7 +1089,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
-      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">연결 계약 · Linked Contract: <b id="prContractNo" style="font-family:var(--mono);color:var(--text)"></b> &middot; <span id="prClientName"></span></div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">연결 계약 · Linked Contract: <b id="prContractNo" style="font-family:var(--mono);color:var(--text)"></b> · <span id="prClientName"></span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px">
         <div class="fg" style="margin:0"><label style="font-size:10px">PR 번호 · No.</label><input type="text" id="prNo" oninput="renderPRPreview()" style="font-size:12px;padding:5px 8px;font-family:var(--mono)"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">회차 · Installment</label><select id="prKind" onchange="prOnKindChange()" style="font-size:12px;padding:5px 8px"><option value="deposit">선금 · Advance (Đợt 1)</option><option value="balance">잔금 · Balance (Đợt 2)</option><option value="full">전액 · Full</option><option value="custom">직접입력 · Custom</option></select></div>
@@ -1072,9 +1102,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
         <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item (VN) · 항목 (베트남어)</label><input type="text" id="prItem" oninput="renderPRPreview()" placeholder="VD: Cung cấp và bàn giao 39 ghế văn phòng FURSYS" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item (EN) · 항목 (영문)</label><input type="text" id="prItemEn" oninput="renderPRPreview()" placeholder="e.g. Supply and Delivery of 39 FURSYS Task Chairs" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prBank" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No. <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prAcct" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
-        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prHolder" readonly style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prBank" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No. <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prAcct" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prHolder" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">비고 · Note</label><input type="text" id="prNote" oninput="renderPRPreview()" placeholder="추가 메모 (선택)" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
       </div>
       <div id="prHistory" style="margin-top:8px"></div>
@@ -1082,7 +1112,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
       <span style="font-size:11px;color:var(--text-3);font-weight:600">미리보기 · Preview</span>
       <div style="display:flex;gap:4px;align-items:center;margin-left:auto">
-        <button onclick="prPrevZoom(-15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">&minus;</button>
+        <button onclick="prPrevZoom(-15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">−</button>
         <span id="prPrevZoomLabel" style="font-size:11px;color:var(--text-2);min-width:44px;text-align:center">100%</span>
         <button onclick="prPrevZoom(15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">+</button>
       </div>
@@ -1113,8 +1143,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div style="font-size:15px;font-weight:700"><i class="ti ti-eye"></i> 계약서 미리보기 <span style="font-size:10px;font-weight:500;color:var(--text-3)">(샘플)</span></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <button id="ctTplLangVnen" onclick="setCtTplLang('vnen')" style="font-size:11px;padding:4px 10px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">베트남어+영문</button>
-          <button id="ctTplLangKo" onclick="setCtTplLang('ko')" style="font-size:11px;padding:4px 10px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">한국어</button>
+          <button id="ctTplLangVnen" onclick="setCtTplLang(&#39;vnen&#39;)" style="font-size:11px;padding:4px 10px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">베트남어+영문</button>
+          <button id="ctTplLangKo" onclick="setCtTplLang(&#39;ko&#39;)" style="font-size:11px;padding:4px 10px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">한국어</button>
         </div>
         <button onclick="ctTplZoom(-15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">−</button>
         <span id="ctTplZoomLabel" style="font-size:11px;color:var(--text-2);min-width:44px;text-align:center">100%</span>
@@ -1145,8 +1175,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center">
-        <button id="projTabBoard" onclick="projectSwitchTab('board')"><i class="ti ti-layout-kanban"></i> 보드 · Board</button>
-        <button id="projTabList" onclick="projectSwitchTab('list')"><i class="ti ti-list"></i> 목록 · List</button>
+        <button id="projTabBoard" onclick="projectSwitchTab(&#39;board&#39;)"><i class="ti ti-layout-kanban"></i> 보드 · Board</button>
+        <button id="projTabList" onclick="projectSwitchTab(&#39;list&#39;)"><i class="ti ti-list"></i> 목록 · List</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:6px">
         <button class="btn btn-outline" id="projImportBtn" onclick="projOpenImport()" style="font-size:12px;padding:6px 12px"><i class="ti ti-file-import"></i> 가져오기 · Import</button>
@@ -1181,7 +1211,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="fgrid">
         <div class="fg"><label>고객사 닉네임 · Client (약칭) <span>거래처DB 연동</span></label><input type="text" id="projClient" list="projectClients" placeholder="약칭/검색 또는 신규" autocomplete="off"></div>
         <div class="fg"><label>고객사 정식명칭 · Official Name</label><input type="text" id="projClientFull" placeholder="계약서용 정식 회사명 (CÔNG TY ...)" autocomplete="off"></div>
-        <div class="fg"><label>담당자 · Owner</label><input type="text" id="projOwnerName" readonly style="background:var(--surface-2);color:var(--text-2)"><select id="projOwnerSelect" onchange="setProjOwner(this.value)" style="display:none"></select></div>
+        <div class="fg"><label>담당자 · Owner</label><input type="text" id="projOwnerName" readonly="" style="background:var(--surface-2);color:var(--text-2)"><select id="projOwnerSelect" onchange="setProjOwner(this.value)" style="display:none"></select></div>
         <div class="fg"><label>지역 · Region <span>직접 입력·추가 가능</span></label><input type="text" id="projRegion" list="projRegionList" placeholder="선택 또는 신규 입력" autocomplete="off"><datalist id="projRegionList"></datalist></div>
         <div class="fg"><label>위치 · Location <span>직접 입력·추가 가능</span></label><input type="text" id="projLocation" list="projLocationList" placeholder="HANOI / HCMC 또는 신규" autocomplete="off"><datalist id="projLocationList"></datalist></div>
         <div class="fg"><label>유형 · Type</label><select id="projType"></select></div>
@@ -1189,7 +1219,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fg" id="projEndCustWrap" style="grid-column:1/-1;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px"><label style="color:#b45309"><i class="ti ti-users"></i> 최종 고객 정보 · End Customer (B2B)</label><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px"><input type="text" id="projEndName" placeholder="최종 고객사명 · Name" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndRep" placeholder="담당/대표 · Rep." autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndAddr" placeholder="주소 · Address" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndContact" placeholder="연락처 · Contact" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"></div></div>
         <div class="fg"><label>단계 · Stage</label><select id="projStage" onchange="onProjStageChange()"></select></div>
         <div class="fg"><label>예상금액 · Amount <span>부가세 포함 · Incl. VAT</span></label><input type="text" id="projAmount" placeholder="0" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this)"></div>
-        <div class="fg"><label>부가세 · VAT</label><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:6px;align-items:center;white-space:nowrap;margin-top:7px"><input type="checkbox" id="projVatApplied" checked style="width:auto;margin:0"> 적용됨 · Applied</label></div>
+        <div class="fg"><label>부가세 · VAT</label><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:6px;align-items:center;white-space:nowrap;margin-top:7px"><input type="checkbox" id="projVatApplied" checked="" style="width:auto;margin:0"> 적용됨 · Applied</label></div>
         <div class="fg"><label>통화 · Currency</label><select id="projCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
         <div class="fg"><label>등록일 · Reg. Date</label><input type="date" id="projRegDate"></div>
         <div class="fg"><label>목표 프로젝트 완료일 · Target</label><input type="date" id="projTargetDate"></div>
@@ -1208,12 +1238,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px">매출 · Sales</div>
         <div class="fgrid">
           <div class="fg"><label>통화 · Currency</label><select id="salesCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
-          <div class="fg"><label>VAT %</label><select id="salesVat" onchange="recalcProjFinance('salesVat')"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
-          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="salesSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('salesSubtotal')"></div>
-          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="salesVatAmt" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>매출 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="salesTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('salesTotal')" style="font-weight:700"></div>
-          <div class="fg"><label>선금 % · Deposit %</label><input type="text" id="salesDepositPct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance('salesDepositPct')"></div>
-          <div class="fg"><label>잔금 % · Balance % <span>자동</span></label><input type="text" id="salesBalancePct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance('salesBalancePct')"></div>
+          <div class="fg"><label>VAT %</label><select id="salesVat" onchange="recalcProjFinance(&#39;salesVat&#39;)"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
+          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="salesSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesSubtotal&#39;)"></div>
+          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="salesVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>매출 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="salesTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesTotal&#39;)" style="font-weight:700"></div>
+          <div class="fg"><label>선금 % · Deposit %</label><input type="text" id="salesDepositPct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance(&#39;salesDepositPct&#39;)"></div>
+          <div class="fg"><label>잔금 % · Balance % <span>자동</span></label><input type="text" id="salesBalancePct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance(&#39;salesBalancePct&#39;)"></div>
           <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="salesDeposit" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
           <div class="fg"><label>선금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesDepositDate" style="flex:1"></div></div>
           <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="salesBalance" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
@@ -1226,10 +1256,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fgrid">
           <div class="fg"><label>거래처 · Vendor</label><input type="text" id="purchaseVendor" list="projectClients" autocomplete="off"></div>
           <div class="fg"><label>통화 · Currency</label><select id="purchaseCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
-          <div class="fg"><label>VAT %</label><select id="purchaseVat" onchange="recalcProjFinance('purchaseVat')"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
-          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="purchaseSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('purchaseSubtotal')"></div>
-          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="purchaseVatAmt" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>매입 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="purchaseTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance('purchaseTotal')" style="font-weight:700"></div>
+          <div class="fg"><label>VAT %</label><select id="purchaseVat" onchange="recalcProjFinance(&#39;purchaseVat&#39;)"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
+          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="purchaseSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseSubtotal&#39;)"></div>
+          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="purchaseVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>매입 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="purchaseTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseTotal&#39;)" style="font-weight:700"></div>
           <div class="fg" style="grid-column:1/-1"><label>전액 선금 지급 · Full advance <span style="color:#b45309">(매입은 선금 일괄)</span></label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 지급완료 · Paid</label><input type="date" id="purchaseDepositDate" style="flex:1"></div></div>
         </div>
         <div class="line-preview" id="projMarginPreview" style="margin-top:10px">마진 —</div>
@@ -1310,9 +1340,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:12px;color:var(--text-3);margin-bottom:18px">제품 DB 연동 견적 작성 · 마진/판가 · PDF 출력</div>
 
     <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
-      <button id="qTabBuild" onclick="quoteSwitchTab('build')"><i class="ti ti-file-invoice"></i> 견적 작성 · Builder</button>
-      <button id="qTabSaved" onclick="quoteSwitchTab('saved')"><i class="ti ti-folder"></i> 저장 견적 · Saved</button>
-      <button id="qTabDb" onclick="quoteSwitchTab('db')"><i class="ti ti-database"></i> 제품 DB · Products</button>
+      <button id="qTabBuild" onclick="quoteSwitchTab(&#39;build&#39;)"><i class="ti ti-file-invoice"></i> 견적 작성 · Builder</button>
+      <button id="qTabSaved" onclick="quoteSwitchTab(&#39;saved&#39;)"><i class="ti ti-folder"></i> 저장 견적 · Saved</button>
+      <button id="qTabDb" onclick="quoteSwitchTab(&#39;db&#39;)"><i class="ti ti-database"></i> 제품 DB · Products</button>
     </div>
 
     <!-- BUILDER -->
@@ -1320,7 +1350,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="form-card" style="margin-bottom:14px">
         <div class="form-card-title"><i class="ti ti-file-invoice"></i> Quotation Info · 견적 정보</div>
         <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-          <div class="fg"><label>견적번호 · Quote No</label><input type="text" id="qNo" readonly style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>견적번호 · Quote No</label><input type="text" id="qNo" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
           <div class="fg"><label>Client · 고객사 <span style="color:var(--text-3);font-weight:400">거래처DB</span></label><input type="text" id="qClient" list="quoteClients" placeholder="고객사 검색/추가" autocomplete="off"></div>
           <div class="fg"><label>Date · 일자</label><input type="date" id="qDate"></div>
           <div class="fg"><label>Valid · 유효기간(일)</label><input type="number" id="qValid" min="0" placeholder="15" style="width:100%"></div>
@@ -1372,7 +1402,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="fg"><label>통화 · Currency</label><select id="pCurrency"><option>VND</option><option>USD</option><option>KRW</option><option>MXN</option></select></div>
           <div class="fg"><label>Image <span style="color:var(--text-3);font-weight:400">선택</span></label>
             <div style="display:flex;gap:6px"><label class="upload-zone" style="display:block;padding:8px;flex:1;text-align:center"><span style="font-size:11px">이미지 업로드</span><input type="file" accept="image/*" style="display:none" onchange="handleProductImage(this.files[0])"></label>
-            <button class="btn btn-outline" style="font-size:11px;padding:6px 10px" onclick="pasteImage('product')">붙여넣기</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:6px 10px" onclick="pasteImage(&#39;product&#39;)">붙여넣기</button>
             <button class="btn btn-outline" style="font-size:11px;padding:6px 10px" onclick="setProductImageUrl()">URL</button></div>
             <div id="pImagePreview" style="margin-top:6px"></div>
           </div>
@@ -1395,7 +1425,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="form-card-title"><i class="ti ti-file-spreadsheet"></i> Excel 템플릿 일괄 등록 · Excel import</div>
         <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">제품 DB 템플릿(.xlsx)을 그대로 올리면 자동 등록됩니다. 인식 컬럼: <strong>Category · Product Name · Size · Product Code · Color CODE · Unit Price · REMARK</strong> · 코드 기준으로 기존 제품은 갱신됩니다.</div>
         <div class="btn-row">
-          <label class="btn btn-dark" style="font-size:11px;padding:5px 11px;cursor:pointer"><i class="ti ti-file-spreadsheet"></i> Excel 파일 선택 · Choose .xlsx<input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleProductExcel(this.files[0]);this.value=''"></label>
+          <label class="btn btn-dark" style="font-size:11px;padding:5px 11px;cursor:pointer"><i class="ti ti-file-spreadsheet"></i> Excel 파일 선택 · Choose .xlsx<input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleProductExcel(this.files[0]);this.value=&#39;&#39;"></label>
         </div>
       </div>
       <div class="fg" style="margin-bottom:10px"><input type="text" id="qDbSearch" placeholder="🔎 제품 검색 · 코드 · 품명 · 카테고리" oninput="renderQuoteDb()" autocomplete="off"></div>
@@ -1407,35 +1437,34 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <!-- SIDEBAR -->
-<aside class="sidebar"
- id="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-text" onclick="showHub()" style="cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-home-2" style="font-size:16px;color:var(--text-3)"></i>INICS VINA</div>
     <div class="logo-sub">Electronic Approval · 전자결재 시스템<br>FURNITURE &amp; SOURCING</div>
   </div>
   <nav class="sidebar-nav">
     <div class="sidebar-section">Main · 메인</div>
-    <button class="nav-item active" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
+    <button class="nav-item active" onclick="showPage(&#39;dashboard&#39;)"><i class="ti ti-layout-dashboard"></i>Dashboard · 대시보드</button>
 
     <div class="sidebar-section">Approval · 결재</div>
-    <button class="nav-item" onclick="showPage('list')"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage('mine')"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
-    <button class="nav-item" onclick="showPage('new')"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;)"><i class="ti ti-files"></i>All Documents · 전체 문서<span class="nav-badge" id="nb-pending" style="">3</span></button>
+    <button class="nav-item" onclick="showPage(&#39;mine&#39;)"><i class="ti ti-user-circle"></i>My Documents · 내 문서함</button>
+    <button class="nav-item" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i>New Draft · 기안하기</button>
 
     <div class="sidebar-section">Quick Filter · 빠른 필터</div>
-    <button class="nav-item" onclick="showPage('list');setFilter('pending1',null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage('list');setFilter('payment',null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showPage('list');setFilter('done',null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;pending1&#39;,null)"><i class="ti ti-clock"></i>Pending · 승인 대기<span class="nav-badge" id="nb-pend2" style="">3</span></button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;payment&#39;,null)"><i class="ti ti-credit-card"></i>Payment · 결제 중<span class="nav-badge red" id="nb-pay" style="">1</span></button>
+    <button class="nav-item" onclick="showPage(&#39;list&#39;);setFilter(&#39;done&#39;,null)"><i class="ti ti-circle-check"></i>Completed · 완료</button>
 
     <div class="sidebar-section">Admin · 관리자</div>
-    <button class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
-    <button class="nav-item" onclick="showPage('vendors')"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
+    <button class="nav-item" id="nav-admin" onclick="showPage(&#39;admin&#39;)" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
+    <button class="nav-item" onclick="showPage(&#39;vendors&#39;)"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
     <button class="nav-item" onclick="showHubFromApp()"><i class="ti ti-layout-grid"></i>Hub · 모듈 허브</button>
     <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
   </nav>
   <div class="sidebar-footer">
     v6.0 · Firebase Realtime DB<br>
-    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Online · 연결됨</span>
+    <span id="syncStatusText" style="font-family:var(--mono);font-size:9px">Online · 연결됨 ✓</span>
   </div>
 </aside>
 
@@ -1461,19 +1490,106 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div id="syncBar" class="sync-bar" style="margin-bottom:16px">
-        <i class="ti ti-cloud-check"></i>
-        <span id="syncMsg">Connected · Firebase 연결됨</span>
-      </div>
-      <div class="stats-grid" id="dashStats"></div>
+      <div id="syncBar" class="sync-bar" style="margin-bottom:16px"><i class="ti ti-cloud-check"></i><span>Live sync · 실시간 동기화</span></div>
+      <div class="stats-grid" id="dashStats"><div class="stat-card"><div class="stat-top"><div class="stat-label">Total · 전체</div><div class="stat-icon" style="background:#f0f0ec;color:#1a1a18"><i class="ti ti-files"></i></div></div><div class="stat-num" style="color:#1a1a18">15</div><div class="stat-sub">All documents</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Pending · 대기</div><div class="stat-icon" style="background:#fffbeb;color:#b45309"><i class="ti ti-clock"></i></div></div><div class="stat-num" style="color:#b45309">3</div><div class="stat-sub">Awaiting approval</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Payment · 결제</div><div class="stat-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div></div><div class="stat-num" style="color:#92400e">1</div><div class="stat-sub">In payment process</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Done · 완료</div><div class="stat-icon" style="background:#f0fdf4;color:#166534"><i class="ti ti-circle-check"></i></div></div><div class="stat-num" style="color:#166534">11</div><div class="stat-sub">Fully approved</div></div><div class="stat-card"><div class="stat-top"><div class="stat-label">Rejected · 반려</div><div class="stat-icon" style="background:#fef2f2;color:#b91c1c"><i class="ti ti-x"></i></div></div><div class="stat-num" style="color:#b91c1c">0</div><div class="stat-sub">Returned</div></div></div>
       <div id="dashGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Pending · 승인 대기</div>
-          <div id="dashPending"></div>
+          <div id="dashPending"><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(29,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">FUR202606-004</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">프로젝트별 퍼시스 대금 지급 현황 (참고용)</span>
+        <span class="badge b-furniture">FURNITURE</span>
+      </div>
+      <div class="doc-meta"><span>HANA</span><span>2026.06.25</span><span>VND 1.020.962.374</span></div>
+    </div>
+    <span class="badge b-p1">1st Pending</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(28,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-021</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[KAMEREO] Water bottle_450,360</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>THANH BINH</span><span>2026.06.25</span><span>VND 450,360</span></div>
+    </div>
+    <span class="badge b-p1">1st Pending</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(25,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-018</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[DTA INTERIOR] Office renovation_219,383,049</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>THANH BINH</span><span>2026.06.22</span><span>VND 219,383,049</span></div>
+    </div>
+    <span class="badge b-p1">1st Pending</span>
+  </div></div>
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Recent · 최근 활동</div>
-          <div id="dashRecent"></div>
+          <div id="dashRecent"><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(29,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">FUR202606-004</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">프로젝트별 퍼시스 대금 지급 현황 (참고용)</span>
+        <span class="badge b-furniture">FURNITURE</span>
+      </div>
+      <div class="doc-meta"><span>HANA</span><span>2026.06.25</span><span>VND 1.020.962.374</span></div>
+    </div>
+    <span class="badge b-p1">1st Pending</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(28,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-021</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[KAMEREO] Water bottle_450,360</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>THANH BINH</span><span>2026.06.25</span><span>VND 450,360</span></div>
+    </div>
+    <span class="badge b-p1">1st Pending</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(27,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-020</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[VIETCAD] Microsoft 365 Business Standard (no Teams)_12 months_2,640,000</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>THANH BINH</span><span>2026.06.24</span><span>VND 2,640,000</span></div>
+    </div>
+    <span class="badge b-done">Done</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(26,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-019</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[CLAUDE] 1 month subscription Claude team_138.89 USD</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>THANH BINH</span><span>2026.06.24</span><span>USD 138.89</span></div>
+    </div>
+    <span class="badge b-done">Done</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(25,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-018</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[DTA INTERIOR] Office renovation_219,383,049</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>THANH BINH</span><span>2026.06.22</span><span>VND 219,383,049</span></div>
+    </div>
+    <span class="badge b-p1">1st Pending</span>
+  </div><div class="doc-row" onclick="showPage(&#39;list&#39;);setTimeout(()=&gt;showDetail(24,&#39;detailWrap&#39;),80)" style="padding:10px 13px;margin-bottom:5px">
+    <div class="doc-main">
+      <div class="doc-title-row" style="font-size:12px">
+        <span class="docno">SRC202606-017</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">[KIM THANH] Printer_7,754,400</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta"><span>THANH BINH</span><span>2026.06.22</span><span>VND 7,754,400</span></div>
+    </div>
+    <span class="badge b-done">Done</span>
+  </div></div>
         </div>
       </div>
     </div>
@@ -1481,17 +1597,302 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <!-- ALL DOCS -->
     <div class="page" id="page-list">
       <div class="filter-bar" id="listFilterBar">
-        <button class="filter-chip active" onclick="setFilter('all',this)">All · 전체</button>
-        <button class="filter-chip" onclick="setFilter('draft',this)">Draft · 임시저장</button>
-        <button class="filter-chip" onclick="setFilter('pending1',this)">1st · 1차 대기</button>
-        <button class="filter-chip" onclick="setFilter('pending2',this)">2nd · 2차 대기</button>
-        <button class="filter-chip" onclick="setFilter('payment',this)">Payment · 결제 중</button>
-        <button class="filter-chip" onclick="setFilter('done',this)">Done · 완료</button>
-        <button class="filter-chip" onclick="setFilter('rejected',this)">Rejected · 반려</button>
+        <button class="filter-chip active" onclick="setFilter(&#39;all&#39;,this)">All · 전체</button>
+        <button class="filter-chip" onclick="setFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
+        <button class="filter-chip" onclick="setFilter(&#39;pending1&#39;,this)">1st · 1차 대기</button>
+        <button class="filter-chip" onclick="setFilter(&#39;pending2&#39;,this)">2nd · 2차 대기</button>
+        <button class="filter-chip" onclick="setFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
+        <button class="filter-chip" onclick="setFilter(&#39;done&#39;,this)">Done · 완료</button>
+        <button class="filter-chip" onclick="setFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
         <div class="filter-spacer"></div>
-        <button class="btn btn-dark" onclick="showPage('new')"><i class="ti ti-plus"></i> New · 기안</button>
+        <button class="btn btn-dark" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i> New · 기안</button>
       </div>
-      <div class="doc-list" id="docList"></div>
+      <div class="doc-list" id="docList"><div class="doc-row" onclick="showDetail(29,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">FUR202606-004</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">프로젝트별 퍼시스 대금 지급 현황 (참고용)</span>
+        <span class="badge b-furniture">FURNITURE</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 1.020.962.374</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.25</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> HANA</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 1</span>
+        
+        <span style="color:var(--warning);font-weight:500"><i class="ti ti-clock" style="font-size:10px"></i> 대기: HWAN SHIN YU</span>
+        
+      </div>
+    </div>
+    <span class="badge b-p1">1st Pending · 1차 대기</span>
+  </div><div class="doc-row" onclick="showDetail(28,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-021</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[KAMEREO] Water bottle_450,360</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 450,360</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.25</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 1</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        <span style="color:var(--warning);font-weight:500"><i class="ti ti-clock" style="font-size:10px"></i> 대기: JINHA LEE</span>
+        
+      </div>
+    </div>
+    <span class="badge b-p1">1st Pending · 1차 대기</span>
+  </div><div class="doc-row" onclick="showDetail(27,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-020</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[VIETCAD] Microsoft 365 Business Standard (no Teams)_12 months_2,640,000</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 2,640,000</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.24</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 2</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(26,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-019</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[CLAUDE] 1 month subscription Claude team_138.89 USD</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> USD 138.89</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.24</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 2</span>
+        
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(25,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-018</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[DTA INTERIOR] Office renovation_219,383,049</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 계약체결 · Contract Signing</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 219,383,049</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.22</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        <span style="color:var(--warning);font-weight:500"><i class="ti ti-clock" style="font-size:10px"></i> 대기: JINHA LEE</span>
+        
+      </div>
+    </div>
+    <span class="badge b-p1">1st Pending · 1차 대기</span>
+  </div><div class="doc-row" onclick="showDetail(24,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-017</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[KIM THANH] Printer_7,754,400</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 계약체결 · Contract Signing</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 7,754,400</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.22</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        
+        
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(23,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-016</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[GERMINATION] Americano Glass_ 380.000</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 380,000</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.22</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 4</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(22,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-015</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[BTASKEE] 1-month cleaning payment_1,166,400</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 계약체결 · Contract Signing</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 1,166,400</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.22</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 2</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(20,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-014</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[HOANG THANH THANH] NAME CARD PRINTING VAT expense_96.000</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 96,000</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.19</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 2</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(19,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-013</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[HOANG THANH THANH] NAME CARD PRINTING_1.200.000_URGENT</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 1,200,000</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.18</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 4</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(18,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">FUR202606-002</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">휴가 신청서</span>
+        <span class="badge b-furniture">FURNITURE</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 휴가신청서 · Leave Request</span>
+        
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.18</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> HWAN SHIN YU</span>
+        
+        
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(17,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-012</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[HASU TOÀN CẦU] UMBRELLA 2pcs_346,000</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 346,000</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.18</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 4</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(16,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-011</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[BA NHAT] Stationery_1,667,844</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 1,667,844</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.18</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> THANH BINH</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 3</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div><div class="doc-row" onclick="showDetail(15,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">SRC202606-011</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">[VISA/ISIRIUS] VISA and purchase of INV</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 90,380,800</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.10</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> JINHA LEE</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 1</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-payment">Payment · 결제 중</span>
+  </div><div class="doc-row" onclick="showDetail(14,&#39;detailWrap&#39;)">
+    <div class="doc-main">
+      <div class="doc-title-row">
+        <span class="docno">FUR202606-001</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">Balace payment for company incorporation. 사업자 설립 잔금</span>
+        <span class="badge b-sourcing">COMMON</span>
+      </div>
+      <div class="doc-meta">
+        <span><i class="ti ti-file-text" style="font-size:10px"></i> 지출결의서 · Expense Report</span>
+        <span><i class="ti ti-coin" style="font-size:10px"></i> VND 29052000</span>
+        <span><i class="ti ti-calendar" style="font-size:10px"></i> 2026.06.09</span>
+        <span><i class="ti ti-user" style="font-size:10px"></i> JINHA LEE</span>
+        <span style="color:#3b82f6"><i class="ti ti-paperclip" style="font-size:10px"></i> 2</span>
+        <span style="color:var(--payment)"><i class="ti ti-credit-card" style="font-size:10px"></i> PAYMENT</span>
+        
+        
+      </div>
+    </div>
+    <span class="badge b-done">Done · 완료</span>
+  </div></div>
       <div id="detailWrap"></div>
     </div>
 
@@ -1501,8 +1902,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">My Documents · 내 문서함</div>
           <div class="auth-card-sub">Sign in to view your documents · 본인 인증 후 이용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginMine()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Name · 이름</label><select id="mineWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option><option value="6">NK LEE · STAFF</option><option value="7">THANH BINH · STAFF</option></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="minePw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginMine()"></div>
           <div class="modal-err" id="mineErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginMine()"><i class="ti ti-login"></i> Sign in · 확인</button>
         </div>
@@ -1513,12 +1914,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <button class="btn btn-outline" onclick="logoutMine()"><i class="ti ti-x"></i> Close · 닫기</button>
         </div>
         <div class="filter-bar" id="mineFilterBar">
-          <button class="filter-chip active" onclick="setMineFilter('all',this)">All · 전체</button>
-          <button class="filter-chip" onclick="setMineFilter('draft',this)">Draft · 임시저장</button>
-          <button class="filter-chip" onclick="setMineFilter('pending1',this)">Pending · 승인 대기</button>
-          <button class="filter-chip" onclick="setMineFilter('payment',this)">Payment · 결제 중</button>
-          <button class="filter-chip" onclick="setMineFilter('done',this)">완료 · Done</button>
-          <button class="filter-chip" onclick="setMineFilter('rejected',this)">Rejected · 반려</button>
+          <button class="filter-chip active" onclick="setMineFilter(&#39;all&#39;,this)">All · 전체</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;draft&#39;,this)">Draft · 임시저장</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;pending1&#39;,this)">Pending · 승인 대기</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;done&#39;,this)">완료 · Done</button>
+          <button class="filter-chip" onclick="setMineFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
         </div>
         <div class="doc-list" id="mineList"></div>
         <div id="mineDetailWrap"></div>
@@ -1531,8 +1932,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title">New Draft · 기안하기</div>
           <div class="auth-card-sub">Authenticate to proceed · 기안자 인증 후 진행</div>
-          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"></select></div>
-          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key==='Enter')loginNew()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Drafter · 기안자</label><select id="newWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option><option value="6">NK LEE · STAFF</option><option value="7">THANH BINH · STAFF</option></select></div>
+          <div class="fg" style="margin-bottom:10px"><label>Password · 비밀번호</label><input type="password" id="newPw" placeholder="Enter password · 비밀번호 입력" onkeydown="if(event.key===&#39;Enter&#39;)loginNew()"></div>
           <div class="modal-err" id="newErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginNew()"><i class="ti ti-login"></i> Confirm · 확인</button>
         </div>
@@ -1580,10 +1981,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                   <div class="fg">
                     <label>Vendor Name · 업체명 <span style="color:var(--text-3);font-weight:400">— Search · 검색·유사검색</span></label>
                     <div style="position:relative">
-                      <input type="text" id="expVendorName" placeholder="업체명 입력 또는 기존 거래처 검색 · type to search" autocomplete="off"
-                        oninput="onVendorInput(this.value)" onfocus="onVendorInput(this.value)"
-                        onkeydown="onVendorKeydown(event)" onblur="setTimeout(hideVendorSuggest,180)"
-                        onchange="onVendorPick(this.value)">
+                      <input type="text" id="expVendorName" placeholder="업체명 입력 또는 기존 거래처 검색 · type to search" autocomplete="off" oninput="onVendorInput(this.value)" onfocus="onVendorInput(this.value)" onkeydown="onVendorKeydown(event)" onblur="setTimeout(hideVendorSuggest,180)" onchange="onVendorPick(this.value)">
                       <div id="vendorSuggest" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.13);max-height:240px;overflow-y:auto;margin-top:3px"></div>
                     </div>
                     <div id="vendorPickHint" style="font-size:10px;color:var(--text-3);margin-top:3px">기존 거래처 선택 시 사업자번호 · 은행정보 자동입력 · Select existing vendor to auto-fill</div>
@@ -1608,7 +2006,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
                   <div class="fg" style="margin-bottom:11px">
                     <label>Bank Location · 은행 소재지</label>
                     <div class="radio-row">
-                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked onchange="toggleBankType()"> Vietnam · 베트남</label>
+                      <label class="radio-label"><input type="radio" name="bankType" value="vn" checked="" onchange="toggleBankType()"> Vietnam · 베트남</label>
                       <label class="radio-label"><input type="radio" name="bankType" value="foreign" onchange="toggleBankType()"> Foreign · 해외</label>
                     </div>
                   </div>
@@ -1727,7 +2125,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
               </div>
             </div>
-            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked> Not required · 불필요</label></div></div>
+            <div class="fg span2"><label>Payment Required? · PAYMENT 필요 여부</label><div class="radio-row"><label class="radio-label"><input type="radio" name="needPayment" value="yes"> Required · 필요</label><label class="radio-label"><input type="radio" name="needPayment" value="no" checked=""> Not required · 불필요</label></div></div>
           </div>
           <div class="line-preview" id="linePreview"></div>
         </div>
@@ -1782,7 +2180,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="auth-card">
           <div class="auth-card-title" style="display:flex;align-items:center;gap:7px"><i class="ti ti-shield-check" style="color:var(--admin)"></i> Admin Login · 관리자 로그인</div>
           <div class="auth-card-sub">JINHA LEE administrator access · JINHA LEE 관리자 전용</div>
-          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
+          <div class="fg" style="margin-bottom:10px"><label>Admin Password · 관리자 비밀번호</label><input type="password" id="adminPw" placeholder="Enter admin password" onkeydown="if(event.key===&#39;Enter&#39;)loginAdmin()"></div>
           <div class="modal-err" id="adminErr">Incorrect password · 비밀번호 오류</div>
           <button class="btn btn-dark" onclick="loginAdmin()"><i class="ti ti-login"></i> Login · 로그인</button>
         </div>
@@ -1829,7 +2227,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="admin-card">
             <div class="admin-card-hdr"><i class="ti ti-key"></i> Change Password · 비밀번호 변경</div>
             <div class="admin-card-body">
-              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"></select></div>
+              <div class="fg" style="margin-bottom:10px"><label>Member · 구성원</label><select id="pwChangeWho"><option value="1">JINHA LEE · GENERAL MANAGER</option><option value="2">HWAN SHIN YU · MANAGER</option><option value="3">HANA · PROJECT MANAGER</option><option value="4">KMON · DESIGNER</option><option value="5">JACOB · CEO</option><option value="6">NK LEE · STAFF</option><option value="7">THANH BINH · STAFF</option></select></div>
               <div class="fg" style="margin-bottom:10px"><label>New Password · 새 비밀번호</label><input type="text" id="pwNew" placeholder="New password · 새 비밀번호"></div>
               <button class="btn btn-admin" onclick="changePassword()"><i class="ti ti-check"></i> Save · 저장</button>
             </div>
@@ -1922,7 +2320,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <div class="modal-box">
     <div class="modal-title"><i class="ti ti-lock" style="font-size:17px"></i><span id="pinTitle">Authentication · 인증</span></div>
     <div class="modal-sub" id="pinSub"></div>
-    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key==='Enter')confirmPin()">
+    <input type="password" id="pinInput" placeholder="Password · 비밀번호" onkeydown="if(event.key===&#39;Enter&#39;)confirmPin()">
     <div class="modal-err" id="pinErr">Incorrect password · 비밀번호 오류</div>
     <div class="modal-btns">
       <button class="btn btn-dark" onclick="confirmPin()"><i class="ti ti-check"></i> Confirm · 확인</button>
@@ -1932,8 +2330,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <div class="toast" id="toast"></div>
-<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple onchange="handleDraftFile(event)">
-<input type="file" id="contractAttInput" style="display:none" accept="image/*,.pdf,.docx,.doc" multiple onchange="handleContractAtt(event)">
+<input type="file" id="draftFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.xls,.docx,.doc" multiple="" onchange="handleDraftFile(event)">
+<input type="file" id="contractAttInput" style="display:none" accept="image/*,.pdf,.docx,.doc" multiple="" onchange="handleContractAtt(event)">
 <input type="file" id="payFileInput" style="display:none" accept="image/*,.pdf,.xlsx,.docx" onchange="handlePayFile(event)">
 
 <script>
@@ -1985,7 +2383,28 @@ function setSyncStatus(status, msg) {
   if(foot) foot.textContent = status==='ok'?'Online · 연결됨 ✓':'Offline · 오프라인';
 }
 
+// ── 입력 보호 가드: 사용자가 입력/편집 중인지 판별 ──
+function _isUserEditing(){
+  var a=document.activeElement;
+  if(a){
+    var t=(a.tagName||'').toUpperCase();
+    if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT'||a.isContentEditable) return true;
+  }
+  var ovs=document.querySelectorAll('.modal-overlay');
+  for(var i=0;i<ovs.length;i++){ if(getComputedStyle(ovs[i]).display!=='none') return true; }
+  return false;
+}
+// ── 관리자 판정 (기존 isAdmin 패턴 통합) ──
+function _isAdminUser(){
+  if(typeof sessionIsAdmin!=='undefined' && sessionIsAdmin) return true;
+  if(typeof window._gateUser!=='undefined' && window._gateUser && window._gateUser.isAdmin) return true;
+  var uid=parseInt(sessionStorage.getItem('inics_uid')||'0');
+  var m=(typeof gm==='function')?gm(uid):null;
+  return !!(m && m.isAdmin);
+}
+
 async function saveState() {
+  window._saveAt = Date.now();   // 저장 가드: 방금 저장 직후 stale 푸시가 덮어쓰는 것 방지
   // apply any password overrides from admin
   if(state.memberPasswords) {
     Object.entries(state.memberPasswords).forEach(([id,pw])=>{
@@ -2054,7 +2473,7 @@ async function loadState() {
   if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
   // realtime listener
   if(fbReady && window._fbListen){
-    window._fbListen(remote=>{
+    var _applyRemote=function(remote){
       state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
       if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
       if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(!state.viewScope)state.viewScope={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
@@ -2064,6 +2483,22 @@ async function loadState() {
       if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
       if(typeof _syncExtraMembers==='function') _syncExtraMembers();
       render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } if(typeof projectAppOpen!=='undefined' && projectAppOpen && typeof renderProjectBoard==='function'){ renderProjectBoard(); } setSyncStatus('ok','Live sync · 실시간 동기화');
+    };
+    window._pendingRemote=null;
+    window._fbListen(function(remote){
+      // 입력/모달 편집 중이면 보류했다가 입력 끝나면 반영 (입력 보호)
+      if(_isUserEditing()){ window._pendingRemote=remote; setSyncStatus('ok','Paused · 입력 중 일시정지'); return; }
+      // 방금 내가 저장한 직후엔 stale 푸시 무시 (저장 가드)
+      if(window._saveAt && (Date.now()-window._saveAt)<5000){ return; }
+      _applyRemote(remote);
+    });
+    // 입력 종료 시 보류분 반영
+    document.addEventListener('focusout', function(){
+      setTimeout(function(){
+        if(window._pendingRemote && !_isUserEditing()){
+          var r=window._pendingRemote; window._pendingRemote=null; _applyRemote(r);
+        }
+      }, 300);
     });
   }
 }
@@ -2841,7 +3276,7 @@ function renderAdminVendors(){
   if(!list.length){ el.innerHTML = '<p style="font-size:12px;color:var(--text-3)">No vendors · 거래처 없음</p>'; return; }
   el.innerHTML = list.map(function(v){
     var tag = v.source==='master' ? '<span class="badge b-done" style="font-size:9px">Master</span>' : '<span class="badge b-draft" style="font-size:9px">Doc</span>';
-    var del = v.source==='master' ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteVendor(\''+v.name.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button>' : '';
+    var del = (v.source==='master' && _isAdminUser()) ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteVendor(\''+v.name.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button>' : '';
     return '<div style="border-bottom:1px solid var(--border);padding:8px 0">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
       +'<div style="font-size:13px;font-weight:600">'+v.name+' '+tag+(v.reg?' <span style="font-size:10px;color:var(--text-3)">'+v.reg+'</span>':'')+'</div>'+del+'</div>'
@@ -2850,6 +3285,7 @@ function renderAdminVendors(){
 }
 
 function deleteVendor(name){
+  if(!_isAdminUser()){ showToast('관리자만 삭제할 수 있습니다 · Admin only'); return; }
   if(!confirm('거래처 마스터에서 삭제할까요?\nDelete from vendor master? ('+name+')')) return;
   var key = name.trim().toLowerCase();
   state.vendors = (state.vendors||[]).filter(function(v){ return v.name.trim().toLowerCase()!==key; });
@@ -8615,5 +9051,6 @@ if('serviceWorker' in navigator){
 }
 </script>
 
-</body>
-</html>
+
+
+</body></html>
