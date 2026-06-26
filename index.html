@@ -67,7 +67,7 @@
       if(m[k]!==undefined) k=k+"~"+i; m[k]=it; }
     return m;
   }
-  function _toArr(map){ if(!map||typeof map!=="object") return []; return Object.keys(map).map(function(k){ return map[k]; }); }
+  function _toArr(map){ if(!map||typeof map!=="object") return []; return Object.keys(map).map(function(k){ return map[k]; }).filter(function(x){ return x!=null; }); } // null = Firebase 정수키 배열변환 시 빈칸 → 제거
 
   // v2 트리(맵형) → 메모리 state(배열형)
   function _reassemble(tree){
