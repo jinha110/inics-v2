@@ -5326,6 +5326,7 @@ function saveModulePerms(){
   });
   saveState();
   showToast('모듈 권한 저장됨 · '+boxes.length+'개 설정 저장 완료');
+  if(typeof renderModulePerms==='function') renderModulePerms();   // 저장 즉시 실제 값으로 화면 갱신
 }
 
 // ═══════════════════════════════════════════
