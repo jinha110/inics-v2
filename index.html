@@ -2672,7 +2672,7 @@ function closeDetail(wrapId){
 function attListHTML(atts,deletable,docId,type){
   if(!atts||!atts.length)return '<div style="font-size:11px;color:var(--text-3);padding:3px 0">No attachments</div>';
   return atts.map(function(a,i){
-    var tj=JSON.stringify(type);
+    var tj="'"+type+"'";
     var canPrev = a.data && (/\.(png|jpe?g|gif|webp|bmp|pdf)$/i.test(a.name||'') || /^data:(image\/|application\/pdf)/i.test(a.data));
     var nameCell = canPrev
       ? '<span class="att-name" style="cursor:pointer;color:#2563eb;text-decoration:underline;text-underline-offset:2px" onclick="previewAtt('+docId+','+tj+','+i+')" title="미리보기 · Click to preview">'+a.name+'</span>'
@@ -2759,7 +2759,7 @@ function openAttPreviewModal(url, name, type, docId, idx, isBlob){
     + '<div style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i class="ti ti-file-type-pdf" style="margin-right:5px"></i>'+safeName+'</div>'
     + '<div style="display:flex;gap:8px;flex-shrink:0">'
       + '<a href="'+url+'" target="_blank" rel="noopener" class="btn btn-outline" style="font-size:12px;padding:6px 11px;background:#fff;text-decoration:none"><i class="ti ti-external-link"></i> 새 탭 · Open</a>'
-      + '<button class="btn btn-dark" style="font-size:12px;padding:6px 11px" onclick="downloadAtt('+docId+','+JSON.stringify(type)+','+idx+')"><i class="ti ti-download"></i> 다운로드 · Download</button>'
+      + '<button class="btn btn-dark" style="font-size:12px;padding:6px 11px" onclick="downloadAtt('+docId+",'"+type+"',"+idx+')"><i class="ti ti-download"></i> 다운로드 · Download</button>'
       + '<button class="btn btn-outline" style="font-size:12px;padding:6px 11px;background:#fff" onclick="closeAttPreview()"><i class="ti ti-x"></i> 닫기 · Close</button>'
     + '</div></div>'
     + '<iframe src="'+url+'" title="preview" style="flex:1;border:0;border-radius:8px;background:#fff;width:100%;min-height:0"></iframe>'
