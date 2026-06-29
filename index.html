@@ -17,17 +17,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
 <link href="./index_files/css2" rel="stylesheet">
 <link rel="stylesheet" href="./index_files/tabler-icons.min.css">
-<script src="./index_files/jspdf.umd.min.js.다운로드"></script>
-<script src="./index_files/html2canvas.min.js.다운로드"></script>
-<script src="./index_files/xlsx.full.min.js.다운로드"></script>
-<script src="./index_files/jszip.min.js.다운로드"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <!-- ════════════════════════════════════════════════
      FIREBASE CONFIG
      아래 7개 값을 Firebase Console에서 복사해서 교체하세요
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
-<script src="js/sync.js?v=3"></script>
+<script src="js/sync.js?v=4"></script>
 
 <style>
 :root {
@@ -5174,7 +5174,9 @@ function exportQuotePdf(){
       var pw=210, ph=297, iw=pw, ih=canvas.height*pw/canvas.width, hLeft=ih, pos=0;
       pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph;
       while(hLeft>0){ pos=hLeft-ih; pdf.addPage(); pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph; }
-      pdf.save((q.quoteNo||'quotation')+(q.client?('_'+q.client.replace(/[^a-zA-Z0-9]/g,'')):'')+'.pdf');
+      var _qf=(q.quoteNo||'quotation')+(q.client?('_'+q.client.replace(/[^a-zA-Z0-9]/g,'')):'');
+      if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'), '견적서', _qf); }catch(_){ } }
+      pdf.save(_qf+'.pdf');
       area.innerHTML=''; showToast('PDF 저장 완료 · Saved');
     }).catch(function(e){ area.innerHTML=''; showToast('PDF 생성 실패'); });
   },100);
@@ -5757,7 +5759,9 @@ function downloadContractPDF(){
       pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',0,marginMm,210,sliceCss*mmPerCss);
       first=false; start=cut;
     }
-    pdf.save('Contract_'+((o.contractNo||p.client||'contract').replace(/[^a-zA-Z0-9_-]/g,'_'))+'.pdf'); document.body.removeChild(wrap);
+    var _cf='Contract_'+((o.contractNo||p.client||'contract').replace(/[^a-zA-Z0-9_-]/g,'_'));
+    if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'), '계약서', _cf); }catch(_){ } }
+    pdf.save(_cf+'.pdf'); document.body.removeChild(wrap);
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
 }
 function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+buildContractHtml(p,o,false)+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
