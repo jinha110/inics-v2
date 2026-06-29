@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
 <link href="./index_files/css2" rel="stylesheet">
-<link rel="stylesheet" href="./index_files/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.35.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -27,7 +27,7 @@
      아래 7개 값을 Firebase Console에서 복사해서 교체하세요
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
-<script src="js/sync.js?v=4"></script>
+<script src="js/sync.js?v=5"></script>
 
 <style>
 :root {
@@ -5297,11 +5297,25 @@ function renderModulePerms(){
     var cells=mods.map(function(md){
       if(m.isAdmin) return '<div style="width:62px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
       var allowed = (md[0]==='acctAdmin') ? acctAdminAllowed(m) : moduleAllowed(md[0], m);
-      return '<div style="width:62px;text-align:center"><input type="checkbox" '+(allowed?'checked':'')+' onchange="setModulePerm('+m.id+',\''+md[0]+'\',this.checked)" style="width:16px;height:16px;cursor:pointer"></div>';
+      return '<div style="width:62px;text-align:center"><input type="checkbox" class="mperm" data-uid="'+m.id+'" data-mod="'+md[0]+'" '+(allowed?'checked':'')+' style="width:16px;height:16px;cursor:pointer"></div>';
     }).join('');
     return '<div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:9px 8px"><div style="flex:1;font-size:13px;font-weight:600">'+m.name+' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+m.role+'</span></div>'+cells+'</div>';
   }).join('');
-  el.innerHTML=head+rows+'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. <b>회계관리자</b>는 기본 비활성 — 체크 시 은행 명세서의 「Accounting Admin · 회계 관리자」 탭(카테고리 카탈로그 편집)에 접근할 수 있습니다. 관리자는 항상 전체 접근.</div>';
+  el.innerHTML=head+rows
+    +'<div style="padding:10px 8px;border-top:2px solid var(--border);display:flex;justify-content:flex-end"><button class="btn btn-dark" onclick="saveModulePerms()" style="font-size:12px;padding:7px 16px"><i class="ti ti-device-floppy"></i> 변경사항 저장 · Save Changes</button></div>'
+    +'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. <b>회계관리자</b>는 기본 비활성 — 체크 시 은행 명세서의 「Accounting Admin · 회계 관리자」 탭에 접근할 수 있습니다. 관리자는 항상 전체 접근. <b style="color:#b45309">변경 후 반드시 「변경사항 저장」을 눌러야 적용됩니다.</b></div>';
+}
+function saveModulePerms(){
+  if(!state.modulePerms) state.modulePerms={};
+  var DEF={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,contract:true,invoice:true,acctAdmin:false};
+  var boxes=document.querySelectorAll('#adminModulePerms input.mperm');
+  boxes.forEach(function(cb){
+    var uid=cb.getAttribute('data-uid'), mod=cb.getAttribute('data-mod');
+    if(!state.modulePerms[uid]) state.modulePerms[uid]=Object.assign({},DEF,state.modulePerms[uid]||{});
+    state.modulePerms[uid][mod]=cb.checked;
+  });
+  saveState();
+  showToast('모듈 권한 저장됨 · '+boxes.length+'개 설정 저장 완료');
 }
 
 // ═══════════════════════════════════════════
