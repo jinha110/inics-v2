@@ -4964,7 +4964,7 @@ function renderQuoteLines(){
     +'</tr></thead>';
   var rows=quoteLines.map(function(l,i){
     var thumb = l.image
-      ? '<img src="'+l.image+'" style="width:64px;height:52px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:4px;display:block">'
+      ? window._img(l.image,'style="width:64px;height:52px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:4px;display:block"')
       : '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:52px;border:1px dashed var(--border);border-radius:4px;cursor:pointer;color:var(--text-3)" title="이미지 업로드"><i class="ti ti-camera" style="font-size:16px"></i><input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>';
     var imgCell='<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'+thumb
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">'
@@ -5150,7 +5150,7 @@ function buildQuoteHtml(q){
   var qExempt=(q.vat==='exempt'); var qVatPct=qExempt?0:qNum(q.vat);
   var vatAmt=qExempt?0:sub*qVatPct/100, total=sub+vatAmt;
   var rows=(q.lines||[]).map(function(l,i){
-    var img=l.image?'<img src="'+l.image+'" style="max-width:74px;max-height:60px;object-fit:contain;background:#fff">':'';
+    var img=l.image?window._img(l.image,'style="max-width:74px;max-height:60px;object-fit:contain;background:#fff"'):'';
     return '<tr>'
       +'<td style="text-align:center">'+(i+1)+'</td>'
       +'<td>'+(l.category||'')+'</td>'
@@ -5206,12 +5206,19 @@ function previewQuote(){
     +'</div>';
   ov.style.display='flex';
 }
+async function _quoteResolveImgs(q){
+  if(!window._resolveRef) return;
+  var ls=(q&&q.lines)||[];
+  try{ await Promise.all(ls.map(function(l){ return (l&&typeof l.image==='string'&&l.image.indexOf('\u00A7f\u00A7')===0)?window._resolveRef(l.image):null; })); }catch(_){}
+}
 function exportQuotePdf(){
   if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
   var q=collectQuote();
   if(!q.lines.length){ showToast('품목을 추가하세요'); return; }
-  var area=document.getElementById('quotePrintArea'); area.innerHTML=buildQuoteHtml(q);
+  var area=document.getElementById('quotePrintArea');
   showToast('PDF 생성 중…');
+  _quoteResolveImgs(q).then(function(){
+  area.innerHTML=buildQuoteHtml(q);
   setTimeout(function(){
     html2canvas(area,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
       var img=canvas.toDataURL('image/jpeg',0.92);
@@ -5225,6 +5232,7 @@ function exportQuotePdf(){
       area.innerHTML=''; showToast('PDF 저장 완료 · Saved');
     }).catch(function(e){ area.innerHTML=''; showToast('PDF 생성 실패'); });
   },100);
+  });
 }
 
 
@@ -5306,7 +5314,9 @@ function renderModulePerms(){
   var rows=MEMBERS.map(function(m){
     var cells=mods.map(function(md){
       if(m.isAdmin) return '<div style="width:62px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
-      var allowed = (md[0]==='acctAdmin') ? acctAdminAllowed(m) : moduleAllowed(md[0], m);
+      var allowed = (md[0]==='acctAdmin')
+        ? (function(){ var pp=(state.modulePerms||{})[_mpk(m.id)]; return !!(pp && pp.acctAdmin===true); })()
+        : moduleAllowed(md[0], m);
       return '<div style="width:62px;text-align:center"><input type="checkbox" class="mperm" data-uid="'+m.id+'" data-mod="'+md[0]+'" '+(allowed?'checked':'')+' style="width:16px;height:16px;cursor:pointer"></div>';
     }).join('');
     return '<div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:9px 8px"><div style="flex:1;font-size:13px;font-weight:600">'+m.name+' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+m.role+'</span></div>'+cells+'</div>';
