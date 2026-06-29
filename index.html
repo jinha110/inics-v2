@@ -2291,6 +2291,7 @@ async function loadState() {
     if(state.cardSeq===undefined)state.cardSeq=0;
     if(!state.cardMerchants)state.cardMerchants=[];
     if(!state.modulePerms)state.modulePerms={};
+    if(typeof _mpNormalize==='function') _mpNormalize();
     if(!state.products)state.products=[];
     if(!state.quotes)state.quotes=[];
     if(state.quoteSeq===undefined)state.quoteSeq=0;
@@ -2323,7 +2324,7 @@ async function loadState() {
     var _applyRemote=function(remote){
       state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
       if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
-      if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(!state.viewScope)state.viewScope={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
+      if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(typeof _mpNormalize==='function') _mpNormalize(); if(!state.viewScope)state.viewScope={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
       if(!state.projects)state.projects=[]; if(state.projectSeq===undefined)state.projectSeq=0;
       if(!state.bankTxns)state.bankTxns=[]; if(state.bankSeq===undefined)state.bankSeq=0; if(typeof bankSeedOnce==='function') bankSeedOnce();
       if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});} if(state.memberNames){Object.entries(state.memberNames).forEach(([id,nm])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.name=nm;});}
@@ -5255,24 +5256,33 @@ function showHub() {
 }
 
 // ── Per-user module access ──
+function _mpk(id){ return 'u'+id; }   // 숫자키 배열화(Firebase) 방지용 문자열 키
+function _mpNormalize(){               // 기존 숫자키/배열 → u-접두사 객체로 자동 이전
+  var mp=state.modulePerms;
+  if(!mp){ state.modulePerms={}; return; }
+  if(Array.isArray(mp)){ var oa={}; mp.forEach(function(v,i){ if(v) oa['u'+i]=v; }); state.modulePerms=oa; return; }
+  var o={}, changed=false;
+  for(var k in mp){ if(/^\d+$/.test(k)){ o['u'+k]=mp[k]; changed=true; } else { o[k]=mp[k]; } }
+  if(changed) state.modulePerms=o;
+}
 function moduleAllowed(key, u){
   u = u || cardCurrentUser();
   if(!u) return true;
   if(u.isAdmin) return true;
-  var p = (state.modulePerms||{})[u.id];
+  var p = (state.modulePerms||{})[_mpk(u.id)];
   if(!p) return true;          // 기본 허용 (설정 없으면 전체 접근)
   return p[key] !== false;
 }
 function setModulePerm(uid, key, allowed){
   if(!state.modulePerms) state.modulePerms={};
-  var p=state.modulePerms[uid];
-  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,contract:true,invoice:true,acctAdmin:false}; state.modulePerms[uid]=p; }
+  var p=state.modulePerms[_mpk(uid)];
+  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,contract:true,invoice:true,acctAdmin:false}; state.modulePerms[_mpk(uid)]=p; }
   p[key]=!!allowed;
   saveState();
   showToast('모듈 권한 저장됨 · Access saved');
 }
 // 회계 관리자 패널 접근 권한 (기본 비활성 — 관리자 또는 명시적 허용자만)
-function acctAdminAllowed(u){ u=u||cardCurrentUser(); if(!u)return false; if(u.isAdmin||sessionIsAdmin)return true; var p=(state.modulePerms||{})[u.id]; if(!p)return false; return p.acctAdmin===true; }
+function acctAdminAllowed(u){ u=u||cardCurrentUser(); if(!u)return false; if(u.isAdmin||sessionIsAdmin)return true; var p=(state.modulePerms||{})[_mpk(u.id)]; if(!p)return false; return p.acctAdmin===true; }
 function canViewAll(module){ var u=cardCurrentUser(); if(!u)return true; if(u.isAdmin||sessionIsAdmin)return true; var sc=(state.viewScope||{})[u.id]; if(!sc)return true; return sc[module]!=='own'; }
 function setViewScope(uid,mod,val){ if(!state.viewScope)state.viewScope={}; if(!state.viewScope[uid])state.viewScope[uid]={}; state.viewScope[uid][mod]=val; saveState(); showToast('조회 범위 저장됨 · View scope saved'); }
 function renderViewScope(){
@@ -5311,8 +5321,8 @@ function saveModulePerms(){
   var boxes=document.querySelectorAll('#adminModulePerms input.mperm');
   boxes.forEach(function(cb){
     var uid=cb.getAttribute('data-uid'), mod=cb.getAttribute('data-mod');
-    if(!state.modulePerms[uid]) state.modulePerms[uid]=Object.assign({},DEF,state.modulePerms[uid]||{});
-    state.modulePerms[uid][mod]=cb.checked;
+    if(!state.modulePerms[_mpk(uid)]) state.modulePerms[_mpk(uid)]=Object.assign({},DEF,state.modulePerms[_mpk(uid)]||{});
+    state.modulePerms[_mpk(uid)][mod]=cb.checked;
   });
   saveState();
   showToast('모듈 권한 저장됨 · '+boxes.length+'개 설정 저장 완료');
