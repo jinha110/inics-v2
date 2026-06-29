@@ -295,6 +295,27 @@
     }catch(e){ console.log("실패:",e.message); }
   };
 
+  // ── PDF 보관: 생성된 PDF를 Storage(+선택적 Make→Drive)로 업로드 ──
+  //   견적·계약 PDF를 만들 때 자동 호출됨. 다운로드는 그대로 진행.
+  window.MAKE_PDF_WEBHOOK = "";   // Make.com 웹훅 주소 (Drive 미러링용) — 세팅 후 여기에 입력
+  window._archivePdf = async function(blob, folder, filename){
+    try{
+      var BUCKET="inics-approval.firebasestorage.app";
+      var safe=String(filename||"file").replace(/[\/\\:*?"<>|#\[\]]/g,"_").replace(/\s+/g,"_").slice(0,90);
+      var ts=new Date().toISOString().slice(0,10);
+      var path="PDF/"+folder+"/"+safe+"_"+ts+".pdf";
+      var url="https://firebasestorage.googleapis.com/v0/b/"+BUCKET+"/o?name="+encodeURIComponent(path);
+      var r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/pdf"},body:blob});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      if(window.MAKE_PDF_WEBHOOK){                       // Drive 미러링 (Make 세팅 후 활성)
+        try{ var fd=new FormData(); fd.append("file",blob,safe+".pdf"); fd.append("folder",folder); fd.append("filename",safe+"_"+ts+".pdf");
+          await fetch(window.MAKE_PDF_WEBHOOK,{method:"POST",body:fd}); }catch(_){}
+      }
+      if(typeof showToast==='function') showToast("PDF 보관됨 · Storage 저장 ("+folder+")");
+      return true;
+    }catch(e){ console.warn("PDF 보관 실패:",e&&e.message); if(typeof showToast==='function') showToast("PDF Storage 저장 실패(다운로드는 정상)"); return false; }
+  };
+
   window._firebaseReady = true;
   window._fbInitDone = true;
   if (typeof window._onFirebaseReady === 'function') { window._onFirebaseReady(); }
