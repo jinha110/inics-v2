@@ -3329,35 +3329,79 @@ function deleteDoc(id){state.docs=state.docs.filter(d=>d.id!==id);saveState();cu
 // ═══════════════════════════════════════════
 // PDF
 // ═══════════════════════════════════════════
+function buildApprovalHtml(doc){
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function nm(id){var m=gm(id);return m?m.name:'—';}
+  var dr=gm(doc.drafterId),a1=gm(doc.a1Id),a2=doc.a2Id?gm(doc.a2Id):null;
+  var st=doc.status;
+  var steps=[{l:'Draft · 기안',m:dr,on:st!=='draft'},
+             {l:'1st Approval · 1차',m:a1,on:['pending2','payment','done'].indexOf(st)>=0}];
+  if(a2)steps.push({l:'2nd Approval · 2차',m:a2,on:['payment','done'].indexOf(st)>=0});
+  if(doc.needPayment)steps.push({l:'Payment · 결제',m:null,on:st==='done'});
+  steps.push({l:'Done · 완료',m:null,on:st==='done'});
+  var fw=(100/steps.length).toFixed(4);
+  var flow=steps.map(function(s){
+    return '<td style="width:'+fw+'%;text-align:center;vertical-align:top;padding:8px 4px;border-radius:6px;background:'+(s.on?'#d4edda':'#f4f4f4')+'">'
+      +'<div style="font-size:10px;font-weight:bold;color:#333">'+esc(s.l)+'</div>'
+      +(s.m?'<div style="font-size:9px;color:#666;margin-top:3px">'+esc(s.m.name)+'</div>':'')+'</td>';
+  }).join('<td style="width:6px"></td>');
+  function row(l,v,b){return '<tr><td style="color:#888;font-size:11px;width:150px;padding:3px 0;vertical-align:top">'+esc(l)+'</td>'
+    +'<td style="color:#1a1a18;font-size:11px;padding:3px 0;'+(b?'font-weight:bold':'')+'">'+esc(v||'—')+'</td></tr>';}
+  var info=row('Type · 유형',doc.type)+row('Dept · 소속',doc.dept)+row('Drafter · 기안자',nm(doc.drafterId))
+    +(doc.amount?row('Amount · 금액',(doc.currency||'')+' '+doc.amount,true):'')
+    +row('Created · 기안일',doc.createdAt)+(doc.doneAt?row('Completed · 완료일',doc.doneAt):'')
+    +row('Payment · 결제',doc.needPayment?'Required · 필요':'Not required · 불필요');
+  function sec(t){return '<div style="font-size:11px;font-weight:bold;color:#444;margin:16px 0 8px;letter-spacing:.3px">'+t+'</div>';}
+  var desc=doc.content?(sec('DESCRIPTION · 내용')+'<div style="font-size:11px;color:#333;line-height:1.6;white-space:pre-wrap">'+esc(doc.content)+'</div>'):'';
+  var hist='';
+  if(doc.comments&&doc.comments.length){
+    hist=sec('APPROVAL HISTORY · 결재 이력')+doc.comments.map(function(c){
+      return '<div style="background:#fafafa;border:1px solid #eee;border-radius:6px;padding:7px 9px;margin-bottom:5px">'
+        +'<div style="font-size:11px"><b style="color:#111">'+esc(c.who)+'</b> <span style="color:#999">'+esc(c.role)+'</span>'
+        +'<span style="float:right;color:#aaa;font-size:10px">'+esc(c.time)+'</span></div>'
+        +'<div style="font-size:11px;color:#333;margin-top:3px">'+esc(c.text)+'</div></div>';
+    }).join('');
+  }
+  var atts=[];
+  (doc.draftAtts||[]).forEach(function(a){atts.push(['기안',a]);});
+  (doc.payAtts||[]).forEach(function(a){atts.push(['결제',a]);});
+  var attHtml='';
+  if(atts.length){
+    attHtml=sec('ATTACHMENTS · 첨부 파일')+atts.map(function(x){
+      return '<div style="font-size:11px;color:#555;padding:2px 0">• ['+esc(x[0])+']  '+esc(x[1].name)+'  <span style="color:#aaa">('+esc(x[1].size||'')+')</span></div>';
+    }).join('');
+  }
+  return '<div style="width:720px;box-sizing:border-box;padding:28px 32px;font-family:\'Malgun Gothic\',\'Apple SD Gothic Neo\',\'Noto Sans KR\',sans-serif;color:#1a1a18;background:#fff">'
+    +'<div style="background:#1a1a18;color:#fff;padding:11px 14px;border-radius:6px;font-size:13px;font-weight:bold">INICS — APPROVAL DOCUMENT · 전자결재</div>'
+    +'<div style="font-size:15px;font-weight:bold;margin:14px 0 3px">'+esc(doc.title||'')+'</div>'
+    +'<div style="font-size:10px;color:#888;border-bottom:1px solid #ddd;padding-bottom:8px">'
+      +(doc.docNo?('No: '+esc(doc.docNo)):'')+'<span style="float:right">Status: '+esc(sLabel(doc.status))+'</span></div>'
+    +sec('DOCUMENT INFO · 문서 정보')+'<table style="width:100%;border-collapse:collapse">'+info+'</table>'
+    +desc
+    +sec('APPROVAL FLOW · 결재 흐름')+'<table style="width:100%;border-collapse:separate"><tr>'+flow+'</tr></table>'
+    +hist+attHtml
+    +'<div style="margin-top:20px;border-top:1px solid #eee;padding-top:8px;font-size:9px;color:#aaa;text-align:center">INICS Electronic Approval · 전자결재  ·  Generated · 출력: '+esc(nowStr())+'</div>'
+    +'</div>';
+}
 function printPDF(id){
   const doc=state.docs.find(d=>d.id===id);if(!doc)return;
-  const{jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const W=210,ml=18,mr=18,cw=W-ml-mr;let y=20;
-  function chk(n){if(y+n>278){pdf.addPage();y=20;}}
-  function hl(c='#ddd'){pdf.setDrawColor(c);pdf.line(ml,y,W-mr,y);}
-  function fr(x,ry,w,h,c){pdf.setFillColor(c);pdf.rect(x,ry,w,h,'F');}
-  fr(ml,y,cw,14,'#1a1a18');pdf.setFont('helvetica','bold');pdf.setFontSize(12);pdf.setTextColor('#fff');pdf.text('INICS — APPROVAL DOCUMENT · 전자결재',ml+4,y+9);y+=18;
-  pdf.setFont('helvetica','bold');pdf.setFontSize(10);pdf.setTextColor('#1a1a18');pdf.text((doc.title||'').substring(0,55),ml,y);y+=5;
-  pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor('#777');if(doc.docNo)pdf.text(`No: ${doc.docNo}`,ml,y);pdf.text(`Status: ${sLabel(doc.status)}`,W-mr,y,{align:'right'});y+=7;hl();y+=6;
-  function row(l,v,bold=false){chk(7);pdf.setFontSize(8);pdf.setFont('helvetica','normal');pdf.setTextColor('#888');pdf.text(l,ml,y);pdf.setFont('helvetica',bold?'bold':'normal');pdf.setTextColor('#1a1a18');pdf.text(String(v||'—'),ml+34,y);y+=6;}
-  pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('DOCUMENT INFO · 문서 정보',ml,y);y+=5;
-  row('Type · 유형',doc.type);row('Dept · 소속',doc.dept);row('Drafter · 기안자',gm(doc.drafterId)?.name||'—');
-  if(doc.amount)row('Amount · 금액',`${doc.currency} ${doc.amount}`,true);
-  row('Created · 기안일',doc.createdAt);if(doc.doneAt)row('Completed · 완료일',doc.doneAt);
-  row('Payment · 결제',doc.needPayment?'Required · 필요':'Not required · 불필요');
-  y+=2;hl('#eee');y+=6;
-  if(doc.content){chk(12);pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('DESCRIPTION · 내용',ml,y);y+=5;pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor('#333');pdf.splitTextToSize(doc.content,cw).forEach(l=>{chk(6);pdf.text(l,ml,y);y+=5;});y+=2;hl('#eee');y+=6;}
-  chk(18);pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('APPROVAL FLOW · 결재 흐름',ml,y);y+=5;
-  const dr=gm(doc.drafterId),a1=gm(doc.a1Id),a2=doc.a2Id?gm(doc.a2Id):null;
-  const fi=[{l:'Draft\n기안',m:dr},{l:'1st Approval\n1차 승인',m:a1}];
-  if(a2)fi.push({l:'2nd Approval\n2차 승인',m:a2});if(doc.needPayment)fi.push({l:'Payment\n결제',m:null});fi.push({l:'Done\n완료',m:null});
-  const fw=cw/fi.length;
-  fi.forEach((f,i)=>{const fx=ml+i*fw;const done=(()=>{if(i===0)return doc.status!=='draft';if(i===1)return['pending2','payment','done'].includes(doc.status);if(i===2&&a2)return['payment','done'].includes(doc.status);if(f.l.includes('Payment'))return doc.status==='done';if(f.l.includes('Done'))return doc.status==='done';return false;})();fr(fx+1,y-1,fw-2,16,done?'#d4edda':'#f4f4f4');pdf.setFont('helvetica','bold');pdf.setFontSize(6.5);pdf.setTextColor('#333');const ll=f.l.split('\n');pdf.text(ll[0],fx+fw/2,y+5,{align:'center'});if(ll[1]){pdf.setFont('helvetica','normal');pdf.setFontSize(6);pdf.setTextColor('#888');pdf.text(ll[1],fx+fw/2,y+9,{align:'center'});}if(f.m){pdf.setFontSize(6);pdf.setTextColor('#555');pdf.text(f.m.name,fx+fw/2,y+13,{align:'center'});}});y+=20;
-  if(doc.comments?.length){chk(14);hl('#eee');y+=6;pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('APPROVAL HISTORY · 결재 이력',ml,y);y+=5;doc.comments.forEach((c,i)=>{chk(14);fr(ml,y-3,cw,14,i%2===0?'#fafafa':'#f5f5f5');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor('#111');pdf.text(c.who,ml+2,y+1);pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.setTextColor('#888');pdf.text(c.role,ml+2,y+6);pdf.text(c.time,W-mr-2,y+1,{align:'right'});pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor('#333');pdf.text((pdf.splitTextToSize(c.text,cw-36))[0]||'',ml+42,y+1);y+=14;});}
-  const allAtts=[...(doc.draftAtts||[]).map(a=>({...a,tp:'Draft · 기안'})),...(doc.payAtts||[]).map(a=>({...a,tp:'Payment · 결제'}))];
-  if(allAtts.length){hl('#eee');y+=6;pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor('#444');pdf.text('ATTACHMENTS · 첨부 파일',ml,y);y+=5;allAtts.forEach(a=>{chk(6);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor('#555');pdf.text(`• [${a.tp}]  ${a.name}  (${a.size})`,ml+2,y);y+=5;});}
-  const total=pdf.getNumberOfPages();for(let p=1;p<=total;p++){pdf.setPage(p);pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.setTextColor('#aaa');pdf.text(`INICS Electronic Approval · 전자결재  |  ${p}/${total}`,W/2,292,{align:'center'});pdf.text(`Generated · 출력: ${nowStr()}`,W-mr,292,{align:'right'});}
-  pdf.save(`${doc.docNo||'doc'}_${(doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24)}.pdf`);showToast('PDF saved · PDF 저장 완료');
+  if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
+  showToast('PDF 생성 중…');
+  var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:720px;background:#fff';
+  wrap.innerHTML=buildApprovalHtml(doc); document.body.appendChild(wrap);
+  setTimeout(function(){
+    html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
+      var pdf=new window.jspdf.jsPDF('p','mm','a4');
+      var img=canvas.toDataURL('image/jpeg',0.92);
+      var pw=210, ph=297, iw=pw, ih=canvas.height*pw/canvas.width, hLeft=ih, pos=0;
+      pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph;
+      while(hLeft>0){ pos=hLeft-ih; pdf.addPage(); pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph; }
+      var _df=(doc.docNo||'doc')+'_'+((doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24));
+      if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'),'전자결재',_df); }catch(_){ } }
+      pdf.save(_df+'.pdf');
+      document.body.removeChild(wrap); showToast('PDF saved · PDF 저장 완료');
+    }).catch(function(e){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 생성 실패'); });
+  },100);
 }
 
 
