@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INICS · HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16243B;--ink-2:#2C3A52;--paper:#F4F5F2;--surface:#FFFFFF;
+  --jade:#1F7A6B;--jade-d:#155A4E;--amber:#B5760B;--red:#A93B36;
+  --line:#DCE1E0;--line-2:#E9ECEA;--muted:#6B7682;--muted-2:#949DA6;
+  --paper-band:#ECEEEA;--shadow:0 1px 2px rgba(22,36,59,.05),0 8px 24px -12px rgba(22,36,59,.12);
+}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer}h1,h2,h3{margin:0;font-weight:600}
+.shell{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+.side{background:var(--ink);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.1)}
+.brand .mark{font-family:Spectral;font-weight:700;font-size:21px;letter-spacing:.02em}
+.brand .mark em{font-style:normal;color:#8FD3C5}
+.brand .sub{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8C97A6;margin-top:3px}
+.nav{padding:14px 12px;display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:none;border:0;color:#B9C2CE;padding:10px 12px;border-radius:7px;font-size:13.5px;font-weight:500}
+.nav button .ix{font-family:"IBM Plex Mono";font-size:11px;color:#5E6B7D;width:16px}
+.nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav button.on{background:var(--jade);color:#fff}.nav button.on .ix{color:#BfeBe2}
+.side .foot{margin-top:auto;padding:16px 22px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:#7A8696;line-height:1.6}
+.side .foot b{color:#B9C2CE;font-weight:600}
+.main{min-width:0}
+.top{background:var(--surface);border-bottom:1px solid var(--line);padding:18px 30px;display:flex;align-items:baseline;justify-content:space-between;position:sticky;top:0;z-index:5}
+.top .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2)}
+.top h1{font-family:Spectral;font-size:25px;font-weight:600;margin-top:2px}
+.top .asof{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.top .asof input{font-family:"IBM Plex Mono";font-size:13px;border:1px solid var(--line);border-radius:6px;padding:6px 9px;color:var(--ink);background:var(--paper)}
+.wrap{padding:26px 30px 60px;max-width:1180px}
+.view{display:none}.view.on{display:block;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:15px 17px;position:relative;overflow:hidden}
+.stat .k{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2)}
+.stat .v{font-family:"IBM Plex Mono";font-size:23px;font-weight:500;margin-top:8px;letter-spacing:-.01em}
+.stat .u{font-size:11px;color:var(--muted);margin-top:1px}
+.stat.accent{background:var(--ink);border-color:var(--ink)}
+.stat.accent .k{color:#8C97A6}.stat.accent .v{color:#fff}.stat.accent .u{color:#9aa6b4}
+.stat .tick{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--jade)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:22px}
+.panel>.head{padding:15px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between}
+.panel>.head h2{font-family:Spectral;font-size:17px;font-weight:600}
+.panel>.head .hint{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:11px 14px;background:var(--paper-band);border-bottom:1px solid var(--line)}
+thead th.l{text-align:left}
+tbody td{padding:13px 14px;border-bottom:1px solid var(--line-2);text-align:right;font-family:"IBM Plex Mono";font-size:13px;white-space:nowrap}
+tbody td.l{text-align:left;font-family:Inter}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.row:hover{background:#FAFBFA;cursor:pointer}
+tbody tr.total td{background:var(--paper-band);font-weight:600;border-top:2px solid var(--ink);border-bottom:0}
+.who{display:flex;flex-direction:column;gap:1px}.who b{font-weight:600;font-size:13.5px}.who span{font-size:11.5px;color:var(--muted)}
+.cost{font-weight:600;color:var(--ink)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;font-family:Inter}
+.tag.net{background:#E7F1EF;color:var(--jade-d)}.tag.gross{background:#EAEDF2;color:var(--ink-2)}
+.tag.prob{background:#FBF0DC;color:var(--amber)}.tag.official{background:#E7F1EF;color:var(--jade-d)}
+.tag.dot::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 15px;font-size:13px;font-weight:500;transition:.15s}
+.btn:hover{border-color:var(--ink-2)}
+.btn.pri{background:var(--jade);border-color:var(--jade);color:#fff}.btn.pri:hover{background:var(--jade-d)}
+.btn.sm{padding:5px 11px;font-size:12px}
+.btn.gho{background:none;border-color:transparent;color:var(--jade-d)}.btn.gho:hover{background:#EEF3F2}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:2px}
+.fld label{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.fld input,.fld select,.fld textarea{font-family:Inter;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--surface);color:var(--ink);width:100%}
+.fld input.mono{font-family:"IBM Plex Mono"}.fld textarea{min-height:54px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--jade);box-shadow:0 0 0 3px rgba(31,122,107,.12)}
+.section-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--jade-d);font-weight:600;margin:20px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line-2)}
+.section-label:first-child{margin-top:4px}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+.muted{color:var(--muted)}
+.pcard{display:grid;grid-template-columns:200px 1fr;gap:0}
+.pcard .photo{background:linear-gradient(160deg,#1F3350,#16243B);color:#fff;padding:26px 22px;display:flex;flex-direction:column;gap:14px}
+.pcard .avatar{width:64px;height:64px;border-radius:14px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-family:Spectral;font-size:26px;font-weight:600;color:#9FE3D5}
+.pcard .pn{font-family:Spectral;font-size:19px;font-weight:600;line-height:1.25}
+.pcard .pnen{font-size:11.5px;color:#9aa6b4;letter-spacing:.02em}
+.pcard .pmeta{margin-top:auto;font-size:11.5px;color:#9aa6b4;line-height:1.7}
+.pcard .pmeta b{color:#cfd6df;font-weight:600}
+.pcard .body{padding:22px 26px}
+.dl{display:grid;grid-template-columns:1fr 1fr;gap:0 26px}
+.dl .item{padding:10px 0;border-bottom:1px solid var(--line-2)}
+.dl .item.full{grid-column:1/-1}
+.dl .item .dt{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.dl .item .dd{font-size:14px}
+.dl .item .dd.mono{font-family:"IBM Plex Mono";font-size:13.5px}
+.miss{color:var(--amber);background:#FBF4E6;display:inline-block;padding:1px 7px;border-radius:5px;font-size:12px;font-weight:600}
+.readiness{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:11px 14px;border-radius:9px;margin:0 0 14px}
+.readiness.ok{background:#E7F1EF;color:var(--jade-d)}
+.readiness.warn{background:#FBF4E6;color:#6E5414}
+.split{display:grid;grid-template-columns:330px 1fr;gap:22px;align-items:start}
+.doc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:34px 40px;box-shadow:var(--shadow);font-size:12px;line-height:1.6;max-height:660px;overflow:auto}
+.doc .ctr{text-align:center}.doc .nat{font-family:Spectral;font-weight:700;font-size:12.5px}
+.doc .moto{font-size:10.5px;border-bottom:1px solid var(--ink);display:inline-block;padding-bottom:2px;margin-top:2px}
+.doc h2.title{font-family:Spectral;font-size:19px;text-align:center;margin:18px 0 2px}
+.doc .titleen{text-align:center;font-style:italic;color:var(--muted);font-size:12.5px;margin-bottom:16px}
+.doc .art{font-weight:600;margin:15px 0 4px;font-family:Spectral;font-size:13px}
+.doc .en{color:var(--muted);font-style:italic;display:block;font-size:11px}
+.doc .f{background:#E7F1EF;border-bottom:1px solid #9FC9C0;padding:0 2px;font-weight:600}
+.doc .blank{background:#FBF4E6;border-bottom:1px dashed #D9A93C;padding:0 8px;color:#9C6B0E;font-weight:600;font-size:11px}
+.doc p{margin:4px 0}
+.doc .sig{display:flex;justify-content:space-between;margin-top:22px;text-align:center;gap:20px}
+.doc .sig div{flex:1}.doc .sig b{display:block;font-size:11.5px}.doc .sig .nm{margin-top:42px;font-weight:600}
+.flag{display:flex;gap:9px;align-items:flex-start;background:#FBF4E6;border:1px solid #EAD9B5;border-radius:9px;padding:11px 13px;font-size:12.5px;color:#6E5414;margin-top:14px}
+.flag b{color:var(--amber)}
+.legend{font-size:11px;color:var(--muted);display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:11px;border-radius:3px;display:inline-block}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.side{position:static;height:auto}.statrow{grid-template-columns:1fr 1fr}.split{grid-template-columns:1fr}.grid2,.dl,.pcard{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div class="mark">INICS<em>·</em>HR</div><div class="sub">Vietnam · 인사·급여</div></div>
+    <nav class="nav" id="nav">
+      <button data-v="emp" class="on"><span class="ix">01</span>직원 인적사항 / Employees</button>
+      <button data-v="pay"><span class="ix">02</span>급여대장 / Payroll</button>
+      <button data-v="att"><span class="ix">03</span>출결·휴가 / Attendance & Leave</button>
+      <button data-v="con"><span class="ix">04</span>계약서 / Contracts</button>
+    </nav>
+    <div class="side foot"><b>INICS VINA</b><br>MST 0319562684<br>Số 28 Đặng Hữu Phổ, HCMC<br>
+      <span style="color:#5E6B7D">프로토타입 · 세션 저장</span></div>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <div><div class="eyebrow" id="crumb">직원 인적사항 / Employees</div><h1 id="title">직원 인적사항 / Employees</h1></div>
+      <label class="asof">급여 기준일 <input type="date" id="asof" value="2026-06-30"></label>
+    </header>
+    <div class="wrap">
+      <section class="view on" id="view-emp"></section>
+      <section class="view" id="view-pay"></section>
+      <section class="view" id="view-att"></section>
+      <section class="view" id="view-con"></section>
+    </div>
+  </main>
+</div>
+<script>
+const COMPANY={name:'CÔNG TY TNHH INICS VINA',mst:'0319562684',addrVi:'Số 28 Đặng Hữu Phổ, phường An Khánh, Thành phố Hồ Chí Minh, Việt Nam',rep:'LEE JINHA'};
+const SETTINGS={personalDed:15500000,dependentDed:6200000,empRate:{si:.08,hi:.015,ui:.01},comRate:{si:.17,hi:.03,ai:.005,ui:.01},capSIHI:46800000,capUI:106200000};
+/* ---- persistent storage (Claude window.storage → localStorage fallback) ---- */
+const Store={
+  async get(key){
+    try{ if(typeof window!=='undefined'&&window.storage){const r=await window.storage.get(key,false);return r?JSON.parse(r.value):null;} }catch(e){}
+    try{ const v=localStorage.getItem('inics:'+key);return v?JSON.parse(v):null; }catch(e){ return null; }
+  },
+  async set(key,val){
+    const s=JSON.stringify(val);
+    try{ if(typeof window!=='undefined'&&window.storage){await window.storage.set(key,s,false);return;} }catch(e){}
+    try{ localStorage.setItem('inics:'+key,s); }catch(e){}
+  },
+  async del(key){
+    try{ if(typeof window!=='undefined'&&window.storage){await window.storage.delete(key,false);return;} }catch(e){}
+    try{ localStorage.removeItem('inics:'+key); }catch(e){}
+  }
+};
+let contractsCache=[];
+let employees=[
+ {id:'E01',nameVi:'Nguyễn Xuân Hải Quỳnh',nameEn:'NGUYEN XUAN HAI QUYNH',gender:'F',dob:'1995-12-03',cccd:'079195011802',issued:'2023-04-15',issuerVi:'Bộ Công An',issuerEn:'Ministry of Public Security',
+  addrVi:'121/32 Kp4, phường Trung Mỹ Tây, Thành phố Hồ Chí Minh',addrEn:'121/32 Kp4, Trung My Tay Ward, Ho Chi Minh City',phone:'',email:'',
+  dept:'Furniture',positionVi:'Nhân viên',positionEn:'Staff',positionKo:'프로젝트 매니저',
+  jobDescVi:'Quản lý dự án và hỗ trợ kinh doanh mảng nội thất (Furniture)',jobDescEn:'Furniture project management and sales support',
+  joinDate:'2026-04-01',probStart:'2026-04-01',probEnd:null,hrManaged:true,empType:'local_employee',
+  salaryType:'NET',salary:22000000,dependents:0,si:true,pitMethod:'Prog',status:'active',probPct:1},
+ {id:'E02',nameVi:'Nguyễn Thị Thanh Bình',nameEn:'NGUYEN THI THANH BINH',gender:'F',dob:'1998-02-22',cccd:'077198005576',issued:'2021-07-10',issuerVi:'Bộ Công An',issuerEn:'Ministry of Public Security',
+  addrVi:'76 Đường số 6, Phường Linh Xuân, Thành phố Hồ Chí Minh',addrEn:'76 6th Street, Linh Xuan Ward, Ho Chi Minh City',phone:'',email:'',
+  dept:'Finance',positionVi:'Nhân viên Hỗ trợ Vận hành (Hành chính – Tài chính – Mua hàng)',positionEn:'Business Support Officer (Administration – Finance – Purchasing)',positionKo:'경영지원·구매',
+  jobDescVi:'Hỗ trợ vận hành & hành chính; phối hợp kế toán bên ngoài, kiểm soát chi phí; tìm nguồn & mua hàng (báo giá, điều khoản thương mại).',jobDescEn:'Operations & admin support; coordinating external accounting, cost control; sourcing & purchasing (quotations, commercial terms).',
+  joinDate:'2026-06-15',probStart:'2026-06-15',probEnd:'2026-08-14',hrManaged:true,empType:'local_employee',
+  salaryType:'Gross',salary:24000000,dependents:0,si:false,pitMethod:'10%',status:'probation',probPct:1},
+ {id:'E03',nameVi:'Tạ Vĩnh Quốc Khánh',nameEn:'TA VINH QUOC KHANH',gender:'M',dob:'2002-09-02',cccd:'082202000290',issued:'2021-03-12',issuerVi:'Cục Cảnh sát QLHC về TTXH (Bộ Công An)',issuerEn:'Police Dept. for Administrative Management of Social Order',
+  addrVi:'220, tổ 11, Hiệp An, Hiệp Tân, Hòa Thành, Tây Ninh',addrEn:'220, To 11, Hiep An, Hiep Tan, Hoa Thanh, Tay Ninh',phone:'',email:'',
+  dept:'Furniture',positionVi:'Nhân viên thiết kế',positionEn:'Designer',positionKo:'디자이너',
+  jobDescVi:'Thực hiện công việc thiết kế và bản vẽ trong Công ty; thiết kế sản phẩm, đồ họa, tài liệu; hỗ trợ bản vẽ kỹ thuật theo yêu cầu.',jobDescEn:'Carrying out design and drafting work within the Company; product, graphic and document design; supporting technical drawings as required.',
+  joinDate:'2026-05-18',probStart:'2026-05-18',probEnd:'2026-07-17',hrManaged:true,empType:'local_employee',
+  salaryType:'Gross',salary:16000000,dependents:0,si:false,pitMethod:'10%',status:'probation',probPct:0.85},
+];
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const cS=b=>Math.min(b,SETTINGS.capSIHI),cU=b=>Math.min(b,SETTINGS.capUI);
+const prog=t=>t<=0?0:t<=1e7?t*.05:t<=3e7?t*.1-5e5:t<=6e7?t*.2-35e5:t<=1e8?t*.3-95e5:t*.35-145e5;
+const n2g=q=>q<=0?0:q<=9500000?q/.95:q<=27500000?(q-5e5)/.9:q<=51500000?(q-35e5)/.8:q<=79500000?(q-95e5)/.7:(q-145e5)/.65;
+const probActiveOn=(e,asof)=>e.probEnd&&asof<=e.probEnd;
+/* ---- attendance store ---- */
+const ANNUAL_LEAVE=12;
+let ATT={}; // key: empId|YYYY-MM -> { st:{day:'A'|'L'|'H'}, ot:hours }   (default present, weekends off)
+const ymOf=asof=>asof.slice(0,7);
+function attRec(id,ym){const k=id+'|'+ym;if(!ATT[k])ATT[k]={st:{},ot:0};return ATT[k];}
+function attStats(e,ym){
+  const [y,m]=ym.split('-').map(Number);const dim=new Date(y,m,0).getDate();
+  const rec=ATT[e.id+'|'+ym]||{st:{},ot:0};let std=0,unpaid=0,leave=0,hol=0;
+  for(let d=1;d<=dim;d++){const wd=new Date(y,m-1,d).getDay();if(wd===0||wd===6)continue;
+    const s=rec.st[d]||'P';
+    if(s==='H'){hol++;continue;} std++; if(s==='A')unpaid++; if(s==='L')leave++;}
+  const factor=std?(std-unpaid)/std:1;
+  return{dim,std,unpaid,leave,hol,ot:rec.ot||0,factor};
+}
+function leaveUsed(e,year){let u=0;Object.keys(ATT).forEach(k=>{const[id,ym]=k.split('|');if(id!==e.id||!ym.startsWith(year))return;Object.values(ATT[k].st).forEach(s=>{if(s==='L')u++;});});return u;}
+function calcRow(e,asof){
+  const pa=probActiveOn(e,asof);const baseApplied=pa?Math.round(e.salary*e.probPct):e.salary;
+  const at=attStats(e,ymOf(asof));
+  const applied=Math.round(baseApplied*at.factor);                 // 무급결근 비례 차감
+  const hourly=at.std?baseApplied/(at.std*8):0;
+  const otPay=Math.round(at.ot*hourly*1.5);                        // OT 평일 150%
+  const ded=SETTINGS.personalDed+e.dependents*SETTINGS.dependentDed;const ib=e.si?applied:0;
+  const ei=cS(ib)*(SETTINGS.empRate.si+SETTINGS.empRate.hi)+cU(ib)*SETTINGS.empRate.ui;
+  const ci=cS(ib)*(SETTINGS.comRate.si+SETTINGS.comRate.hi+SETTINGS.comRate.ai)+cU(ib)*SETTINGS.comRate.ui;
+  let tax=0,pit=0,net=0,tc=0;
+  if(e.salaryType==='NET'){const q=Math.max(0,applied-ded);tax=n2g(q);pit=prog(tax);net=applied+otPay;tc=applied+ei+pit+ci+otPay;}
+  else{if(e.pitMethod==='10%'){pit=applied>=2e6?applied*.1:0;}else{tax=Math.max(0,applied-ei-ded);pit=prog(tax);}net=applied-ei-pit+otPay;tc=applied+ci+otPay;}
+  return{pa,applied,baseApplied,otPay,ib,ei,ci,tax,pit,net,tc,at};
+}
+const vnDate=s=>s?s.split('-').reverse().join('/'):'';
+const reqFields=['nameVi','dob','cccd','issued','addrVi','positionVi','jobDescVi'];
+const missingOf=e=>reqFields.filter(f=>!e[f]);
+
+let cur='emp',selEmp=null,editMode=false,conEmp=employees[0].id,conType='probation';
+const asofEl=document.getElementById('asof');
+const T={emp:['직원 인적사항 / Employees','직원 인적사항 / Employees'],pay:['급여대장 / Payroll','급여대장 / Payroll'],att:['출결·휴가 / Attendance & Leave','출결·휴가 / Attendance & Leave'],con:['계약서 / Contracts','계약서 / Contracts']};
+document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  cur=b.dataset.v;selEmp=null;editMode=false;
+  [...document.querySelectorAll('#nav button')].forEach(x=>x.classList.toggle('on',x===b));
+  [...document.querySelectorAll('.view')].forEach(v=>v.classList.remove('on'));
+  document.getElementById('view-'+cur).classList.add('on');
+  document.getElementById('crumb').textContent=T[cur][0];document.getElementById('title').textContent=T[cur][1];render();});
+asofEl.addEventListener('change',render);
+function go(v){document.querySelector('#nav button[data-v="'+v+'"]').click();}
+function render(){if(cur==='emp')renderEmp();if(cur==='pay')renderPay();if(cur==='att')renderAtt();if(cur==='con')renderCon();}
+
+function renderEmp(){
+  const root=document.getElementById('view-emp');
+  if(selEmp){root.innerHTML=editMode?empEdit(selEmp):empCard(selEmp);bindEmp();return;}
+  const managed=employees.filter(e=>e.hrManaged).length;
+  const need=employees.filter(e=>e.hrManaged&&missingOf(e).length).length;
+  root.innerHTML=`
+  <div class="statrow">
+    <div class="stat"><span class="tick"></span><div class="k">전체 직원</div><div class="v">${employees.length}</div><div class="u">명</div></div>
+    <div class="stat"><span class="tick"></span><div class="k">관리 대상</div><div class="v">${managed}</div><div class="u">hrManaged</div></div>
+    <div class="stat"><span class="tick" style="background:${need?'var(--amber)':'var(--jade)'}"></span><div class="k">정보 미비</div><div class="v">${need}</div><div class="u">계약 전 보완</div></div>
+    <div class="stat"><span class="tick" style="background:${managed>=10?'var(--red)':'var(--muted-2)'}"></span><div class="k">취업규칙</div><div class="v">${managed}/10</div><div class="u">${managed>=10?'등록 의무':'10명 미만'}</div></div>
+  </div>
+  <div class="panel"><div class="head"><h2>직원 목록</h2>
+    <div style="display:flex;gap:8px;align-items:center"><span class="hint">행 클릭 → 인적사항 카드</span><button class="btn pri sm" id="addBtn">직원 추가</button></div></div>
+    <table><thead><tr><th class="l">이름 / Name</th><th class="l">부서·직책</th><th class="l">유형</th><th class="l">상태</th><th>계약급여</th><th class="l">정보</th></tr></thead>
+      <tbody>${employees.map(e=>{const m=missingOf(e).length;return `
+        <tr class="row" data-id="${e.id}">
+          <td class="l"><div class="who"><b>${e.nameVi||'(미입력)'}</b><span>${e.nameEn}</span></div></td>
+          <td class="l">${e.dept}<br><span class="muted" style="font-size:11.5px">${e.positionKo}</span></td>
+          <td class="l"><span class="tag ${e.salaryType==='NET'?'net':'gross'}">${e.salaryType}</span></td>
+          <td class="l"><span class="tag dot ${e.status==='probation'?'prob':'official'}">${e.status==='probation'?'수습':'정식'}</span></td>
+          <td>${fmt(e.salary)}</td>
+          <td class="l">${m?`<span class="tag prob" style="font-size:10.5px">미비 ${m}</span>`:`<span class="tag net" style="font-size:10.5px">완비</span>`}</td>
+        </tr>`}).join('')}</tbody></table></div>
+  <p class="note"><b>인적사항 카드</b>에서 CCCD·고용·급여를 확인하고, 바로 <b>계약서로 정보를 끌어와</b> 생성합니다.</p>`;
+  root.querySelectorAll('tr.row').forEach(r=>r.onclick=()=>{selEmp=r.dataset.id;editMode=false;renderEmp();});
+  root.querySelector('#addBtn').onclick=()=>{const id='E'+String(employees.length+1).padStart(2,'0');
+    employees.push({id,nameVi:'',nameEn:'',gender:'M',dob:'',cccd:'',issued:'',issuerVi:'Bộ Công An',issuerEn:'Ministry of Public Security',addrVi:'',addrEn:'',phone:'',email:'',dept:'Furniture',positionVi:'',positionEn:'',positionKo:'',jobDescVi:'',jobDescEn:'',joinDate:'',probStart:'',probEnd:'',hrManaged:true,empType:'local_employee',salaryType:'Gross',salary:0,dependents:0,si:false,pitMethod:'10%',status:'probation',probPct:0.85});
+    selEmp=id;editMode=true;renderEmp();};
+}
+function empCard(id){
+  const e=employees.find(x=>x.id===id);const miss=missingOf(e);
+  const ini=(e.nameEn||e.nameVi||'?').trim().charAt(0).toUpperCase();
+  const D=(dt,dd,mono)=>`<div class="item"><div class="dt">${dt}</div><div class="dd ${mono?'mono':''}">${dd||'<span class="miss">미입력</span>'}</div></div>`;
+  const F=(dt,dd,mono)=>`<div class="item full"><div class="dt">${dt}</div><div class="dd ${mono?'mono':''}">${dd||'<span class="miss">미입력</span>'}</div></div>`;
+  return `
+  <div class="toolbar"><button class="btn gho sm" id="back">← 목록</button><span class="muted" style="font-size:12px">인사기록 ${e.id}</span></div>
+  <div class="${miss.length?'readiness warn':'readiness ok'}">${miss.length?`⚠ 계약 전 보완 필요: ${miss.join(', ')}`:'✓ 인적사항 완비 — 계약서 생성 준비 완료'}</div>
+  <div class="panel"><div class="head"><h2>인적사항 카드</h2>
+    <div style="display:flex;gap:8px"><button class="btn sm" id="edit">편집</button><button class="btn pri sm" id="toCon">이 정보로 계약서 만들기 →</button></div></div>
+    <div class="pcard">
+      <div class="photo">
+        <div class="avatar">${ini}</div>
+        <div><div class="pn">${e.nameVi||'(미입력)'}</div><div class="pnen">${e.nameEn}</div></div>
+        <div class="pmeta"><b>${e.positionKo}</b> · ${e.dept}<br>입사 ${vnDate(e.joinDate)}<br><b>${e.status==='probation'?'수습':'정식'}</b> · ${e.salaryType} ${fmt(e.salary)}</div>
+      </div>
+      <div class="body">
+        <div class="section-label">신원 / Identity</div>
+        <div class="dl">
+          ${D('성명 (VI)',e.nameVi)}${D('성명 (EN)',e.nameEn)}
+          ${D('생년월일',vnDate(e.dob),1)}${D('성별',e.gender==='F'?'Nữ / Female':'Nam / Male')}
+          ${D('CCCD 번호',e.cccd,1)}${D('발급일',vnDate(e.issued),1)}
+          ${F('발급기관',e.issuerVi)}${F('영주주소',e.addrVi)}
+        </div>
+        <div class="section-label">신분증 첨부 / ID Documents</div>
+        <div id="idDocs"><div class="muted" style="font-size:12px;padding:6px 0">불러오는 중…</div></div>
+        <div class="section-label">고용 / Employment</div>
+        <div class="dl">
+          ${D('부서',e.dept)}${D('직위 (VI/EN)',e.positionVi?e.positionVi+' / '+e.positionEn:'')}
+          ${D('입사일',vnDate(e.joinDate),1)}${D('관리 대상',e.hrManaged?'예 (hrManaged)':'아니오')}
+          ${F('직무 내용 (VI)',e.jobDescVi)}
+        </div>
+        <div class="section-label">급여 / Compensation</div>
+        <div class="dl">
+          ${D('급여 유형',e.salaryType)}${D('계약 급여',fmt(e.salary)+' VND',1)}
+          ${D('사회보험',e.si?'가입':'미가입(수습)')}${D('PIT 방식',e.pitMethod==='10%'?'10% 원천':'누진')}
+          ${D('수습 기간',e.probEnd?vnDate(e.probStart)+' ~ '+vnDate(e.probEnd):'—',1)}${D('수습 급여율',e.status==='probation'?Math.round(e.probPct*100)+'%':'—')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function empEdit(id){
+  const e=employees.find(x=>x.id===id);
+  return `
+  <div class="toolbar"><button class="btn gho sm" id="back">← 목록</button><span class="muted" style="font-size:12px">편집 · ${e.id}</span></div>
+  <div class="panel"><div class="head"><h2>${e.nameVi||'신규 직원'} — 편집</h2>
+    <div style="display:flex;gap:8px"><button class="btn sm" id="view">카드 보기</button><button class="btn pri sm" id="save">저장</button></div></div>
+    <div style="padding:20px 22px">
+      <div class="section-label">분류</div>
+      <div class="grid2">
+        <div class="fld"><label>관리 대상</label><select data-f="hrManaged"><option value="true" ${e.hrManaged?'selected':''}>관리 대상</option><option value="false" ${!e.hrManaged?'selected':''}>제외</option></select></div>
+        <div class="fld"><label>상태</label><select data-f="status"><option value="probation" ${e.status==='probation'?'selected':''}>수습</option><option value="active" ${e.status==='active'?'selected':''}>정식</option><option value="resigned" ${e.status==='resigned'?'selected':''}>퇴사</option></select></div>
+        <div class="fld"><label>부서</label><input data-f="dept" value="${e.dept}"></div>
+        <div class="fld"><label>직책 (KO)</label><input data-f="positionKo" value="${e.positionKo}"></div>
+      </div>
+      <div class="section-label">신원 / Identity</div>
+      <div class="grid2">
+        <div class="fld"><label>성명 (VI)</label><input data-f="nameVi" value="${e.nameVi}"></div>
+        <div class="fld"><label>성명 (EN)</label><input data-f="nameEn" value="${e.nameEn}"></div>
+        <div class="fld"><label>생년월일</label><input class="mono" type="date" data-f="dob" value="${e.dob}"></div>
+        <div class="fld"><label>성별</label><select data-f="gender"><option value="M" ${e.gender==='M'?'selected':''}>남</option><option value="F" ${e.gender==='F'?'selected':''}>여</option></select></div>
+        <div class="fld"><label>CCCD 번호</label><input class="mono" data-f="cccd" value="${e.cccd}"></div>
+        <div class="fld"><label>발급일</label><input class="mono" type="date" data-f="issued" value="${e.issued}"></div>
+        <div class="fld"><label>발급기관 (VI)</label><input data-f="issuerVi" value="${e.issuerVi}"></div>
+        <div class="fld"><label>발급기관 (EN)</label><input data-f="issuerEn" value="${e.issuerEn}"></div>
+        <div class="fld" style="grid-column:1/-1"><label>영주주소 (VI)</label><input data-f="addrVi" value="${e.addrVi}"></div>
+        <div class="fld" style="grid-column:1/-1"><label>영주주소 (EN)</label><input data-f="addrEn" value="${e.addrEn}"></div>
+      </div>
+      <div class="section-label">고용 / Employment</div>
+      <div class="grid2">
+        <div class="fld"><label>직위 (VI)</label><input data-f="positionVi" value="${e.positionVi}"></div>
+        <div class="fld"><label>직위 (EN)</label><input data-f="positionEn" value="${e.positionEn}"></div>
+        <div class="fld" style="grid-column:1/-1"><label>직무 내용 (VI)</label><textarea data-f="jobDescVi">${e.jobDescVi}</textarea></div>
+        <div class="fld" style="grid-column:1/-1"><label>직무 내용 (EN)</label><textarea data-f="jobDescEn">${e.jobDescEn}</textarea></div>
+        <div class="fld"><label>입사일</label><input class="mono" type="date" data-f="joinDate" value="${e.joinDate}"></div>
+        <div class="fld"><label>수습 시작</label><input class="mono" type="date" data-f="probStart" value="${e.probStart||''}"></div>
+        <div class="fld"><label>수습 종료 (없으면 비움)</label><input class="mono" type="date" data-f="probEnd" value="${e.probEnd||''}"></div>
+        <div class="fld"><label>수습 급여율</label><select data-f="probPct"><option value="1" ${e.probPct===1?'selected':''}>100%</option><option value="0.85" ${e.probPct===0.85?'selected':''}>85%</option></select></div>
+      </div>
+      <div class="section-label">급여 / Compensation</div>
+      <div class="grid2">
+        <div class="fld"><label>급여 유형</label><select data-f="salaryType"><option ${e.salaryType==='NET'?'selected':''}>NET</option><option ${e.salaryType==='Gross'?'selected':''}>Gross</option></select></div>
+        <div class="fld"><label>급여 (VND)</label><input class="mono" type="number" data-f="salary" value="${e.salary}"></div>
+        <div class="fld"><label>사회보험</label><select data-f="si"><option value="true" ${e.si?'selected':''}>가입</option><option value="false" ${!e.si?'selected':''}>미가입</option></select></div>
+        <div class="fld"><label>PIT 방식</label><select data-f="pitMethod"><option ${e.pitMethod==='Prog'?'selected':''}>Prog</option><option value="10%" ${e.pitMethod==='10%'?'selected':''}>10%</option></select></div>
+        <div class="fld"><label>부양가족</label><input class="mono" type="number" data-f="dependents" value="${e.dependents}"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function bindEmp(){
+  const root=document.getElementById('view-emp');const e=employees.find(x=>x.id===selEmp);
+  const back=root.querySelector('#back');if(back)back.onclick=()=>{selEmp=null;renderEmp();};
+  const ed=root.querySelector('#edit');if(ed)ed.onclick=()=>{editMode=true;renderEmp();};
+  const vw=root.querySelector('#view');if(vw)vw.onclick=()=>{editMode=false;renderEmp();};
+  const sv=root.querySelector('#save');if(sv)sv.onclick=()=>{editMode=false;renderEmp();};
+  const tc=root.querySelector('#toCon');if(tc)tc.onclick=()=>{conEmp=e.id;conType=e.status==='probation'?'probation':'labor_indef';go('con');};
+  root.querySelectorAll('[data-f]').forEach(inp=>inp.onchange=()=>{let v=inp.value;const f=inp.dataset.f;
+    if(f==='hrManaged'||f==='si')v=(v==='true');else if(['salary','dependents'].includes(f))v=+v;else if(f==='probPct')v=+v;else if(f==='probEnd'||f==='probStart')v=v||null;
+    e[f]=v;if(f==='salaryType')renderEmp();});
+  if(!editMode&&root.querySelector('#idDocs'))renderIdDocs(selEmp);
+}
+
+/* ---- ID documents (CCCD) attached to personnel card ---- */
+let idDocsCache={};
+async function loadIdDocs(empId){
+  if(idDocsCache[empId])return idDocsCache[empId];
+  const v=await Store.get('iddocs:'+empId);idDocsCache[empId]=Array.isArray(v)?v:[];return idDocsCache[empId];
+}
+async function renderIdDocs(empId){
+  const host=document.getElementById('idDocs');if(!host)return;
+  const list=await loadIdDocs(empId);
+  const cards=await Promise.all(list.map(async d=>{
+    const data=await Store.get('idfile:'+d.fid);
+    const thumb=(d.mime||'').startsWith('image/')&&data
+      ? `<img src="${data}" data-full="${d.fid}" class="idThumb" style="width:100%;height:104px;object-fit:cover;border-radius:8px 8px 0 0;cursor:zoom-in">`
+      : `<div style="height:104px;display:flex;align-items:center;justify-content:center;background:#EEF1F0;border-radius:8px 8px 0 0;font-family:Spectral;color:var(--muted)">${(d.mime||'').includes('pdf')?'PDF':'FILE'}</div>`;
+    return `<div style="border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff">
+      ${thumb}
+      <div style="padding:8px 10px">
+        <div style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div>
+        <div class="muted" style="font-size:10.5px;margin-bottom:6px">${d.label||'신분증'} · ${(d.size/1024).toFixed(0)} KB</div>
+        <div style="display:flex;gap:6px"><button class="btn gho sm idDl" data-fid="${d.fid}" data-name="${d.name}" style="padding:3px 8px;font-size:11px">다운로드</button><button class="btn gho sm idDel" data-fid="${d.fid}" style="padding:3px 8px;font-size:11px;color:var(--red)">삭제</button></div>
+      </div></div>`;
+  }));
+  host.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:10px">
+      ${cards.join('')||'<div class="muted" style="font-size:12px;grid-column:1/-1">첨부된 신분증이 없습니다.</div>'}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="idLabel" style="font-family:Inter;font-size:12px;border:1px solid var(--line);border-radius:7px;padding:7px 9px"><option>CCCD 앞면</option><option>CCCD 뒷면</option><option>여권</option><option>기타</option></select>
+      <input type="file" id="idFile" accept="image/*,.pdf" style="font-size:12px">
+      <button class="btn pri sm" id="idAdd" disabled>첨부</button>
+    </div>
+    <p class="note">신분증 이미지·PDF를 첨부하면 storage에 영구 저장됩니다. 이미지를 클릭하면 원본 크기로 열립니다. (개인정보이므로 공용 PC 보관에 유의)</p>`;
+  let pick=null;const fEl=host.querySelector('#idFile'),addEl=host.querySelector('#idAdd');
+  fEl.onchange=()=>{pick=fEl.files[0]||null;addEl.disabled=!pick;};
+  addEl.onclick=()=>{ if(!pick)return; const rd=new FileReader();
+    rd.onload=async()=>{ const fid='ID'+Date.now(); 
+      try{await Store.set('idfile:'+fid,rd.result);}catch(e){alert('저장 실패 — 파일이 너무 큽니다.');return;}
+      const list=await loadIdDocs(empId);
+      list.push({fid,name:pick.name,mime:pick.type||'',size:pick.size,label:host.querySelector('#idLabel').value,addedAt:new Date().toISOString()});
+      idDocsCache[empId]=list;await Store.set('iddocs:'+empId,list);renderIdDocs(empId);
+    }; rd.readAsDataURL(pick); };
+  host.querySelectorAll('.idThumb').forEach(img=>img.onclick=async()=>{const data=await Store.get('idfile:'+img.dataset.full);if(data){const w=window.open('','_blank');if(w){w.document.write('<img src="'+data+'" style="max-width:100%">');w.document.close();}}});
+  host.querySelectorAll('.idDl').forEach(b=>b.onclick=async()=>{const data=await Store.get('idfile:'+b.dataset.fid);if(!data)return;const a=document.createElement('a');a.href=data;a.download=b.dataset.name||'id';document.body.appendChild(a);a.click();a.remove();});
+  host.querySelectorAll('.idDel').forEach(b=>b.onclick=async()=>{ if(!confirm('이 신분증 파일을 삭제할까요?'))return;
+    try{await Store.del('idfile:'+b.dataset.fid);}catch(e){}
+    const list=(await loadIdDocs(empId)).filter(d=>d.fid!==b.dataset.fid);
+    idDocsCache[empId]=list;await Store.set('iddocs:'+empId,list);renderIdDocs(empId);
+  });
+}
+
+function renderPay(){
+  const asof=asofEl.value;const rows=employees.filter(e=>e.hrManaged).map(e=>({e,c:calcRow(e,asof)}));
+  const A=rows.reduce((a,{c})=>({ap:a.ap+c.applied,ei:a.ei+c.ei,pit:a.pit+c.pit,net:a.net+c.net,ci:a.ci+c.ci,tc:a.tc+c.tc,ot:a.ot+c.otPay}),{ap:0,ei:0,pit:0,net:0,ci:0,tc:0,ot:0});
+  const anyAtt=rows.some(({c})=>c.at.unpaid||c.otPay);
+  document.getElementById('view-pay').innerHTML=`
+  <div class="statrow">
+    <div class="stat"><span class="tick"></span><div class="k">총 실수령 / Total Net</div><div class="v">${fmt(A.net)}</div><div class="u">VND${A.ot?' · OT '+fmt(A.ot):''}</div></div>
+    <div class="stat"><span class="tick" style="background:var(--amber)"></span><div class="k">회사보험 / Employer Ins.</div><div class="v">${fmt(A.ci)}</div><div class="u">VND · 21.5%</div></div>
+    <div class="stat"><span class="tick" style="background:var(--ink-2)"></span><div class="k">PIT</div><div class="v">${fmt(A.pit)}</div><div class="u">VND</div></div>
+    <div class="stat accent"><div class="k">회사 총부담 / Total Employer Cost</div><div class="v">${fmt(A.tc)}</div><div class="u">VND</div></div>
+  </div>
+  <div class="panel"><div class="head"><h2>급여대장 — ${asof.slice(0,7)}</h2><span class="hint">기준일 ${asof} · 출결·OT 자동 반영</span></div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th class="l">직원</th><th class="l">유형</th><th>적용급여 / Applied</th><th>OT</th><th>보험기준 / Insurance Base</th><th>직원보험 / Employee Ins.</th><th>과세소득 / Taxable</th><th>PIT</th><th>실수령 / Net</th><th>회사보험 / Employer Ins.</th><th>총비용 / Total Cost</th></tr></thead>
+      <tbody>${rows.map(({e,c})=>`<tr class="row" data-id="${e.id}">
+        <td class="l"><div class="who"><b>${e.nameVi}</b><span>${e.positionKo} · ${e.dept}</span></div></td>
+        <td class="l"><span class="tag ${e.salaryType==='NET'?'net':'gross'}">${e.salaryType}</span> ${c.pa?`<span class="tag prob" style="font-size:10px">수습 ${Math.round(e.probPct*100)}%</span>`:''}</td>
+        <td>${fmt(c.applied)}${c.at.unpaid?`<br><span style="color:var(--red);font-size:10px">결근 ${c.at.unpaid}일</span>`:''}</td>
+        <td>${c.otPay?fmt(c.otPay)+'<br><span class="muted" style="font-size:10px">'+c.at.ot+'h</span>':'<span class="muted">—</span>'}</td>
+        <td>${c.ib?fmt(c.ib):'<span class="muted">—</span>'}</td><td>${c.ei?fmt(c.ei):'<span class="muted">—</span>'}</td>
+        <td>${c.tax?fmt(c.tax):'<span class="muted">—</span>'}</td><td>${fmt(c.pit)} <span class="muted" style="font-size:10px">${e.pitMethod==='10%'&&e.salaryType==='Gross'?'10%':'누진'}</span></td>
+        <td>${fmt(c.net)}</td><td>${c.ci?fmt(c.ci):'<span class="muted">—</span>'}</td><td class="cost">${fmt(c.tc)}</td></tr>`).join('')}
+        <tr class="total"><td class="l">합계 (${rows.length})</td><td></td><td>${fmt(A.ap)}</td><td>${A.ot?fmt(A.ot):'—'}</td><td></td><td>${fmt(A.ei)}</td><td></td><td>${fmt(A.pit)}</td><td>${fmt(A.net)}</td><td>${fmt(A.ci)}</td><td class="cost">${fmt(A.tc)}</td></tr>
+      </tbody></table></div></div>
+  <p class="note">${anyAtt?'<b>출결 반영됨</b> — 무급결근은 적용급여에서 일할 차감, OT는 평일 150%로 가산. ':''}직원 행 클릭 → 인적사항 카드. 출결·휴가는 03번 탭에서 입력.</p>`;
+  document.querySelectorAll('#view-pay tr.row').forEach(r=>r.onclick=()=>{selEmp=r.dataset.id;editMode=false;go('emp');});
+}
+
+/* ---------- 03 ATTENDANCE & LEAVE ---------- */
+const ST_CYCLE={'P':'A','A':'L','L':'H','H':'P'};
+const ST_LABEL={'P':'',   'A':'결','L':'연','H':'공'};
+const ST_BG={   'P':'',   'A':'#F6E4E2','L':'#E2F0EC','H':'#FAEED2'};
+const ST_FG={   'P':'',   'A':'var(--red)','L':'var(--jade-d)','H':'var(--amber)'};
+function workdaysOf(ym){const [y,m]=ym.split('-').map(Number);const dim=new Date(y,m,0).getDate();let n=0;for(let d=1;d<=dim;d++){const wd=new Date(y,m-1,d).getDay();if(wd!==0&&wd!==6)n++;}return n;}
+function renderAtt(){
+  const asof=asofEl.value;const ym=ymOf(asof);const year=ym.slice(0,4);
+  const [y,m]=ym.split('-').map(Number);const dim=new Date(y,m,0).getDate();
+  const list=employees.filter(e=>e.hrManaged);
+  const dayHdr=[];for(let d=1;d<=dim;d++){const wd=new Date(y,m-1,d).getDay();dayHdr.push({d,we:wd===0||wd===6});}
+  const root=document.getElementById('view-att');
+  root.innerHTML=`
+  <div class="statrow">
+    <div class="stat"><span class="tick"></span><div class="k">기준 월 / Month</div><div class="v" style="font-size:19px">${ym}</div><div class="u">상단 기준일로 변경</div></div>
+    <div class="stat"><span class="tick"></span><div class="k">소정근로일 / Working Days</div><div class="v">${workdaysOf(ym)}</div><div class="u">평일</div></div>
+    <div class="stat"><span class="tick" style="background:var(--amber)"></span><div class="k">연차 기준 / Annual Entitlement</div><div class="v">${ANNUAL_LEAVE}</div><div class="u">일/년</div></div>
+    <div class="stat"><span class="tick" style="background:var(--red)"></span><div class="k">이번 달 결근 / Unpaid Absence</div><div class="v">${list.reduce((a,e)=>a+attStats(e,ym).unpaid,0)}</div><div class="u">무급 일수</div></div>
+  </div>
+  <div class="panel"><div class="head"><h2>연차 잔액 / Annual Leave Balance — ${year}</h2><span class="hint">연차(연) 사용분 자동 차감 · 기준 ${ANNUAL_LEAVE}일</span></div>
+    <table><thead><tr><th class="l">직원</th><th>부여 / Granted</th><th>사용 / Used</th><th>잔여 / Remaining</th><th class="l" style="width:42%">사용률</th></tr></thead>
+      <tbody>${list.map(e=>{const used=leaveUsed(e,year);const rem=ANNUAL_LEAVE-used;const pct=Math.min(100,used/ANNUAL_LEAVE*100);return `
+        <tr><td class="l"><div class="who"><b>${e.nameVi}</b><span>${e.positionKo}</span></div></td>
+          <td>${ANNUAL_LEAVE}</td><td>${used}</td><td style="color:${rem<=2?'var(--amber)':'var(--ink)'};font-weight:600">${rem}</td>
+          <td class="l"><div style="background:var(--line-2);border-radius:6px;height:8px;overflow:hidden;max-width:340px"><div style="width:${pct}%;height:100%;background:${rem<=2?'var(--amber)':'var(--jade)'}"></div></div></td></tr>`}).join('')}
+      </tbody></table></div>
+  <div class="panel"><div class="head"><h2>월별 근태표 — ${ym}</h2>
+    <div class="legend" style="margin:0">
+      <span><span class="sw" style="background:#fff;border:1px solid var(--line)"></span>출근(기본)</span>
+      <span><span class="sw" style="background:#F6E4E2"></span>결근(무급)</span>
+      <span><span class="sw" style="background:#E2F0EC"></span>연차</span>
+      <span><span class="sw" style="background:#FAEED2"></span>공휴일</span>
+    </div></div>
+    <div style="overflow-x:auto;padding:6px 6px 2px">
+      <table style="font-size:11px"><thead><tr>
+        <th class="l" style="position:sticky;left:0;background:var(--paper-band);z-index:1;min-width:120px">직원</th>
+        ${dayHdr.map(h=>`<th style="padding:6px 0;width:24px;${h.we?'color:var(--muted-2)':''}">${h.d}</th>`).join('')}
+        <th style="min-width:78px">OT(시간)</th>
+      </tr></thead>
+      <tbody>${list.map(e=>{const rec=attRec(e.id,ym);return `
+        <tr>
+          <td class="l" style="position:sticky;left:0;background:#fff;z-index:1"><b style="font-size:12px">${e.nameVi.split(' ').slice(-1)}</b><br><span class="muted" style="font-size:10px">${e.positionKo}</span></td>
+          ${dayHdr.map(h=>{if(h.we)return `<td style="background:#F1F2F0;color:#C3C9C8;text-align:center;font-family:Inter">·</td>`;
+            const s=rec.st[h.d]||'P';return `<td class="att" data-emp="${e.id}" data-day="${h.d}" style="text-align:center;cursor:pointer;font-family:Inter;font-weight:600;background:${ST_BG[s]};color:${ST_FG[s]}">${ST_LABEL[s]||''}</td>`;}).join('')}
+          <td style="text-align:center"><input class="otIn mono" data-emp="${e.id}" type="number" min="0" max="40" value="${rec.ot||0}" style="width:56px;text-align:center;border:1px solid var(--line);border-radius:6px;padding:4px"></td>
+        </tr>`}).join('')}
+      </tbody></table>
+    </div>
+    <p class="note">셀 클릭 → 출근→<b style="color:var(--red)">결</b>(결근)→<b style="color:var(--jade-d)">연</b>(연차)→<b style="color:var(--amber)">공</b>(공휴일)→출근 순환. OT는 월 합계 시간(최대 40h). 모든 변경은 <b>급여대장에 즉시 반영</b>됩니다.</p>
+  </div>`;
+  root.querySelectorAll('td.att').forEach(td=>td.onclick=()=>{
+    const id=td.dataset.emp,d=+td.dataset.day;const rec=attRec(id,ym);
+    const c=rec.st[d]||'P';const nx=ST_CYCLE[c];
+    if(nx==='P')delete rec.st[d];else rec.st[d]=nx;
+    renderAtt();
+  });
+  root.querySelectorAll('input.otIn').forEach(inp=>inp.onchange=()=>{
+    const rec=attRec(inp.dataset.emp,ym);rec.ot=Math.max(0,Math.min(40,+inp.value||0));renderAtt();
+  });
+}
+
+/* ---------- 04 CONTRACTS — generator + saved registry ---------- */
+let conTab='gen', viewRecId=null;
+const typeLabel={probation:'수습계약 (HĐTV)',labor_indef:'무기한 노동계약 (HĐLĐ)',labor_fixed:'확정기간 노동계약 (HĐLĐ)'};
+function nextDocNo(type){const ab=type==='probation'?'HĐTV':'HĐLĐ';const seq=contractsCache.filter(r=>r.type===type).length+1;return String(seq).padStart(2,'0')+'-2026/'+ab;}
+async function genContract(){
+  const e=employees.find(x=>x.id===conEmp);if(!e)return;
+  const rec={id:'C'+Date.now(),empId:e.id,empName:e.nameVi,empPos:e.positionKo,type:conType,docNo:nextDocNo(conType),
+    createdAt:new Date().toISOString(),missing:missingOf(e),snapshot:JSON.parse(JSON.stringify(e))};
+  contractsCache.unshift(rec);
+  await Store.set('contracts',contractsCache);
+  conTab='reg';viewRecId=rec.id;renderCon();
+}
+async function delContract(id){
+  const r=contractsCache.find(x=>x.id===id);
+  if(r&&r.source==='uploaded'){try{await Store.del('cfile:'+id);}catch(e){}}
+  contractsCache=contractsCache.filter(r=>r.id!==id);
+  await Store.set('contracts',contractsCache);
+  if(viewRecId===id)viewRecId=null;renderCon();
+}
+function wrapDocHtml(r,forWord){
+  const inner=buildDoc(r.snapshot,r.type,r.docNo).split('<div class="legend"')[0];
+  const wordHead=forWord?`<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->`:'';
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${r.docNo}</title>${wordHead}
+   <style>@page Section1{size:21cm 29.7cm;margin:2cm}div.Section1{page:Section1}
+   body{font-family:Arial,'Noto Sans',sans-serif;font-size:11pt;line-height:1.55;color:#000;${forWord?'':'max-width:760px;margin:24px auto;padding:0 16px'}}
+   .ctr{text-align:center}.nat{font-weight:bold;font-size:12pt}.moto{border-bottom:1px solid #000;display:inline-block}
+   h2.title{text-align:center;font-size:16pt;margin:14pt 0 2pt}.titleen{text-align:center;font-style:italic;color:#444;margin-bottom:10pt;font-size:11pt}
+   .art{font-weight:bold;margin:11pt 0 3pt;font-size:11.5pt}.en{color:#444;font-style:italic;display:block;font-size:9.5pt}
+   .f{font-weight:600}.blank{color:#9C6B0E}.muted{color:#444}
+   .sig{margin-top:28pt}.sig>div{display:inline-block;width:46%;text-align:center;vertical-align:top}.sig b{display:block}.sig .nm{margin-top:44pt;font-weight:bold}
+   p{margin:3pt 0}</style></head><body><div class="Section1">${inner}</div></body></html>`;
+}
+function printRec(id){
+  const r=contractsCache.find(x=>x.id===id);if(!r)return;
+  const w=window.open('','_blank');if(!w){alert('팝업이 차단되었습니다. 팝업을 허용해 주세요.');return;}
+  w.document.write(wrapDocHtml(r,false));w.document.close();setTimeout(()=>w.print(),350);
+}
+function downloadRec(id){
+  const r=contractsCache.find(x=>x.id===id);if(!r)return;
+  const blob=new Blob(['\ufeff'+wrapDocHtml(r,true)],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`INICS_${r.docNo.replace(/[\\/]/g,'-')}_${(r.empName||'contract').replace(/\s+/g,'_')}.doc`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function renderCon(){
+  const managed=employees.filter(e=>e.hrManaged);
+  if(!managed.find(e=>e.id===conEmp))conEmp=managed[0]?.id;
+  const root=document.getElementById('view-con');
+  root.innerHTML=`
+  <div class="toolbar" style="gap:6px">
+    <button class="btn sm ${conTab==='gen'?'pri':''}" id="tabGen">계약서 생성</button>
+    <button class="btn sm ${conTab==='up'?'pri':''}" id="tabUp">계약서 업로드</button>
+    <button class="btn sm ${conTab==='reg'?'pri':''}" id="tabReg">저장된 계약 (${contractsCache.length})</button>
+  </div>
+  <div id="conBody"></div>`;
+  root.querySelector('#tabGen').onclick=()=>{conTab='gen';renderCon();};
+  root.querySelector('#tabUp').onclick=()=>{conTab='up';renderCon();};
+  root.querySelector('#tabReg').onclick=()=>{conTab='reg';renderCon();};
+  if(conTab==='gen')renderGen();else if(conTab==='up')renderUp();else renderReg();
+}
+function renderGen(){
+  const managed=employees.filter(e=>e.hrManaged);const e=employees.find(x=>x.id===conEmp);
+  const miss=missingOf(e);
+  document.getElementById('conBody').innerHTML=`
+  <div class="split">
+    <div>
+      <div class="panel" style="margin-bottom:16px"><div style="padding:18px 20px">
+        <div class="fld"><label>직원 (인적사항에서 끌어옴)</label>
+          <select id="cE">${managed.map(x=>`<option value="${x.id}" ${x.id===conEmp?'selected':''}>${x.nameVi} (${x.positionKo})</option>`).join('')}</select></div>
+        <div class="fld" style="margin-top:14px"><label>계약 종류</label>
+          <select id="cT">
+            <option value="probation" ${conType==='probation'?'selected':''}>수습계약서 (Thử việc) · 템플릿</option>
+            <option value="labor_indef" ${conType==='labor_indef'?'selected':''}>무기한 노동계약</option>
+            <option value="labor_fixed" ${conType==='labor_fixed'?'selected':''}>확정기간 노동계약</option>
+          </select></div>
+        <div class="fld" style="margin-top:14px"><label>문서번호 (자동)</label><input class="mono" value="${nextDocNo(conType)}" disabled style="background:var(--paper)"></div>
+        <button class="btn pri" id="gen" style="width:100%;margin-top:16px">계약서 생성 및 저장 →</button>
+        ${miss.length?`<div class="flag" style="margin-top:12px"><span>⚠️</span><div><b>정보 미비</b> — ${miss.join(', ')}. 생성은 되지만 빈칸으로 저장됩니다. 인적사항 카드에서 보완 권장.</div></div>`:''}
+        <button class="btn gho sm" id="toCard" style="margin-top:10px">← 이 직원 인적사항 카드</button>
+      </div></div>
+    </div>
+    <div id="docWrap">${buildDoc(e,conType,nextDocNo(conType))}</div>
+  </div>`;
+  const v=document.getElementById('conBody');
+  v.querySelector('#cE').onchange=ev=>{conEmp=ev.target.value;renderGen();};
+  v.querySelector('#cT').onchange=ev=>{conType=ev.target.value;renderGen();};
+  v.querySelector('#gen').onclick=genContract;
+  v.querySelector('#toCard').onclick=()=>{selEmp=conEmp;editMode=false;go('emp');};
+}
+/* ---- upload existing contract files ---- */
+function renderUp(){
+  const managed=employees.filter(e=>e.hrManaged);
+  document.getElementById('conBody').innerHTML=`
+  <div class="panel" style="max-width:640px"><div class="head"><h2>기존 계약서 업로드</h2><span class="hint">.docx · .pdf · 이미지</span></div>
+    <div style="padding:20px 22px">
+      <div class="grid2">
+        <div class="fld"><label>직원 연결 (선택)</label>
+          <select id="uE"><option value="">— 연결 안 함 —</option>${managed.map(x=>`<option value="${x.id}">${x.nameVi} (${x.positionKo})</option>`).join('')}</select></div>
+        <div class="fld"><label>계약 종류</label>
+          <select id="uT"><option value="probation">수습계약 (HĐTV)</option><option value="labor_indef">무기한 노동계약</option><option value="labor_fixed">확정기간 노동계약</option><option value="other">기타</option></select></div>
+        <div class="fld"><label>문서번호 (선택)</label><input class="mono" id="uNo" placeholder="예: 03-2026/HĐTV"></div>
+        <div class="fld"><label>비고 (선택)</label><input id="uMemo" placeholder="예: 서명본 스캔"></div>
+      </div>
+      <div class="fld" style="margin-top:14px"><label>계약서 파일</label>
+        <input type="file" id="uFile" accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div>
+      <div id="uInfo" class="note"></div>
+      <button class="btn pri" id="uSave" style="margin-top:14px;width:100%" disabled>업로드 저장 →</button>
+      <p class="note">올린 파일은 대장에 <b>업로드본</b>으로 보관되고 원본 그대로 다시 다운로드됩니다. 템플릿 생성본과 한 대장에서 함께 관리됩니다. (5MB 이하 권장 — storage 용량 제한)</p>
+    </div></div>`;
+  const body=document.getElementById('conBody');
+  let picked=null;
+  const fileEl=body.querySelector('#uFile'),saveEl=body.querySelector('#uSave'),info=body.querySelector('#uInfo');
+  fileEl.onchange=()=>{const f=fileEl.files[0];if(!f){picked=null;saveEl.disabled=true;info.textContent='';return;}
+    picked=f;saveEl.disabled=false;
+    const mb=(f.size/1048576).toFixed(2);
+    info.innerHTML=`선택됨: <b>${f.name}</b> · ${mb} MB${f.size>4.5*1048576?' <span style="color:var(--red)">⚠ 5MB 초과 — 저장 안 될 수 있음</span>':''}`;
+  };
+  saveEl.onclick=()=>{
+    if(!picked)return;
+    const rd=new FileReader();
+    rd.onload=async()=>{
+      const id='C'+Date.now();
+      const empId=body.querySelector('#uE').value;
+      const emp=employees.find(x=>x.id===empId);
+      const rec={id,source:'uploaded',empId:empId||'',empName:emp?emp.nameVi:'(미연결)',empPos:emp?emp.positionKo:'',
+        type:body.querySelector('#uT').value,docNo:body.querySelector('#uNo').value||'(업로드)',memo:body.querySelector('#uMemo').value||'',
+        fileName:picked.name,mime:picked.type||'application/octet-stream',size:picked.size,createdAt:new Date().toISOString()};
+      try{ await Store.set('cfile:'+id, rd.result); }catch(e){}
+      contractsCache.unshift(rec);
+      await Store.set('contracts',contractsCache);
+      conTab='reg';viewRecId=id;renderCon();
+    };
+    rd.readAsDataURL(picked);
+  };
+}
+async function downloadUploaded(id){
+  const r=contractsCache.find(x=>x.id===id);if(!r)return;
+  const data=await Store.get('cfile:'+id);
+  if(!data){alert('파일 데이터를 찾을 수 없습니다.');return;}
+  const a=document.createElement('a');a.href=data;a.download=r.fileName||'contract';
+  document.body.appendChild(a);a.click();a.remove();
+}
+async function viewUploaded(id){
+  const data=await Store.get('cfile:'+id);const r=contractsCache.find(x=>x.id===id);
+  const host=document.getElementById('upPreview');if(!host)return;
+  if(!data){host.innerHTML='<div class="empty">미리보기를 불러올 수 없습니다.</div>';return;}
+  if((r.mime||'').includes('pdf'))host.innerHTML=`<embed src="${data}" type="application/pdf" style="width:100%;height:560px;border:1px solid var(--line);border-radius:8px">`;
+  else if((r.mime||'').startsWith('image/'))host.innerHTML=`<img src="${data}" style="max-width:100%;border:1px solid var(--line);border-radius:8px">`;
+  else host.innerHTML=`<div class="panel"><div class="empty"><div style="font-family:Spectral;font-size:16px;color:var(--ink);margin-bottom:6px">${r.fileName}</div>Word 파일은 브라우저에서 미리보기가 안 됩니다. 아래 버튼으로 원본을 다운로드해 확인하세요.</div></div>`;
+}
+
+function renderReg(){
+  const body=document.getElementById('conBody');
+  if(!contractsCache.length){
+    body.innerHTML=`<div class="panel"><div class="empty"><div style="font-family:Spectral;font-size:17px;color:var(--ink);margin-bottom:6px">저장된 계약서가 없습니다</div>“계약서 생성” 탭에서 직원을 선택하고 생성하면 여기에 보관됩니다.</div></div>`;return;
+  }
+  const rec=viewRecId?contractsCache.find(r=>r.id===viewRecId):null;
+  const isUp=rec&&rec.source==='uploaded';
+  body.innerHTML=`
+  <div class="split">
+    <div>
+      <div class="panel"><div class="head"><h2>계약 대장</h2><span class="hint">${contractsCache.length}건 · 저장됨</span></div>
+        <table><thead><tr><th class="l">문서번호</th><th class="l">직원</th><th class="l">구분</th><th class="l">생성일</th><th></th></tr></thead>
+        <tbody>${contractsCache.map(r=>`<tr class="row" data-id="${r.id}" style="${r.id===viewRecId?'background:#F2F7F6':''}">
+          <td class="l mono" style="font-size:12px">${r.docNo}${r.missing&&r.missing.length?' <span class="tag prob" style="font-size:9px">미비</span>':''}</td>
+          <td class="l"><b style="font-size:12.5px">${r.empName}</b><br><span class="muted" style="font-size:11px">${r.empPos||''}</span></td>
+          <td class="l">${r.source==='uploaded'?'<span class="tag gross" style="font-size:10px">업로드</span>':'<span class="tag net" style="font-size:10px">생성</span>'}<br><span class="muted" style="font-size:10.5px">${(typeLabel[r.type]||r.type||'').split(' ')[0]}</span></td>
+          <td class="l mono" style="font-size:11px">${r.createdAt.slice(0,10)}</td>
+          <td class="l"><button class="btn gho sm del" data-id="${r.id}" style="color:var(--red)">삭제</button></td>
+        </tr>`).join('')}</tbody></table>
+      </div>
+      <p class="note">행 클릭 → 오른쪽에 표시. <b>생성</b>본은 인적사항 스냅샷으로 보존되고, <b>업로드</b>본은 원본 파일 그대로 보관됩니다. (storage 영구 저장)</p>
+    </div>
+    <div id="docWrap">${!rec?`<div class="panel"><div class="empty">왼쪽에서 계약서를 선택하세요.</div></div>`
+      :isUp?`
+      <div class="toolbar" style="justify-content:space-between">
+        <div><b class="mono">${rec.docNo}</b> · <span class="muted">${rec.empName} · ${typeLabel[rec.type]||rec.type}</span></div>
+        <button class="btn pri sm" id="dlu">원본 다운로드</button>
+      </div>
+      <div class="panel" style="margin-bottom:14px"><div style="padding:14px 18px;font-size:13px">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px"><span class="tag gross">업로드본</span><b>${rec.fileName}</b></div>
+        <span class="muted" style="font-size:12px">${(rec.size/1048576).toFixed(2)} MB · ${rec.mime||'파일'}${rec.memo?' · '+rec.memo:''}</span>
+      </div></div>
+      <div id="upPreview"><div class="empty muted">미리보기 불러오는 중…</div></div>`
+      :`
+      <div class="toolbar" style="justify-content:space-between">
+        <div><b class="mono">${rec.docNo}</b> · <span class="muted">${rec.empName} · ${typeLabel[rec.type]||rec.type}</span></div>
+        <div style="display:flex;gap:8px"><button class="btn sm" id="prn">인쇄 / PDF</button><button class="btn pri sm" id="dl">Word(.doc) 다운로드</button></div>
+      </div>
+      ${buildDoc(rec.snapshot,rec.type,rec.docNo)}`}</div>
+  </div>`;
+  body.querySelectorAll('tr.row').forEach(r=>r.onclick=ev=>{if(ev.target.closest('.del'))return;viewRecId=r.dataset.id;renderReg();});
+  body.querySelectorAll('.del').forEach(b=>b.onclick=ev=>{ev.stopPropagation();if(confirm('이 계약서를 삭제할까요?'))delContract(b.dataset.id);});
+  const prn=body.querySelector('#prn');if(prn)prn.onclick=()=>printRec(viewRecId);
+  const dl=body.querySelector('#dl');if(dl)dl.onclick=()=>downloadRec(viewRecId);
+  const dlu=body.querySelector('#dlu');if(dlu)dlu.onclick=()=>downloadUploaded(viewRecId);
+  if(isUp)viewUploaded(viewRecId);
+}
+
+function buildDoc(e,type,docNo){
+  const asof=asofEl.value;const c=calcRow(e,asof);
+  const fill=(val)=>val?`<span class="f">${val}</span>`:`<span class="blank">미입력</span>`;
+  const DN=docNo||'0X-2026/HĐTV';
+  const mr=e.gender==='F'?['Bà','Ms.']:['Ông','Mr.'];
+  const gender=e.gender==='F'?['Nữ','Female']:['Nam','Male'];
+  const probSal=Math.round(e.salary*e.probPct);
+  // bilingual line: Vietnamese on top, English (italic, muted) beneath
+  const L=(vi,en)=>`<p>${vi}<span class="en">${en}</span></p>`;
+  if(type!=='probation'){
+    const indef=type==='labor_indef';
+    const noticeVi=indef?'ít nhất 45 ngày (Điều 35)':'ít nhất 30 ngày (Điều 35)';
+    const noticeEn=indef?'at least 45 days (Article 35)':'at least 30 days (Article 35)';
+    const flag=e.status==='probation'?`<div class="flag"><span>⚠️</span><div><b>상태 불일치</b> — 현재 <b>수습</b> 상태입니다. 정식 계약은 통과(active) 후 체결하세요.</div></div>`:'';
+    return `<div class="doc">
+      <div class="ctr"><div class="nat">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="moto">Độc lập - Tự do - Hạnh phúc</div></div>
+      <h2 class="title">HỢP ĐỒNG LAO ĐỘNG</h2><div class="titleen">LABOR CONTRACT — ${indef?'không xác định thời hạn / indefinite term':'xác định thời hạn / fixed-term'}</div>
+      <p style="text-align:right;font-size:11px" class="muted">Số/No: ${fill(DN)} · TP. Hồ Chí Minh, ${fill('ngày '+vnDate(e.joinDate))}</p>
+      ${L(`<b>Bên A:</b> ${COMPANY.name} — MST ${COMPANY.mst} — Đại diện: ${fill(COMPANY.rep)} (Tổng giám đốc)`,`Employer: INICS VINA COMPANY LIMITED — Tax code ${COMPANY.mst} — Represented by ${e.nameEn?COMPANY.rep:COMPANY.rep} (General Director)`)}
+      ${L(`<b>Bên B (${mr[0]}):</b> ${fill(e.nameVi)} — Sinh ${fill(vnDate(e.dob))} — Giới tính: ${fill(gender[0])} — CCCD: ${fill(e.cccd)}`,`Employee (${mr[1]}): ${fill(e.nameEn)} — Date of birth ${fill(vnDate(e.dob))} — Gender: ${fill(gender[1])} — ID No.: ${fill(e.cccd)}`)}
+      ${L(`Địa chỉ thường trú: ${fill(e.addrVi)}`,`Permanent address: ${fill(e.addrEn)}`)}
+      <p class="art">Điều 1. Công việc <span class="en">Article 1. Work</span></p>
+      ${L(`Chức vụ: ${fill(e.positionVi)}. Mô tả: ${fill(e.jobDescVi)}`,`Position: ${fill(e.positionEn)}. Description: ${fill(e.jobDescEn)}`)}
+      <p class="art">Điều 2. Loại hợp đồng <span class="en">Article 2. Type of contract</span></p>
+      ${L(`${fill(indef?'Không xác định thời hạn':'Xác định thời hạn 12 tháng')}. Hiệu lực từ ${fill(vnDate(e.joinDate))}.`,`${indef?'Indefinite term':'Fixed term, 12 months'}. Effective from ${fill(vnDate(e.joinDate))}.`)}
+      <p class="art">Điều 3. Mức lương <span class="en">Article 3. Salary</span></p>
+      ${e.salaryType==='NET'
+        ?L(`Lương NET — thực nhận ${fill(fmt(c.net))} đồng/tháng (Gross ${fmt(e.salary)}).`,`NET salary — take-home ${fill(fmt(c.net))} VND/month (Gross ${fmt(e.salary)}).`)
+        :L(`Lương cơ bản (Gross): ${fill(fmt(e.salary))} đồng/tháng.`,`Basic salary (Gross): ${fill(fmt(e.salary))} VND/month.`)}
+      <p class="art">Điều 6. Bảo hiểm <span class="en">Article 6. Insurance</span></p>
+      ${L(`Tham gia BHXH, BHYT, BHTN bắt buộc ${fill('kể từ ngày hiệu lực')} theo quy định.`,`Compulsory social, health and unemployment insurance ${fill('from the effective date')} as prescribed.`)}
+      <p class="art">Điều 8. Nghĩa vụ của người lao động <span class="en">Article 8. Employee obligations</span></p>
+      ${L(`Đơn phương chấm dứt phải báo trước ${fill(noticeVi)}; vi phạm bồi thường theo Điều 40. Vi phạm nghĩa vụ bàn giao bị xử lý kỷ luật theo Nội quy lao động.`,`Unilateral termination requires ${fill(noticeEn)} notice; violation entails compensation under Article 40. Breach of handover duty is subject to discipline under the Internal Labor Rules.`)}
+      <div class="sig"><div><b>NGƯỜI LAO ĐỘNG</b><span class="en">Employee</span><div class="nm">${e.nameVi||'________'}</div></div><div><b>NGƯỜI SỬ DỤNG LAO ĐỘNG</b><span class="en">Employer</span><div class="nm">${COMPANY.rep}</div></div></div>
+      ${flag}
+    </div>
+    <div class="legend"><span><span class="sw" style="background:#E7F1EF;border:1px solid #9FC9C0"></span>자동 채움</span><span><span class="sw" style="background:#FBF4E6;border:1px solid #D9A93C"></span>미입력</span></div>
+    <p class="note">무기한·확정기간은 별도 템플릿(보험 1일차·45/30일 통보·제40조)을 적용합니다.</p>`;
+  }
+  return `<div class="doc">
+    <div class="ctr"><div class="nat">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="moto">Độc lập - Tự do - Hạnh phúc</div></div>
+    <p style="text-align:right;font-size:11px" class="muted">Số/No: ${fill(DN)} · TP. Hồ Chí Minh, ${fill('ngày '+vnDate(e.probStart))}</p>
+    <h2 class="title">HỢP ĐỒNG THỬ VIỆC</h2><div class="titleen">PROBATION CONTRACT</div>
+    ${L(`<b>Chúng tôi, một bên là:</b> ${COMPANY.name}`,`We are, from one side: INICS VINA COMPANY LIMITED`)}
+    ${L(`Địa chỉ: ${COMPANY.addrVi} · MST: ${COMPANY.mst}`,`Address: No. 28 Dang Huu Pho Street, An Khanh Ward, Ho Chi Minh City · Tax code: ${COMPANY.mst}`)}
+    ${L(`Đại diện theo pháp luật: ${fill(COMPANY.rep)} — Tổng giám đốc`,`Legal Representative: ${fill(COMPANY.rep)} — General Director`)}
+    ${L(`<b>Và một bên là ${fill(mr[0])}:</b> ${fill(e.nameVi)}`,`<b>And from the other side is ${fill(mr[1])}:</b> ${fill(e.nameEn)}`)}
+    ${L(`Quốc tịch: Việt Nam · Giới tính: ${fill(gender[0])} · Sinh ngày: ${fill(vnDate(e.dob))}`,`Nationality: Vietnam · Gender: ${fill(gender[1])} · Date of birth: ${fill(vnDate(e.dob))}`)}
+    ${L(`CCCD: ${fill(e.cccd)} — cấp ngày ${fill(vnDate(e.issued))} bởi ${fill(e.issuerVi)}`,`ID/Passport No.: ${fill(e.cccd)} — issued ${fill(vnDate(e.issued))} by ${fill(e.issuerEn)}`)}
+    ${L(`Địa chỉ thường trú: ${fill(e.addrVi)}`,`Permanent address: ${fill(e.addrEn)}`)}
+    <p class="art">Điều 1. Công việc và địa điểm làm việc <span class="en">Article 1. Work description and work place</span></p>
+    ${L(`- Chức vụ: ${fill(e.positionVi)}`,`- Position: ${fill(e.positionEn)}`)}
+    ${L(`- Mô tả công việc: ${fill(e.jobDescVi)}`,`- Work description: ${fill(e.jobDescEn)}`)}
+    ${L(`- Địa điểm làm việc: ${COMPANY.addrVi}`,`- Work place: No. 28 Dang Huu Pho Street, An Khanh Ward, Ho Chi Minh City`)}
+    <p class="art">Điều 2. Thời gian thử việc <span class="en">Article 2. Probation period</span></p>
+    ${L(`Thời gian thử việc 02 tháng (60 ngày), từ ${fill(vnDate(e.probStart))} đến ${fill(vnDate(e.probEnd))}. Thông báo kết quả chậm nhất 03 ngày trước khi kết thúc.`,`Probation period of 02 months (60 days), from ${fill(vnDate(e.probStart))} to ${fill(vnDate(e.probEnd))}. The result is notified at least 03 days before the end.`)}
+    <p class="art">Điều 3. Mức lương <span class="en">Article 3. Salary</span></p>
+    ${L(`- Lương chính thức (Gross): ${fill(fmt(e.salary))} đồng/tháng.`,`- Official salary (Gross): ${fill(fmt(e.salary))} VND/month.`)}
+    ${L(`- Trong thời gian thử việc hưởng ${fill(Math.round(e.probPct*100)+'%')} = ${fill(fmt(probSal))} đồng/tháng. Thuế TNCN khấu trừ theo quy định.`,`- During probation, ${fill(Math.round(e.probPct*100)+'%')} = ${fill(fmt(probSal))} VND/month. Personal income tax withheld as prescribed.`)}
+    ${L(`- Trả lương ngày 10 hàng tháng, tiền mặt hoặc chuyển khoản.`,`- Paid on the 10th of each month, by cash or bank transfer.`)}
+    <p class="art">Điều 4. Thời giờ làm việc, nghỉ ngơi <span class="en">Article 4. Working time, rest time</span></p>
+    ${L(`Thứ Hai–Thứ Sáu, 08:30–12:00 và 13:00–17:30. Làm thêm không quá 40 giờ/tháng, 200 giờ/năm. Nghỉ Thứ Bảy, Chủ nhật.`,`Monday–Friday, 08:30–12:00 and 13:00–17:30. Overtime not exceeding 40 hours/month, 200 hours/year. Days off: Saturday, Sunday.`)}
+    <p class="art">Điều 5. Trang bị bảo hộ cho người lao động <span class="en">Article 5. Personal protective equipment</span></p>
+    ${L(`Trang bị đồng phục và đồ dùng bảo hộ lao động phù hợp với tính chất công việc.`,`Uniform and work accessories appropriate to the nature of the work.`)}
+    <p class="art">Điều 6. Bảo hiểm xã hội, y tế, thất nghiệp <span class="en">Article 6. Social, health, unemployment insurance</span></p>
+    ${L(`Trong thời gian thử việc theo hợp đồng này, hai bên không tham gia bảo hiểm bắt buộc. Bảo hiểm xã hội, bảo hiểm y tế và bảo hiểm thất nghiệp sẽ được đăng ký và đóng theo quy định kể từ khi hai bên giao kết hợp đồng lao động chính thức sau khi đạt yêu cầu thử việc.`,`During the probation period under this contract, the parties do not participate in compulsory insurance. Social, health and unemployment insurance shall be registered and contributed as prescribed from the time the parties sign the official labor contract after passing probation.`)}
+    <p class="art">Điều 7. Đào tạo, bồi dưỡng nâng cao kỹ năng nghề <span class="en">Article 7. Training and refresher courses</span></p>
+    ${L(`Theo thỏa thuận riêng giữa người lao động và Công ty.`,`In accordance with a separate agreement between the employee and the Company.`)}
+    <p class="art">Điều 8. Nghĩa vụ của người lao động <span class="en">Article 8. Obligations of the employee</span></p>
+    ${L(`- Hoàn thành công việc đã cam kết trong hợp đồng.`,`- To fulfill the work undertaken in the contract.`)}
+    ${L(`- Chấp hành lệnh điều hành sản xuất – kinh doanh, nội quy kỷ luật lao động và an toàn lao động.`,`- To comply with production and business orders, internal labor discipline and occupational safety.`)}
+    ${L(`- Bồi thường do vi phạm và trách nhiệm vật chất theo Nội quy lao động.`,`- To compensate for violations and material liability per the Internal Labor Rules.`)}
+    ${L(`- Có trách nhiệm bàn giao công việc, tài liệu và tài sản khi chấm dứt hợp đồng. Vi phạm nghĩa vụ bàn giao bị xử lý kỷ luật theo Nội quy lao động.`,`- Responsible for handing over work, documents and assets upon termination. Breach of the handover obligation is subject to discipline under the Internal Labor Rules.`)}
+    ${L(`- Trong thời gian thử việc, mỗi bên có quyền hủy bỏ hợp đồng thử việc mà không cần báo trước và không phải bồi thường (khoản 2 Điều 27 Bộ luật Lao động).`,`- During probation, each party may cancel the probation contract without prior notice and without compensation (Clause 2, Article 27, Labor Code).`)}
+    <p class="art">Điều 9. Nghĩa vụ và quyền hạn của người sử dụng lao động <span class="en">Article 9. Obligations and rights of the employer</span></p>
+    ${L(`1. Nghĩa vụ: Bảo đảm việc làm và thực hiện đầy đủ những điều đã cam kết; thanh toán đầy đủ, đúng hạn các chế độ và quyền lợi cho người lao động.`,`1. Obligations: Ensure employment and fully implement all commitments; pay fully and on time all benefits and entitlements.`)}
+    ${L(`2. Quyền hạn: Điều hành người lao động hoàn thành công việc (bố trí, điều chuyển, tạm ngừng việc…); tạm hoãn, chấm dứt hợp đồng, kỷ luật theo pháp luật và Nội quy lao động.`,`2. Rights: Manage the employee to fulfill the work (assign, transfer, suspend…); postpone, terminate the contract and discipline per law and the Internal Labor Rules.`)}
+    <p class="art">Điều 10. Các nội dung khác <span class="en">Article 10. Other contents</span></p>
+    ${L(`Chế độ phúc lợi khác — Tiền thưởng: theo quy chế thưởng của Công ty.`,`Other benefits — Bonus: in accordance with the Company's bonus regulations.`)}
+    <p class="art">Điều 11. Điều khoản thi hành <span class="en">Article 11. Implementation provisions</span></p>
+    ${L(`Những vấn đề lao động không ghi trong hợp đồng áp dụng thỏa ước lao động tập thể; nếu chưa có thì áp dụng pháp luật lao động. Hợp đồng lập thành 02 bản giá trị ngang nhau, mỗi bên giữ 01 bản, hiệu lực từ ${fill(vnDate(e.probStart))}.`,`Labor matters not stated herein follow the collective labor agreement; absent one, labor law applies. Made in 02 copies of equal validity, each party keeps 01, effective from ${fill(vnDate(e.probStart))}.`)}
+    <div class="sig">
+      <div><b>NGƯỜI LAO ĐỘNG</b><span class="en">Employee</span><div class="nm">${e.nameVi||'________'}</div></div>
+      <div><b>NGƯỜI SỬ DỤNG LAO ĐỘNG</b><span class="en">Employer</span><div class="nm">${COMPANY.rep}</div></div>
+    </div>
+  </div>
+  <div class="legend"><span><span class="sw" style="background:#E7F1EF;border:1px solid #9FC9C0"></span>인적사항에서 자동 채움</span><span><span class="sw" style="background:#FBF4E6;border:1px solid #D9A93C"></span>미입력 — 카드에서 보완</span></div>
+  <p class="note">초록 음영 = 직원 인적사항 카드에서 끌어온 값. 베트남어 위, 영문 아래 병기. 실제 .docx 발행은 동일 템플릿으로 생성합니다.</p>`;
+}
+render();
+Store.get('contracts').then(v=>{contractsCache=Array.isArray(v)?v:[];if(cur==='con')renderCon();});
+</script>
+</body>
+</html>
