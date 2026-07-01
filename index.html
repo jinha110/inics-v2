@@ -774,9 +774,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <button id="invTabIssued" onclick="invoiceSetTab(&#39;issued&#39;)" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">발행 · Issued</button>
         <button id="invTabReceived" onclick="invoiceSetTab(&#39;received&#39;)" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">수취 · Received</button>
       </div>
-      <input type="text" id="invoiceSearch" oninput="renderInvoiceApp()" placeholder="검색 · Search (번호·거래처·비고)" style="flex:1;min-width:200px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)">
+      <input type="text" id="invoiceSearch" oninput="renderInvoiceApp()" placeholder="검색 · Search (번호·거래처·비고)" style="flex:1;min-width:180px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)">
+      <select id="invoicePayFilter" onchange="renderInvoiceApp()" style="font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">결제 전체</option><option value="open">미결제 · Open</option><option value="paid">결제완료 · Settled</option></select>
       <button class="btn btn-dark" onclick="openInvoiceForm(null)" style="font-size:12px;padding:7px 13px"><i class="ti ti-plus"></i> 인보이스 추가 · Add</button>
       <button class="btn btn-outline" onclick="runInvoiceAutoMatch()" style="font-size:12px;padding:7px 13px" title="은행 명세서와 금액·통화·방향 일치 인보이스 자동 결제 매칭"><i class="ti ti-arrows-diff"></i> 결제 자동매칭 · Auto-match</button>
+      <button class="btn btn-dark" onclick="invoiceManualSave()" style="font-size:12px;padding:7px 13px"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
       <button class="btn btn-outline" onclick="invoiceGmailInfo()" style="font-size:12px;padding:7px 13px"><i class="ti ti-mail"></i> Gmail 가져오기</button>
     </div>
     <div id="invoiceSummary" style="margin-bottom:12px"></div>
@@ -2403,10 +2405,11 @@ async function loadState() {
       if(window._saveAt && (Date.now()-window._saveAt)<5000){ return; }
       _applyRemote(remote);
     });
-    // 입력 종료 시 보류분 반영
+    // 입력 종료 시 보류분 반영 — 단, 방금 저장했다면 stale 보류분은 폐기 (매칭 되돌림 방지)
     document.addEventListener('focusout', function(){
       setTimeout(function(){
         if(window._pendingRemote && !_isUserEditing()){
+          if(window._saveAt && (Date.now()-window._saveAt)<5000){ window._pendingRemote=null; return; }
           var r=window._pendingRemote; window._pendingRemote=null; _applyRemote(r);
         }
       }, 300);
@@ -5717,6 +5720,7 @@ function showInvoiceApp(){
   renderInvoiceApp();
 }
 function closeInvoiceApp(){ var app=document.getElementById('invoiceApp'); if(app) app.style.display='none'; invoiceAppOpen=false; if(typeof showHub==='function') showHub(); }
+async function invoiceManualSave(){ try{ await saveState(); showToast('저장 완료 · Saved to server'); }catch(e){ showToast('저장 실패 · Save failed — 재시도'); } }
 function invoiceSetTab(t){ _invTab=t;
   [['invTabAll','all'],['invTabIssued','issued'],['invTabReceived','received']].forEach(function(p){ var b=document.getElementById(p[0]); if(!b)return; var on=_invTab===p[1]; b.style.background=on?'var(--text)':'var(--surface)'; b.style.color=on?'#fff':'var(--text-2)'; });
   renderInvoiceApp();
@@ -5727,6 +5731,9 @@ function renderInvoiceApp(){
   var q=((document.getElementById('invoiceSearch')||{}).value||'').trim().toLowerCase();
   var list=(state.invoices||[]).slice();
   if(_invTab!=='all') list=list.filter(function(v){ return v.dir===_invTab; });
+  var payF=((document.getElementById('invoicePayFilter')||{}).value||'');
+  if(payF==='open') list=list.filter(function(v){ return !v.matchTxnId; });
+  else if(payF==='paid') list=list.filter(function(v){ return !!v.matchTxnId; });
   if(q){ var ts=q.split(/\s+/); list=list.filter(function(v){ var hay=[v.invoiceNo,v.vendor,v.note,v.category,v.date].join(' ').toLowerCase(); return ts.every(function(t){return hay.indexOf(t)>=0;}); }); }
   list.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')) || (b.id-a.id); });
   // summary by currency
@@ -8595,6 +8602,32 @@ function bankAutoVendor(){
 }
 
 
+var bankListFilter = { q:'', cat:'', dir:'', match:'' };
+function setBankFilter(field,val){ bankListFilter[field]=val; renderBankList(); }
+function clearBankFilter(){ bankListFilter={q:'',cat:'',dir:'',match:''}; renderBankList(); }
+function _bankMatchKind(t){
+  if(t.matchCardId) return 'card';
+  if(t.matchDocId) return 'doc';
+  if(typeof _txnInvLinked==='function' && _txnInvLinked(t)) return 'inv';
+  return 'none';
+}
+function _bankPassFilter(t){
+  var f=bankListFilter;
+  if(f.cat && (t.category||'Uncategorized')!==f.cat) return false;
+  if(f.dir==='in'  && !(Math.round(t.credit||0)>0)) return false;
+  if(f.dir==='out' && !(Math.round(t.debit||0)>0)) return false;
+  if(f.match){
+    var kind=_bankMatchKind(t);
+    if(f.match==='matched' && kind==='none') return false;
+    if(f.match==='unmatched' && kind!=='none') return false;
+    if((f.match==='card'||f.match==='doc'||f.match==='inv') && kind!==f.match) return false;
+    if(f.match==='invfull'){ if(!(typeof _bankInvInfo==='function' && _bankInvInfo(t).full)) return false; }
+    if(f.match==='invpartial'){ var bi=(typeof _bankInvInfo==='function')?_bankInvInfo(t):null; if(!(bi && bi.linked.length>0 && bi.remaining>0)) return false; }
+  }
+  if(f.q){ var hay=[t.date,t.note,t.ref,t.vendor,t.category,t.type].join(' ').toLowerCase(); var ts=f.q.toLowerCase().split(/\s+/); if(!ts.every(function(x){return hay.indexOf(x)>=0;})) return false; }
+  return true;
+}
+async function bankManualSave(){ try{ await saveState(); showToast('저장 완료 · Saved to server'); }catch(e){ showToast('저장 실패 · Save failed — 재시도'); } }
 function renderBankList(){
   var el=document.getElementById('bankList'); if(!el) return;
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
@@ -8614,9 +8647,11 @@ function renderBankList(){
       +'</div>';
   }
   if(!txns.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-file-spreadsheet"></i><p>No transactions · 거래내역 없음 — Upload an Excel statement · 엑셀 업로드</p></div>'; return; }
+  var txnsAll=txns;
+  var txnsF=txns.filter(_bankPassFilter);
   var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
-  var rows=txns.map(function(t){
+  var rows=txnsF.map(function(t){
     var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:150px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
     var guess=(!t.vendor||!t.vendor.trim())?_bankAutoVendorName(t.note||t.ref||''):'';
     var vph=guess?('추천: '+guess.replace(/"/g,'&quot;')):'거래처 선택·입력';
@@ -8654,13 +8689,33 @@ function renderBankList(){
     +'<button class="btn btn-dark" style="font-size:11px;padding:5px 11px" onclick="runInvoiceAutoMatch()"><i class="ti ti-arrows-diff"></i> 인보이스 자동매칭 · Auto-match invoices</button>'
     +(payInvs.length?'<span style="font-size:11px;color:'+(invMatched===payInvs.length?'#15803d':'#92400e')+'">인보이스 · Invoice '+invMatched+'/'+payInvs.length+' 결제 · settled</span>':'')
     +'</div>';
-  el.innerHTML=bankVendorDatalist()+vendorBar+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1480px">'
-    +'<thead><tr>'
-    +'<th style="'+th+'">Date<br>날짜</th><th style="'+th+';max-width:64px">Type<br>거래</th>'
-    +'<th style="'+th+';text-align:right">Out<br>출금</th><th style="'+th+';text-align:right">In<br>입금</th>'
-    +'<th style="'+th+';text-align:right">Balance<br>잔액</th><th style="'+th+'">Note<br>비고</th>'
-    +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+'">Approval<br>전자결재</th><th style="'+th+'">Invoice<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
-    +'<tbody>'+rows+'</tbody></table></div>';
+  var f=bankListFilter;
+  var selStyle='font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)';
+  function opt(v,label,cur){ return '<option value="'+v.replace(/"/g,'&quot;')+'"'+(v===cur?' selected':'')+'>'+label+'</option>'; }
+  var catOpts=opt('','분류 전체',f.cat)+(state.bankCategories||[]).map(function(c){return opt(c,c,f.cat);}).join('');
+  var filterBar='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius)">'
+    +'<i class="ti ti-filter" style="color:var(--text-3)"></i>'
+    +'<input value="'+String(f.q||'').replace(/"/g,'&quot;')+'" onchange="setBankFilter(\'q\',this.value)" placeholder="검색 · Search (비고·거래처)" style="'+selStyle+';width:180px">'
+    +'<select onchange="setBankFilter(\'cat\',this.value)" style="'+selStyle+';max-width:150px">'+catOpts+'</select>'
+    +'<select onchange="setBankFilter(\'dir\',this.value)" style="'+selStyle+'">'+opt('','입출금 전체',f.dir)+opt('in','입금 In',f.dir)+opt('out','출금 Out',f.dir)+'</select>'
+    +'<select onchange="setBankFilter(\'match\',this.value)" style="'+selStyle+'">'
+      +opt('','매칭 전체',f.match)+opt('unmatched','미매칭',f.match)+opt('matched','매칭됨(전체)',f.match)
+      +opt('card','카드',f.match)+opt('doc','전자결재',f.match)+opt('inv','인보이스',f.match)
+      +opt('invpartial','인보이스 부분충당',f.match)+opt('invfull','인보이스 완납',f.match)+'</select>'
+    +((f.q||f.cat||f.dir||f.match)?'<button class="btn btn-outline" style="font-size:11px;padding:5px 9px" onclick="clearBankFilter()"><i class="ti ti-x"></i> 필터해제</button> <span style="font-size:11px;color:var(--text-3)">'+txnsF.length+' / '+txnsAll.length+'건</span>':'')
+    +'<span style="flex:1"></span>'
+    +'<button class="btn btn-dark" style="font-size:11px;padding:6px 14px" onclick="bankManualSave()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>'
+    +'</div>';
+  var listHtml = txnsF.length
+    ? '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1480px">'
+      +'<thead><tr>'
+      +'<th style="'+th+'">Date<br>날짜</th><th style="'+th+';max-width:64px">Type<br>거래</th>'
+      +'<th style="'+th+';text-align:right">Out<br>출금</th><th style="'+th+';text-align:right">In<br>입금</th>'
+      +'<th style="'+th+';text-align:right">Balance<br>잔액</th><th style="'+th+'">Note<br>비고</th>'
+      +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+'">Approval<br>전자결재</th><th style="'+th+'">Invoice<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
+      +'<tbody>'+rows+'</tbody></table></div>'
+    : '<div class="empty-state" style="padding:24px"><i class="ti ti-filter-off"></i><p>필터 조건에 맞는 거래가 없습니다 · No transactions match the filter</p></div>';
+  el.innerHTML=bankVendorDatalist()+vendorBar+filterBar+listHtml;
 }
 function _bankTypeShort(ty){ ty=String(ty||''); if(/카드/.test(ty)) return '카드'; return ty; }
 function applyBankVendorGuess(id){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; saveState(); renderBankList(); } }
