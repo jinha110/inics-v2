@@ -1156,7 +1156,11 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div style="font-size:15px;font-weight:700">노션 가져오기 · Import</div>
         <button class="btn btn-outline" onclick="projCloseImport()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
       </div>
-      <div style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:10px">노션에서 <b>··· → 내보내기(Export) → CSV</b>로 받은 내용을 그대로 붙여넣으세요. Status·견적·발주·납품·결제 컬럼을 읽어 단계를 자동 매핑하고, <b>같은 고객사는 갱신</b>합니다.</div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:10px">노션에서 <b>··· → 내보내기(Export) → Markdown &amp; CSV</b>로 받은 <b>_all.csv</b> 내용을 그대로 붙여넣으세요. Status·견적·발주·납품·결제 컬럼으로 단계를 매핑하고, <b>손익(공급가·마진율·매출액·미수금·영업이익·지급상태)</b>도 함께 읽어 <b>고객사 기준으로 갱신</b>합니다.</div>
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius);padding:9px 11px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-size:11px;color:#0369a1;line-height:1.5"><b><i class="ti ti-report-money"></i> VIETNAM 손익 (Notion)</b><br>업로드해주신 12개 프로젝트(13건) 손익을 붙여넣기 없이 바로 반영합니다.</div>
+        <button class="btn btn-dark" onclick="projImportVietnamPnl()" style="font-size:11px;padding:6px 12px;white-space:nowrap"><i class="ti ti-bolt"></i> VIETNAM 손익 즉시 반영</button>
+      </div>
       <textarea id="projImportText" placeholder="여기에 노션 CSV 내용을 붙여넣기..." style="width:100%;min-height:160px;font-family:var(--mono);font-size:11px;border:1px solid var(--border);border-radius:var(--radius);padding:10px;outline:none;resize:vertical"></textarea>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
         <span id="projImportStatus" style="font-size:12px;color:var(--text-2)"></span>
@@ -7003,11 +7007,12 @@ function projCardHtml(p){
   return '<div class="proj-card" draggable="true" ondragstart="projDragStart(event,'+p.id+')" ondragend="projDragEnd(event)" '
     +'style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+s.color+';border-radius:var(--radius);padding:8px 9px;cursor:grab">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer" onclick="toggleProjDetail('+p.id+')">'
-      +'<div style="font-size:12px;font-weight:700;line-height:1.2;flex:1;min-width:0">'+(p.client||'—')+(qCount?' <span style="font-size:9px;font-weight:600;color:#4338ca">·'+qCount+'견적</span>':'')+'</div>'
+      +'<div style="font-size:12px;font-weight:700;line-height:1.2;flex:1;min-width:0">'+(p.client||'—')+(qCount?' <span style="font-size:9px;font-weight:600;color:#4338ca">·'+qCount+'견적</span>':'')+(typeof _projMarginChip==='function'?_projMarginChip(p):'')+'</div>'
       +'<button onclick="event.stopPropagation();toggleProjDetail('+p.id+')" draggable="false" style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:9px;color:var(--text-2);padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:var(--sans)">DETAIL <i class="ti ti-chevron-down" id="pchev-'+p.id+'" style="font-size:11px;vertical-align:-1px"></i></button>'
     +'</div>'
     +'<div id="pdet-'+p.id+'" style="display:none;margin-top:6px">'
-      +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">'+custBadge+typeBadge+qBadge+regChip+'</div>'
+      +(typeof _projPnlHtml==='function'?_projPnlHtml(p):'')
+      +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:6px">'+custBadge+typeBadge+qBadge+regChip+'</div>'
       +(noteShort?'<div style="font-size:11px;color:var(--text-2);margin-top:5px;line-height:1.4">'+noteShort+'</div>':'')
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'
         +'<span style="font-size:11px;font-weight:600;color:var(--text)">'+amt+'</span>'
@@ -7467,16 +7472,74 @@ function projMapNotionRow(r){
   if(projKDate(g('DELIVERY'))) meta.push('납품 '+projKDate(g('DELIVERY')));
   if(g('STATUS')) meta.push('견적상태 '+g('STATUS'));
   if(meta.length) noteLines.push(meta.join(' · '));
+  var _pnl={}; (typeof PROJ_PNL_COLS!=='undefined'?PROJ_PNL_COLS:[]).forEach(function(k){ var vv=g(k); if(vv) _pnl[k]=vv; });
   return {
     client:client, region:'VIETNAM', type:'기타', currency:'VND',
     stage:stage,
-    regDate:projKDate(g('Start')),
+    regDate:projKDate(g('Start'))||projKDate(g('START')),
     targetDate:projKDate(g('DELIVERY'))||projKDate(g('END')),
     note:noteLines.join('\n'),
     remark:'',
+    pnl: Object.keys(_pnl).length?_pnl:null,
     custType: (function(){ var t=g('TYPE'); if(t==='B2B') return 'B2B'; if(t==='B2C') return 'B2C'; if(t==='개인고객'||t==='END USER') return 'END USER'; return ''; })()
   };
 }
+// ═══════════ Notion VIETNAM 손익(P&L) 임포트 + 표시 ═══════════
+var PROJ_PNL_COLS = ["END", "ETC", "INVOICE", "START", "Select", "Status", "공급가(EX. VAT)", "마진율", "매출액(EX.VAT)", "미수금", "영업이익(EX.VAT)", "지급상태"];
+var PROJ_PNL_LABELS = {'END':'END','ETC':'ETC · 비고','INVOICE':'INVOICE','START':'START · 시작','Select':'Select · 구분','Status':'Status','공급가(EX. VAT)':'공급가 (Ex.VAT)','마진율':'마진율','매출액(EX.VAT)':'매출액 (Ex.VAT)','미수금':'미수금','영업이익(EX.VAT)':'영업이익 (Ex.VAT)','지급상태':'지급상태'};
+var VIETNAM_PNL_DATA = [{"client": "INICS HCM", "stage": "po", "pnl": {"INVOICE": "C26TYY-00000108-IAM_(INICS)_22.05.2026_-DPH.pdf, C26TYY-00000109-IAM_(INICS)_22.05.2026_-DPH.pdf, C26TYY-00000110-IAM_(INICS)_22.05.2026_-DPH.pdf, C26TYY-00000137-IAM_(INICS)_-DPH.pdf, C26TYY-00000138-IAM_(INICS)_-DPH.pdf, C26TYY-00000145-IAM_(INICS)_-DPH.pdf, C26TYY-00000146-IAM_(INICS)_-DPH.pdf, C26TYY-00000154-IAM_(INICS)_-DPH__(SPT_EC_-_DN_Project).pdf", "START": "2026년 4월 1일", "Select": "INICS", "Status": "In progress", "공급가(EX. VAT)": "₫328,900,212", "마진율": "0%", "매출액(EX.VAT)": "₫328,900,212", "미수금": "미수금", "영업이익(EX.VAT)": "₫0", "지급상태": "미지급"}}, {"client": "SPT E&C DN", "stage": "po", "pnl": {"START": "2026년 4월 1일", "Select": "KIM PRO", "Status": "In progress", "공급가(EX. VAT)": "₫222,592,897", "마진율": "20.2953022944%", "매출액(EX.VAT)": "₫279,271,992", "미수금": "미수금", "영업이익(EX.VAT)": "₫56,679,095", "지급상태": "미지급"}}, {"client": "SPT E&C LAO", "stage": "po", "pnl": {"START": "2026년 4월 1일", "Select": "KIM PRO", "Status": "In progress", "공급가(EX. VAT)": "₫79,145,035", "마진율": "17.6873717529%", "매출액(EX.VAT)": "₫96,151,753", "미수금": "미수금", "영업이익(EX.VAT)": "₫17,006,718", "지급상태": "미지급"}}, {"client": "B2C_GRAND PLAZA", "stage": "delivered", "pnl": {"START": "2026년 4월 10일", "Select": "INICS", "Status": "Done", "공급가(EX. VAT)": "₫4,111,187", "마진율": "35.762703125%", "매출액(EX.VAT)": "₫6,400,000", "미수금": "수금 완료", "영업이익(EX.VAT)": "₫2,288,813", "지급상태": "미지급"}}, {"client": "POOINGIN TRADING HCM", "stage": "po", "pnl": {"START": "2026년 4월 20일", "Select": "INICS", "Status": "In progress", "공급가(EX. VAT)": "₫280,832,175", "마진율": "16.6666666667%", "매출액(EX.VAT)": "₫336,998,610", "미수금": "미수금", "영업이익(EX.VAT)": "₫56,166,435", "지급상태": "미지급"}}, {"client": "READING GATE HCM", "stage": "po", "pnl": {"START": "2026년 4월 8일", "Select": "INICS", "Status": "In progress", "공급가(EX. VAT)": "₫20,746,148", "마진율": "16.6666680056%", "매출액(EX.VAT)": "₫24,895,378", "미수금": "미수금", "영업이익(EX.VAT)": "₫4,149,230", "지급상태": "미지급"}}, {"client": "CHOI IN OK", "stage": "delivered", "pnl": {"START": "2026년 5월 14일", "Select": "INICS", "Status": "Done", "공급가(EX. VAT)": "₫3,912,666", "마진율": "34.7889%", "매출액(EX.VAT)": "₫6,000,000", "미수금": "수금 완료", "영업이익(EX.VAT)": "₫2,087,334", "지급상태": "미지급"}}, {"client": "DAEHONG (Mr.Kim)", "stage": "po", "pnl": {"START": "2026년 6월 3일", "Select": "INICS", "Status": "In progress", "공급가(EX. VAT)": "₫7,200,825", "마진율": "25.7646907216%", "매출액(EX.VAT)": "₫9,700,000", "미수금": "미수금", "영업이익(EX.VAT)": "₫2,499,175", "지급상태": "미지급"}}, {"client": "JAY님 의자", "stage": "delivered", "pnl": {"START": "2026년 5월 28일", "Select": "INICS", "Status": "Done", "공급가(EX. VAT)": "₫5,095,350", "마진율": "32.062%", "매출액(EX.VAT)": "₫7,500,000", "미수금": "수금 완료", "영업이익(EX.VAT)": "₫2,404,650", "지급상태": "미지급"}}, {"client": "RED INTERIOR", "stage": "quote", "pnl": {"START": "2026년 6월 9일", "Select": "INICS", "Status": "Quotation", "공급가(EX. VAT)": "₫61,687,436", "마진율": "17.7634164318%", "매출액(EX.VAT)": "₫75,012,158", "미수금": "미수금", "영업이익(EX.VAT)": "₫13,324,722", "지급상태": "미지급"}}, {"client": "INTOSUM", "stage": "delivered", "pnl": {"ETC": "GS Global:  T21 (Head x - Arm x) - 9개\nINTOSUM:  T21 (Head x - Arm x) - 5개\nINTOSUM:  FRX Table (IAM꺼) - 1개", "START": "2026년 6월 10일", "Select": "INICS", "Status": "Done", "공급가(EX. VAT)": "₫34,890,796", "마진율": "42.0860183434%", "매출액(EX.VAT)": "₫60,245,894", "미수금": "미수금", "영업이익(EX.VAT)": "₫25,355,098", "지급상태": "미지급"}}, {"client": "AD TECHNOLOGY", "stage": "quote", "pnl": {"START": "2026년 6월 10일", "Select": "INICS", "Status": "Quotation", "공급가(EX. VAT)": "₫232,920,911", "마진율": "20.5147846052%", "매출액(EX.VAT)": "₫293,036,774", "미수금": "미수금", "영업이익(EX.VAT)": "₫60,115,863", "지급상태": "미지급"}}, {"client": "INICS HCM", "stage": "po", "pnl": {"ETC": "FRX Table order", "START": "2026년 6월 12일", "Select": "INICS", "Status": "In progress", "공급가(EX. VAT)": "₫10,296,225", "마진율": "0%", "매출액(EX.VAT)": "₫10,296,225", "미수금": "미수금", "영업이익(EX.VAT)": "₫0", "지급상태": "미지급"}}];
+
+function _pnlEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _projPnlFmtVal(k,v){ if(k==='마진율'){ var n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); if(!isNaN(n)) return n.toFixed(1)+'%'; } return String(v); }
+function _projPnlLabel(k){ return PROJ_PNL_LABELS[k]||k; }
+function _projPnlOne(pnl){
+  return PROJ_PNL_COLS.filter(function(k){ return pnl[k]!=null && String(pnl[k]).trim(); }).map(function(k){
+    var v=String(pnl[k]); var out;
+    if(k==='마진율') out=_projPnlFmtVal(k,v);
+    else if(k==='INVOICE') out='<span title="'+v.replace(/"/g,'&quot;')+'" style="display:inline-block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom">'+_pnlEsc(v)+'</span>';
+    else out=_pnlEsc(v).replace(/\n/g,'<br>');
+    var hi=(k==='마진율'||k==='영업이익(EX.VAT)'||k==='매출액(EX.VAT)');
+    return '<div style="display:flex;gap:8px;padding:2px 0"><div style="width:100px;flex-shrink:0;font-size:9px;color:var(--text-3)">'+_projPnlLabel(k)+'</div><div style="font-size:10px;color:var(--text);'+(hi?'font-weight:700':'font-weight:500')+'">'+out+'</div></div>';
+  }).join('');
+}
+function _projPnlList(p){ return (p.pnlList&&p.pnlList.length)?p.pnlList:(p.pnl?[p.pnl]:[]); }
+function _projPnlHtml(p){
+  var list=_projPnlList(p); if(!list.length) return '';
+  var body=list.map(function(pnl,i){
+    return '<div style="'+(i>0?'border-top:1px dashed #bae6fd;margin-top:5px;padding-top:5px':'')+'">'
+      +(list.length>1?'<div style="font-size:9px;font-weight:700;color:#4338ca;margin-bottom:2px">주문 '+(i+1)+'</div>':'')
+      +_projPnlOne(pnl)+'</div>';
+  }).join('');
+  return '<div style="margin-top:6px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius);padding:7px 9px">'
+    +'<div style="font-size:9px;font-weight:700;color:#0369a1;margin-bottom:3px"><i class="ti ti-report-money"></i> 손익 · Notion P&amp;L</div>'+body+'</div>';
+}
+function _projMarginChip(p){ var l=_projPnlList(p); var pnl0=l[0]; if(!(pnl0&&pnl0['마진율'])) return ''; return ' <span style="font-size:9px;font-weight:700;color:#0369a1;background:#e0f2fe;padding:1px 6px;border-radius:8px" title="Notion 마진율">'+_projPnlFmtVal('마진율',pnl0['마진율'])+'</span>'; }
+function _projApplyPnlRecords(records){
+  if(!state.projects) state.projects=[];
+  var touched={}, addedC={}, updatedC={};
+  records.forEach(function(rec){
+    if(!rec.client) return; var key=String(rec.client).toLowerCase();
+    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===key; });
+    if(!ex){ var u=(typeof cardCurrentUser==='function')?cardCurrentUser():null;
+      ex={ id:(state.projectSeq=(state.projectSeq||0)+1), client:rec.client, region:'VIETNAM', type:'기타', currency:'VND', stage:rec.stage||'po', createdAt:nowStr(), createdBy:(u?u.name:'notion') };
+      state.projects.push(ex); addedC[key]=1; }
+    else if(!addedC[key]) updatedC[key]=1;
+    if(!touched[key]){ ex.pnlList=[]; touched[key]=1; if(rec.stage) ex.stage=rec.stage; }
+    if(rec.pnl && Object.keys(rec.pnl).length) ex.pnlList.push(rec.pnl);
+    ex.pnlSource='notion'; ex.updatedAt=nowStr();
+  });
+  return { added:Object.keys(addedC).length, updated:Object.keys(updatedC).length };
+}
+function projImportVietnamPnl(){
+  if(!confirm('Notion VIETNAM 손익 데이터 '+VIETNAM_PNL_DATA.length+'건을 프로젝트에 반영할까요?\n같은 고객사는 손익 정보가 갱신되고, 없으면 새 프로젝트로 생성됩니다.')) return;
+  var r=_projApplyPnlRecords(VIETNAM_PNL_DATA); saveState();
+  if(typeof renderProjectBoard==='function') renderProjectBoard();
+  if(typeof _projTab!=='undefined' && _projTab==='list' && typeof renderProjectList==='function') renderProjectList();
+  var st=document.getElementById('projImportStatus'); if(st) st.textContent='Notion 손익 반영 완료 · 신규 '+r.added+' / 갱신 '+r.updated;
+  showToast('Notion 손익 반영 · 신규 '+r.added+' / 갱신 '+r.updated);
+}
+
+
 function projRunImport(){
   var raw=(document.getElementById('projImportText').value||'').trim();
   var statusEl=document.getElementById('projImportStatus');
@@ -7497,16 +7560,20 @@ function projRunImport(){
   }catch(e){ if(statusEl) statusEl.textContent='파싱 오류: '+e.message; return; }
   if(!mapped.length){ if(statusEl) statusEl.textContent='가져올 항목이 없습니다.'; return; }
   if(!state.projects) state.projects=[];
-  var added=0, updated=0;
+  var added=0, updated=0, _pnlBatch={};
   mapped.forEach(function(rec){
-    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===rec.client.toLowerCase(); });
+    var _key=(rec.client||'').toLowerCase();
+    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===_key; });
     if(ex){
       ex.stage=rec.stage; ex.targetDate=rec.targetDate||ex.targetDate; ex.note=rec.note||ex.note;
       ex.remark=rec.remark||ex.remark; ex.region=rec.region||ex.region;
       if(!ex.regDate) ex.regDate=rec.regDate; ex.updatedAt=nowStr(); updated++;
+      if(rec.pnl){ if(!_pnlBatch[_key]){ ex.pnlList=[]; _pnlBatch[_key]=1; } ex.pnlList.push(rec.pnl); ex.pnlSource='notion'; }
     } else {
       var u=cardCurrentUser();
-      state.projects.push(Object.assign({ id:(state.projectSeq=(state.projectSeq||0)+1), ownerId:null, location:'', amount:'', lostReason:'', createdAt:nowStr(), createdBy:(u?u.name:'import') }, rec));
+      var _np=Object.assign({ id:(state.projectSeq=(state.projectSeq||0)+1), ownerId:null, location:'', amount:'', lostReason:'', createdAt:nowStr(), createdBy:(u?u.name:'import') }, rec);
+      if(rec.pnl){ _np.pnlList=[rec.pnl]; _np.pnlSource='notion'; _pnlBatch[_key]=1; } delete _np.pnl;
+      state.projects.push(_np);
       added++;
     }
   });
