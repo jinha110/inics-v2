@@ -8139,7 +8139,9 @@ function handleBankExcel(file){
         state.bankTxns.push(txn); added++;
       }
       saveState(); renderBankApp();
-      showToast('Imported · 등록 '+added+' · skipped '+skipped+' (중복)');
+      var _bc=(typeof bankAutoChargeClassify==='function')?bankAutoChargeClassify(true):0;
+      if(_bc && typeof renderBankApp==='function') renderBankApp();
+      showToast('Imported · 등록 '+added+' · skipped '+skipped+' (중복)'+(_bc?(' · 수수료 자동분류 '+_bc):''));
     }catch(err){ console.error(err); showToast('파싱 오류 · Parse error: '+err.message); }
   };
   reader.readAsArrayBuffer(file);
@@ -8669,9 +8671,9 @@ function bankAutoVendor(){
 }
 
 
-var bankListFilter = { q:'', cat:'', dir:'', match:'' };
+var bankListFilter = { q:'', cat:'', dir:'', match:'', dept:'' };
 function setBankFilter(field,val){ bankListFilter[field]=val; renderBankList(); }
-function clearBankFilter(){ bankListFilter={q:'',cat:'',dir:'',match:''}; renderBankList(); }
+function clearBankFilter(){ bankListFilter={q:'',cat:'',dir:'',match:'',dept:''}; renderBankList(); }
 function _bankMatchKind(t){
   if(t.matchCardId) return 'card';
   if(t.matchDocId) return 'doc';
@@ -8683,6 +8685,7 @@ function _bankPassFilter(t){
   if(f.cat && (t.category||'Uncategorized')!==f.cat) return false;
   if(f.dir==='in'  && !(Math.round(t.credit||0)>0)) return false;
   if(f.dir==='out' && !(Math.round(t.debit||0)>0)) return false;
+  if(f.dept && _bankDept(t)!==f.dept) return false;
   if(f.match){
     var kind=_bankMatchKind(t);
     if(f.match==='matched' && kind==='none') return false;
@@ -8695,6 +8698,43 @@ function _bankPassFilter(t){
   return true;
 }
 async function bankManualSave(){ try{ await saveState(); showToast('저장 완료 · Saved to server'); }catch(e){ showToast('저장 실패 · Save failed — 재시도'); } }
+// ── 부서(Dept): 카드·전자결재 매칭 시 자동, 미매칭 시 수기 ──
+function _bankDeptList(){ var d=(state.departments&&state.departments.length)?state.departments.slice():['FURNITURE','SOURCING','COMMON']; if(d.indexOf('COMMON')<0)d.push('COMMON'); return d; }
+function _bankAutoDept(t){
+  if(t.matchCardId){ var c=(state.cardExpenses||[]).find(function(x){return x.id===t.matchCardId;}); if(c&&c.dept) return c.dept; }
+  if(t.matchDocId){ var d=(state.docs||[]).find(function(x){return x.id===t.matchDocId;}); if(d&&d.dept) return d.dept; }
+  return '';
+}
+function _bankDept(t){ var a=_bankAutoDept(t); return a||t.dept||''; }
+function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.dept=String(val||'').trim(); saveState(); }
+function _bankDeptCell(t){
+  var auto=_bankAutoDept(t);
+  if(auto){ return '<span style="font-size:11px;font-weight:700;white-space:nowrap" title="매칭에서 자동 · From matched card/approval">'+auto+' <span style="font-size:8px;font-weight:600;color:#15803d">auto</span></span>'; }
+  var cur=t.dept||'';
+  var opts='<option value="">부서…</option>'+_bankDeptList().map(function(d){ return '<option'+(d===cur?' selected':'')+'>'+d+'</option>'; }).join('');
+  return '<select onchange="setBankTxnDept('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);'+(cur?'':'background:#fffbeb')+'">'+opts+'</select>';
+}
+// ── 은행수수료 자동분류: 거래번호(ref) 동일 & 거래처 없음 → Bank Charges / SHINHAN VN ──
+function bankAutoChargeClassify(silent){
+  var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;}); if(!acc){ return 0; }
+  var txns=(state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;});
+  var byRef={};
+  txns.forEach(function(t){ var r=String(t.ref||'').trim(); if(!r) return; (byRef[r]=byRef[r]||[]).push(t); });
+  var n=0;
+  Object.keys(byRef).forEach(function(r){
+    var g=byRef[r]; if(g.length<2) return;                 // 거래번호 동일(2건 이상)
+    g.forEach(function(t){
+      if(t.vendor && String(t.vendor).trim()) return;      // 거래처 있으면 제외
+      if(t.matchCardId||t.matchDocId) return;              // 이미 카드·전자결재 매칭 제외
+      if(typeof _txnInvLinked==='function' && _txnInvLinked(t)) return; // 인보이스 매칭 제외
+      if(!t.category || t.category==='Uncategorized') t.category='Bank Charges';
+      t.vendor='SHINHAN VN'; n++;
+    });
+  });
+  if(n){ saveState(); if(!silent && typeof renderBankList==='function') renderBankList(); }
+  return n;
+}
+function bankRunAutoCharge(){ var n=bankAutoChargeClassify(false); showToast(n?('은행수수료 자동분류 '+n+'건 · '+n+' bank charges'):'해당 거래 없음 · None found'); }
 function renderBankList(){
   var el=document.getElementById('bankList'); if(!el) return;
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
@@ -8732,6 +8772,7 @@ function renderBankList(){
       +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:600">'+bankFmt(t.balance,acc.currency)+'</td>'
       +'<td style="'+td+';max-width:260px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
       +'<td style="'+td+'">'+catSel+'</td>'
+      +'<td style="'+td+'">'+_bankDeptCell(t)+'</td>'
       +'<td style="'+td+';white-space:nowrap">'+vendorInp+'</td>'
       +'<td style="'+td+'">'+_bankCardCell(t)+'</td>'
       +'<td style="'+td+'">'+_bankDocCell(t)+'</td>'
@@ -8745,6 +8786,7 @@ function renderBankList(){
   var payInvs=(state.invoices||[]).filter(function(v){return _invAmtCents(v)>0;}); var invMatched=payInvs.filter(function(v){return v.matchTxnId;}).length;
   var vendorBar='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
     +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankAutoVendor()"><i class="ti ti-wand"></i> 거래처 자동인식 · Auto-vendor</button>'
+    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankRunAutoCharge()" title="거래번호 동일 & 거래처 없음 → Bank Charges / SHINHAN VN"><i class="ti ti-receipt-2"></i> 은행수수료 자동분류</button>'
     +(noVendor?'<span style="font-size:11px;color:#92400e">거래처 미지정 · No vendor '+noVendor+'</span>':'<span style="font-size:11px;color:#15803d">거래처 지정 완료 · Done</span>')
     +'<span style="width:1px;height:18px;background:var(--border);margin:0 4px"></span>'
     +'<button class="btn btn-dark" style="font-size:11px;padding:5px 11px" onclick="runAutoMatch()"><i class="ti ti-arrows-diff"></i> 카드 자동매칭 · Auto-match cards</button>'
@@ -8765,21 +8807,22 @@ function renderBankList(){
     +'<input value="'+String(f.q||'').replace(/"/g,'&quot;')+'" onchange="setBankFilter(\'q\',this.value)" placeholder="검색 · Search (비고·거래처)" style="'+selStyle+';width:180px">'
     +'<select onchange="setBankFilter(\'cat\',this.value)" style="'+selStyle+';max-width:150px">'+catOpts+'</select>'
     +'<select onchange="setBankFilter(\'dir\',this.value)" style="'+selStyle+'">'+opt('','입출금 전체',f.dir)+opt('in','입금 In',f.dir)+opt('out','출금 Out',f.dir)+'</select>'
+    +'<select onchange="setBankFilter(\'dept\',this.value)" style="'+selStyle+'">'+opt('','부서 전체',f.dept)+_bankDeptList().map(function(d){return opt(d,d,f.dept);}).join('')+'</select>'
     +'<select onchange="setBankFilter(\'match\',this.value)" style="'+selStyle+'">'
       +opt('','매칭 전체',f.match)+opt('unmatched','미매칭',f.match)+opt('matched','매칭됨(전체)',f.match)
       +opt('card','카드',f.match)+opt('doc','전자결재',f.match)+opt('inv','인보이스',f.match)
       +opt('invpartial','인보이스 부분충당',f.match)+opt('invfull','인보이스 완납',f.match)+'</select>'
-    +((f.q||f.cat||f.dir||f.match)?'<button class="btn btn-outline" style="font-size:11px;padding:5px 9px" onclick="clearBankFilter()"><i class="ti ti-x"></i> 필터해제</button> <span style="font-size:11px;color:var(--text-3)">'+txnsF.length+' / '+txnsAll.length+'건</span>':'')
+    +((f.q||f.cat||f.dir||f.match||f.dept)?'<button class="btn btn-outline" style="font-size:11px;padding:5px 9px" onclick="clearBankFilter()"><i class="ti ti-x"></i> 필터해제</button> <span style="font-size:11px;color:var(--text-3)">'+txnsF.length+' / '+txnsAll.length+'건</span>':'')
     +'<span style="flex:1"></span>'
     +'<button class="btn btn-dark" style="font-size:11px;padding:6px 14px" onclick="bankManualSave()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>'
     +'</div>';
   var listHtml = txnsF.length
-    ? '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1480px">'
+    ? '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1580px">'
       +'<thead><tr>'
       +'<th style="'+th+'">Date<br>날짜</th><th style="'+th+';max-width:64px">Type<br>거래</th>'
       +'<th style="'+th+';text-align:right">Out<br>출금</th><th style="'+th+';text-align:right">In<br>입금</th>'
       +'<th style="'+th+';text-align:right">Balance<br>잔액</th><th style="'+th+'">Note<br>비고</th>'
-      +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+'">Approval<br>전자결재</th><th style="'+th+'">Invoice<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
+      +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Dept<br>부서</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+'">Approval<br>전자결재</th><th style="'+th+'">Invoice<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
       +'<tbody>'+rows+'</tbody></table></div>'
     : '<div class="empty-state" style="padding:24px"><i class="ti ti-filter-off"></i><p>필터 조건에 맞는 거래가 없습니다 · No transactions match the filter</p></div>';
   el.innerHTML=bankVendorDatalist()+vendorBar+filterBar+listHtml;
