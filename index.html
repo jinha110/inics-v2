@@ -2333,6 +2333,25 @@ async function saveState() {
   }
 }
 
+// ── 편집 보호: 방금 로컬에서 편집한 항목을 오래된 원격 푸시가 덮어쓰지 못하게 ──
+function _stampEdit(o){ if(o) o._editedAt=Date.now(); return o; }
+function _mergeRecentLocalEdits(remote){
+  if(!remote || !state) return remote;
+  ['bankTxns','invoices','cardExpenses'].forEach(function(coll){
+    if(!Array.isArray(state[coll]) || !Array.isArray(remote[coll])) return;
+    var localById={}; state[coll].forEach(function(it){ if(it && it.id!=null) localById[String(it.id)]=it; });
+    var seen={};
+    remote[coll]=remote[coll].map(function(rt){
+      if(!rt || rt.id==null) return rt; var k=String(rt.id); seen[k]=1;
+      var lt=localById[k];
+      if(lt && (lt._editedAt||0) > (rt._editedAt||0)) return lt;   // 로컬이 더 최근 편집 → 로컬 유지
+      return rt;
+    });
+    // 로컬에만 있고(방금 추가) 최근 2분 내 편집된 항목은 원격에 없어도 유지
+    state[coll].forEach(function(lt){ if(lt && lt.id!=null && !seen[String(lt.id)] && (Date.now()-(lt._editedAt||0))<120000){ remote[coll].push(lt); } });
+  });
+  return remote;
+}
 async function loadState() {
   let loaded = null;
   if(fbReady && window._fbLoad) {
@@ -2390,6 +2409,7 @@ async function loadState() {
   // realtime listener
   if(fbReady && window._fbListen){
     var _applyRemote=function(remote){
+      remote=_mergeRecentLocalEdits(remote);   // 최근 로컬 편집 보호
       state=remote; if(!state.docSeq)state.docSeq={}; if(!state.memberPasswords)state.memberPasswords={};
       if(!state.vendors)state.vendors=[]; if(!state.vendorRequests)state.vendorRequests=[]; if(state.vendorReqSeq===undefined)state.vendorReqSeq=0;
       if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(typeof _mpNormalize==='function') _mpNormalize(); if(!state.viewScope)state.viewScope={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
@@ -8183,8 +8203,8 @@ function _cardMatchInfo(card){
   if(cands.length>=1) return {status:'review', txn:null, candidates:cands};
   return {status:'none', txn:null, candidates:[]};
 }
-function _linkCardBank(card,txn,how){ card.matchTxnId=txn.id; card.matchStatus=how; card.matchedAt=nowStr(); txn.matchCardId=card.id; txn.matchStatus=how; txn.matchedAt=nowStr(); }
-function _unlinkCard(card){ if(card.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;}); if(t){ t.matchCardId=null; t.matchStatus=null; t.matchedAt=null; } } card.matchTxnId=null; card.matchStatus=null; card.matchedAt=null; }
+function _linkCardBank(card,txn,how){ card.matchTxnId=txn.id; card.matchStatus=how; card.matchedAt=nowStr(); txn.matchCardId=card.id; txn.matchStatus=how; txn.matchedAt=nowStr(); _stampEdit(txn); _stampEdit(card); }
+function _unlinkCard(card){ if(card.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;}); if(t){ t.matchCardId=null; t.matchStatus=null; t.matchedAt=null; _stampEdit(t); } } card.matchTxnId=null; card.matchStatus=null; card.matchedAt=null; _stampEdit(card); }
 function _reconRefresh(){ saveState(); if(typeof renderBankList==='function') renderBankList(); if(typeof renderCard==='function') renderCard(); if(typeof renderCardBankRecon==='function' && document.getElementById('bankReconPane')) renderCardBankRecon(); }
 // 은행 행(체크카드결제) → 카드 매칭 (명세서 페이지 통합용)
 function _isCardTxn(t){ return /카드/.test(String(t.type||'')) && _bankDebit(t)>0; }
@@ -8258,8 +8278,8 @@ function _bankDocInfo(txn){
   if(cands.length>=2) return {status:'review', doc:null, candidates:cands};
   return {status:'none', doc:null, candidates:cands};
 }
-function _linkDocBank(doc,txn,how){ doc.matchTxnId=txn.id; doc.matchStatus=how; doc.matchedAt=nowStr(); txn.matchDocId=doc.id; txn.matchDocStatus=how; txn.matchDocAt=nowStr(); }
-function _unlinkDoc(doc){ if(doc.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===doc.matchTxnId;}); if(t){ t.matchDocId=null; t.matchDocStatus=null; t.matchDocAt=null; } } doc.matchTxnId=null; doc.matchStatus=null; doc.matchedAt=null; }
+function _linkDocBank(doc,txn,how){ doc.matchTxnId=txn.id; doc.matchStatus=how; doc.matchedAt=nowStr(); txn.matchDocId=doc.id; txn.matchDocStatus=how; txn.matchDocAt=nowStr(); _stampEdit(txn); }
+function _unlinkDoc(doc){ if(doc.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===doc.matchTxnId;}); if(t){ t.matchDocId=null; t.matchDocStatus=null; t.matchDocAt=null; _stampEdit(t); } } doc.matchTxnId=null; doc.matchStatus=null; doc.matchedAt=null; }
 function _docReconRefresh(){ saveState(); if(typeof renderBankList==='function') renderBankList(); }
 function runDocAutoMatch(){
   var docs=(state.docs||[]).filter(_docPayable).filter(function(d){ return !d.matchTxnId; });
@@ -8360,7 +8380,7 @@ function _linkInvBank(inv,txn,how){
   if(!Array.isArray(txn.matchInvIds)) txn.matchInvIds=(txn.matchInvId!=null)?[txn.matchInvId]:[];
   txn.matchInvId=null;   // 구버전 단일 필드 → 배열로 이관
   if(txn.matchInvIds.map(String).indexOf(String(inv.id))<0) txn.matchInvIds.push(inv.id);
-  txn.matchInvStatus=how; txn.matchInvAt=nowStr();
+  txn.matchInvStatus=how; txn.matchInvAt=nowStr(); _stampEdit(txn); _stampEdit(inv);
 }
 function _unlinkInv(inv){
   if(inv.matchTxnId){
@@ -8369,9 +8389,10 @@ function _unlinkInv(inv){
       if(Array.isArray(t.matchInvIds)) t.matchInvIds=t.matchInvIds.filter(function(id){return String(id)!==String(inv.id);});
       if(t.matchInvId!=null && String(t.matchInvId)===String(inv.id)) t.matchInvId=null;
       if(!_txnInvLinked(t)){ t.matchInvStatus=null; t.matchInvAt=null; if(Array.isArray(t.matchInvIds)&&!t.matchInvIds.length) t.matchInvIds=null; }
+      _stampEdit(t);
     }
   }
-  inv.matchTxnId=null; inv.matchStatus=null; inv.paidAt=null;
+  inv.matchTxnId=null; inv.matchStatus=null; inv.paidAt=null; _stampEdit(inv);
 }
 function _invReconRefresh(){ saveState(); if(typeof renderBankList==='function' && document.getElementById('bankList')) renderBankList(); if(typeof renderInvoiceApp==='function' && document.getElementById('invoiceList')) renderInvoiceApp(); }
 function matchInvBank(invId,txnId,how){
@@ -8661,11 +8682,11 @@ function _bankExtractVendorFromNote(note){
 }
 // NOTE 추출 우선 → 없으면 거래처 DB 부분일치
 function _bankAutoVendorName(note){ var v=_bankExtractVendorFromNote(note); return v?v:_bankGuessVendor(note); }
-function setBankTxnVendor(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return; t.vendor=String(val||'').trim(); saveState(); }
+function setBankTxnVendor(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return; t.vendor=String(val||'').trim(); _stampEdit(t); saveState(); }
 function bankAutoVendor(){
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;}); if(!acc){ return; }
   var n=0;
-  (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acc.acctNo && (!t.vendor||!t.vendor.trim())){ var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; n++; } } });
+  (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acc.acctNo && (!t.vendor||!t.vendor.trim())){ var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; _stampEdit(t); n++; } } });
   saveState(); renderBankList();
   showToast('NOTE에서 거래처 '+n+'건 자동 인식 · '+n+' detected');
 }
@@ -8706,7 +8727,7 @@ function _bankAutoDept(t){
   return '';
 }
 function _bankDept(t){ var a=_bankAutoDept(t); return a||t.dept||''; }
-function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.dept=String(val||'').trim(); saveState(); }
+function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.dept=String(val||'').trim(); _stampEdit(t); saveState(); }
 function _bankDeptCell(t){
   var auto=_bankAutoDept(t);
   if(auto){ return '<span style="font-size:11px;font-weight:700;white-space:nowrap" title="매칭에서 자동 · From matched card/approval">'+auto+' <span style="font-size:8px;font-weight:600;color:#15803d">auto</span></span>'; }
@@ -8728,7 +8749,7 @@ function bankAutoChargeClassify(silent){
       if(t.matchCardId||t.matchDocId) return;              // 이미 카드·전자결재 매칭 제외
       if(typeof _txnInvLinked==='function' && _txnInvLinked(t)) return; // 인보이스 매칭 제외
       if(!t.category || t.category==='Uncategorized') t.category='Bank Charges';
-      t.vendor='SHINHAN VN'; n++;
+      t.vendor='SHINHAN VN'; _stampEdit(t); n++;
     });
   });
   if(n){ saveState(); if(!silent && typeof renderBankList==='function') renderBankList(); }
@@ -8828,7 +8849,7 @@ function renderBankList(){
   el.innerHTML=bankVendorDatalist()+vendorBar+filterBar+listHtml;
 }
 function _bankTypeShort(ty){ ty=String(ty||''); if(/카드/.test(ty)) return '카드'; return ty; }
-function applyBankVendorGuess(id){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; saveState(); renderBankList(); } }
+function applyBankVendorGuess(id){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; _stampEdit(t); saveState(); renderBankList(); } }
 function _bankInvoiceChecked(t){
   if(t.invoice===true) return true;
   if(t.invoice===false) return false;
@@ -8862,7 +8883,7 @@ function _bankCardCell(t){
 }
 function setBankTxnCategory(id,val){
   var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return;
-  t.category=val; saveState();
+  t.category=val; _stampEdit(t); saveState();
   // light refresh of summary only
   renderBankList();
 }
