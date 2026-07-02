@@ -86,7 +86,10 @@
   window._fbSnapshotFromState = function(st){
     var snap={ meta:{}, colls:{} };
     for(var k in st){ if(!_isColl[k]) snap.meta[k]=_clone(st[k]); }
-    for(var j=0;j<COLLECTIONS.length;j++){ var c=COLLECTIONS[j]; snap.colls[c]=_canonMap(c, st[c], null); }
+    // 반드시 깊은 복사: non-EXT 컬렉션은 _canonItem이 원본 참조를 반환하므로,
+    // clone 하지 않으면 _lastSynced가 live 객체를 물고 있어 인플레이스 수정이 diff에서 안 잡힘
+    // (= 저장이 안 되고 다음 동기화에서 원점 복구되는 버그의 근본 원인).
+    for(var j=0;j<COLLECTIONS.length;j++){ var c=COLLECTIONS[j]; snap.colls[c]=_clone(_canonMap(c, st[c], null)); }
     window._lastSynced = snap;
   };
 
@@ -139,7 +142,11 @@
           var fhere={}; cur[kk]=_canonItem(c, it, fhere); perKeyFiles[kk]=fhere; }
       }
       var old=prev.colls[c]||{}, patch={}, ch=false;
-      for(var k in cur){ if(!_eq(cur[k],old[k])){ patch[k]=cur[k]; ch=true; if(perKeyFiles[k]) for(var fh in perKeyFiles[k]) fileUploads[fh]=perKeyFiles[k][fh]; } }
+      for(var k in cur){ if(!_eq(cur[k],old[k])){
+        // 변경된 레코드에 버전 각인: 어느 편집 경로(인플레이스 포함)든 read-side 병합이 보호하도록.
+        // non-EXT는 cur[k]가 live 객체라 여기서 올리면 화면 상태에도 반영됨.
+        if(cur[k] && typeof cur[k]==='object'){ var _b=(old[k]&&old[k]._rev)||0; if(!(cur[k]._rev>_b)) cur[k]._rev=_b+1; cur[k]._editedAt=Date.now(); }
+        patch[k]=cur[k]; ch=true; if(perKeyFiles[k]) for(var fh in perKeyFiles[k]) fileUploads[fh]=perKeyFiles[k][fh]; } }
       for(var k2 in old){ if(!(k2 in cur)){ patch[k2]=null; ch=true; } }
       if(ch) writes.push({ url:V2URL("/"+c+".json"), body:patch });
     }
