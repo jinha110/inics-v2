@@ -27,7 +27,7 @@
      아래 7개 값을 Firebase Console에서 복사해서 교체하세요
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
-<script src="js/sync.js?v=5"></script>
+<script src="js/sync.js?v=6"></script>
 <script src="js/hr.js?v=9"></script>
 <script src="js/hr-calc.js?v=1"></script>
 <script src="js/hr-emp.js?v=4"></script>
@@ -492,7 +492,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-credit-card"></i></div>
         <div class="hub-card-title">카드사용 · Card Usage</div>
-        <div class="hub-card-desc">법인카드 지출 관리<br>Corporate Card Management</div>
+        <div class="hub-card-desc">법인카드 지출 관리 · Corporate Card Expenses<br>Corporate Card Management</div>
       </div>
 
       <div class="hub-card active-module" id="hubCard-report" onclick="enterModule(&#39;report&#39;)">
@@ -635,7 +635,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div class="fg"><label>카드 · Card</label><select id="cardName"><option value="5505">법인카드 *5505</option><option value="2451">법인카드 *2451</option></select></div>
           <div class="fg"><label>사용처 · Merchant <span style="color:var(--text-3);font-weight:400">— 검색·추가</span></label>
             <div style="position:relative">
-              <input type="text" id="cardMerchant" placeholder="가맹점 검색 또는 신규 입력" autocomplete="off" oninput="onMerchantInput(this.value)" onfocus="onMerchantInput(this.value)" onkeydown="onMerchantKeydown(event)" onblur="setTimeout(hideMerchantSuggest,180)">
+              <input type="text" id="cardMerchant" placeholder="가맹점 검색 또는 신규 입력 · Search or add merchant" autocomplete="off" oninput="onMerchantInput(this.value)" onfocus="onMerchantInput(this.value)" onkeydown="onMerchantKeydown(event)" onblur="setTimeout(hideMerchantSuggest,180)">
               <div id="cardMerchantSuggest" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:60;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.13);max-height:220px;overflow-y:auto;margin-top:3px"></div>
             </div>
           </div>
@@ -669,7 +669,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
         <!-- Receipt photo (required) -->
         <div class="fg span2" style="margin-top:10px">
-          <label>영수증 사진 · Receipt photo <span style="color:var(--danger);font-weight:700">*필수</span></label>
+          <label>영수증 사진 · Receipt photo <span style="color:var(--danger);font-weight:700">*필수 · *Required</span></label>
           <label class="upload-zone" style="display:block">
             <i class="ti ti-camera" style="font-size:22px;display:block;margin-bottom:6px;color:var(--text-3)"></i>
             <strong style="display:block;margin-bottom:2px;color:var(--text-2)">사진 촬영 또는 업로드 · Take photo / upload</strong>
@@ -775,7 +775,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <button id="invTabReceived" onclick="invoiceSetTab(&#39;received&#39;)" style="font-size:12px;padding:6px 14px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;font-family:var(--sans)">수취 · Received</button>
       </div>
       <input type="text" id="invoiceSearch" oninput="renderInvoiceApp()" placeholder="검색 · Search (번호·거래처·비고)" style="flex:1;min-width:180px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)">
-      <select id="invoicePayFilter" onchange="renderInvoiceApp()" style="font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">결제 전체</option><option value="open">미결제 · Open</option><option value="paid">결제완료 · Settled</option></select>
+      <select id="invoicePayFilter" onchange="renderInvoiceApp()" style="font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">결제 전체 · All Payments</option><option value="open">미결제 · Open</option><option value="paid">결제완료 · Settled</option></select>
       <button class="btn btn-dark" onclick="openInvoiceForm(null)" style="font-size:12px;padding:7px 13px"><i class="ti ti-plus"></i> 인보이스 추가 · Add</button>
       <button class="btn btn-outline" onclick="runInvoiceAutoMatch()" style="font-size:12px;padding:7px 13px" title="은행 명세서와 금액·통화·방향 일치 인보이스 자동 결제 매칭"><i class="ti ti-arrows-diff"></i> 결제 자동매칭 · Auto-match</button>
       <button class="btn btn-dark" onclick="invoiceManualSave()" style="font-size:12px;padding:7px 13px"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
@@ -790,7 +790,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 <div id="invoiceModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:670;overflow-y:auto;padding:24px 12px">
   <div style="max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border)">
-      <div style="font-size:15px;font-weight:700"><i class="ti ti-file-dollar"></i> <span id="invoiceModalTitle">인보이스 추가</span></div>
+      <div style="font-size:15px;font-weight:700"><i class="ti ti-file-dollar"></i> <span id="invoiceModalTitle">인보이스 추가 · Add Invoice</span></div>
       <button class="btn btn-outline" onclick="closeInvoiceForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
     </div>
     <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
@@ -807,7 +807,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">첨부 파일 · File (PDF/이미지)</label><input type="file" id="invFileInput" accept="image/*,application/pdf" onchange="handleInvoiceFile(this.files[0])" style="font-size:12px"><div id="invFileName" style="font-size:11px;color:var(--text-3);margin-top:4px"></div></div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border)">
-      <button class="btn btn-danger" id="invDeleteBtn" onclick="deleteInvoice()" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
+      <button class="btn btn-danger" id="invDeleteBtn" onclick="deleteInvoice()" style="display:none"><i class="ti ti-trash"></i> 삭제 · Delete</button>
       <button class="btn btn-dark" onclick="saveInvoice()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
     </div>
   </div>
@@ -845,7 +845,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="fg" id="tskNetCompanyWrap" style="margin-bottom:10px;display:none"><label>업체명 · Company (네트워킹)</label><input type="text" id="tskNetCompany" list="quoteClients" placeholder="만난 업체명 — 거래처 DB에 등록됨" autocomplete="off"></div>
       <div id="tskNewProjWrap" style="margin-bottom:10px;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px">
         <label style="font-size:11px;color:var(--text-2);display:block;margin-bottom:5px">새 프로젝트 · New Project (고객사명)</label>
-        <div style="display:flex;gap:6px"><input type="text" id="tskNewProjName" list="quoteClients" placeholder="고객사명 입력" autocomplete="off" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><button type="button" class="btn btn-dark" style="font-size:11px;padding:6px 12px;white-space:nowrap" onclick="createQuickProject()">생성 · Create</button></div>
+        <div style="display:flex;gap:6px"><input type="text" id="tskNewProjName" list="quoteClients" placeholder="고객사명 입력 · Enter client name" autocomplete="off" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><button type="button" class="btn btn-dark" style="font-size:11px;padding:6px 12px;white-space:nowrap" onclick="createQuickProject()">생성 · Create</button></div>
       </div>
       <div class="fg" style="margin-bottom:10px"><label>목적 · Purpose</label><input type="text" id="tskPurpose" placeholder="이 업무의 목적 / 기대 결과" autocomplete="off"></div>
       <div class="fgrid">
@@ -855,7 +855,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
       <div class="fg" style="margin-top:10px"><label>메모 · Memo</label><input type="text" id="tskIssue" placeholder="메모 · 참고사항 (선택)" autocomplete="off"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-        <button class="btn btn-danger" id="tskDeleteBtn" onclick="deleteTask(_editingTaskId)" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
+        <button class="btn btn-danger" id="tskDeleteBtn" onclick="deleteTask(_editingTaskId)" style="display:none"><i class="ti ti-trash"></i> 삭제 · Delete</button>
         <button class="btn btn-dark" onclick="saveTask()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
       </div>
     </div>
@@ -900,13 +900,13 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2">
       <div style="font-size:15px;font-weight:700"><i class="ti ti-file-text"></i> 가구 공급 계약서 · Supply Contract</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-outline" onclick="saveContractOpts()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 설정 저장</button>
-        <button class="btn btn-outline" onclick="openPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-cash"></i> 대금지급요청서</button>
-        <button class="btn btn-outline" onclick="document.getElementById(&#39;contractScanInput&#39;).click()" style="font-size:11px;padding:5px 10px"><i class="ti ti-paperclip"></i> 스캔본 업로드</button>
-        <button class="btn btn-dark" id="ctConfirmBtn" onclick="toggleContractConfirm()" style="font-size:11px;padding:5px 10px"><i class="ti ti-circle-check"></i> 계약 확정</button>
-        <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄</button>
+        <button class="btn btn-outline" onclick="saveContractOpts()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 설정 저장 · Save Settings</button>
+        <button class="btn btn-outline" onclick="openPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-cash"></i> 대금지급요청서 · Payment Request</button>
+        <button class="btn btn-outline" onclick="document.getElementById(&#39;contractScanInput&#39;).click()" style="font-size:11px;padding:5px 10px"><i class="ti ti-paperclip"></i> 스캔본 업로드 · Upload Scan</button>
+        <button class="btn btn-dark" id="ctConfirmBtn" onclick="toggleContractConfirm()" style="font-size:11px;padding:5px 10px"><i class="ti ti-circle-check"></i> 계약 확정 · Confirm Contract</button>
+        <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄 · Print</button>
         <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
-        <button class="btn btn-outline" onclick="closeContractModal()" style="font-size:11px;padding:5px 10px">닫기</button>
+        <button class="btn btn-outline" onclick="closeContractModal()" style="font-size:11px;padding:5px 10px">닫기 · Close</button>
       </div>
     </div>
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
@@ -917,7 +917,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fg" style="margin:0"><label style="font-size:10px">VAT %</label><input type="text" id="ctVat" inputmode="decimal" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">보증 · Warranty (년)</label><input type="text" id="ctWarranty" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">선금 % · Deposit</label><input type="text" id="ctDeposit" inputmode="decimal" oninput="ctSyncDeposit()" placeholder="50" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">잔금 % · Balance <span style="color:var(--text-3)">(자동)</span></label><input type="text" id="ctBalance" inputmode="decimal" oninput="ctSyncBalance()" placeholder="50" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">잔금 % · Balance <span style="color:var(--text-3)">(자동) · (Auto)</span></label><input type="text" id="ctBalance" inputmode="decimal" oninput="ctSyncBalance()" placeholder="50" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">결제기한 · Pay (영업일)</label><input type="text" id="ctPayDays" inputmode="numeric" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">납기일 · Delivery Date</label><input type="date" id="ctDeliveryDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
       </div>
@@ -954,9 +954,9 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       <div style="font-size:15px;font-weight:700"><i class="ti ti-cash"></i> 대금지급요청서 · Payment Request</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-outline" onclick="issuePaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-plus"></i> 발행·기록</button>
-        <button class="btn btn-outline" onclick="printPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄</button>
+        <button class="btn btn-outline" onclick="printPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄 · Print</button>
         <button class="btn btn-dark" onclick="downloadPaymentRequestPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
-        <button class="btn btn-outline" onclick="closePaymentRequest()" style="font-size:11px;padding:5px 10px">닫기</button>
+        <button class="btn btn-outline" onclick="closePaymentRequest()" style="font-size:11px;padding:5px 10px">닫기 · Close</button>
       </div>
     </div>
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
@@ -973,9 +973,9 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
         <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item (VN) · 항목 (베트남어)</label><input type="text" id="prItem" oninput="renderPRPreview()" placeholder="VD: Cung cấp và bàn giao 39 ghế văn phòng FURSYS" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">Item (EN) · 항목 (영문)</label><input type="text" id="prItemEn" oninput="renderPRPreview()" placeholder="e.g. Supply and Delivery of 39 FURSYS Task Chairs" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prBank" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No. <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prAcct" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
-        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder <span style="color:var(--text-3)">(관리자 설정)</span></label><input type="text" id="prHolder" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">은행 · Bank <span style="color:var(--text-3)">(관리자 설정) · (Admin Setting)</span></label><input type="text" id="prBank" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg" style="margin:0"><label style="font-size:10px">계좌번호 · Account No. <span style="color:var(--text-3)">(관리자 설정) · (Admin Setting)</span></label><input type="text" id="prAcct" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">예금주 · Holder <span style="color:var(--text-3)">(관리자 설정) · (Admin Setting)</span></label><input type="text" id="prHolder" readonly="" style="font-size:12px;padding:5px 8px;background:var(--surface-2);color:var(--text-2)"></div>
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">비고 · Note</label><input type="text" id="prNote" oninput="renderPRPreview()" placeholder="추가 메모 (선택)" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
       </div>
       <div id="prHistory" style="margin-top:8px"></div>
@@ -998,9 +998,9 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       <div style="font-size:15px;font-weight:700"><i class="ti ti-file-text"></i> 계약서 템플릿 · Contract Template</div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-outline" onclick="previewContractTpl()" style="font-size:11px;padding:5px 10px"><i class="ti ti-eye"></i> 미리보기 · Preview</button>
-        <button class="btn btn-outline" onclick="resetContractTpl()" style="font-size:11px;padding:5px 10px"><i class="ti ti-refresh"></i> 기본값</button>
-        <button class="btn btn-dark" onclick="saveContractTpl()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 저장</button>
-        <button class="btn btn-outline" onclick="closeContractTpl()" style="font-size:11px;padding:5px 10px">닫기</button>
+        <button class="btn btn-outline" onclick="resetContractTpl()" style="font-size:11px;padding:5px 10px"><i class="ti ti-refresh"></i> 기본값 · Default</button>
+        <button class="btn btn-dark" onclick="saveContractTpl()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
+        <button class="btn btn-outline" onclick="closeContractTpl()" style="font-size:11px;padding:5px 10px">닫기 · Close</button>
       </div>
     </div>
     <div style="padding:12px 16px;font-size:11px;color:var(--text-3);background:var(--surface-2);border-bottom:1px solid var(--border)">조항 문구를 수정하세요. <code>{deliveryDate} {deliveryPlace} {total} {paymentDays} {warrantyYears}</code> 는 계약서 생성 시 3개 언어 모두 자동으로 값이 채워집니다. <b style="color:#1d4ed8">🇰🇷 한국어</b> 칸은 미리보기 한국어본 전용입니다(실제 출력은 베트남어·영문). 베트남어·영문을 고치면 같은 자리에서 한국어도 함께 수정하세요.</div>
@@ -1011,7 +1011,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
 <div id="ctTplPreviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:690;overflow-y:auto;padding:18px 10px">
   <div style="max-width:1120px;width:96vw;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2">
-      <div style="font-size:15px;font-weight:700"><i class="ti ti-eye"></i> 계약서 미리보기 <span style="font-size:10px;font-weight:500;color:var(--text-3)">(샘플)</span></div>
+      <div style="font-size:15px;font-weight:700"><i class="ti ti-eye"></i> 계약서 미리보기 · Contract Preview <span style="font-size:10px;font-weight:500;color:var(--text-3)">(샘플) · (Sample)</span></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
           <button id="ctTplLangVnen" onclick="setCtTplLang(&#39;vnen&#39;)" style="font-size:11px;padding:4px 10px;border:none;background:var(--text);color:#fff;cursor:pointer;font-family:var(--sans)">베트남어+영문</button>
@@ -1020,7 +1020,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <button onclick="ctTplZoom(-15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">−</button>
         <span id="ctTplZoomLabel" style="font-size:11px;color:var(--text-2);min-width:44px;text-align:center">100%</span>
         <button onclick="ctTplZoom(15)" style="font-size:14px;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">+</button>
-        <button class="btn btn-outline" onclick="closeCtTplPreview()" style="font-size:11px;padding:5px 10px">닫기</button>
+        <button class="btn btn-outline" onclick="closeCtTplPreview()" style="font-size:11px;padding:5px 10px">닫기 · Close</button>
       </div>
     </div>
     <div style="padding:10px 14px 8px;font-size:11px;color:#92400e;background:#fffbeb;border-bottom:1px solid #fde68a;line-height:1.5">
@@ -1058,8 +1058,8 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div id="projBoardView">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
         <input type="text" id="projBoardSearch" placeholder="🔎 고객사 · 내용" oninput="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none;min-width:200px">
-        <select id="projBoardOwner" onchange="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">담당자 전체</option></select>
-        <select id="projBoardRegion" onchange="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">지역 전체</option></select>
+        <select id="projBoardOwner" onchange="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">담당자 전체 · All Owners</option></select>
+        <select id="projBoardRegion" onchange="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">지역 전체 · All Regions</option></select>
         <span style="font-size:11px;color:var(--text-3)">카드를 드래그하거나 카드 하단 단계 선택으로 이동</span>
       </div>
       <div id="projBoard" style="display:flex;gap:9px;overflow-x:auto;padding-bottom:14px;align-items:flex-start"></div>
@@ -1076,7 +1076,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div style="max-width:1080px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);display:flex;flex-wrap:wrap;max-height:92vh;overflow:hidden">
       <div style="flex:1.3;min-width:300px;padding:20px;overflow-y:auto;max-height:92vh">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div id="projFormTitle" style="font-size:15px;font-weight:700">새 프로젝트 등록</div>
+        <div id="projFormTitle" style="font-size:15px;font-weight:700">새 프로젝트 등록 · New Project</div>
         <button class="btn btn-outline" onclick="closeProjectForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
       </div>
       <div class="fgrid">
@@ -1095,7 +1095,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fg"><label>등록일 · Reg. Date</label><input type="date" id="projRegDate"></div>
         <div class="fg"><label>목표 프로젝트 완료일 · Target</label><input type="date" id="projTargetDate"></div>
         <div class="fg"><label>납품 장소 · Delivery Place <span style="color:#b45309;font-size:9px">(PO단계 입력)</span></label><input type="text" id="projDeliveryPlace" placeholder="배송·설치 주소 / Địa điểm giao hàng" autocomplete="off"></div>
-        <div class="fg"><label>주소 · Address <span>계약서 구매자 주소</span></label><input type="text" id="projBuyerAddr" placeholder="구매자 주소 / Địa chỉ" autocomplete="off"></div>
+        <div class="fg"><label>주소 · Address <span>계약서 구매자 주소 · Buyer Address</span></label><input type="text" id="projBuyerAddr" placeholder="구매자 주소 / Địa chỉ" autocomplete="off"></div>
         <div class="fg"><label>TAX 코드 · Tax (MST)</label><input type="text" id="projBuyerTax" placeholder="세금코드 / Mã số thuế" autocomplete="off"></div>
       </div>
       <datalist id="projectClients"></datalist>
@@ -1111,16 +1111,16 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>통화 · Currency</label><select id="salesCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
           <div class="fg"><label>VAT %</label><select id="salesVat" onchange="recalcProjFinance(&#39;salesVat&#39;)"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
           <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="salesSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesSubtotal&#39;)"></div>
-          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="salesVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>부가세 · VAT <span>자동 · Auto</span></label><input type="text" id="salesVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
           <div class="fg"><label>매출 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="salesTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesTotal&#39;)" style="font-weight:700"></div>
           <div class="fg"><label>선금 % · Deposit %</label><input type="text" id="salesDepositPct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance(&#39;salesDepositPct&#39;)"></div>
-          <div class="fg"><label>잔금 % · Balance % <span>자동</span></label><input type="text" id="salesBalancePct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance(&#39;salesBalancePct&#39;)"></div>
+          <div class="fg"><label>잔금 % · Balance % <span>자동 · Auto</span></label><input type="text" id="salesBalancePct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance(&#39;salesBalancePct&#39;)"></div>
           <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="salesDeposit" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
-          <div class="fg"><label>선금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesDepositDate" style="flex:1"></div></div>
+          <div class="fg"><label>선금 입금 · Deposit In</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료 · Received</label><input type="date" id="salesDepositDate" style="flex:1"></div></div>
           <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="salesBalance" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
-          <div class="fg"><label>잔금 입금</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesBalancePaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료</label><input type="date" id="salesBalanceDate" style="flex:1"></div></div>
-          <div class="fg"><label>인보이스 발행 · Invoice</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesInvoiceIssued" onchange="projMarginRefresh()" style="width:auto;margin:0"> 발행됨</label><input type="text" id="salesInvoiceNo" placeholder="인보이스 번호" autocomplete="off" style="flex:1"></div></div>
-          <div class="fg"><label>인보이스 금액 / 발행일 <span>미입력=총액</span></label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="salesInvoiceAmount" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()" placeholder="발행 금액" style="flex:1"><input type="date" id="salesInvoiceDate" style="flex:1"></div></div>
+          <div class="fg"><label>잔금 입금 · Balance In</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesBalancePaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료 · Received</label><input type="date" id="salesBalanceDate" style="flex:1"></div></div>
+          <div class="fg"><label>인보이스 발행 · Invoice</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesInvoiceIssued" onchange="projMarginRefresh()" style="width:auto;margin:0"> 발행됨 · Issued</label><input type="text" id="salesInvoiceNo" placeholder="인보이스 번호 · Invoice No." autocomplete="off" style="flex:1"></div></div>
+          <div class="fg"><label>인보이스 금액 / 발행일 · Invoice Amount / Date <span>미입력=총액</span></label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="salesInvoiceAmount" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()" placeholder="발행 금액 · Issued Amount" style="flex:1"><input type="date" id="salesInvoiceDate" style="flex:1"></div></div>
         </div>
 
         <div style="font-size:12px;font-weight:700;color:#b45309;margin:14px 0 8px">매입 · Purchase</div>
@@ -1129,7 +1129,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>통화 · Currency</label><select id="purchaseCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
           <div class="fg"><label>VAT %</label><select id="purchaseVat" onchange="recalcProjFinance(&#39;purchaseVat&#39;)"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
           <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="purchaseSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseSubtotal&#39;)"></div>
-          <div class="fg"><label>부가세 · VAT <span>자동</span></label><input type="text" id="purchaseVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>부가세 · VAT <span>자동 · Auto</span></label><input type="text" id="purchaseVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
           <div class="fg"><label>매입 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="purchaseTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseTotal&#39;)" style="font-weight:700"></div>
           <div class="fg" style="grid-column:1/-1"><label>전액 선금 지급 · Full advance <span style="color:#b45309">(매입은 선금 일괄)</span></label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 지급완료 · Paid</label><input type="date" id="purchaseDepositDate" style="flex:1"></div></div>
         </div>
@@ -1137,7 +1137,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       </div>
 
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-        <button class="btn btn-danger" id="projDeleteBtn" onclick="deleteProject(_editingProjId)" style="display:none"><i class="ti ti-trash"></i> 삭제</button>
+        <button class="btn btn-danger" id="projDeleteBtn" onclick="deleteProject(_editingProjId)" style="display:none"><i class="ti ti-trash"></i> 삭제 · Delete</button>
         <button class="btn btn-outline" id="projContractBtn" onclick="openContractModal(_editingProjId)" style="display:none"><i class="ti ti-file-text"></i> 계약서 · Contract</button>
         <button class="btn btn-outline" id="projPrBtn" onclick="openPaymentRequestForProject()" style="display:none"><i class="ti ti-cash"></i> 대금지급요청서 · PR</button>
         <button class="btn btn-dark" onclick="saveProject()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
@@ -1188,8 +1188,8 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
 
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
       <select id="finCurrency" onchange="renderFinanceDashboard()" style="font-size:13px;font-weight:600;padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option>VND</option><option>USD</option><option>MXN</option></select>
-      <select id="finOwner" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">담당자 전체</option></select>
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer"><input type="checkbox" id="finUninvOnly" onchange="renderFinanceDashboard()" style="width:auto;margin:0"> 미발행 인보이스만</label>
+      <select id="finOwner" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">담당자 전체 · All Owners</option></select>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer"><input type="checkbox" id="finUninvOnly" onchange="renderFinanceDashboard()" style="width:auto;margin:0"> 미발행 인보이스만 · Unissued only</label>
       <span style="font-size:11px;color:var(--text-3)">선택 통화 기준 집계 (통화 혼합 없음)</span>
     </div>
 
@@ -1226,7 +1226,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="form-card-title"><i class="ti ti-file-invoice"></i> Quotation Info · 견적 정보</div>
         <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
           <div class="fg"><label>견적번호 · Quote No</label><input type="text" id="qNo" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>Client · 고객사 <span style="color:var(--text-3);font-weight:400">거래처DB</span></label><input type="text" id="qClient" list="quoteClients" placeholder="고객사 검색/추가" autocomplete="off"></div>
+          <div class="fg"><label>Client · 고객사 <span style="color:var(--text-3);font-weight:400">거래처DB</span></label><input type="text" id="qClient" list="quoteClients" placeholder="고객사 검색/추가 · Search/Add client" autocomplete="off"></div>
           <div class="fg"><label>Date · 일자</label><input type="date" id="qDate"></div>
           <div class="fg"><label>Valid · 유효기간(일)</label><input type="number" id="qValid" min="0" placeholder="15" style="width:100%"></div>
           <div class="fg"><label>Currency · 통화</label><select id="qCurrency" onchange="recalcQuote()"><option>VND</option><option>USD</option><option>KRW</option><option>MXN</option></select></div>
@@ -1275,15 +1275,15 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>Color CODE</label><input type="text" id="pColor" placeholder="예: RCNWW"></div>
           <div class="fg"><label>원가 · Cost</label><input type="text" id="pCost" inputmode="decimal" placeholder="0" oninput="formatCardAmount(this)"></div>
           <div class="fg"><label>통화 · Currency</label><select id="pCurrency"><option>VND</option><option>USD</option><option>KRW</option><option>MXN</option></select></div>
-          <div class="fg"><label>Image <span style="color:var(--text-3);font-weight:400">선택</span></label>
-            <div style="display:flex;gap:6px"><label class="upload-zone" style="display:block;padding:8px;flex:1;text-align:center"><span style="font-size:11px">이미지 업로드</span><input type="file" accept="image/*" style="display:none" onchange="handleProductImage(this.files[0])"></label>
-            <button class="btn btn-outline" style="font-size:11px;padding:6px 10px" onclick="pasteImage(&#39;product&#39;)">붙여넣기</button>
+          <div class="fg"><label>Image <span style="color:var(--text-3);font-weight:400">선택 · Select</span></label>
+            <div style="display:flex;gap:6px"><label class="upload-zone" style="display:block;padding:8px;flex:1;text-align:center"><span style="font-size:11px">이미지 업로드 · Upload Image</span><input type="file" accept="image/*" style="display:none" onchange="handleProductImage(this.files[0])"></label>
+            <button class="btn btn-outline" style="font-size:11px;padding:6px 10px" onclick="pasteImage(&#39;product&#39;)">붙여넣기 · Paste</button>
             <button class="btn btn-outline" style="font-size:11px;padding:6px 10px" onclick="setProductImageUrl()">URL</button></div>
             <div id="pImagePreview" style="margin-top:6px"></div>
           </div>
         </div>
         <div class="btn-row" style="margin-top:12px">
-          <button class="btn btn-outline" onclick="resetProductForm()">초기화</button>
+          <button class="btn btn-outline" onclick="resetProductForm()">초기화 · Reset</button>
           <button class="btn btn-dark" onclick="saveProduct()"><i class="ti ti-check"></i> 저장 · Save product</button>
         </div>
       </div>
@@ -1715,7 +1715,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div class="doc-main">
       <div class="doc-title-row">
         <span class="docno">FUR202606-002</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">휴가 신청서</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">휴가 신청서 · Leave Application</span>
         <span class="badge b-furniture">FURNITURE</span>
       </div>
       <div class="doc-meta">
@@ -1860,7 +1860,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="form-card">
           <div class="form-card-title"><i class="ti ti-file-description"></i> Document Info · 문서 정보</div>
           <div class="fgrid">
-            <div class="fg"><label>Department · 소속 <span>(결재선 자동)</span></label><select id="docDept" onchange="onDeptChange()"></select></div>
+            <div class="fg"><label>Department · 소속 <span>(결재선 자동) · (Auto approval line)</span></label><select id="docDept" onchange="onDeptChange()"></select></div>
             <div class="fg"><label>Type · 유형</label><select id="docType" onchange="toggleExpenseDetail()"></select></div>
             <div class="fg span2"><label>Title · 제목</label><input type="text" id="docTitle" placeholder="[Contents / Provider] Detail   ·   예: [의자 구매 / Fursys] 회의실 의자 20EA"></div>
             <div class="fg span2">
@@ -1963,15 +1963,15 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
                     </div>
                     <div class="fg">
                       <label>Account No · 계좌번호</label>
-                      <input type="text" id="expBankVNAcct" placeholder="계좌번호 입력">
+                      <input type="text" id="expBankVNAcct" placeholder="계좌번호 입력 · Enter account no.">
                     </div>
                     <div class="fg">
                       <label>Account Holder · 예금주</label>
-                      <input type="text" id="expBankVNHolder" placeholder="예금주명 입력">
+                      <input type="text" id="expBankVNHolder" placeholder="예금주명 입력 · Enter account holder">
                     </div>
                     <div class="fg">
                       <label>Branch · 지점</label>
-                      <input type="text" id="expBankVNBranch" placeholder="지점명 입력 (선택)">
+                      <input type="text" id="expBankVNBranch" placeholder="지점명 입력 (선택) · Enter branch (optional)">
                     </div>
                   </div>
                   <!-- Foreign bank -->
@@ -2048,7 +2048,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
             <span><i class="ti ti-file-certificate" style="color:#4338ca"></i> 계약서 첨부 · Contract File <span id="contractAttCnt" class="cnt-badge" style="margin-left:5px">0</span></span>
             <button class="btn btn-outline" onclick="triggerContractFile()" style="font-size:11px;padding:3px 9px"><i class="ti ti-plus"></i> Add · 추가</button>
           </div>
-          <div style="font-size:11px;color:var(--text-3);margin:2px 0 8px">서명·날인된 계약서를 올리면 <b>계약서 모듈</b>로 자동 연동됩니다 · Uploaded contract links to the Contracts module.</div>
+          <div style="font-size:11px;color:var(--text-3);margin:2px 0 8px">서명·날인된 계약서를 올리면 <b>계약서 모듈 · Contracts Module</b>로 자동 연동됩니다 · Uploaded contract links to the Contracts module.</div>
           <div id="contractAttList">
             <div class="upload-zone" onclick="triggerContractFile()">
               <i class="ti ti-file-certificate" style="font-size:22px;display:block;margin-bottom:6px;color:#4338ca"></i>
@@ -2133,7 +2133,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="admin-card" style="grid-column:1/-1">
             <div class="admin-card-hdr"><i class="ti ti-route"></i> Approval Lines · 부서별 결재선</div>
             <div class="admin-card-body">
-              <div style="font-size:11px;color:var(--text-3);margin-bottom:10px">부서별 1차·2차 결재자를 지정합니다. 저장 즉시 <b>신규 기안</b>에 적용됩니다 · Applies to new drafts immediately.</div>
+              <div style="font-size:11px;color:var(--text-3);margin-bottom:10px">부서별 1차·2차 결재자를 지정합니다. 저장 즉시 <b>신규 기안 · New Draft</b>에 적용됩니다 · Applies to new drafts immediately.</div>
               <div id="adminApproverLines"></div>
             </div>
           </div>
@@ -2702,7 +2702,7 @@ function showDetail(id,wrapId='detailWrap'){
   let flow=`<div class="fnode">${getAvatar(doc.drafterId,'sm')}<div class="flabel" style="margin-top:3px">${drafter?.name||'—'}</div><div class="fsub">Draft · 기안</div></div>`;
   flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${getAvatar(doc.a1Id,'sm')}<div class="flabel" style="margin-top:3px">${a1?.name||'—'}</div><div class="fsub">1st · 1차</div></div>`;
   if(a2)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('a2'),'user-check')}<div class="flabel">${a2.name}</div><div class="fsub">2nd · 2차</div></div>`;
-  if(doc.needPayment)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('pay'),'credit-card')}<div class="flabel">PAYMENT</div><div class="fsub">결제</div></div>`;
+  if(doc.needPayment)flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('pay'),'credit-card')}<div class="flabel">PAYMENT</div><div class="fsub">결제 · Payment</div></div>`;
   flow+=`<div class="farrow"><i class="ti ti-chevron-right"></i></div><div class="fnode">${circle(stepSt('done'),'circle-check')}<div class="flabel">Done · 완료</div></div>`;
 
   const cmts=doc.comments?.length?doc.comments.map(c=>{const isApp=/^(승인|Approved)/.test(c.text||'');const isRej=/^(반려|Rejected)/.test(c.text||'');return`<div class="cmt ${isApp?'approve':isRej?'reject-cmt':''}"><div class="cmt-top"><span class="cmt-who">${c.who}<span class="cmt-role">${c.role}</span></span><span class="cmt-time">${c.time}</span></div><div class="cmt-txt">${c.text}</div></div>`;}).join(''):'<div style="font-size:11px;color:var(--text-3)">No comments · 의견 없음</div>';
@@ -2712,8 +2712,8 @@ function showDetail(id,wrapId='detailWrap'){
   const dnotes=(doc.notes||[]).map(function(n,ni){
     if(n.deleted){ return `<div class="cmt" style="opacity:.55"><div class="cmt-txt" style="font-style:italic;color:var(--text-3)">삭제된 의견 · Deleted${n.deletedBy?' (by '+n.deletedBy:''}${n.deletedAt?' · '+n.deletedAt+')':(n.deletedBy?')':'')}</div></div>`; }
     var canMod=_cadm||(n.who&&_cname&&n.who===_cname);
-    var edited=n.editedAt?` <span style="font-size:9px;color:var(--text-3)">(수정됨)</span>`:'';
-    var btns=canMod?`<button onclick="editDocComment(${id},${ni},'${wrapId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:0 2px" title="수정"><i class="ti ti-edit"></i></button><button onclick="deleteDocComment(${id},${ni},'${wrapId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:0 2px" title="삭제"><i class="ti ti-trash"></i></button>`:'';
+    var edited=n.editedAt?` <span style="font-size:9px;color:var(--text-3)">(수정됨) · (Edited)</span>`:'';
+    var btns=canMod?`<button onclick="editDocComment(${id},${ni},'${wrapId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:0 2px" title="수정 · Edit"><i class="ti ti-edit"></i></button><button onclick="deleteDocComment(${id},${ni},'${wrapId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:0 2px" title="삭제 · Delete"><i class="ti ti-trash"></i></button>`:'';
     return `<div class="cmt"><div class="cmt-top"><span class="cmt-who">${n.who}</span><span style="display:flex;align-items:center;gap:5px"><span class="cmt-time">${n.time}${edited}</span>${btns}</span></div><div class="cmt-txt" style="white-space:pre-wrap">${n.text}</div></div>`;
   }).join('')||'<div style="font-size:11px;color:var(--text-3)">아직 의견 없음 · No comments</div>';
   const notesHTML=`<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Comments · 의견</div><div class="cmt-list">${dnotes}</div><textarea class="action-comment" id="docNoteInput_${wrapId}" placeholder="의견을 입력하세요 · Add a comment" oninput="_docNoteBuf['${wrapId}']=this.value">${(_docNoteBuf[wrapId]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea><div class="btn-row"><button class="btn btn-dark" onclick="addDocComment(${id},'${wrapId}')"><i class="ti ti-message-plus"></i> 의견 등록 · Add</button></div>`;
@@ -3528,7 +3528,7 @@ function editDoc(id, wrapId) {
   // Get user
   var uid = mineUserId || newAuthId || parseInt(sessionStorage.getItem('inics_uid')||'0');
   var gu = MEMBERS.find(function(m){ return m.id === uid; }) || window._gateUser;
-  if(!gu){ showToast('로그인 필요'); return; }
+  if(!gu){ showToast('로그인 필요 · Login required'); return; }
 
   // Set editing flag BEFORE switching page
   window._editingDocId = id;
@@ -3852,7 +3852,7 @@ function renderVendorDB() {
       return '<div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap"><a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)">'
         +'<i class="ti '+c.icon+'" style="font-size:13px;color:'+c.color+'"></i>'
         +'<span class="docno">'+d.no+'</span> '+d.title+amt+meta+dt+'</a>'
-        +(d.manual?'<span style="font-size:9px;font-weight:700;color:#7c3aed;background:#7c3aed14;padding:1px 6px;border-radius:8px">수동연동</span><a href="javascript:void(0)" onclick="unlinkDocFromVendor('+d.id+')" title="연동 해제 · Unlink" style="color:var(--danger);text-decoration:none;font-size:12px"><i class="ti ti-unlink"></i></a>':'')
+        +(d.manual?'<span style="font-size:9px;font-weight:700;color:#7c3aed;background:#7c3aed14;padding:1px 6px;border-radius:8px">수동연동 · Manual Link</span><a href="javascript:void(0)" onclick="unlinkDocFromVendor('+d.id+')" title="연동 해제 · Unlink" style="color:var(--danger);text-decoration:none;font-size:12px"><i class="ti ti-unlink"></i></a>':'')
         +'</div>';
     }).join('<br>') : '<span style="color:var(--text-3)">— No related docs · 관련 문서 없음</span>';
 
@@ -4006,7 +4006,7 @@ function onVendorInput(value){
   }
   box.innerHTML = matches.map(function(x){
     var v = x.v;
-    var tag = v.source==='master' ? '<span style="font-size:9px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:10px;margin-left:6px">등록</span>' : '';
+    var tag = v.source==='master' ? '<span style="font-size:9px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:10px;margin-left:6px">등록 · Register</span>' : '';
     var sub = [v.reg, (v.bankType==='vn'?(v.bankVN||''):(v.bankForeignName||''))].filter(Boolean).join(' · ');
     var nm = v.name.replace(/"/g,'&quot;');
     return '<div class="vendor-sug-item" onmousedown="event.preventDefault()" onclick="pickVendorSuggest(this.getAttribute(\'data-n\'))" data-n="'+nm+'"'
@@ -4261,8 +4261,8 @@ function addCardItemRow(name,qty,price){
   var row=document.createElement('div');
   row.className='card-item-row'; row.style.cssText='display:flex;gap:6px;align-items:center';
   row.innerHTML='<input type="text" class="ci-name" placeholder="품목 · item" style="flex:2;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
-    +'<input type="text" class="ci-qty" inputmode="numeric" placeholder="수량" style="width:62px;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
-    +'<input type="text" class="ci-price" inputmode="decimal" placeholder="금액" oninput="formatCardAmount(this)" style="flex:1;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
+    +'<input type="text" class="ci-qty" inputmode="numeric" placeholder="수량 · Qty" style="width:62px;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
+    +'<input type="text" class="ci-price" inputmode="decimal" placeholder="금액 · Amount" oninput="formatCardAmount(this)" style="flex:1;font-family:var(--sans);font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;outline:none">'
     +'<button type="button" class="btn btn-outline" style="font-size:11px;padding:5px 8px" onclick="this.parentNode.remove()"><i class="ti ti-x"></i></button>';
   box.appendChild(row);
   if(name!==undefined){ row.querySelector('.ci-name').value=name||''; row.querySelector('.ci-qty').value=qty||''; row.querySelector('.ci-price').value=price||''; }
@@ -4495,10 +4495,10 @@ function renderCard(){
     var inv = x.invoiceIssued ? '<span class="badge b-done" style="font-size:10px">INV ✓'+(x.invoiceNo?' '+x.invoiceNo:'')+'</span>' : '<span class="badge b-rejected" style="font-size:10px">INV ✗</span>';
     var confBadge = x.confirmed ? '<span class="badge b-done" style="font-size:10px">Confirmed ✓</span>' : '<span class="badge" style="font-size:10px;background:#fef3c7;color:#92400e">Pending</span>';
     var canEdit = isAdmin || (me && x.userId===me.id);
-    var editBtn = canEdit ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();editCardExpense('+x.id+')" title="수정"><i class="ti ti-edit"></i></button>' : '';
+    var editBtn = canEdit ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();editCardExpense('+x.id+')" title="수정 · Edit"><i class="ti ti-edit"></i></button>' : '';
     var confBtn = canConfirmCard() ? '<button class="btn '+(x.confirmed?'btn-outline':'btn-dark')+'" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();confirmCardExpense('+x.id+')">'+(x.confirmed?'Unconfirm':'Confirm')+'</button>' : '';
     var del = (isAdmin || (me && x.userId===me.id)) ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="event.stopPropagation();deleteCardExpense('+x.id+')"><i class="ti ti-trash"></i></button>' : '';
-    var rcpt = x.receipt ? '<img src="'+x.receipt+'" onclick="event.stopPropagation();viewCardReceipt('+x.id+')" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:zoom-in" title="영수증 확대">' : '<span style="color:var(--text-3);font-size:11px">—</span>';
+    var rcpt = x.receipt ? '<img src="'+x.receipt+'" onclick="event.stopPropagation();viewCardReceipt('+x.id+')" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:zoom-in" title="영수증 확대 · Zoom Receipt">' : '<span style="color:var(--text-3);font-size:11px">—</span>';
     var td='padding:8px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
     return '<tr style="cursor:pointer" onclick="viewCardDetail('+x.id+')" onmouseover="this.style.background=\'var(--surface-2)\'" onmouseout="this.style.background=\'\'">'
       +'<td style="'+td+'">'+rcpt+'</td>'
@@ -4547,7 +4547,7 @@ function viewCardDetail(id){
   }
   var its=(x.items||[]);
   var itemsHtml = its.length
-    ? '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px"><thead><tr style="text-align:left;color:var(--text-3)"><th style="padding:4px 6px;border-bottom:1px solid var(--border)">품목 · Item</th><th style="padding:4px 6px;border-bottom:1px solid var(--border);width:56px">수량</th><th style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:right;width:110px">금액</th></tr></thead><tbody>'
+    ? '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px"><thead><tr style="text-align:left;color:var(--text-3)"><th style="padding:4px 6px;border-bottom:1px solid var(--border)">품목 · Item</th><th style="padding:4px 6px;border-bottom:1px solid var(--border);width:56px">수량 · Qty</th><th style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:right;width:110px">금액 · Amount</th></tr></thead><tbody>'
       + its.map(function(it){ return '<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border)">'+(it.name||'—')+'</td><td style="padding:4px 6px;border-bottom:1px solid var(--border)">'+(it.qty||'')+'</td><td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:right">'+(it.price?cardFmtAmount(it.price):'')+'</td></tr>'; }).join('')
       + '</tbody></table>'
     : '<div style="font-size:12px;color:var(--text-3);margin-top:4px">등록된 품목 없음 · No line items</div>';
@@ -4560,12 +4560,12 @@ function viewCardDetail(id){
   var footer='<div style="display:flex;gap:6px;margin-top:16px;flex-wrap:wrap">'
     +(canEdit?'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="editCardExpense('+x.id+')"><i class="ti ti-edit"></i> 수정 · Edit</button>':'')
     +(canConfirmCard()?'<button class="btn '+(x.confirmed?'btn-outline':'btn-dark')+'" style="font-size:11px;padding:5px 11px" onclick="confirmCardExpense('+x.id+')">'+(x.confirmed?'재무 확인 취소':'재무 확인 · Confirm')+'</button>':'')
-    +(canEdit?'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px;color:var(--danger)" onclick="if(confirm(\'삭제할까요?\')){deleteCardExpense('+x.id+');document.getElementById(\'cardDetailModal\').style.display=\'none\';}"><i class="ti ti-trash"></i> 삭제</button>':'')
+    +(canEdit?'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px;color:var(--danger)" onclick="if(confirm(\'삭제할까요?\')){deleteCardExpense('+x.id+');document.getElementById(\'cardDetailModal\').style.display=\'none\';}"><i class="ti ti-trash"></i> 삭제 · Delete</button>':'')
     +'</div>';
   ov.innerHTML='<div style="background:#fff;border-radius:var(--radius-lg);max-width:560px;width:100%;max-height:88vh;overflow-y:auto;padding:20px" onclick="event.stopPropagation()">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:17px;font-weight:700">'+x.currency+' '+cardFmtAmount(x.amount)+'</div><button class="btn btn-outline" style="font-size:11px;padding:4px 9px" onclick="document.getElementById(\'cardDetailModal\').style.display=\'none\'">닫기 · Close</button></div>'
     +row('재무확인 · Finance', (x.confirmed?'<span style="color:#15803d;font-weight:600">':'<span style="color:#92400e;font-weight:600">')+conf+'</span>')
-    +row('은행 매칭 · Bank', (x.matchTxnId?('<span style="color:#15803d;font-weight:600">'+_reconBankLineHtml((state.bankTxns||[]).find(function(t){return t.id===x.matchTxnId;}))+(x.matchStatus==='auto'?' <span style="font-size:10px;color:var(--text-3)">(자동)</span>':'')+' · <a href="javascript:void(0)" onclick="unmatchCard('+x.id+')" style="color:var(--danger);text-decoration:none;font-size:11px">해제</a></span>'):'<span style="color:var(--text-3)">미매칭 — 은행 명세서 → 카드 대사 탭</span>'))
+    +row('은행 매칭 · Bank', (x.matchTxnId?('<span style="color:#15803d;font-weight:600">'+_reconBankLineHtml((state.bankTxns||[]).find(function(t){return t.id===x.matchTxnId;}))+(x.matchStatus==='auto'?' <span style="font-size:10px;color:var(--text-3)">(자동) · (Auto)</span>':'')+' · <a href="javascript:void(0)" onclick="unmatchCard('+x.id+')" style="color:var(--danger);text-decoration:none;font-size:11px">해제 · Unlink</a></span>'):'<span style="color:var(--text-3)">미매칭 — 은행 명세서 → 카드 대사 탭</span>'))
     +row('사용일 · Date',x.date)+row('부서 · Dept',x.dept)+row('사용자 · User',x.userName)+row('카드 · Card', x.card?('*'+x.card):'')+row('사용처 · Merchant',x.merchant)+row('분류 · Category',x.category)+row('Invoice',inv)+row('목적 · Purpose','<span style="white-space:pre-wrap">'+(x.purpose||'')+'</span>')
     +'<div style="margin-top:12px;font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">상세 구매목록 · Line items</div>'+itemsHtml
     +'<div style="margin-top:14px;font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">영수증 · Receipt</div>'
@@ -4820,11 +4820,11 @@ function handleProductExcel(file){
 }
 function showProductImagePreview(){
   var p=document.getElementById('pImagePreview'); if(!p) return;
-  p.innerHTML = productImageData ? '<img src="'+productImageData+'" style="max-width:90px;max-height:90px;border:1px solid var(--border);border-radius:var(--radius)"> <button class="btn btn-outline" style="font-size:10px;padding:2px 7px" onclick="productImageData=null;showProductImagePreview()">제거</button>' : '';
+  p.innerHTML = productImageData ? '<img src="'+productImageData+'" style="max-width:90px;max-height:90px;border:1px solid var(--border);border-radius:var(--radius)"> <button class="btn btn-outline" style="font-size:10px;padding:2px 7px" onclick="productImageData=null;showProductImagePreview()">제거 · Remove</button>' : '';
 }
 function handleProductImage(file){
   if(!file) return;
-  if(!/^image\//.test(file.type||'') && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name||'')){ showToast('이미지 파일만 가능'); return; }
+  if(!/^image\//.test(file.type||'') && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name||'')){ showToast('이미지 파일만 가능 · Images only'); return; }
   var fr=new FileReader();
   fr.onload=function(e){ var dataUrl=e.target.result, img=new Image();
     img.onload=function(){
@@ -4875,7 +4875,7 @@ function editProduct(code){
 function deleteProduct(code){
   if(!confirm('제품을 삭제할까요? ('+code+')')) return;
   state.products=(state.products||[]).filter(function(p){ return (p.code||'').toLowerCase()!==(code||'').toLowerCase(); });
-  saveState(); renderQuoteDb(); populateQuoteProductCodes(); showToast('삭제 완료');
+  saveState(); renderQuoteDb(); populateQuoteProductCodes(); showToast('삭제 완료 · Deleted');
 }
 function loadCsvFile(file){ if(!file) return; var r=new FileReader(); r.onload=function(e){ document.getElementById('qCsv').value=e.target.result; showToast('CSV 로드됨 · [가져오기] 클릭'); }; r.readAsText(file); }
 function importProductsCsv(){
@@ -4959,7 +4959,7 @@ function setQColor(i,val){
 }
 function handleQuoteLineImage(i,file){
   if(!quoteLines[i]||!file) return;
-  if(!/^image\//.test(file.type||'') && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name||'')){ showToast('이미지 파일만 가능'); return; }
+  if(!/^image\//.test(file.type||'') && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name||'')){ showToast('이미지 파일만 가능 · Images only'); return; }
   var fr=new FileReader();
   fr.onload=function(e){
     var dataUrl=e.target.result, img=new Image();
@@ -4991,7 +4991,7 @@ function processImagePasteData(dataUrl, target){
     var kb=Math.round(data.length*0.75/1024);
     showToast('이미지 붙여넣기 완료 · 약 '+kb+'KB');
   };
-  img.onerror=function(){ showToast('이미지를 처리할 수 없습니다'); };
+  img.onerror=function(){ showToast('이미지를 처리할 수 없습니다 · Cannot process image'); };
   img.src=dataUrl;
 }
 function pasteImage(target){
@@ -5032,7 +5032,7 @@ function openImageUrlDialog(target){
     +'<div style="font-size:15px;font-weight:700;margin-bottom:10px">이미지 URL · Image URL</div>'
     +'<input id="imgUrlInput" type="text" placeholder="https://..." value="'+cur.replace(/"/g,'&quot;')+'" style="width:100%;font-size:13px;padding:9px 10px;margin-bottom:6px;border:1px solid var(--border);border-radius:var(--radius)">'
     +'<div style="font-size:11px;color:#888;margin-bottom:12px">이미지 주소(https://...)를 붙여넣고 적용을 누르세요.</div>'
-    +'<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-outline" onclick="closeImageUrlDialog()">취소</button><button class="btn btn-dark" onclick="applyImageUrl()">적용 · Apply</button></div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-outline" onclick="closeImageUrlDialog()">취소 · Cancel</button><button class="btn btn-dark" onclick="applyImageUrl()">적용 · Apply</button></div>'
     +'</div>';
   ov.style.display='flex';
   setTimeout(function(){ var inp=document.getElementById('imgUrlInput'); if(inp){ inp.focus(); } },60);
@@ -5042,7 +5042,7 @@ function applyImageUrl(){
   var inp=document.getElementById('imgUrlInput'); var url=((inp&&inp.value)||'').trim();
   if(!/^https?:\/\//i.test(url)){ showToast('http(s):// 로 시작하는 URL이어야 합니다'); return; }
   var target=window._imgUrlTarget;
-  showToast('이미지 불러오는 중…');
+  showToast('이미지 불러오는 중… · Loading image…');
   _loadImgToData(url, function(data, embedded){
     if(target==='product'){ productImageData=data; if(typeof showProductImagePreview==='function') showProductImagePreview(); }
     else if(quoteLines[target]){ quoteLines[target].image=data; renderQuoteLines(); }
@@ -5055,31 +5055,31 @@ function clearQLineImage(i){ if(quoteLines[i]){ quoteLines[i].image=''; renderQu
 function lineUnit(l){ if(l.mode==='price') return qNum(l.price); var m=qNum(l.margin); var c=qNum(l.cost); return c*(1+m/100); }
 function renderQuoteLines(){
   var box=document.getElementById('quoteLinesBox'); if(!box) return;
-  if(!quoteLines.length){ box.innerHTML='<div style="font-size:13px;color:var(--text-3);padding:10px">품목을 추가하세요.</div>'; recalcQuote(); return; }
+  if(!quoteLines.length){ box.innerHTML='<div style="font-size:13px;color:var(--text-3);padding:10px">품목을 추가하세요. · Add an item.</div>'; recalcQuote(); return; }
   var inp='font-size:13px;padding:7px 9px';
   var th='padding:8px 6px;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;text-align:left;white-space:nowrap;border-bottom:2px solid var(--border)';
   var td='padding:6px 6px;border-bottom:1px solid var(--border);vertical-align:top';
   var header='<thead><tr>'
     +'<th style="'+th+'">#</th><th style="'+th+'">Product Code</th><th style="'+th+'">Category</th><th style="'+th+'">Product Name</th><th style="'+th+'">Color</th><th style="'+th+'">Image</th>'
     +'<th style="'+th+'">Size (WxDxH)</th><th style="'+th+'">Qty</th>'
-    +'<th style="'+th+'">Cost</th><th style="'+th+'">마진/판가</th><th style="'+th+'">Unit Price</th><th style="'+th+'">Amount</th><th style="'+th+'">VN생산</th><th style="'+th+'">Remark</th><th style="'+th+'"></th>'
+    +'<th style="'+th+'">Cost</th><th style="'+th+'">마진/판가 · Margin/Price</th><th style="'+th+'">Unit Price</th><th style="'+th+'">Amount</th><th style="'+th+'">VN생산</th><th style="'+th+'">Remark</th><th style="'+th+'"></th>'
     +'</tr></thead>';
   var rows=quoteLines.map(function(l,i){
     var thumb = l.image
       ? window._img(l.image,'style="width:64px;height:52px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:4px;display:block"')
-      : '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:52px;border:1px dashed var(--border);border-radius:4px;cursor:pointer;color:var(--text-3)" title="이미지 업로드"><i class="ti ti-camera" style="font-size:16px"></i><input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>';
+      : '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:52px;border:1px dashed var(--border);border-radius:4px;cursor:pointer;color:var(--text-3)" title="이미지 업로드 · Upload Image"><i class="ti ti-camera" style="font-size:16px"></i><input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>';
     var imgCell='<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'+thumb
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">'
-        +(l.image?'<label style="font-size:10px;color:#1d4ed8;cursor:pointer">교체<input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>':'')
-        +'<button onclick="pasteImage('+i+')" style="font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">붙여넣기</button>'
+        +(l.image?'<label style="font-size:10px;color:#1d4ed8;cursor:pointer">교체 · Replace<input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>':'')
+        +'<button onclick="pasteImage('+i+')" style="font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">붙여넣기 · Paste</button>'
         +'<button onclick="setQLineImageUrl('+i+')" style="font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">URL</button>'
-        +(l.image?'<button onclick="clearQLineImage('+i+')" style="font-size:10px;border:none;background:none;color:var(--danger);cursor:pointer;padding:0">제거</button>':'')
+        +(l.image?'<button onclick="clearQLineImage('+i+')" style="font-size:10px;border:none;background:none;color:var(--danger);cursor:pointer;padding:0">제거 · Remove</button>':'')
       +'</div></div>';
     var modeCell='<div style="display:flex;flex-direction:column;gap:4px">'
-      +'<select onchange="setQMode('+i+',this.value)" style="width:104px;'+inp+'"><option value="margin"'+(l.mode==='margin'?' selected':'')+'>마진율%(원가)</option><option value="price"'+(l.mode==='price'?' selected':'')+'>확정판가</option></select>'
+      +'<select onchange="setQMode('+i+',this.value)" style="width:104px;'+inp+'"><option value="margin"'+(l.mode==='margin'?' selected':'')+'>마진율%(원가)</option><option value="price"'+(l.mode==='price'?' selected':'')+'>확정판가 · Final Price</option></select>'
       +(l.mode==='margin'
         ? '<input type="text" inputmode="decimal" value="'+(l.margin||'')+'" oninput="setQLine('+i+',\'margin\',this.value)" placeholder="%" style="width:104px;'+inp+'">'
-        : '<input type="text" inputmode="decimal" value="'+(l.price||'')+'" oninput="setQLine('+i+',\'price\',this.value)" placeholder="판가" style="width:104px;'+inp+'">')
+        : '<input type="text" inputmode="decimal" value="'+(l.price||'')+'" oninput="setQLine('+i+',\'price\',this.value)" placeholder="판가 · Price" style="width:104px;'+inp+'">')
       +'<div style="font-size:11px;color:var(--text-3);white-space:nowrap">→ 판가 <span id="qmodeunit-'+i+'" style="color:#1d4ed8;font-weight:700"></span></div>'
       +'</div>';
     return '<tr>'
@@ -5091,11 +5091,11 @@ function renderQuoteLines(){
       +'<td style="'+td+';text-align:center">'+imgCell+'</td>'
       +'<td style="'+td+'"><input type="text" value="'+(l.size||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'size\',this.value)" placeholder="WxDxH" style="width:135px;'+inp+'"></td>'
       +'<td style="'+td+'"><input type="text" inputmode="numeric" value="'+(l.qty||'')+'" oninput="setQLine('+i+',\'qty\',this.value)" style="width:56px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input type="text" inputmode="decimal" value="'+(l.cost||'')+'" oninput="setQLine('+i+',\'cost\',this.value)" placeholder="원가" style="width:118px;'+inp+'"></td>'
+      +'<td style="'+td+'"><input type="text" inputmode="decimal" value="'+(l.cost||'')+'" oninput="setQLine('+i+',\'cost\',this.value)" placeholder="원가 · Cost" style="width:118px;'+inp+'"></td>'
       +'<td style="'+td+'">'+modeCell+'</td>'
       +'<td style="'+td+';text-align:right;font-size:13px;padding-top:13px"><span id="qunit-'+i+'" style="font-weight:600"></span></td>'
       +'<td style="'+td+';text-align:right;font-size:13px;font-weight:700;padding-top:13px"><span id="qamt-'+i+'"></span></td>'
-      +'<td style="'+td+';text-align:center;padding-top:13px"><input type="checkbox" '+(l.vnMade?'checked':'')+' onchange="setQVN('+i+',this.checked)" style="width:17px;height:17px;cursor:pointer" title="베트남 생산"></td>'
+      +'<td style="'+td+';text-align:center;padding-top:13px"><input type="checkbox" '+(l.vnMade?'checked':'')+' onchange="setQVN('+i+',this.checked)" style="width:17px;height:17px;cursor:pointer" title="베트남 생산 · Made in Vietnam"></td>'
       +'<td style="'+td+'"><input type="text" value="'+(l.remark||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'remark\',this.value)" placeholder="Remark" style="width:140px;'+inp+'"></td>'
       +'<td style="'+td+';padding-top:11px"><button class="btn btn-outline" style="font-size:12px;padding:5px 8px" onclick="removeQuoteLine('+i+')"><i class="ti ti-x"></i></button></td>'
       +'</tr>';
@@ -5141,7 +5141,7 @@ function collectQuote(){
 }
 function saveQuote(){
   var q=collectQuote();
-  if(!q.lines.length || !q.lines.some(function(l){ return l.name||l.code; })){ showToast('품목을 입력하세요'); return; }
+  if(!q.lines.length || !q.lines.some(function(l){ return l.name||l.code; })){ showToast('품목을 입력하세요 · Enter item'); return; }
   if(!state.quotes) state.quotes=[];
   var u=cardCurrentUser(); q.preparedBy=u?u.name:'';
   // 자동 DB화: 제품 → 제품 DB, 고객사 → 거래처 DB
@@ -5169,7 +5169,7 @@ function renderSavedQuotes(){
       +'<td style="'+td+';text-align:center;color:var(--text-2)">'+((x.lines||[]).length)+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700">'+(x.currency||'')+' '+fmtN(tot)+(vatLbl?(' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+vatLbl+'</span>'):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap">'
-        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+')"><i class="ti ti-edit"></i> 열기</button> '
+        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+')"><i class="ti ti-edit"></i> 열기 · Open</button> '
         +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+',true)"><i class="ti ti-file-type-pdf"></i> PDF</button> '
         +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteQuote('+x.id+')"><i class="ti ti-trash"></i></button>'
       +'</td>'
@@ -5219,7 +5219,7 @@ function _noteCanMod(n){ var c=mineUserId||parseInt(sessionStorage.getItem('inic
 function editDocComment(id, idx, wrapId){
   var doc=state.docs.find(function(d){ return d.id===id; }); if(!doc||!doc.notes||!doc.notes[idx]) return;
   var n=doc.notes[idx]; if(n.deleted) return;
-  if(!_noteCanMod(n)){ showToast('본인 의견만 수정할 수 있습니다'); return; }
+  if(!_noteCanMod(n)){ showToast('본인 의견만 수정할 수 있습니다 · You can edit only your own comment'); return; }
   var nv=prompt('의견 수정 · Edit comment:', n.text); if(nv===null) return;
   nv=nv.trim(); if(!nv){ showToast('내용을 입력하세요'); return; }
   if(nv===n.text) return;
@@ -5230,7 +5230,7 @@ function editDocComment(id, idx, wrapId){
 function deleteDocComment(id, idx, wrapId){
   var doc=state.docs.find(function(d){ return d.id===id; }); if(!doc||!doc.notes||!doc.notes[idx]) return;
   var n=doc.notes[idx]; if(n.deleted) return;
-  if(!_noteCanMod(n)){ showToast('본인 의견만 삭제할 수 있습니다'); return; }
+  if(!_noteCanMod(n)){ showToast('본인 의견만 삭제할 수 있습니다 · You can delete only your own comment'); return; }
   if(!confirm('이 의견을 삭제할까요? · Delete this comment?')) return;
   n.deleted=true; n.deletedAt=nowStr(); n.deletedBy=_noteCurName();
   saveState(); showDetail(id, wrapId); showToast('의견 삭제됨 · Deleted');
@@ -5241,7 +5241,7 @@ function toggleVendorDetail(i){
   d.style.display=open?'block':'none';
   var ch=document.getElementById('vchev-'+i); if(ch) ch.style.transform=open?'rotate(180deg)':'';
 }
-function deleteQuote(id){ if(!confirm('견적을 삭제할까요?')) return; state.quotes=(state.quotes||[]).filter(function(x){ return x.id!==id; }); saveState(); renderSavedQuotes(); showToast('삭제 완료'); }
+function deleteQuote(id){ if(!confirm('견적을 삭제할까요? · Delete this quote?')) return; state.quotes=(state.quotes||[]).filter(function(x){ return x.id!==id; }); saveState(); renderSavedQuotes(); showToast('삭제 완료 · Deleted'); }
 
 // ── Quote PDF (portrait A4) ──
 // 공식 로고 이미지를 쓰려면 아래에 data:image/png;base64,... 문자열을 넣으세요. 비우면 벡터 워드마크.
@@ -5295,14 +5295,14 @@ function buildQuoteHtml(q){
 }
 function previewQuote(){
   var q=collectQuote();
-  if(!q.lines.length || !q.lines.some(function(l){ return l.name||l.code; })){ showToast('품목을 추가하세요'); return; }
+  if(!q.lines.length || !q.lines.some(function(l){ return l.name||l.code; })){ showToast('품목을 추가하세요 · Add an item'); return; }
   var ov=document.getElementById('quotePreviewModal');
   if(!ov){ ov=document.createElement('div'); ov.id='quotePreviewModal'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto'; ov.onclick=function(e){ if(e.target===ov){ ov.style.display='none'; ov.innerHTML=''; } }; document.body.appendChild(ov); }
   ov.innerHTML='<div style="background:#fff;border-radius:8px;max-width:840px;width:100%;margin:auto" onclick="event.stopPropagation()">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;border-radius:8px 8px 0 0">'
       +'<div style="font-size:14px;font-weight:700">PDF 미리보기 · Preview <span style="font-size:11px;color:#888;font-weight:400">(원가·마진 미표시)</span></div>'
       +'<div style="display:flex;gap:6px"><button class="btn btn-dark" style="font-size:12px;padding:6px 12px" onclick="exportQuotePdf()"><i class="ti ti-file-type-pdf"></i> PDF 저장</button>'
-      +'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'quotePreviewModal\').style.display=\'none\'">닫기</button></div>'
+      +'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'quotePreviewModal\').style.display=\'none\'">닫기 · Close</button></div>'
     +'</div>'
     +'<div style="padding:12px;background:#f3f4f6">'+buildQuoteHtml(q)+'</div>'
     +'</div>';
@@ -5316,7 +5316,7 @@ async function _quoteResolveImgs(q){
 function exportQuotePdf(){
   if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
   var q=collectQuote();
-  if(!q.lines.length){ showToast('품목을 추가하세요'); return; }
+  if(!q.lines.length){ showToast('품목을 추가하세요 · Add an item'); return; }
   var area=document.getElementById('quotePrintArea');
   showToast('PDF 생성 중…');
   _quoteResolveImgs(q).then(function(){
@@ -5404,7 +5404,7 @@ function renderViewScope(){
   var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1">사용자 · User</div>'+mods.map(function(m){return '<div style="width:110px;text-align:center">'+m[1]+'</div>';}).join('')+'</div>';
   var rows=MEMBERS.map(function(m){
     var cells=mods.map(function(md){
-      if(m.isAdmin) return '<div style="width:110px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
+      if(m.isAdmin) return '<div style="width:110px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체 · All</div>';
       var sc=(state.viewScope||{})[m.id]||{}; var v=sc[md[0]]||'all';
       return '<div style="width:110px;text-align:center"><select onchange="setViewScope('+m.id+',\''+md[0]+'\',this.value)" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="all"'+(v==='all'?' selected':'')+'>전체 · All</option><option value="own"'+(v==='own'?' selected':'')+'>본인만 · Own</option></select></div>';
     }).join('');
@@ -5418,7 +5418,7 @@ function renderModulePerms(){
   var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1">사용자 · User</div>'+mods.map(function(m){ return '<div style="width:62px;text-align:center">'+m[1]+'</div>'; }).join('')+'</div>';
   var rows=MEMBERS.map(function(m){
     var cells=mods.map(function(md){
-      if(m.isAdmin) return '<div style="width:62px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체</div>';
+      if(m.isAdmin) return '<div style="width:62px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체 · All</div>';
       var allowed = (md[0]==='acctAdmin')
         ? (function(){ var pp=(state.modulePerms||{})[_mpk(m.id)]; return !!(pp && pp.acctAdmin===true); })()
         : (md[0]==='hr')
@@ -5430,7 +5430,7 @@ function renderModulePerms(){
   }).join('');
   el.innerHTML=head+rows
     +'<div style="padding:10px 8px;border-top:2px solid var(--border);display:flex;justify-content:flex-end"><button class="btn btn-dark" onclick="saveModulePerms()" style="font-size:12px;padding:7px 16px"><i class="ti ti-device-floppy"></i> 변경사항 저장 · Save Changes</button></div>'
-    +'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. <b>인사</b>·<b>회계관리자</b>는 기본 비활성 — 체크 시 HR 모듈·은행 「Accounting Admin」 탭에 접근할 수 있습니다. 관리자는 항상 전체 접근. <b style="color:#b45309">변경 후 반드시 「변경사항 저장」을 눌러야 적용됩니다.</b></div>';
+    +'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. <b>인사 · HR</b>·<b>회계관리자 · Accounting Admin</b>는 기본 비활성 — 체크 시 HR 모듈·은행 「Accounting Admin」 탭에 접근할 수 있습니다. 관리자는 항상 전체 접근. <b style="color:#b45309">변경 후 반드시 「변경사항 저장」을 눌러야 적용됩니다.</b></div>';
 }
 function saveModulePerms(){
   if(!state.modulePerms) state.modulePerms={};
@@ -5556,7 +5556,7 @@ function saveBuyerToDB(client,b){ if(!client)return; if(!state.vendors)state.ven
 
 function openContractModal(projId){
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);});
-  if(!p){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요'); return; }
+  if(!p){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요 · Save the project first, then create'); return; }
   _contractProjId=projId;
   _assignContractSeq(p);
   var o=p.contractOpts||_ctDefaults(p);
@@ -5624,7 +5624,7 @@ function renderContractScans(){
   }).join('')+'</div>';
 }
 function handleContractScan(files){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p){ showToast('계약을 먼저 여세요'); return; }
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p){ showToast('계약을 먼저 여세요 · Open a contract first'); return; }
   if(!files||!files.length) return;
   if(!p.contractScans) p.contractScans=[];
   var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
@@ -5695,7 +5695,7 @@ function renderContractApp(){
       var prs=(state.paymentRequests||[]).filter(function(r){return String(r.projId)===String(p.id);});
       var prPaid=prs.filter(function(r){return r.paid;}).length;
       var prCell=prs.length?('<span title="입금 '+prPaid+' / 발행 '+prs.length+'" style="color:'+(prPaid===prs.length?'#15803d':(prPaid>0?'#b45309':'var(--text-2)'))+'">'+prPaid+' / '+prs.length+'</span>'):'<span style="color:var(--text-3)">0</span>';
-      var statusBadge=p.contractConfirmed?'<span class="badge b-done" style="font-size:10px"><i class="ti ti-circle-check"></i> 확정</span>':'<span class="badge b-draft" style="font-size:10px">미확정·Draft</span>';
+      var statusBadge=p.contractConfirmed?'<span class="badge b-done" style="font-size:10px"><i class="ti ti-circle-check"></i> 확정 · Confirmed</span>':'<span class="badge b-draft" style="font-size:10px">미확정·Draft</span>';
       var scans=(p.contractScans||[]);
       var scanCell=scans.length?scans.map(function(s,i){
         var isImg=/^data:image\//.test(s.data||'');
@@ -5710,12 +5710,12 @@ function renderContractApp(){
         +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+tt.cur+' '+fmtN(Math.round(tt.total))+'</td>'
         +'<td style="'+td+';white-space:nowrap;color:var(--text-2);font-size:11px">선금 '+(o.depositPct==null?'-':o.depositPct)+'% / 잔금 '+(o.balancePct==null?'-':o.balancePct)+'%</td>'
         +'<td style="'+td+';white-space:nowrap">'+scanCell+'</td>'
-        +'<td style="'+td+';text-align:center;white-space:nowrap" title="대금 입금 / 발행">'+prCell+'</td>'
-        +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openContractFromApp('+p.id+')"><i class="ti ti-edit"></i> 열기</button> <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="_contractProjId='+p.id+';document.getElementById(\'contractScanInput\').click()"><i class="ti ti-paperclip"></i> 스캔</button></td>'
+        +'<td style="'+td+';text-align:center;white-space:nowrap" title="대금 입금 / 발행 · Payment / Issue">'+prCell+'</td>'
+        +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openContractFromApp('+p.id+')"><i class="ti ti-edit"></i> 열기 · Open</button> <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="_contractProjId='+p.id+';document.getElementById(\'contractScanInput\').click()"><i class="ti ti-paperclip"></i> 스캔 · Scan</button></td>'
       +'</tr>';
     }).join('');
     html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px"><table style="width:100%;border-collapse:collapse;min-width:980px">'
-      +'<thead><tr><th style="'+th+'">상태</th><th style="'+th+'">계약번호 · No.</th><th style="'+th+'">고객 · Client</th><th style="'+th+'">계약일 · Date</th><th style="'+th+';text-align:right">금액 · Amount</th><th style="'+th+'">선금/잔금</th><th style="'+th+'">스캔본 · Scan</th><th style="'+th+';text-align:center">입금·PR</th><th style="'+th+';text-align:right">작업</th></tr></thead>'
+      +'<thead><tr><th style="'+th+'">상태 · Status</th><th style="'+th+'">계약번호 · No.</th><th style="'+th+'">고객 · Client</th><th style="'+th+'">계약일 · Date</th><th style="'+th+';text-align:right">금액 · Amount</th><th style="'+th+'">선금/잔금 · Deposit/Balance</th><th style="'+th+'">스캔본 · Scan</th><th style="'+th+';text-align:center">입금·PR</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
       +'<tbody>'+prows+'</tbody></table></div>';
   }
   // 2) 전자결재 계약체결 문서 — 테이블
@@ -5739,7 +5739,7 @@ function renderContractApp(){
       +'</tr>';
     }).join('');
     html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:720px">'
-      +'<thead><tr><th style="'+th+'">문서번호 · No.</th><th style="'+th+'">제목 · Title</th><th style="'+th+'">부서</th><th style="'+th+'">기안일</th><th style="'+th+'">첨부 · Files</th><th style="'+th+'">상태</th></tr></thead>'
+      +'<thead><tr><th style="'+th+'">문서번호 · No.</th><th style="'+th+'">제목 · Title</th><th style="'+th+'">부서 · Dept</th><th style="'+th+'">기안일 · Draft Date</th><th style="'+th+'">첨부 · Files</th><th style="'+th+'">상태 · Status</th></tr></thead>'
       +'<tbody>'+drows+'</tbody></table></div>';
   }
   box.innerHTML=html;
@@ -5803,11 +5803,11 @@ function renderInvoiceApp(){
       +'<td style="'+td+'">'+_invPayCell(v)+'</td>'
       +'<td style="'+td+';color:var(--text-2);font-size:11px">'+(v.category||'')+'</td>'
       +'<td style="'+td+';text-align:center">'+fileCell+'</td>'
-      +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openInvoiceForm(\''+v.id+'\')"><i class="ti ti-edit"></i> 수정</button></td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openInvoiceForm(\''+v.id+'\')"><i class="ti ti-edit"></i> 수정 · Edit</button></td>'
       +'</tr>';
   }).join('');
   box.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:960px">'
-    +'<thead><tr><th style="'+th+'">구분</th><th style="'+th+'">번호 · No.</th><th style="'+th+'">발행일 · Date</th><th style="'+th+'">거래처 · Party</th><th style="'+th+';text-align:right">합계 · Total</th><th style="'+th+'">결제 · Payment</th><th style="'+th+'">분류</th><th style="'+th+';text-align:center">파일</th><th style="'+th+';text-align:right">작업</th></tr></thead>'
+    +'<thead><tr><th style="'+th+'">구분 · Type</th><th style="'+th+'">번호 · No.</th><th style="'+th+'">발행일 · Date</th><th style="'+th+'">거래처 · Party</th><th style="'+th+';text-align:right">합계 · Total</th><th style="'+th+'">결제 · Payment</th><th style="'+th+'">분류 · Category</th><th style="'+th+';text-align:center">파일 · File</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 function invRecalc(){ var sub=qNum(document.getElementById('invSubtotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var tot=sub*(1+r); document.getElementById('invTotal').value=fmtN(Math.round(tot)); }
@@ -6000,7 +6000,7 @@ function openPaymentRequestForProject(){
 }
 function openPaymentRequest(){
   var d=_prContractData();
-  if(!d){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요'); return; }
+  if(!d){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요 · Save the project first, then create'); return; }
   var p=d.p, o=d.o;
   document.getElementById('prContractNo').textContent=o.contractNo||'';
   document.getElementById('prClientName').textContent=(p.clientFull||p.client||'');
@@ -6059,8 +6059,8 @@ function renderPRHistory(){
         +'<span style="font-weight:600">'+(r.currency||'')+' '+fmtN(r.amount||0)+'</span>'
         +'<span style="color:var(--text-3)">'+(r.date||'')+'</span>'
         +'<label style="display:inline-flex;align-items:center;gap:3px;cursor:pointer;'+(paid?'color:#15803d;font-weight:700':'color:var(--text-3)')+'" title="대금 입금 여부 · Payment received"><input type="checkbox" '+(paid?'checked':'')+' onchange="togglePrPaid(\''+r.id+'\',this.checked)" style="width:auto;margin:0">'+(paid?'입금완료·Paid':'미입금·Unpaid')+'</label>'
-        +'<a href="javascript:void(0)" onclick="reprintPaymentRequest(\''+r.id+'\')" style="color:#4338ca;text-decoration:none" title="다시 인쇄"><i class="ti ti-printer"></i></a>'
-        +'<a href="javascript:void(0)" onclick="deletePaymentRequest(\''+r.id+'\')" style="color:var(--danger);text-decoration:none" title="삭제"><i class="ti ti-trash"></i></a>'
+        +'<a href="javascript:void(0)" onclick="reprintPaymentRequest(\''+r.id+'\')" style="color:#4338ca;text-decoration:none" title="다시 인쇄 · Reprint"><i class="ti ti-printer"></i></a>'
+        +'<a href="javascript:void(0)" onclick="deletePaymentRequest(\''+r.id+'\')" style="color:var(--danger);text-decoration:none" title="삭제 · Delete"><i class="ti ti-trash"></i></a>'
         +'</div>';
     }).join('');
 }
@@ -6073,7 +6073,7 @@ function togglePrPaid(id,checked){
   showToast(checked?'입금 완료로 표시 · Marked paid':'미입금으로 변경 · Marked unpaid');
 }
 function issuePaymentRequest(){
-  var d=_prContractData(); if(!d){ showToast('계약 정보 없음'); return; }
+  var d=_prContractData(); if(!d){ showToast('계약 정보 없음 · No contract info'); return; }
   var pr=_readPR();
   if(!pr.amount){ showToast('요청 금액을 입력하세요 · Enter amount'); return; }
   if(!state.paymentRequests) state.paymentRequests=[];
@@ -6288,7 +6288,7 @@ function saveContractTpl(){
   _CT_FIELDS.forEach(function(f){ state.contractTemplate[f[0]+'Vi']=document.getElementById('tpl_'+f[0]+'Vi').value; state.contractTemplate[f[0]+'En']=document.getElementById('tpl_'+f[0]+'En').value; var _ko=document.getElementById('tpl_'+f[0]+'Ko'); if(_ko) state.contractTemplate[f[0]+'Ko']=_ko.value; });
   saveState(); closeContractTpl(); showToast('계약서 템플릿 저장됨 · Template saved');
 }
-function resetContractTpl(){ if(!confirm('템플릿을 기본값으로 되돌릴까요?'))return; state.contractTemplate={}; saveState(); openContractTpl(); showToast('기본 템플릿으로 복원'); }
+function resetContractTpl(){ if(!confirm('템플릿을 기본값으로 되돌릴까요?'))return; state.contractTemplate={}; saveState(); openContractTpl(); showToast('기본 템플릿으로 복원 · Restore Default Template'); }
 var _ctTplLang='vnen', _ctTplZoom=100, _ctTplSample=null;
 function previewContractTpl(){
   // 편집 중(미저장)인 textarea 값으로 임시 템플릿 구성 — 미저장 수정사항도 그대로 미리보기
@@ -6393,8 +6393,8 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   return ''
   +'<div style="width:754px;margin:0 auto;padding:22px 20px 30px;background:#fff;color:#111;font-family:Arial,sans-serif;box-sizing:border-box">'
   +(isKo
-    ? '<div style="text-align:center"><div style="font-size:17px;font-weight:800">가구 공급 계약서</div><div style="font-size:12px;font-weight:700;color:#333">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:10px;margin-top:3px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
-    : '<div style="text-align:center"><div style="font-size:16px;font-weight:800">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:13px;font-weight:700;color:#333">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:10px;color:#1d4ed8">가구 공급 계약서</div>':'')+'<div style="font-size:10px;margin-top:3px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
+    ? '<div style="text-align:center"><div style="font-size:17px;font-weight:800">가구 공급 계약서 · Furniture Supply Contract</div><div style="font-size:12px;font-weight:700;color:#333">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:10px;margin-top:3px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
+    : '<div style="text-align:center"><div style="font-size:16px;font-weight:800">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:13px;font-weight:700;color:#333">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:10px;color:#1d4ed8">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:10px;margin-top:3px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
   +(isKo
     ? '<div style="font-size:11px;margin-top:20px">본 계약은 '+H(o.date||'')+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
     : '<div style="font-size:9.5px;margin-top:20px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
@@ -6659,10 +6659,10 @@ function saveTask(){
 }
 function deleteTask(id){
   if(id==null)return;
-  if(!confirm('이 업무를 삭제할까요?'))return;
+  if(!confirm('이 업무를 삭제할까요? · Delete this task?'))return;
   (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
   state.tasks=(state.tasks||[]).filter(function(x){return x.id!==id;});
-  saveState(); closeTaskForm(); renderTaskApp(); showToast('삭제됨');
+  saveState(); closeTaskForm(); renderTaskApp(); showToast('삭제됨 · Deleted');
 }
 function completeTask(id){
   var t=(state.tasks||[]).find(function(x){return x.id===id;}); if(!t)return;
@@ -6708,12 +6708,12 @@ function renderTaskApp(){
 function signalDot(k){ var sg=taskSignal(k); return '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+sg.c+';flex-shrink:0" title="'+sg.l+'"></span>'; }
 function taskCard(t, compact){
   var sg=taskSignal(t.signal); var delay=taskDelay(t); var done=t.status==='done';
-  var delayTag = (!done && delay>0) ? '<span style="font-size:10px;font-weight:700;color:#b91c1c;background:#b91c1c14;padding:1px 7px;border-radius:8px">D+'+delay+' 지연</span>' : ((!done && delay===0) ? '<span style="font-size:10px;color:var(--text-3)">오늘 시작</span>':'');
+  var delayTag = (!done && delay>0) ? '<span style="font-size:10px;font-weight:700;color:#b91c1c;background:#b91c1c14;padding:1px 7px;border-radius:8px">D+'+delay+' 지연</span>' : ((!done && delay===0) ? '<span style="font-size:10px;color:var(--text-3)">오늘 시작 · Start Today</span>':'');
   var typeTag='<span style="font-size:10px;color:var(--text-3);background:var(--surface-2);padding:1px 7px;border-radius:8px">'+taskTypeLabel(t.taskType)+'</span>';
   var projTag=taskProjLabels(t).map(function(lb){ return '<span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px"><i class="ti ti-folder"></i> '+lb+'</span>'; }).join(' ');
   var hrs=t.estHours?'<span style="font-size:10px;color:var(--text-3)"><i class="ti ti-clock"></i> '+t.estHours+'h</span>':'';
   var actions = done
-    ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="reopenTask('+t.id+')"><i class="ti ti-arrow-back-up"></i> 재개</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>'
+    ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="reopenTask('+t.id+')"><i class="ti ti-arrow-back-up"></i> 재개 · Resume</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>'
     : '<button class="btn btn-dark" style="font-size:10px;padding:3px 9px" onclick="completeTask('+t.id+')"><i class="ti ti-check"></i> 완료 · Close</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>';
   return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+sg.c+';border-radius:var(--radius);padding:10px 12px;margin-bottom:8px'+(done?';opacity:.72':'')+'">'
     +'<div style="display:flex;gap:8px;align-items:flex-start"><div style="margin-top:3px">'+signalDot(t.signal)+'</div>'
@@ -6731,13 +6731,13 @@ function renderMyTasks(){
   var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin);
   var tu=reportTargetUser(); var uid=tu?tu.id:null;
   var viewBtn='<div style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">'
-    +'<button onclick="setTaskView(\'card\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='card'?'var(--text)':'transparent')+';color:'+(_taskView==='card'?'#fff':'var(--text-3)')+'"><i class="ti ti-layout-cards"></i> 카드</button>'
-    +'<button onclick="setTaskView(\'table\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='table'?'var(--text)':'transparent')+';color:'+(_taskView==='table'?'#fff':'var(--text-3)')+'"><i class="ti ti-table"></i> 표</button></div>';
+    +'<button onclick="setTaskView(\'card\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='card'?'var(--text)':'transparent')+';color:'+(_taskView==='card'?'#fff':'var(--text-3)')+'"><i class="ti ti-layout-cards"></i> 카드 · Card</button>'
+    +'<button onclick="setTaskView(\'table\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='table'?'var(--text)':'transparent')+';color:'+(_taskView==='table'?'#fff':'var(--text-3)')+'"><i class="ti ti-table"></i> 표 · Table</button></div>';
   var hdr='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-    +'<div style="font-size:14px;font-weight:700">'+(tu?tu.name:'')+'님의 업무'+(_taskTargetUid?' <span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px">관리자 작성</span>':'')+'</div>'
+    +'<div style="font-size:14px;font-weight:700">'+(tu?tu.name:'')+'님의 업무'+(_taskTargetUid?' <span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px">관리자 작성 · Admin-created</span>':'')+'</div>'
     +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+viewBtn;
   if(isAdm){ hdr+='<select onchange="reportSetTarget(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">본인 · Me</option>'+MEMBERS.map(function(m){return '<option value="'+m.id+'"'+(String(_taskTargetUid)===String(m.id)?' selected':'')+'>'+m.name+'</option>';}).join('')+'</select>'
-    +'<button class="btn btn-outline" onclick="openSlackConfig()" style="font-size:11px;padding:4px 8px" title="설정"><i class="ti ti-settings"></i></button>'; }
+    +'<button class="btn btn-outline" onclick="openSlackConfig()" style="font-size:11px;padding:4px 8px" title="설정 · Settings"><i class="ti ti-settings"></i></button>'; }
   hdr+='<button class="btn btn-dark" onclick="openTaskForm(null)" style="font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i> 새 업무 · Add</button>'
     +'<button class="btn btn-outline" onclick="fetchSlackToReport()" style="font-size:11px;padding:6px 10px"><i class="ti ti-brand-slack"></i> Slack 불러오기</button>'
     +'</div></div>';
@@ -6750,7 +6750,7 @@ function renderMyTasks(){
     html+='<div id="taskSelBar" style="display:none;align-items:center;gap:10px;background:#b91c1c0d;border:1px solid #b91c1c33;border-radius:var(--radius);padding:8px 12px;margin-bottom:10px"><span style="font-size:12px"><b id="taskSelCount">0</b>건 선택 · selected</span><button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="deleteSelectedTasks()"><i class="ti ti-trash"></i> 선택 삭제 · Delete</button></div>';
     html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg)"><table style="width:100%;border-collapse:collapse;min-width:780px">';
     html+='<thead><tr style="background:var(--surface-2)">'
-      +'<th style="padding:8px;text-align:left"><input type="checkbox" onclick="toggleAllTasks(this)" style="width:auto;margin:0" title="전체"></th>'
+      +'<th style="padding:8px;text-align:left"><input type="checkbox" onclick="toggleAllTasks(this)" style="width:auto;margin:0" title="전체 · All"></th>'
       +['', '업무 · Task','프로젝트 · Project','유형 · Type','시작 · Start','지연 · Delay','시간','상태','작업'].map(function(c){return '<th style="padding:8px;font-size:11px;color:var(--text-3);font-weight:700;white-space:nowrap;text-align:left">'+c+'</th>';}).join('')
       +'</tr></thead><tbody>';
     html+= all.length? all.map(taskRow).join('') : '<tr><td colspan="10" style="padding:16px;text-align:center;font-size:12px;color:var(--text-3)">업무 없음 — "새 업무"로 추가하세요</td></tr>';
@@ -6760,7 +6760,7 @@ function renderMyTasks(){
   html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px">진행 중 · Open ('+openT.length+')</div>';
   html+= openT.length? openT.map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">진행 중 업무 없음 — "새 업무"로 추가하세요.</div>';
   html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">완료 · Closed (최근)</div>';
-  html+= doneT.length? doneT.slice(0,15).map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">완료된 업무 없음</div>';
+  html+= doneT.length? doneT.slice(0,15).map(function(t){return taskCard(t,false);}).join('') : '<div style="font-size:12px;color:var(--text-3);padding:6px 0">완료된 업무 없음 · No completed tasks</div>';
   return html;
 }
 function dateNavBar(extra){
@@ -6785,7 +6785,7 @@ function renderDaily(){
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px"><span style="font-size:14px;font-weight:700">'+sig+' '+m.name+'</span><span style="font-size:11px;color:var(--text-3)">완료 '+doneT.length+'건'+(totH?' · '+totH+'h':'')+' · 진행 '+openOverdue.length+'</span></div>';
     html+='<div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:6px">완료 (Done)</div>';
-    html+= doneT.length? doneT.map(function(t){return taskCard(t,true);}).join('') : '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">완료 없음</div>';
+    html+= doneT.length? doneT.map(function(t){return taskCard(t,true);}).join('') : '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">완료 없음 · None completed</div>';
     if(openOverdue.length){ html+='<div style="font-size:11px;font-weight:700;color:var(--text-3);margin:8px 0 6px">진행 중 / 이월 (To-Do)</div>'+openOverdue.sort(function(a,b){return taskDelay(b)-taskDelay(a);}).map(function(t){return taskCard(t,true);}).join(''); }
     html+='</div>';
   });
@@ -6855,11 +6855,11 @@ function taskRow(t){
    +'<td style="padding:6px 8px;font-size:11px;color:#b45309;white-space:nowrap">'+taskProjLabels(t).join(', ')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+taskTypeLabel(t.taskType)+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+(t.startDate||'')+'</td>'
-   +'<td style="padding:6px 8px;font-size:11px;white-space:nowrap">'+(!done&&delay>0?'<span style="color:#b91c1c;font-weight:700">D+'+delay+'</span>':(done?'<span style="color:#15803d">완료</span>':'-'))+'</td>'
+   +'<td style="padding:6px 8px;font-size:11px;white-space:nowrap">'+(!done&&delay>0?'<span style="color:#b91c1c;font-weight:700">D+'+delay+'</span>':(done?'<span style="color:#15803d">완료 · Done</span>':'-'))+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3)">'+(t.estHours||'')+'</td>'
    +'<td style="padding:6px 8px;white-space:nowrap">'+(done
-       ?'<button class="btn btn-outline" style="font-size:10px;padding:2px 7px" onclick="reopenTask('+t.id+')">재개</button>'
-       :'<button class="btn btn-dark" style="font-size:10px;padding:2px 7px" onclick="completeTask('+t.id+')">완료</button>')
+       ?'<button class="btn btn-outline" style="font-size:10px;padding:2px 7px" onclick="reopenTask('+t.id+')">재개 · Resume</button>'
+       :'<button class="btn btn-dark" style="font-size:10px;padding:2px 7px" onclick="completeTask('+t.id+')">완료 · Done</button>')
      +' <button class="btn btn-outline" style="font-size:10px;padding:2px 6px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button></td>'
    +'</tr>';
 }
@@ -6873,7 +6873,7 @@ function fetchSlackToReport(){
   var cfg=state.slackConfig||{};
   if(!cfg.workerUrl){ showToast('Slack 설정(톱니)에서 Worker URL을 입력하세요'); if(sessionIsAdmin||(cardCurrentUser()&&cardCurrentUser().isAdmin))openSlackConfig(); return; }
   var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin);
-  if(!isAdm && _taskTargetUid){ showToast('본인 보고만 가져올 수 있습니다'); return; }
+  if(!isAdm && _taskTargetUid){ showToast('본인 보고만 가져올 수 있습니다 · You can import only your own report'); return; }
   var tu=reportTargetUser(); var uid=tu?tu.id:null;
   var slackId=(state.slackUsers||{})[uid];
   if(!isAdm && !slackId){ showToast('본인 Slack User ID가 설정되어 있어야 자기 대화를 가져올 수 있습니다'); return; }
@@ -6890,11 +6890,11 @@ function closeSlackImport(){ document.getElementById('slackImportModal').style.d
 async function doSlackImport(){
   var from=(document.getElementById('slkFrom').value||'').trim();
   var to=(document.getElementById('slkTo').value||'').trim();
-  if(!from){ showToast('시작일을 선택하세요'); return; }
+  if(!from){ showToast('시작일을 선택하세요 · Select a start date'); return; }
   if(!to)to=from;
   if(to<from){ var tmp=from; from=to; to=tmp; }
   var chans=Array.prototype.slice.call(document.querySelectorAll('.slkChk:checked')).map(function(x){return x.value;});
-  if(!chans.length){ showToast('채널을 1개 이상 선택하세요'); return; }
+  if(!chans.length){ showToast('채널을 1개 이상 선택하세요 · Select at least one channel'); return; }
   closeSlackImport();
   var cfg=state.slackConfig||{};
   var tu=reportTargetUser(); var uid=tu?tu.id:null; var uname=tu?tu.name:'';
@@ -6962,9 +6962,9 @@ function showProjectApp(){
   var a=document.getElementById('projAvatarChip'); if(a&&u&&typeof getAvatar==='function') a.innerHTML=getAvatar(u.id,'sm');
   // board filter selects
   var ownerSel=document.getElementById('projBoardOwner');
-  if(ownerSel) ownerSel.innerHTML='<option value="">담당자 전체</option>'+MEMBERS.map(function(m){ return '<option value="'+m.id+'">'+m.name+'</option>'; }).join('');
+  if(ownerSel) ownerSel.innerHTML='<option value="">담당자 전체 · All Owners</option>'+MEMBERS.map(function(m){ return '<option value="'+m.id+'">'+m.name+'</option>'; }).join('');
   var regSel=document.getElementById('projBoardRegion');
-  if(regSel) regSel.innerHTML='<option value="">지역 전체</option>'+allProjRegions().map(function(r){ return '<option>'+r+'</option>'; }).join('');
+  if(regSel) regSel.innerHTML='<option value="">지역 전체 · All Regions</option>'+allProjRegions().map(function(r){ return '<option>'+r+'</option>'; }).join('');
   projectSwitchTab('board');
   window.scrollTo(0,0);
 }
@@ -7288,7 +7288,7 @@ function projCustomerInfoHTML(name){
     var amt=(d.amt!=null&&d.amt!==''&&d.amt!==0)?' <span class="docno">'+(d.cur||'')+' '+fmtN(d.amt)+'</span>':'';
     var act=d.src==='quote'?"closeProjectForm();openRelatedQuote("+d.id+")":d.src==='card'?"closeProjectForm();openRelatedCard("+d.id+")":d.src==='project'?"editProject("+d.id+")":"openDocViewer("+d.id+")";
     return '<a href="javascript:void(0)" onclick="'+act+'" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text)"><i class="ti '+c.icon+'" style="font-size:12px;color:'+c.color+'"></i><span class="docno">'+d.no+'</span> '+d.title+amt+'</a>';
-  }).join('<br>') : '<span style="color:var(--text-3)">관련 문서 없음</span>';
+  }).join('<br>') : '<span style="color:var(--text-3)">관련 문서 없음 · No related docs</span>';
   var sk=Object.keys(v.sales||{}).filter(function(c){return v.sales[c];});
   var pk=Object.keys(v.purch||{}).filter(function(c){return v.purch[c];});
   var settle=(sk.length||pk.length)?'<div style="margin-top:8px;font-size:12px;line-height:1.7">'+(sk.length?'<div>매출 · Sales: <b style="color:#1d4ed8">'+sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')+(pk.length?'<div>매입 · Purchase: <b style="color:#b45309">'+pk.map(function(c){return fmtN(v.purch[c])+' '+c;}).join(' · ')+'</b></div>':'')+'</div>':'';
@@ -7318,16 +7318,16 @@ function renderProjectHistory(id){
     var st=projStage(h.stage);
     return '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:7px">'
       +'<span style="flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:'+st.color+';margin-top:4px;box-shadow:0 0 0 2px '+st.color+'33"></span>'
-      +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+st.label+(h.first?' <span style="font-size:9px;color:var(--text-3);font-weight:400">(등록)</span>':'')+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+st.label+(h.first?' <span style="font-size:9px;color:var(--text-3);font-weight:400">(등록) · (Registered)</span>':'')+'</div>'
       +'<div style="font-size:10px;color:var(--text-3)">'+(h.at||'')+(h.by?' · '+h.by:'')+'</div></div></div>';
-  }).join('') : '<div style="font-size:11px;color:var(--text-3)">단계 변경 기록 없음</div>';
+  }).join('') : '<div style="font-size:11px;color:var(--text-3)">단계 변경 기록 없음 · No stage history</div>';
   var logs=(p.logs||[]);
   var logsHtml = logs.length ? logs.slice().map(function(l,i){ return {l:l,i:i}; }).reverse().map(function(o){
     return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:7px">'
       +'<div style="font-size:12px;white-space:pre-wrap;line-height:1.5">'+(o.l.text||'')+'</div>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">'
       +'<span style="font-size:10px;color:var(--text-3)">'+(o.l.by?o.l.by+' · ':'')+(o.l.at||'')+'</span>'
-      +'<button onclick="deleteProjectLog('+o.i+')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0" title="삭제"><i class="ti ti-trash"></i></button>'
+      +'<button onclick="deleteProjectLog('+o.i+')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0" title="삭제 · Delete"><i class="ti ti-trash"></i></button>'
       +'</div></div>';
   }).join('') : '<div style="font-size:11px;color:var(--text-3)">아직 대화 로그가 없습니다.</div>';
   panel.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="ti ti-history"></i> 고객 히스토리 · History</div>'
@@ -7353,7 +7353,7 @@ function addProjectLog(){
 }
 function deleteProjectLog(i){
   var p=(state.projects||[]).find(function(x){ return x.id===_editingProjId; }); if(!p||!p.logs) return;
-  if(!confirm('이 로그를 삭제할까요?')) return;
+  if(!confirm('이 로그를 삭제할까요? · Delete this log?')) return;
   p.logs.splice(i,1); saveState(); renderProjectHistory(_editingProjId);
 }
 function onProjStageChange(){
@@ -7400,7 +7400,7 @@ function projMarginRefresh(){
   var invAmt=_pfV('salesInvoiceAmount');
   var issued=invIssued?(invAmt||sTot):0; if(issued>sTot) issued=sTot;
   var uninv=sTot-issued;
-  var invLine='<div style="margin-top:4px;font-size:11px">인보이스 발행 '+sCur+' '+fmtN(issued)+(uninv>0?(' · <span style="color:var(--danger)">미발행 '+fmtN(uninv)+'</span>'):' · <span style="color:#15803d">전액 발행</span>')+'</div>';
+  var invLine='<div style="margin-top:4px;font-size:11px">인보이스 발행 '+sCur+' '+fmtN(issued)+(uninv>0?(' · <span style="color:var(--danger)">미발행 '+fmtN(uninv)+'</span>'):' · <span style="color:#15803d">전액 발행 · Issue Full</span>')+'</div>';
   if(sCur===pCur){ var m=sTot-pTot; prev.innerHTML='마진 · Margin: <b style="color:'+(m>=0?'#15803d':'var(--danger)')+'">'+sCur+' '+fmtN(m)+'</b>  (매출 '+fmtN(sTot)+' − 매입 '+fmtN(pTot)+')'+invLine; }
   else { prev.innerHTML='매출 '+sCur+' '+fmtN(sTot)+' · 매입 '+pCur+' '+fmtN(pTot)+' <span style="color:var(--text-3)">(통화 상이 — 마진 미산출)</span>'+invLine; }
 }
@@ -7444,8 +7444,8 @@ function saveProject(){
     if(idx>=0){ var _prev=state.projects[idx]; data.id=_editingProjId; data.createdAt=_prev.createdAt; data.createdBy=_prev.createdBy; data.updatedAt=nowStr(); data.logs=_prev.logs||[]; data.stageHistory=_prev.stageHistory||[]; data.contractOpts=_prev.contractOpts; data.contractScans=_prev.contractScans||[]; data.contractSeq=_prev.contractSeq; data.contractConfirmed=_prev.contractConfirmed; data.contractConfirmedAt=_prev.contractConfirmedAt; data.contractConfirmedBy=_prev.contractConfirmedBy; if(_prev.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } state.projects[idx]=data; }
   } else {
     var ex=state.projects.find(function(x){ return (x.client||'').toLowerCase()===client.toLowerCase(); });
-    if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; data.contractScans=ex.contractScans||[]; data.contractSeq=ex.contractSeq; data.contractConfirmed=ex.contractConfirmed; data.contractConfirmedAt=ex.contractConfirmedAt; data.contractConfirmedBy=ex.contractConfirmedBy; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신'); }
-    else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); data.logs=[]; data.stageHistory=[{stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:''),first:true}]; state.projects.push(data); showToast('프로젝트 등록 완료'); }
+    if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; data.contractScans=ex.contractScans||[]; data.contractSeq=ex.contractSeq; data.contractConfirmed=ex.contractConfirmed; data.contractConfirmedAt=ex.contractConfirmedAt; data.contractConfirmedBy=ex.contractConfirmedBy; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신 · Existing client — card updated'); }
+    else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); data.logs=[]; data.stageHistory=[{stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:''),first:true}]; state.projects.push(data); showToast('프로젝트 등록 완료 · Project registered'); }
   }
   _stampEdit(data);                          // Phase 1: 저장 레코드에 _rev/_editedAt 부여 (원상복구 방지)
   saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList();
@@ -7454,9 +7454,9 @@ function saveProject(){
 
 function deleteProject(id){
   if(id==null) return;
-  if(!confirm('이 프로젝트를 삭제할까요?')) return;
+  if(!confirm('이 프로젝트를 삭제할까요? · Delete this project?')) return;
   state.projects=(state.projects||[]).filter(function(x){ return x.id!==id; });
-  saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList(); showToast('삭제 완료');
+  saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList(); showToast('삭제 완료 · Deleted');
 }
 
 
@@ -7871,7 +7871,7 @@ function showFinanceApp(){
   var n=document.getElementById('finUserName'); if(n&&u) n.textContent=u.name;
   var a=document.getElementById('finAvatarChip'); if(a&&u&&typeof getAvatar==='function') a.innerHTML=getAvatar(u.id,'sm');
   var ow=document.getElementById('finOwner');
-  if(ow) ow.innerHTML='<option value="">담당자 전체</option>'+MEMBERS.map(function(m){ return '<option value="'+m.id+'">'+m.name+'</option>'; }).join('');
+  if(ow) ow.innerHTML='<option value="">담당자 전체 · All Owners</option>'+MEMBERS.map(function(m){ return '<option value="'+m.id+'">'+m.name+'</option>'; }).join('');
   renderFinanceDashboard();
   window.scrollTo(0,0);
 }
@@ -7966,10 +7966,10 @@ function renderFinanceDashboard(){
     return '<span style="color:#0e7490">발행 '+fmtN(c.sInvoiced)+'</span> / <span style="color:var(--danger)">미 '+fmtN(c.sUninvoiced)+'</span>';
   }
   el.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:880px">'
-    +'<thead><tr><th style="'+thl+'">고객사</th><th style="'+thl+'">단계</th>'
-    +'<th style="'+th+'">매출총액</th><th style="'+th+'">인보이스</th><th style="'+th+'">매출입금</th>'
-    +'<th style="'+th+'">매입총액</th><th style="'+th+'">매입지급</th>'
-    +'<th style="'+th+'">마진</th></tr></thead><tbody>'
+    +'<thead><tr><th style="'+thl+'">고객사 · Client</th><th style="'+thl+'">단계 · Stage</th>'
+    +'<th style="'+th+'">매출총액 · Total Sales</th><th style="'+th+'">인보이스 · Invoice</th><th style="'+th+'">매출입금 · Sales Receipt</th>'
+    +'<th style="'+th+'">매입총액 · Total Purchase</th><th style="'+th+'">매입지급 · Purchase Pay</th>'
+    +'<th style="'+th+'">마진 · Margin</th></tr></thead><tbody>'
     + rows.map(function(r){
         var s=projStage(r.p.stage);
         return '<tr style="cursor:pointer" onclick="showProjectAppToEdit('+r.p.id+')">'
@@ -8466,7 +8466,7 @@ function _bankInvoiceCell(t){
     if(linked.length===0 && cands.length===1 && _invAmtCents(cands[0])===_txnLineAmtCents(t)){
       // 라인을 딱 채우는 단일 후보 → 원클릭 버튼
       var ic=cands[0];
-      picker='<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchInvBank(\''+ic.id+'\','+t.id+',\'manual\')" title="이 인보이스로 결제 매칭"><i class="ti ti-check"></i> '+String(_invShort(ic)).slice(0,14)+'</button>'+salesHint;
+      picker='<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchInvBank(\''+ic.id+'\','+t.id+',\'manual\')" title="이 인보이스로 결제 매칭 · Match payment to this invoice"><i class="ti ti-check"></i> '+String(_invShort(ic)).slice(0,14)+'</button>'+salesHint;
     } else {
       var addLbl=linked.length?('+ 추가 · 잔여 '+fmtN(remaining/100)):(isCredit?'발행 연결 · Link A/R…':'수취 연결 · Link A/P…');
       picker='<select onchange="if(this.value)matchInvBank(this.value,'+t.id+',\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:200px"><option value="">'+addLbl+' ('+cands.length+')</option>'
@@ -8488,7 +8488,7 @@ function _invPayCell(v){
     var tip=t?_reconBankLineInv(t,side).replace(/"/g,'&quot;'):'';
     var shared=t?_txnInvIds(t).length:1;
     var sharedTag=(shared>1)?(' <span style="font-size:9px;color:#6b7280" title="이 '+(side==='debit'?'출금':'입금')+'은 인보이스 '+shared+'건을 함께 결제 · Split payment">분할 '+shared+'건</span>'):'';
-    return '<div style="white-space:nowrap"><span class="badge b-done" style="font-size:10px" title="'+tip+'"><i class="ti ti-check"></i> '+lbl+(v.matchStatus==='auto'?' (자동)':'')+'</span>'+sharedTag+' <a href="javascript:void(0)" onclick="unmatchInv(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">해제</a></div>';
+    return '<div style="white-space:nowrap"><span class="badge b-done" style="font-size:10px" title="'+tip+'"><i class="ti ti-check"></i> '+lbl+(v.matchStatus==='auto'?' (자동)':'')+'</span>'+sharedTag+' <a href="javascript:void(0)" onclick="unmatchInv(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">해제 · Unlink</a></div>';
   }
   var info=_invMatchInfo(v);
   if(info.status==='confident'){ var tc=info.txn; var partial=(_txnInvRemainingCents(tc)!==_invAmtCents(tc)||_txnInvLinked(tc))?' (분할)':''; return '<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchInvBank(\''+v.id+'\','+tc.id+',\'manual\')" title="'+_reconBankLineInv(tc,side).replace(/"/g,'&quot;')+'"><i class="ti ti-link"></i> 매칭 · Match'+partial+'</button>'; }
@@ -8747,7 +8747,7 @@ function _bankDeptCell(t){
   var auto=_bankAutoDept(t);
   if(auto){ return '<span style="font-size:11px;font-weight:700;white-space:nowrap" title="매칭에서 자동 · From matched card/approval">'+auto+' <span style="font-size:8px;font-weight:600;color:#15803d">auto</span></span>'; }
   var cur=t.dept||'';
-  var opts='<option value="">부서…</option>'+_bankDeptList().map(function(d){ return '<option'+(d===cur?' selected':'')+'>'+d+'</option>'; }).join('');
+  var opts='<option value="">부서… · Dept…</option>'+_bankDeptList().map(function(d){ return '<option'+(d===cur?' selected':'')+'>'+d+'</option>'; }).join('');
   return '<select onchange="setBankTxnDept('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);'+(cur?'':'background:#fffbeb')+'">'+opts+'</select>';
 }
 // ── 은행수수료 자동분류: 거래번호(ref) 동일 & 거래처 없음 → Bank Charges / SHINHAN VN ──
@@ -8822,7 +8822,7 @@ function renderBankList(){
   var payInvs=(state.invoices||[]).filter(function(v){return _invAmtCents(v)>0;}); var invMatched=payInvs.filter(function(v){return v.matchTxnId;}).length;
   var vendorBar='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
     +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankAutoVendor()"><i class="ti ti-wand"></i> 거래처 자동인식 · Auto-vendor</button>'
-    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankRunAutoCharge()" title="거래번호 동일 & 거래처 없음 → Bank Charges / SHINHAN VN"><i class="ti ti-receipt-2"></i> 은행수수료 자동분류</button>'
+    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankRunAutoCharge()" title="거래번호 동일 & 거래처 없음 → Bank Charges / SHINHAN VN"><i class="ti ti-receipt-2"></i> 은행수수료 자동분류 · Auto-classify Bank Fees</button>'
     +(noVendor?'<span style="font-size:11px;color:#92400e">거래처 미지정 · No vendor '+noVendor+'</span>':'<span style="font-size:11px;color:#15803d">거래처 지정 완료 · Done</span>')
     +'<span style="width:1px;height:18px;background:var(--border);margin:0 4px"></span>'
     +'<button class="btn btn-dark" style="font-size:11px;padding:5px 11px" onclick="runAutoMatch()"><i class="ti ti-arrows-diff"></i> 카드 자동매칭 · Auto-match cards</button>'
@@ -8848,17 +8848,17 @@ function renderBankList(){
       +opt('','매칭 전체',f.match)+opt('unmatched','미매칭',f.match)+opt('matched','매칭됨(전체)',f.match)
       +opt('card','카드',f.match)+opt('doc','전자결재',f.match)+opt('inv','인보이스',f.match)
       +opt('invpartial','인보이스 부분충당',f.match)+opt('invfull','인보이스 완납',f.match)+'</select>'
-    +((f.q||f.cat||f.dir||f.match||f.dept)?'<button class="btn btn-outline" style="font-size:11px;padding:5px 9px" onclick="clearBankFilter()"><i class="ti ti-x"></i> 필터해제</button> <span style="font-size:11px;color:var(--text-3)">'+txnsF.length+' / '+txnsAll.length+'건</span>':'')
+    +((f.q||f.cat||f.dir||f.match||f.dept)?'<button class="btn btn-outline" style="font-size:11px;padding:5px 9px" onclick="clearBankFilter()"><i class="ti ti-x"></i> 필터해제 · Clear Filter</button> <span style="font-size:11px;color:var(--text-3)">'+txnsF.length+' / '+txnsAll.length+'건</span>':'')
     +'<span style="flex:1"></span>'
     +'<button class="btn btn-dark" style="font-size:11px;padding:6px 14px" onclick="bankManualSave()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>'
     +'</div>';
   var listHtml = txnsF.length
     ? '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1580px">'
       +'<thead><tr>'
-      +'<th style="'+th+'">Date<br>날짜</th><th style="'+th+';max-width:64px">Type<br>거래</th>'
-      +'<th style="'+th+';text-align:right">Out<br>출금</th><th style="'+th+';text-align:right">In<br>입금</th>'
-      +'<th style="'+th+';text-align:right">Balance<br>잔액</th><th style="'+th+'">Note<br>비고</th>'
-      +'<th style="'+th+'">Category<br>분류</th><th style="'+th+'">Dept<br>부서</th><th style="'+th+'">Vendor<br>거래처</th><th style="'+th+'">Card<br>카드</th><th style="'+th+'">Approval<br>전자결재</th><th style="'+th+'">Invoice<br>인보이스</th><th style="'+th+';text-align:right"></th></tr></thead>'
+      +'<th style="'+th+'">Date<br>날짜 · Date</th><th style="'+th+';max-width:64px">Type<br>거래 · Transaction</th>'
+      +'<th style="'+th+';text-align:right">Out<br>출금 · Debit</th><th style="'+th+';text-align:right">In<br>입금 · Credit</th>'
+      +'<th style="'+th+';text-align:right">Balance<br>잔액 · Balance</th><th style="'+th+'">Note<br>비고 · Remarks</th>'
+      +'<th style="'+th+'">Category<br>분류 · Category</th><th style="'+th+'">Dept<br>부서 · Dept</th><th style="'+th+'">Vendor<br>거래처 · Vendor</th><th style="'+th+'">Card<br>카드 · Card</th><th style="'+th+'">Approval<br>전자결재 · E-Approval</th><th style="'+th+'">Invoice<br>인보이스 · Invoice</th><th style="'+th+';text-align:right"></th></tr></thead>'
       +'<tbody>'+rows+'</tbody></table></div>'
     : '<div class="empty-state" style="padding:24px"><i class="ti ti-filter-off"></i><p>필터 조건에 맞는 거래가 없습니다 · No transactions match the filter</p></div>';
   el.innerHTML=bankVendorDatalist()+vendorBar+filterBar+listHtml;
