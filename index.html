@@ -2333,22 +2333,35 @@ async function saveState() {
   }
 }
 
-// ── 편집 보호: 방금 로컬에서 편집한 항목을 오래된 원격 푸시가 덮어쓰지 못하게 ──
-function _stampEdit(o){ if(o) o._editedAt=Date.now(); return o; }
+// ── 편집 보호 (Phase 1: 낙관적 버전 스탬프 · per-record 병합) ──
+// 모든 수정 헬퍼가 _stampEdit 을 거치며 _rev(레코드 버전) 을 올린다.
+// 원격 푸시가 오면 컬렉션을 통째로 갈아끼우지 않고 레코드 단위로 병합한다:
+//   · 원격 _rev > 로컬 _rev  → 원격 채택 (남이 더 최신)
+//   · 로컬 _rev >= 원격 _rev 이고 로컬이 방금 편집(미저장)됨 → 로컬 유지 (되돌아감 방지)
+//   · 로컬에만 있는 신규(원격에 없음)로 최근 2분 내 편집분 → 유지
+// 3개 컬렉션만 보호하던 반창고를 전 컬렉션으로 확장 — projects 원상복구 버그의 근본 수정.
+var _MERGE_COLLS=['docs','vendors','vendorRequests','cardExpenses','cardMerchants',
+                  'products','quotes','projects','bankTxns','invoices','paymentRequests','tasks'];
+function _stampEdit(o){ if(o){ o._editedAt=Date.now(); o._rev=(o._rev||0)+1; } return o; }
+function _recentLocal(lt){ return (Date.now()-(lt&&lt._editedAt||0))<120000; }
 function _mergeRecentLocalEdits(remote){
   if(!remote || !state) return remote;
-  ['bankTxns','invoices','cardExpenses'].forEach(function(coll){
+  _MERGE_COLLS.forEach(function(coll){
     if(!Array.isArray(state[coll]) || !Array.isArray(remote[coll])) return;
     var localById={}; state[coll].forEach(function(it){ if(it && it.id!=null) localById[String(it.id)]=it; });
     var seen={};
     remote[coll]=remote[coll].map(function(rt){
       if(!rt || rt.id==null) return rt; var k=String(rt.id); seen[k]=1;
-      var lt=localById[k];
-      if(lt && (lt._editedAt||0) > (rt._editedAt||0)) return lt;   // 로컬이 더 최근 편집 → 로컬 유지
+      var lt=localById[k]; if(!lt) return rt;
+      var lr=lt._rev||0, rr=rt._rev||0;
+      if(rr>lr) return rt;                              // 원격이 더 최신 버전 → 원격
+      if(lr>rr) return lt;                              // 로컬이 더 최신 버전 → 로컬 유지
+      // 동일 _rev(레거시 0 포함): 로컬이 방금 편집됐으면 로컬, 아니면 원격
+      if(_recentLocal(lt) && (lt._editedAt||0) >= (rt._editedAt||0)) return lt;
       return rt;
     });
     // 로컬에만 있고(방금 추가) 최근 2분 내 편집된 항목은 원격에 없어도 유지
-    state[coll].forEach(function(lt){ if(lt && lt.id!=null && !seen[String(lt.id)] && (Date.now()-(lt._editedAt||0))<120000){ remote[coll].push(lt); } });
+    state[coll].forEach(function(lt){ if(lt && lt.id!=null && !seen[String(lt.id)] && _recentLocal(lt)){ remote[coll].push(lt); } });
   });
   return remote;
 }
@@ -7434,6 +7447,7 @@ function saveProject(){
     if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; data.contractScans=ex.contractScans||[]; data.contractSeq=ex.contractSeq; data.contractConfirmed=ex.contractConfirmed; data.contractConfirmedAt=ex.contractConfirmedAt; data.contractConfirmedBy=ex.contractConfirmedBy; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신'); }
     else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); data.logs=[]; data.stageHistory=[{stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:''),first:true}]; state.projects.push(data); showToast('프로젝트 등록 완료'); }
   }
+  _stampEdit(data);                          // Phase 1: 저장 레코드에 _rev/_editedAt 부여 (원상복구 방지)
   saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList();
   if(typeof financeAppOpen!=='undefined' && financeAppOpen && typeof renderFinanceDashboard==='function') renderFinanceDashboard();
 }
@@ -8156,6 +8170,7 @@ function handleBankExcel(file){
         var k=bankTxnKey(txn);
         if(existing[k]){ skipped++; continue; }
         existing[k]=true;
+        _stampEdit(txn);                       // Phase 1: 신규 임포트건도 _rev/_editedAt 부여 (병합 보호)
         state.bankTxns.push(txn); added++;
       }
       saveState(); renderBankApp();
