@@ -27,7 +27,7 @@
      아래 7개 값을 Firebase Console에서 복사해서 교체하세요
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
-<script src="js/sync.js?v=6"></script>
+<script src="js/sync.js?v=7"></script>
 <script src="js/hr.js?v=9"></script>
 <script src="js/hr-calc.js?v=1"></script>
 <script src="js/hr-emp.js?v=4"></script>
@@ -3377,7 +3377,7 @@ function submitDoc(){
       return;
     }
   }
-  const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();clearForm();showToast('Submitted · 결재 상신 — '+doc.docNo);showPage('list');
+  const doc=buildDoc('pending1');state.docs.push(doc);curDocId=doc.id;saveState();_autoArchiveApproval(doc);clearForm();showToast('Submitted · 결재 상신 — '+doc.docNo);showPage('list');
 }
 function clearForm(){['docTitle','docAmount','docContent'].forEach(id=>document.getElementById(id).value='');descImageData=null;var dp=document.getElementById('descImagePreview');if(dp)dp.innerHTML='';var dn=document.getElementById('descImageName');if(dn)dn.textContent='';document.getElementById('docCurrency').value='VND';document.querySelector('input[name="needPayment"][value="no"]').checked=true;draftAtts=[];renderDraftAttList();contractAtts=[];renderContractAttList();clearExpenseForm();toggleExpenseDetail();}
 function resubmit(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.docNo)doc.docNo=genDocNo(doc.dept);doc.status='pending1';saveState();if(wrapId==='detailWrap')renderList();else renderMineList();showToast('Submitted · 결재 상신 완료');}
@@ -3528,7 +3528,8 @@ function _autoArchiveApproval(doc){
       if(typeof _stampEdit==='function') _stampEdit(doc);
       if(typeof saveState==='function') saveState();
       if(typeof showToast==='function') showToast('PDF 보관 갱신됨 · Storage'); }
-  }).catch(function(){ /* 실패해도 결재는 정상 — 수동 PDF 출력으로 보관 가능 */ });
+    else if(typeof showToast==='function'){ showToast('⚠ PDF Storage 저장 실패 — 규칙/네트워크 확인'); }
+  }).catch(function(e){ if(typeof showToast==='function') showToast('⚠ PDF 보관 오류: '+((e&&e.message)||'')); });
 }
 
 
