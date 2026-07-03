@@ -3424,9 +3424,10 @@ function doApproval(id,step,action,wrapId){
   doc.comments.push({who:approver.name,role:`${step}${step===1?'st':'nd'} Approver · ${step}차 승인자`,text:comment||(action==='approve'?'Approved · 승인':'Rejected · 반려'),time:nowStr()});
   if(action==='approve'){if(step===1&&doc.a2Id){doc.status='pending2';showToast('1st approved · 1차 승인 → 2nd pending · 2차 대기');}else{if(doc.needPayment){doc.status='payment';showToast('Approved · 승인 → Payment · 결제 단계');}else{doc.status='done';doc.doneAt=today();showToast('Fully approved · 결재 완료');}}}
   else{doc.status='rejected';doc.rejectedBy=step;showToast(`Rejected at step ${step} · ${step}차 반려`);}
+  _autoArchiveApproval(doc);   // 매 승인/반려 단계마다 최신 상태로 덮어쓰기
   saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();
 }
-function completePayment(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.payAtts?.length){showToast('Attach proof · 증빙 파일 첨부 필요');return;}doc.status='done';doc.doneAt=today();saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();showToast('Payment done · 결제 완료 — Fully approved · 결재 최종 완료');}
+function completePayment(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.payAtts?.length){showToast('Attach proof · 증빙 파일 첨부 필요');return;}doc.status='done';doc.doneAt=today();_autoArchiveApproval(doc);saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();showToast('Payment done · 결제 완료 — Fully approved · 결재 최종 완료');}
 function deleteDoc(id){state.docs=state.docs.filter(d=>d.id!==id);saveState();curDocId=null;mineDocId=null;document.getElementById('detailWrap').innerHTML='';document.getElementById('mineDetailWrap').innerHTML='';renderList();renderMineList();renderDashboard();showToast('Deleted · 삭제 완료');}
 
 // ═══════════════════════════════════════════
@@ -3486,25 +3487,48 @@ function buildApprovalHtml(doc){
     +'<div style="margin-top:20px;border-top:1px solid #eee;padding-top:8px;font-size:9px;color:#aaa;text-align:center">INICS Electronic Approval · 전자결재  ·  Generated · 출력: '+esc(nowStr())+'</div>'
     +'</div>';
 }
+function _approvalPdfName(doc){ return (doc.docNo||'doc')+'_'+((doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24)); }
+// PDF 렌더링만 담당 (다운로드/보관 안 함) — printPDF·자동보관 공용
+function _buildApprovalPdf(doc){
+  return new Promise(function(resolve,reject){
+    if(typeof html2canvas==='undefined' || !window.jspdf){ reject(new Error('pdf-module')); return; }
+    var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:720px;background:#fff';
+    wrap.innerHTML=buildApprovalHtml(doc); document.body.appendChild(wrap);
+    setTimeout(function(){
+      html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
+        var pdf=new window.jspdf.jsPDF('p','mm','a4');
+        var img=canvas.toDataURL('image/jpeg',0.92);
+        var pw=210, ph=297, iw=pw, ih=canvas.height*pw/canvas.width, hLeft=ih, pos=0;
+        pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph;
+        while(hLeft>0){ pos=hLeft-ih; pdf.addPage(); pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph; }
+        if(wrap.parentNode)document.body.removeChild(wrap); resolve(pdf);
+      }).catch(function(e){ if(wrap.parentNode)document.body.removeChild(wrap); reject(e); });
+    },100);
+  });
+}
 function printPDF(id){
   const doc=state.docs.find(d=>d.id===id);if(!doc)return;
   if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
   showToast('PDF 생성 중…');
-  var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:720px;background:#fff';
-  wrap.innerHTML=buildApprovalHtml(doc); document.body.appendChild(wrap);
-  setTimeout(function(){
-    html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
-      var pdf=new window.jspdf.jsPDF('p','mm','a4');
-      var img=canvas.toDataURL('image/jpeg',0.92);
-      var pw=210, ph=297, iw=pw, ih=canvas.height*pw/canvas.width, hLeft=ih, pos=0;
-      pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph;
-      while(hLeft>0){ pos=hLeft-ih; pdf.addPage(); pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph; }
-      var _df=(doc.docNo||'doc')+'_'+((doc.title||'').replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,24));
-      if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'),'전자결재',_df); }catch(_){ } }
-      pdf.save(_df+'.pdf');
-      document.body.removeChild(wrap); showToast('PDF saved · PDF 저장 완료');
-    }).catch(function(e){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 생성 실패'); });
-  },100);
+  _buildApprovalPdf(doc).then(function(pdf){
+    var _df=_approvalPdfName(doc);
+    if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'),'전자결재',_df); }catch(_){ } }
+    pdf.save(_df+'.pdf'); showToast('PDF saved · PDF 저장 완료');
+  }).catch(function(){ showToast('PDF 생성 실패'); });
+}
+// 최종 승인 시 자동 보관 — 다운로드 없음, 중복 방지(_pdfArchived), 재시도 없음(수동 버튼이 백업)
+function _autoArchiveApproval(doc){
+  if(!doc) return;                                   // 매 호출마다 재보관(once 가드 제거)
+  if(typeof window._archivePdf!=='function') return;
+  if(typeof html2canvas==='undefined' || !window.jspdf) return;
+  _buildApprovalPdf(doc).then(function(pdf){
+    return Promise.resolve(window._archivePdf(pdf.output('blob'),'전자결재',_approvalPdfName(doc),{stable:true,silent:true}));  // 고정 파일명 → 덮어쓰기
+  }).then(function(ok){
+    if(ok){ doc._pdfArchived=(typeof nowStr==='function'?nowStr():new Date().toISOString());
+      if(typeof _stampEdit==='function') _stampEdit(doc);
+      if(typeof saveState==='function') saveState();
+      if(typeof showToast==='function') showToast('PDF 보관 갱신됨 · Storage'); }
+  }).catch(function(){ /* 실패해도 결재는 정상 — 수동 PDF 출력으로 보관 가능 */ });
 }
 
 
