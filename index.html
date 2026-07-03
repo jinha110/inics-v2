@@ -904,6 +904,9 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <button class="btn btn-outline" onclick="openPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-cash"></i> 대금지급요청서 · Payment Request</button>
         <button class="btn btn-outline" onclick="document.getElementById(&#39;contractScanInput&#39;).click()" style="font-size:11px;padding:5px 10px"><i class="ti ti-paperclip"></i> 스캔본 업로드 · Upload Scan</button>
         <button class="btn btn-dark" id="ctConfirmBtn" onclick="toggleContractConfirm()" style="font-size:11px;padding:5px 10px"><i class="ti ti-circle-check"></i> 계약 확정 · Confirm Contract</button>
+        <button class="btn btn-outline" id="ctEditBtn" onclick="toggleContractEdit()" style="font-size:11px;padding:5px 10px;border-color:#4338ca;color:#4338ca"><i class="ti ti-edit"></i> 전체 편집 · Edit All</button>
+        <button class="btn btn-outline" id="ctEditCancelBtn" onclick="cancelContractEdit()" style="font-size:11px;padding:5px 10px;display:none"><i class="ti ti-x"></i> 편집 취소 · Cancel</button>
+        <button class="btn btn-outline" id="ctEditResetBtn" onclick="resetContractCustom()" style="font-size:11px;padding:5px 10px;display:none;border-color:#b45309;color:#b45309"><i class="ti ti-refresh"></i> 자동 생성 복원 · Reset</button>
         <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄 · Print</button>
         <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
         <button class="btn btn-outline" onclick="closeContractModal()" style="font-size:11px;padding:5px 10px">닫기 · Close</button>
@@ -5606,6 +5609,8 @@ function openContractModal(projId){
   document.getElementById('ctBuyerTax').value=o.buyerTax||_b.tax||p.buyerTax||'';
   document.getElementById('ctDeliveryPlace').innerHTML = p.deliveryPlace ? '<b>'+p.deliveryPlace+'</b>' : '<span style="color:#b91c1c">미입력 — 프로젝트 PO 단계의 "납품 장소"에 입력</span>';
   document.getElementById('contractModal').style.display='block';
+  _ctEditMode=false;
+  var _cbox=document.getElementById('contractPreview'); if(_cbox){ _cbox.removeAttribute('contenteditable'); _cbox.style.outline='none'; _cbox.style.background='#e5e7eb'; }
   renderContractScans();
   updateContractConfirmBtn();
   renderContractPreview();
@@ -5769,7 +5774,7 @@ function renderContractApp(){
   }
   box.innerHTML=html;
 }
-function closeContractModal(){ document.getElementById('contractModal').style.display='none'; }
+function closeContractModal(){ if(_ctEditMode){ if(!confirm('편집 모드입니다. 저장하지 않은 편집 내용이 사라집니다.\n닫으시겠습니까?'))return; _ctEditMode=false; var b=document.getElementById('contractPreview'); if(b){ b.removeAttribute('contenteditable'); b.style.outline='none'; } } document.getElementById('contractModal').style.display='none'; }
 
 // ═══════════ INVOICE MODULE · 인보이스 모듈 ═══════════
 var invoiceAppOpen=false, _invTab='all', _invEditId=null, _invFileBuf=null;
@@ -5922,7 +5927,84 @@ function _readContractOpts(){
 }
 function _buyerOf(o){ return {rep:o.buyerRep,gender:o.buyerGender,addr:o.buyerAddr,tax:o.buyerTax,title:o.buyerTitle,auth:o.buyerAuth}; }
 var _ctPrevLang='vnen', _ctPrevZoom=100;
-function renderContractPreview(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var box=document.getElementById('contractPreview'); if(!box)return; box.innerHTML=buildContractHtml(p,_readContractOpts(),true,null,null,_ctPrevLang); box.style.zoom=_ctPrevZoom/100; }
+var _ctEditMode=false;
+function _ctHasCustom(p){ return !!(p && p.contractCustomHtml && String(p.contractCustomHtml).trim()); }
+function renderContractPreview(){
+  if(_ctEditMode) return; // 편집 중에는 자동 재생성으로 편집 내용을 덮어쓰지 않음
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
+  var box=document.getElementById('contractPreview'); if(!box)return;
+  if(_ctHasCustom(p)){
+    box.innerHTML='<div style="max-width:754px;margin:0 auto 10px;padding:8px 11px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;font-size:11px;color:#3730a3;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+      +'<span><i class="ti ti-edit"></i> <b>사용자 편집본</b> · Custom-edited — 자동 필드/템플릿·언어 전환이 적용되지 않습니다. 인쇄·PDF에는 이 편집본이 출력됩니다.</span>'
+      +'<span style="display:flex;gap:6px"><button onclick="toggleContractEdit()" style="font-size:10px;padding:3px 9px;border:1px solid #4338ca;background:#4338ca;color:#fff;border-radius:4px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-edit"></i> 계속 편집</button>'
+      +'<button onclick="resetContractCustom()" style="font-size:10px;padding:3px 9px;border:1px solid #b45309;background:#fff;color:#b45309;border-radius:4px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-refresh"></i> 자동 생성 복원</button></span>'
+      +'</div><div style="max-width:754px;margin:0 auto;box-shadow:0 0 0 1px #e5e7eb">'+p.contractCustomHtml+'</div>';
+    box.style.zoom=_ctPrevZoom/100;
+    updateContractEditUI();
+    return;
+  }
+  box.innerHTML=buildContractHtml(p,_readContractOpts(),true,null,null,_ctPrevLang);
+  box.style.zoom=_ctPrevZoom/100;
+  updateContractEditUI();
+}
+function updateContractEditUI(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
+  var editBtn=document.getElementById('ctEditBtn'), cancelBtn=document.getElementById('ctEditCancelBtn'), resetBtn=document.getElementById('ctEditResetBtn');
+  if(editBtn){
+    if(_ctEditMode){ editBtn.className='btn btn-dark'; editBtn.style.borderColor=''; editBtn.style.color=''; editBtn.innerHTML='<i class="ti ti-device-floppy"></i> 편집 저장 · Save Edits'; }
+    else { editBtn.className='btn btn-outline'; editBtn.style.borderColor='#4338ca'; editBtn.style.color='#4338ca'; editBtn.innerHTML='<i class="ti ti-edit"></i> 전체 편집 · Edit All'; }
+  }
+  if(cancelBtn) cancelBtn.style.display=_ctEditMode?'':'none';
+  if(resetBtn) resetBtn.style.display=(!_ctEditMode && _ctHasCustom(p))?'':'none';
+}
+function toggleContractEdit(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
+  if(!p){ showToast('계약을 먼저 여세요 · Open a contract first'); return; }
+  var box=document.getElementById('contractPreview'); if(!box)return;
+  if(!_ctEditMode){
+    // 편집 모드 진입 → 실제 출력본(형광펜·한국어 참고 없이)을 그대로 편집
+    var o=_readContractOpts();
+    box.innerHTML='<div style="max-width:754px;margin:0 auto">'+(_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false))+'</div>';
+    box.setAttribute('contenteditable','true');
+    box.style.outline='2px solid #4338ca'; box.style.outlineOffset='3px'; box.style.background='#eef2ff';
+    box.style.zoom=_ctPrevZoom/100;
+    _ctEditMode=true;
+    updateContractEditUI();
+    setTimeout(function(){ box.focus(); },30);
+    showToast('전체 편집 모드 — 계약서 어느 부분이든 클릭해서 수정하세요. 끝나면 "편집 저장"');
+  } else {
+    // 편집 저장
+    box.removeAttribute('contenteditable');
+    box.style.outline='none'; box.style.background='#e5e7eb';
+    var inner=box.querySelector('div'); // 편집 래퍼
+    p.contractCustomHtml=inner?inner.innerHTML:box.innerHTML;
+    p.contractCustomAt=Date.now();
+    _ctEditMode=false;
+    saveState();
+    if(typeof contractAppOpen!=='undefined'&&contractAppOpen&&typeof renderContractApp==='function')renderContractApp();
+    renderContractPreview();
+    showToast('편집 저장됨 · 인쇄·PDF에 편집본이 반영됩니다');
+  }
+}
+function cancelContractEdit(){
+  if(!_ctEditMode)return;
+  _ctEditMode=false;
+  var box=document.getElementById('contractPreview');
+  if(box){ box.removeAttribute('contenteditable'); box.style.outline='none'; box.style.background='#e5e7eb'; }
+  renderContractPreview();
+  showToast('편집 취소 · 변경 사항은 저장되지 않았습니다');
+}
+function resetContractCustom(){
+  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
+  if(!confirm('사용자 편집본을 삭제하고 자동 생성 계약서로 되돌립니다.\n계속하시겠습니까?'))return;
+  delete p.contractCustomHtml; delete p.contractCustomAt;
+  _ctEditMode=false;
+  var box=document.getElementById('contractPreview'); if(box){ box.removeAttribute('contenteditable'); box.style.outline='none'; box.style.background='#e5e7eb'; }
+  saveState();
+  if(typeof contractAppOpen!=='undefined'&&contractAppOpen&&typeof renderContractApp==='function')renderContractApp();
+  renderContractPreview();
+  showToast('자동 생성 계약서로 복원됨');
+}
 function setContractPrevLang(l){ _ctPrevLang=l;
   var a=document.getElementById('ctLangVnen'), b=document.getElementById('ctLangKo');
   if(a){ a.style.background=(l==='vnen')?'var(--text)':'var(--surface)'; a.style.color=(l==='vnen')?'#fff':'var(--text-2)'; }
@@ -5938,7 +6020,7 @@ function downloadContractPDF(){
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
   var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState();
   var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff';
-  wrap.innerHTML=buildContractHtml(p,o,false); document.body.appendChild(wrap);
+  wrap.innerHTML=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); document.body.appendChild(wrap);
   showToast('PDF 생성 중...');
   html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
     var pdf=new window.jspdf.jsPDF('p','mm','a4');
@@ -5986,7 +6068,7 @@ function downloadContractPDF(){
     pdf.save(_cf+'.pdf'); document.body.removeChild(wrap);
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
 }
-function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+buildContractHtml(p,o,false)+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
+function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
 
 // ═══════════ PAYMENT REQUEST (대금지급요청서) ═══════════
 var _prPrevZoom=100;
@@ -6482,19 +6564,37 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
       +'</tfoot></table>'
   +'</div>'
 
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:13px;font-weight:800;margin-bottom:3px">APPENDIX 2 \u2013 WARRANTY LETTER</div>'
+  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:13px;font-weight:800;margin-bottom:3px">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH \u00b7 APPENDIX 2 \u2013 WARRANTY LETTER</div>'
     +'<div style="text-align:center;font-size:9px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(o.date):'') + '</div>'
-    +'<div style="font-size:9.5px;line-height:1.6">'
-      +'<p class="ct-soft" style="margin:4px 0">INICS VINA warrants its products to be free from defects in materials or workmanship for lifetime. INICS VINA will repair or replace any items which fail under normal use as a result of such defect.</p>'
-      +'<p class="ct-soft" style="margin:4px 0">This warranty applies from the date of manufacture and is valid only for the initial purchaser from an authorized dealer and the single-shift user.</p>'
-      +'<div class="ct-soft" style="font-weight:700;margin-top:8px">Exceptions</div>'
-      +'<p class="ct-soft" style="margin:3px 0"><b>5 years:</b> Hardware for doors; Drawer runners; Seating mechanisms; Hinges for panel belt tiles; Moving wear and high wear parts including glides and casters; Locking system; Electrical components.</p>'
-      +'<p class="ct-soft" style="margin:3px 0"><b>3 years:</b> Standard textiles, leather, wood veneer and other covering materials; All other mechanisms.</p>'
-      +'<p class="ct-soft" style="margin:3px 0"><b>1 year:</b> Replacement parts such as marker boards; All other nonstandard products.</p>'
-      +'<div class="ct-soft" style="font-weight:700;margin-top:8px">Exclusions</div>'
-      +'<p class="ct-soft" style="margin:3px 0">This warranty does not extend to: alteration or modification of the product; failure to apply, install, or maintain products according to published application/installation guidelines or warnings; natural variations in wood grain or figure or the presence of character marks; changes in surface finishes due to aging or exposure to light; marks, scars, or wrinkles occurring naturally in leather; defects or failure resulting from normal wear and tear; the colorfastness or matching of colors of textiles; products applied to Customer\u2019s Own (COM) or non-standard material; abuse, misuse, or accident; damage occurring after shipping (loss of time, inconvenience, commercial loss, or incidental or consequential damages); products considered consumables (e.g. lamps); other manufacturers\u2019 branded products; products used for rental purposes; products not installed and serviced by certified professionals.</p>'
-      +'<p class="ct-soft" style="margin:6px 0">In no event shall INICS VINA be liable in either tort or contract for any loss or direct, special, incidental, consequential or exemplary damages. This warranty is the customer\u2019s sole remedy for product defect. INICS VINA makes no warranties, including the implied warranties of merchantability and fitness for a particular purpose, other than the express warranties contained herein.</p>'
-    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:9px;line-height:1.55">'
+      +'<tr style="background:#f1f5f9;vertical-align:top"><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:8.5px">TIẾNG VIỆT</th><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:8.5px">ENGLISH</th></tr>'
+      +'<tr class="ct-soft" style="vertical-align:top">'
+        +'<td style="border:1px solid #ccc;padding:5px 8px">INICS VINA bảo hành sản phẩm của mình không có lỗi về vật liệu hoặc tay nghề gia công trong suốt vòng đời sản phẩm. INICS VINA sẽ sửa chữa hoặc thay thế bất kỳ sản phẩm nào bị hư hỏng trong điều kiện sử dụng bình thường do lỗi nêu trên.</td>'
+        +'<td style="border:1px solid #ccc;padding:5px 8px">INICS VINA warrants its products to be free from defects in materials or workmanship for lifetime. INICS VINA will repair or replace any items which fail under normal use as a result of such defect.</td>'
+      +'</tr>'
+      +'<tr class="ct-soft" style="vertical-align:top">'
+        +'<td style="border:1px solid #ccc;padding:5px 8px">Bảo hành này có hiệu lực kể từ ngày sản xuất và chỉ áp dụng cho người mua đầu tiên từ đại lý được ủy quyền và người sử dụng theo chế độ một ca làm việc.</td>'
+        +'<td style="border:1px solid #ccc;padding:5px 8px">This warranty applies from the date of manufacture and is valid only for the initial purchaser from an authorized dealer and the single-shift user.</td>'
+      +'</tr>'
+      +'<tr class="ct-soft" style="vertical-align:top">'
+        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Ngoại lệ về thời hạn</div>'
+          +'<div style="margin:3px 0"><b>5 năm:</b> Phụ kiện cửa; Ray trượt ngăn kéo; Cơ cấu ghế ngồi; Bản lề cho tấm ốp; Các bộ phận chuyển động và hao mòn cao bao gồm chân trượt và bánh xe; Hệ thống khóa; Linh kiện điện.</div>'
+          +'<div style="margin:3px 0"><b>3 năm:</b> Vải bọc tiêu chuẩn, da, veneer gỗ và các vật liệu bọc phủ khác; Tất cả các cơ cấu khác.</div>'
+          +'<div style="margin:3px 0"><b>1 năm:</b> Các bộ phận thay thế như bảng viết; Tất cả các sản phẩm phi tiêu chuẩn khác.</div></td>'
+        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Exceptions</div>'
+          +'<div style="margin:3px 0"><b>5 years:</b> Hardware for doors; Drawer runners; Seating mechanisms; Hinges for panel belt tiles; Moving wear and high wear parts including glides and casters; Locking system; Electrical components.</div>'
+          +'<div style="margin:3px 0"><b>3 years:</b> Standard textiles, leather, wood veneer and other covering materials; All other mechanisms.</div>'
+          +'<div style="margin:3px 0"><b>1 year:</b> Replacement parts such as marker boards; All other nonstandard products.</div></td>'
+      +'</tr>'
+      +'<tr class="ct-soft" style="vertical-align:top">'
+        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Các trường hợp loại trừ</div>Bảo hành này không áp dụng đối với: việc thay đổi hoặc chỉnh sửa sản phẩm; việc không sử dụng, lắp đặt hoặc bảo trì sản phẩm theo hướng dẫn sử dụng/lắp đặt hoặc cảnh báo đã công bố; sự khác biệt tự nhiên về vân gỗ hoặc hình dạng vân, hoặc sự xuất hiện của các dấu vết đặc trưng; thay đổi bề mặt hoàn thiện do lão hóa hoặc tiếp xúc với ánh sáng; các vết, sẹo hoặc nếp nhăn xuất hiện tự nhiên trên da; lỗi hoặc hư hỏng do hao mòn thông thường; độ bền màu hoặc sự tương đồng màu sắc của vải; sản phẩm sử dụng vật liệu do khách hàng cung cấp (COM) hoặc vật liệu phi tiêu chuẩn; lạm dụng, sử dụng sai mục đích hoặc tai nạn; hư hỏng xảy ra sau khi vận chuyển (mất thời gian, bất tiện, thiệt hại thương mại, hoặc thiệt hại ngẫu nhiên hay do hậu quả); sản phẩm được coi là vật tư tiêu hao (ví dụ: đèn); sản phẩm mang thương hiệu của nhà sản xuất khác; sản phẩm sử dụng cho mục đích cho thuê; sản phẩm không được lắp đặt và bảo trì bởi chuyên gia có chứng nhận.</td>'
+        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Exclusions</div>This warranty does not extend to: alteration or modification of the product; failure to apply, install, or maintain products according to published application/installation guidelines or warnings; natural variations in wood grain or figure or the presence of character marks; changes in surface finishes due to aging or exposure to light; marks, scars, or wrinkles occurring naturally in leather; defects or failure resulting from normal wear and tear; the colorfastness or matching of colors of textiles; products applied to Customer\u2019s Own (COM) or non-standard material; abuse, misuse, or accident; damage occurring after shipping (loss of time, inconvenience, commercial loss, or incidental or consequential damages); products considered consumables (e.g. lamps); other manufacturers\u2019 branded products; products used for rental purposes; products not installed and serviced by certified professionals.</td>'
+      +'</tr>'
+      +'<tr class="ct-soft" style="vertical-align:top">'
+        +'<td style="border:1px solid #ccc;padding:5px 8px">Trong mọi trường hợp, INICS VINA sẽ không chịu trách nhiệm dù theo trách nhiệm ngoài hợp đồng hay theo hợp đồng đối với bất kỳ tổn thất nào, hoặc các thiệt hại trực tiếp, đặc biệt, ngẫu nhiên, do hậu quả hoặc mang tính trừng phạt. Bảo hành này là biện pháp khắc phục duy nhất của khách hàng đối với lỗi sản phẩm. Ngoài các bảo đảm rõ ràng được nêu trong tài liệu này, INICS VINA không đưa ra bất kỳ bảo đảm nào khác, bao gồm các bảo đảm ngụ ý về khả năng thương mại và tính phù hợp cho một mục đích cụ thể.</td>'
+        +'<td style="border:1px solid #ccc;padding:5px 8px">In no event shall INICS VINA be liable in either tort or contract for any loss or direct, special, incidental, consequential or exemplary damages. This warranty is the customer\u2019s sole remedy for product defect. INICS VINA makes no warranties, including the implied warranties of merchantability and fitness for a particular purpose, other than the express warranties contained herein.</td>'
+      +'</tr>'
+    +'</table>'
   +'</div>'
   +(review?'<div style="margin-top:14px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;font-size:9px;color:#92400e;line-height:1.5">🟡 노란색은 프로젝트·견적에서 자동으로 채워진 값입니다. 출력(PDF/인쇄)에는 형광펜·한국어가 빠지고 베트남어·영문만 인쇄됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정할 수 있습니다. 실제 사용 전 현지 법무 검토를 권장합니다.</div>':'')
   +'</div>';
