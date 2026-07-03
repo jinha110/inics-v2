@@ -33,6 +33,8 @@
 <script src="js/hr-emp.js?v=4"></script>
 <script src="js/hr-pay-att.js?v=2"></script>
 <script src="js/hr-con.js?v=9" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
+<script src="js/quote.js?v=1"></script>
+<script src="js/contract.js?v=1"></script>
 <script>
 (function() {
   if (typeof renderHrCon === "function" && window._hrConLoaded) {
@@ -2631,7 +2633,6 @@ function renderMineList(){
 
 function setMineFilter(f,btn){mineFilter=f;document.querySelectorAll('#mineFilterBar .filter-chip').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderMineList();}
 
-
 // ═══════════════════════════════════════════
 // EXPENSE DETAIL HTML (for detail panel)
 // ═══════════════════════════════════════════
@@ -2928,7 +2929,6 @@ function logoutAdmin(){document.getElementById('adminAuthWrap').style.display='b
 // ADMIN PANEL
 // ═══════════════════════════════════════════
 
-
 function renderApproverLines() {
   var el = document.getElementById('adminApproverLines');
   if(!el) return;
@@ -3024,7 +3024,6 @@ function removeDocType(idx) {
   saveState(); renderDeptTypeAdmin(); populateDeptTypeSelects();
   showToast('Removed · 삭제 완료');
 }
-
 
 function addMember() {
   var name = document.getElementById('newMemberName').value.trim().toUpperCase();
@@ -3264,26 +3263,7 @@ function onDeptChange(){
 }
 
 function triggerDraftFile(){document.getElementById('draftFileInput').click();}
-function triggerContractFile(){document.getElementById('contractAttInput').click();}
-function handleContractAtt(e){
-  var files=Array.from(e.target.files); var loaded=0;
-  files.forEach(function(f){ var reader=new FileReader(); reader.onload=function(ev){
-    contractAtts.push({name:f.name, size:fmtSize(f.size), addedAt:nowStr(), data:ev.target.result, type:f.type});
-    loaded++; if(loaded===files.length){ renderContractAttList(); showToast(files.length+' 계약서 첨부 · contract file(s)'); }
-  }; reader.readAsDataURL(f); });
-  e.target.value='';
-}
-function removeContractAtt(idx){ contractAtts.splice(idx,1); renderContractAttList(); }
-function renderContractAttList(){
-  var cnt=document.getElementById('contractAttCnt'); if(cnt) cnt.textContent=contractAtts.length;
-  var el=document.getElementById('contractAttList'); if(!el) return;
-  if(!contractAtts.length){ el.innerHTML='<div class="upload-zone" onclick="triggerContractFile()"><i class="ti ti-file-certificate" style="font-size:22px;display:block;margin-bottom:6px;color:#4338ca"></i><strong style="display:block;margin-bottom:2px;color:var(--text-2)">계약서 · Signed Contract (PDF · Image · Word)</strong><span style="font-size:11px">계약서 모듈 연동 대상 · Linked to Contracts module</span></div>'; return; }
-  el.innerHTML=contractAtts.map(function(a,i){
-    var isImg=/^data:image\//.test(a.data||'');
-    var thumb=isImg?'<img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:30px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in">':'<i class="ti ti-file-certificate" style="font-size:20px;color:#4338ca"></i>';
-    return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;margin-bottom:6px">'+thumb+'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.name||'contract')+'</span><span style="font-size:10px;color:var(--text-3)">'+(a.size||'')+'</span><button class="btn btn-outline" style="font-size:10px;padding:3px 7px;color:var(--danger)" onclick="removeContractAtt('+i+')"><i class="ti ti-x"></i></button></div>';
-  }).join('');
-}
+
 function handleDraftFile(e){
   var files = Array.from(e.target.files);
   var loaded = 0;
@@ -3535,13 +3515,6 @@ function _autoArchiveApproval(doc){
   }).catch(function(e){ if(typeof showToast==='function') showToast('⚠ PDF 보관 오류: '+((e&&e.message)||'')); });
 }
 
-
-
-
-
-
-
-
 function fmtAmountInput(el) {
   var raw = el.value.replace(/[^0-9.]/g, '');
   var parts = raw.split('.');
@@ -3657,7 +3630,6 @@ function editDoc(id, wrapId) {
   showToast('수정 모드 · 내용을 수정 후 결재 상신하세요');
 }
 
-
 function recallDoc(id, wrapId) {
   if(!confirm('회수하면 초안으로 돌아갑니다. 계속하시겠습니까?\nRecall document to draft?')) return;
   var doc = state.docs.find(function(d){ return d.id === id; });
@@ -3680,7 +3652,6 @@ function adminDeleteDoc(id, wrapId) {
   renderList(); renderMineList(); renderDashboard();
   showToast('Document deleted by admin · 관리자 삭제 완료');
 }
-
 
 // ═══════════════════════════════════════════
 // VENDOR DB
@@ -3911,7 +3882,6 @@ function renderVendorDB() {
       +'</div></div>';
   }).join('');
 }
-
 
 // ═══════════════════════════════════════════
 // VENDOR MASTER + AUTOCOMPLETE (draft form)
@@ -4713,36 +4683,6 @@ function imgToWhiteSquare(img, size){
 }
 var VN_REMARK='*Có sản xuất tại VN';
 
-function showQuoteApp(){
-  var hub=document.getElementById('hubPage'); if(hub) hub.style.display='none';
-  var app=document.getElementById('quoteApp'); if(app) app.style.display='block';
-  var u=cardCurrentUser();
-  var n=document.getElementById('quoteUserName'); if(n&&u) n.textContent=u.name;
-  var a=document.getElementById('quoteAvatarChip'); if(a&&u&&typeof getAvatar==='function') a.innerHTML=getAvatar(u.id,'sm');
-  populateQuoteProductCodes();
-  initQuotePaste();
-  if(!document.getElementById('qNo').value) newQuote();
-  quoteSwitchTab('build');
-  window.scrollTo(0,0);
-}
-function closeQuoteApp(){ var app=document.getElementById('quoteApp'); if(app) app.style.display='none'; if(typeof showHub==='function') showHub(); }
-function styleQuoteTabs(){
-  [['qTabBuild','build'],['qTabSaved','saved'],['qTabDb','db']].forEach(function(p){
-    var b=document.getElementById(p[0]); if(!b) return; var on=quoteTab===p[1];
-    b.style.cssText='background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;color:'+(on?'var(--text)':'var(--text-3)')+';border-bottom:2px solid '+(on?'var(--text)':'transparent')+';margin-bottom:-1px';
-  });
-}
-function quoteSwitchTab(t){
-  quoteTab=t;
-  document.getElementById('quoteBuildView').style.display = t==='build'?'block':'none';
-  document.getElementById('quoteSavedView').style.display = t==='saved'?'block':'none';
-  document.getElementById('quoteDbView').style.display = t==='db'?'block':'none';
-  styleQuoteTabs();
-  if(t==='build'){ populateQuoteProductCodes(); renderQuoteLines(); }
-  else if(t==='saved') renderSavedQuotes();
-  else if(t==='db'){ renderQuoteDb(); populateQuoteProductCodes(); }
-}
-
 // ── Product DB ──
 function getProduct(code){ code=(code||'').trim().toLowerCase(); return (state.products||[]).find(function(p){ return (p.code||'').toLowerCase()===code; }); }
 function qDistinct(arr){ var o={},r=[]; arr.forEach(function(x){ x=(x||'').trim(); if(x&&!o[x.toLowerCase()]){o[x.toLowerCase()]=1;r.push(x);} }); return r; }
@@ -4755,14 +4695,7 @@ function getProductByNameColor(name,color){
   if(color){ var exact=list.find(function(p){ return (p.name||'').toLowerCase()===name && (p.colorCode||'').toLowerCase()===color; }); if(exact) return exact; }
   return list.find(function(p){ return (p.name||'').toLowerCase()===name; }) || null;
 }
-function populateQuoteProductCodes(){
-  var dl=document.getElementById('quoteProductCodes'); if(dl) dl.innerHTML=(state.products||[]).map(function(p){ return '<option value="'+(p.code||'').replace(/"/g,'&quot;')+'">'+(p.name||'')+' — '+(p.category||'')+'</option>'; }).join('');
-  var dc=document.getElementById('quoteCategories'); if(dc) dc.innerHTML=qDistinct(QUOTE_CATEGORIES.concat((state.products||[]).map(function(p){return p.category;}))).map(function(c){ return '<option value="'+qEsc(c)+'">'; }).join('');
-  var dn=document.getElementById('quoteProductNames'); if(dn) dn.innerHTML=qDistinct(QUOTE_PRODUCT_NAMES.concat((state.products||[]).map(function(p){return p.name;}))).map(function(c){ return '<option value="'+qEsc(c)+'">'; }).join('');
-  var dco=document.getElementById('quoteColors'); if(dco) dco.innerHTML=qDistinct((state.products||[]).map(function(p){return p.colorCode;})).map(function(c){ return '<option value="'+qEsc(c)+'">'; }).join('');
-  var dcl=document.getElementById('quoteClients');
-  if(dcl){ var names=[]; try{ var vm=(typeof buildVendorMap==='function')?buildVendorMap():{}; names=Object.keys(vm).map(function(k){ return vm[k]; }).filter(function(v){ return v && v.type==='매출처'; }).map(function(v){ return v.name||''; }); }catch(e){} dcl.innerHTML=qDistinct(names).map(function(c){ return '<option value="'+c.replace(/"/g,'&quot;')+'">'; }).join(''); }
-}
+
 function ensureVendor(name){
   name=(name||'').trim(); if(!name) return;
   var found=false; try{ var vm=getAllVendors(); found=!!vm[name.toLowerCase()]; }catch(e){}
@@ -4922,42 +4855,9 @@ function importProductsCsv(){
   saveState(); renderQuoteDb(); populateQuoteProductCodes(); document.getElementById('qCsv').value='';
   showToast(n+'개 제품 등록/갱신 · Imported');
 }
-function renderQuoteDb(){
-  var el=document.getElementById('quoteDbList'); if(!el) return;
-  var q=((document.getElementById('qDbSearch')||{}).value||'').toLowerCase().trim();
-  var list=(state.products||[]).slice().sort(function(a,b){ return (a.code||'').localeCompare(b.code||''); });
-  if(q){ var t=q.split(/\s+/); list=list.filter(function(p){ var hay=[p.code,p.name,p.category,p.size,p.colorCode].join(' ').toLowerCase(); return t.every(function(x){ return hay.indexOf(x)>=0; }); }); }
-  if(!list.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-database"></i><p>'+(q?'검색 결과 없음':'등록된 제품 없음 · CSV로 일괄 등록하세요')+'</p></div>'; return; }
-  el.innerHTML='<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">총 '+list.length+'개 제품</div>'+list.map(function(p){
-    var img=p.image?window._img(p.image,'style="width:42px;height:42px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--border)"'):'<div style="width:42px;height:42px;border-radius:var(--radius);background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-3)"><i class="ti ti-photo"></i></div>';
-    return '<div class="detail-panel" style="margin-bottom:7px"><div style="display:flex;gap:10px;align-items:center;padding:9px 11px">'+img
-      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+(p.code||'')+' <span style="font-size:11px;color:var(--text-3);font-weight:400">'+(p.name||'')+'</span></div>'
-      +'<div style="font-size:11px;color:var(--text-3);margin-top:2px">'+(p.category||'—')+' · '+(p.size||'—')+' · '+(p.colorCode||'—')+'</div>'
-      +'<div style="font-size:12px;color:var(--text-2);margin-top:2px">원가 '+(p.currency||'VND')+' '+fmtN(p.cost)+'</div></div>'
-      +'<div style="display:flex;gap:5px"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="editProduct(\''+(p.code||'').replace(/'/g,"\\'")+'\')"><i class="ti ti-edit"></i></button>'
-      +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteProduct(\''+(p.code||'').replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button></div>'
-      +'</div></div>';
-  }).join('');
-}
 
 // ── Quote builder ──
-function genQuoteNo(){ var d=new Date(); var ymd=''+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); return 'Q-'+ymd+'-'+String((state.quoteSeq||0)+1).padStart(3,'0'); }
-function newQuote(){
-  editingQuoteId=null; quoteLines=[];
-  document.getElementById('qNo').value=genQuoteNo();
-  document.getElementById('qClient').value='';
-  var d=new Date(); document.getElementById('qDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  document.getElementById('qValid').value='15';
-  document.getElementById('qCurrency').value='VND';
-  document.getElementById('qVat').value='8';
-  document.getElementById('qNotes').value='Estimated lead time: 7-14 days for Vietnam manufactured products and approximately 30 days for imported items.\nAll prices are exclusive of taxes.\nPrices quoted include delivery and installation fee.';
-  populateQuoteProductCodes();
-  addQuoteLine();
-}
-function addQuoteLine(p){
-  quoteLines.push({ code:(p&&p.code)||'', category:(p&&p.category)||'', name:(p&&p.name)||'', size:(p&&p.size)||'', colorCode:(p&&p.colorCode)||'', image:(p&&p.image)||'', cost:(p&&p.cost)||'', mode:'margin', margin:'30', price:'', qty:'1', remark:'', vnMade:false });
-  renderQuoteLines();
-}
+
 function setQVN(i,checked){
   if(!quoteLines[i]) return;
   quoteLines[i].vnMade=checked;
@@ -4965,7 +4865,7 @@ function setQVN(i,checked){
   else { if((quoteLines[i].remark||'').trim()===VN_REMARK) quoteLines[i].remark=''; }
   renderQuoteLines();
 }
-function removeQuoteLine(i){ quoteLines.splice(i,1); renderQuoteLines(); }
+
 function setQLine(i,field,val){ if(!quoteLines[i]) return; quoteLines[i][field]=val; recalcQuote(); }
 function setQMode(i,val){ if(!quoteLines[i]) return; quoteLines[i].mode=val; renderQuoteLines(); }
 function setQCode(i,val){
@@ -4985,22 +4885,7 @@ function setQColor(i,val){
   if(p){ if(p.image) quoteLines[i].image=p.image; if(!quoteLines[i].code) quoteLines[i].code=p.code||''; if(!quoteLines[i].category) quoteLines[i].category=p.category||''; if(!quoteLines[i].size) quoteLines[i].size=p.size||''; if(!qNum(quoteLines[i].cost)&&p.cost) quoteLines[i].cost=p.cost; }
   renderQuoteLines();
 }
-function handleQuoteLineImage(i,file){
-  if(!quoteLines[i]||!file) return;
-  if(!/^image\//.test(file.type||'') && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name||'')){ showToast('이미지 파일만 가능 · Images only'); return; }
-  var fr=new FileReader();
-  fr.onload=function(e){
-    var dataUrl=e.target.result, img=new Image();
-    img.onload=function(){
-      try{ quoteLines[i].image=imgToWhiteSquare(img,500); }catch(err){ quoteLines[i].image=dataUrl; }
-      renderQuoteLines();
-    };
-    img.onerror=function(){ showToast('이 형식은 미리보기가 안 됩니다(HEIC 등). JPG/PNG로 변환하거나 URL을 사용하세요'); };
-    img.src=dataUrl;
-  };
-  fr.onerror=function(){ showToast('파일을 읽을 수 없습니다 · JPG/PNG 또는 URL 사용'); };
-  fr.readAsDataURL(file);
-}
+
 function _loadImgToData(url, cb){
   var img=new Image(); img.crossOrigin='anonymous';
   img.onload=function(){ try{ cb(imgToWhiteSquare(img,500), true); }catch(e){ cb(url, false); } };
@@ -5033,22 +4918,7 @@ function pasteImage(target){
     showToast('이제 Ctrl+V (⌘V) 를 눌러 붙여넣으세요');
   }
 }
-function initQuotePaste(){
-  if(window._qtPasteInit) return; window._qtPasteInit=true;
-  document.addEventListener('paste', function(e){
-    var app=document.getElementById('quoteApp'); if(!app || app.style.display==='none') return;
-    var t=window._imgPasteTarget; if(t===undefined || t===null) return;
-    var items=((e.clipboardData||window.clipboardData||{}).items)||[];
-    for(var k=0;k<items.length;k++){
-      if(items[k].type && items[k].type.indexOf('image/')===0){
-        e.preventDefault();
-        var blob=items[k].getAsFile();
-        var fr=new FileReader(); fr.onload=function(ev){ processImagePasteData(ev.target.result, t); window._imgPasteTarget=null; }; fr.readAsDataURL(blob);
-        return;
-      }
-    }
-  });
-}
+
 function openImageUrlDialog(target){
   window._imgUrlTarget=target;
   var cur='';
@@ -5081,152 +4951,7 @@ function applyImageUrl(){
 function setQLineImageUrl(i){ openImageUrlDialog(i); }
 function clearQLineImage(i){ if(quoteLines[i]){ quoteLines[i].image=''; renderQuoteLines(); } }
 function lineUnit(l){ if(l.mode==='price') return qNum(l.price); var m=qNum(l.margin); var c=qNum(l.cost); return c*(1+m/100); }
-function renderQuoteLines(){
-  var box=document.getElementById('quoteLinesBox'); if(!box) return;
-  if(!quoteLines.length){ box.innerHTML='<div style="font-size:13px;color:var(--text-3);padding:10px">품목을 추가하세요. · Add an item.</div>'; recalcQuote(); return; }
-  var inp='font-size:13px;padding:7px 9px';
-  var th='padding:8px 6px;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;text-align:left;white-space:nowrap;border-bottom:2px solid var(--border)';
-  var td='padding:6px 6px;border-bottom:1px solid var(--border);vertical-align:top';
-  var header='<thead><tr>'
-    +'<th style="'+th+'">#</th><th style="'+th+'">Product Code</th><th style="'+th+'">Category</th><th style="'+th+'">Product Name</th><th style="'+th+'">Color</th><th style="'+th+'">Image</th>'
-    +'<th style="'+th+'">Size (WxDxH)</th><th style="'+th+'">Qty</th>'
-    +'<th style="'+th+'">Cost</th><th style="'+th+'">마진/판가 · Margin/Price</th><th style="'+th+'">Unit Price</th><th style="'+th+'">Amount</th><th style="'+th+'">VN생산</th><th style="'+th+'">Remark</th><th style="'+th+'"></th>'
-    +'</tr></thead>';
-  var rows=quoteLines.map(function(l,i){
-    var thumb = l.image
-      ? window._img(l.image,'style="width:64px;height:52px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:4px;display:block"')
-      : '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:52px;border:1px dashed var(--border);border-radius:4px;cursor:pointer;color:var(--text-3)" title="이미지 업로드 · Upload Image"><i class="ti ti-camera" style="font-size:16px"></i><input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>';
-    var imgCell='<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'+thumb
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">'
-        +(l.image?'<label style="font-size:10px;color:#1d4ed8;cursor:pointer">교체 · Replace<input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>':'')
-        +'<button onclick="pasteImage('+i+')" style="font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">붙여넣기 · Paste</button>'
-        +'<button onclick="setQLineImageUrl('+i+')" style="font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">URL</button>'
-        +(l.image?'<button onclick="clearQLineImage('+i+')" style="font-size:10px;border:none;background:none;color:var(--danger);cursor:pointer;padding:0">제거 · Remove</button>':'')
-      +'</div></div>';
-    var modeCell='<div style="display:flex;flex-direction:column;gap:4px">'
-      +'<select onchange="setQMode('+i+',this.value)" style="width:104px;'+inp+'"><option value="margin"'+(l.mode==='margin'?' selected':'')+'>마진율%(원가)</option><option value="price"'+(l.mode==='price'?' selected':'')+'>확정판가 · Final Price</option></select>'
-      +(l.mode==='margin'
-        ? '<input type="text" inputmode="decimal" value="'+(l.margin||'')+'" oninput="setQLine('+i+',\'margin\',this.value)" placeholder="%" style="width:104px;'+inp+'">'
-        : '<input type="text" inputmode="decimal" value="'+(l.price||'')+'" oninput="setQLine('+i+',\'price\',this.value)" placeholder="판가 · Price" style="width:104px;'+inp+'">')
-      +'<div style="font-size:11px;color:var(--text-3);white-space:nowrap">→ 판가 <span id="qmodeunit-'+i+'" style="color:#1d4ed8;font-weight:700"></span></div>'
-      +'</div>';
-    return '<tr>'
-      +'<td style="'+td+';font-weight:700;color:var(--text-2);padding-top:13px;font-size:13px">'+(i+1)+'</td>'
-      +'<td style="'+td+'"><input list="quoteProductCodes" value="'+(l.code||'').replace(/"/g,'&quot;')+'" onchange="setQCode('+i+',this.value)" placeholder="Code" style="width:130px;'+inp+';font-weight:600"></td>'
-      +'<td style="'+td+'"><input list="quoteCategories" value="'+(l.category||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'category\',this.value)" placeholder="Category" style="width:150px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input list="quoteProductNames" value="'+(l.name||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'name\',this.value)" onchange="setQName('+i+',this.value)" placeholder="Product Name" style="width:190px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input list="quoteColors" value="'+(l.colorCode||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'colorCode\',this.value)" onchange="setQColor('+i+',this.value)" placeholder="Color" style="width:95px;'+inp+'"></td>'
-      +'<td style="'+td+';text-align:center">'+imgCell+'</td>'
-      +'<td style="'+td+'"><input type="text" value="'+(l.size||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'size\',this.value)" placeholder="WxDxH" style="width:135px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input type="text" inputmode="numeric" value="'+(l.qty||'')+'" oninput="setQLine('+i+',\'qty\',this.value)" style="width:56px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input type="text" inputmode="decimal" value="'+(l.cost||'')+'" oninput="setQLine('+i+',\'cost\',this.value)" placeholder="원가 · Cost" style="width:118px;'+inp+'"></td>'
-      +'<td style="'+td+'">'+modeCell+'</td>'
-      +'<td style="'+td+';text-align:right;font-size:13px;padding-top:13px"><span id="qunit-'+i+'" style="font-weight:600"></span></td>'
-      +'<td style="'+td+';text-align:right;font-size:13px;font-weight:700;padding-top:13px"><span id="qamt-'+i+'"></span></td>'
-      +'<td style="'+td+';text-align:center;padding-top:13px"><input type="checkbox" '+(l.vnMade?'checked':'')+' onchange="setQVN('+i+',this.checked)" style="width:17px;height:17px;cursor:pointer" title="베트남 생산 · Made in Vietnam"></td>'
-      +'<td style="'+td+'"><input type="text" value="'+(l.remark||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'remark\',this.value)" placeholder="Remark" style="width:140px;'+inp+'"></td>'
-      +'<td style="'+td+';padding-top:11px"><button class="btn btn-outline" style="font-size:12px;padding:5px 8px" onclick="removeQuoteLine('+i+')"><i class="ti ti-x"></i></button></td>'
-      +'</tr>';
-  }).join('');
-  box.innerHTML='<table style="border-collapse:collapse;min-width:1480px;width:100%">'+header+'<tbody>'+rows+'</tbody></table>';
-  recalcQuote();
-}
-function recalcQuote(){
-  var cur=(document.getElementById('qCurrency')||{}).value||'VND';
-  var sub=0, costTot=0;
-  quoteLines.forEach(function(l,i){
-    var u=lineUnit(l), qty=qNum(l.qty||0), amt=u*qty;
-    sub+=amt; costTot+=qNum(l.cost)*qty;
-    var us=document.getElementById('qunit-'+i); if(us) us.textContent=fmtN(u);
-    var mu=document.getElementById('qmodeunit-'+i); if(mu) mu.textContent=fmtN(u);
-    var as=document.getElementById('qamt-'+i); if(as) as.textContent=fmtN(amt);
-  });
-  var vraw=(document.getElementById('qVat')||{}).value||'8';
-  var exempt=(vraw==='exempt'), vat=exempt?0:qNum(vraw);
-  var vatAmt=exempt?0:sub*vat/100, total=sub+vatAmt, margin=sub-costTot, mpct=sub>0?(margin/sub*100):0;
-  var el=document.getElementById('quoteTotals'); if(!el) return;
-  el.innerHTML='<div style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;background:var(--surface)">'
-    +'<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span style="color:var(--text-2)">TOTAL (Excl. VAT)</span><span style="font-weight:700">'+cur+' '+fmtN(sub)+'</span></div>'
-    +(exempt
-        ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--text-2)"><span>VAT</span><span>Exempt · 면세</span></div>'
-        : (vat>0?'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--text-2)"><span>VAT '+vat+'%</span><span>'+cur+' '+fmtN(vatAmt)+'</span></div><div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0;border-top:1px solid var(--border);margin-top:3px"><span style="font-weight:700">TOTAL (Incl. VAT)</span><span style="font-weight:800">'+cur+' '+fmtN(total)+'</span></div>':''))
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:6px 0 0;color:var(--text-3);border-top:1px dashed var(--border);margin-top:6px"><span>원가 합계 '+cur+' '+fmtN(costTot)+'</span><span>마진 '+cur+' '+fmtN(margin)+' ('+mpct.toFixed(1)+'%)</span></div>'
-    +'</div>';
-}
-function collectQuote(){
-  var vraw=document.getElementById('qVat').value;
-  return {
-    id: editingQuoteId,
-    quoteNo: document.getElementById('qNo').value,
-    client: document.getElementById('qClient').value,
-    date: document.getElementById('qDate').value,
-    validDays: qNum(document.getElementById('qValid').value),
-    currency: document.getElementById('qCurrency').value,
-    vat: (vraw==='exempt')?'exempt':qNum(vraw),
-    notes: document.getElementById('qNotes').value,
-    lines: quoteLines.map(function(l){ var u=lineUnit(l), qty=qNum(l.qty); return Object.assign({}, l, {unitPrice:Math.round(u), amount:Math.round(u*qty)}); })
-  };
-}
-function saveQuote(){
-  var q=collectQuote();
-  if(!q.lines.length || !q.lines.some(function(l){ return l.name||l.code; })){ showToast('품목을 입력하세요 · Enter item'); return; }
-  if(!state.quotes) state.quotes=[];
-  var u=cardCurrentUser(); q.preparedBy=u?u.name:'';
-  // 자동 DB화: 제품 → 제품 DB, 고객사 → 거래처 DB
-  q.lines.forEach(function(l){ upsertProductFromLine(l, q.currency); });
-  ensureVendor(q.client);
-  if(editingQuoteId){ var idx=state.quotes.findIndex(function(x){ return x.id===editingQuoteId; }); if(idx>=0){ q.createdAt=state.quotes[idx].createdAt; q.updatedAt=nowStr(); state.quotes[idx]=q; } }
-  else { q.id=(state.quoteSeq=(state.quoteSeq||0)+1); q.quoteNo=document.getElementById('qNo').value; q.createdAt=nowStr(); editingQuoteId=q.id; state.quotes.push(q); }
-  saveState(); populateQuoteProductCodes(); showToast('견적 저장 · 제품/고객 DB 반영 완료'); renderSavedQuotes();
-}
-function renderSavedQuotes(){
-  var el=document.getElementById('quoteSavedList'); if(!el) return;
-  var q=((document.getElementById('qSavedSearch')||{}).value||'').toLowerCase().trim();
-  var list=(state.quotes||[]).slice().sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
-  if(q){ var t=q.split(/\s+/); list=list.filter(function(x){ var hay=[x.quoteNo,x.client,x.date].join(' ').toLowerCase(); return t.every(function(k){ return hay.indexOf(k)>=0; }); }); }
-  if(!list.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-folder"></i><p>저장된 견적 없음 · No saved quotes</p></div>'; return; }
-  var th='font-size:11px;color:var(--text-3);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
-  var td='font-size:12px;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle';
-  var rows=list.map(function(x){
-    var tot=(x.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
-    var vatLbl=(x.vat==='exempt')?'면세':(x.vat!=null?('VAT '+x.vat+'%'):'');
-    return '<tr>'
-      +'<td style="'+td+';white-space:nowrap;color:var(--text-2)">'+(x.date||'—')+'</td>'
-      +'<td style="'+td+';font-family:var(--mono);white-space:nowrap">'+(x.quoteNo||'—')+'</td>'
-      +'<td style="'+td+';font-weight:600">'+(x.client||'—')+'</td>'
-      +'<td style="'+td+';text-align:center;color:var(--text-2)">'+((x.lines||[]).length)+'</td>'
-      +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700">'+(x.currency||'')+' '+fmtN(tot)+(vatLbl?(' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+vatLbl+'</span>'):'')+'</td>'
-      +'<td style="'+td+';text-align:right;white-space:nowrap">'
-        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+')"><i class="ti ti-edit"></i> 열기 · Open</button> '
-        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="loadQuote('+x.id+',true)"><i class="ti ti-file-type-pdf"></i> PDF</button> '
-        +'<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteQuote('+x.id+')"><i class="ti ti-trash"></i></button>'
-      +'</td>'
-      +'</tr>';
-  }).join('');
-  el.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)">'
-    +'<table style="width:100%;border-collapse:collapse;min-width:640px">'
-    +'<thead><tr>'
-      +'<th style="'+th+'">날짜 · Date</th>'
-      +'<th style="'+th+'">견적번호 · No.</th>'
-      +'<th style="'+th+'">고객사 · Client</th>'
-      +'<th style="'+th+';text-align:center">품목 · Items</th>'
-      +'<th style="'+th+';text-align:right">합계 · Total</th>'
-      +'<th style="'+th+';text-align:right">작업 · Actions</th>'
-    +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
-    +'<div style="font-size:11px;color:var(--text-3);margin-top:8px">총 '+list.length+'건 · '+list.length+' quotes</div>';
-}
-function loadQuote(id, pdf){
-  var x=(state.quotes||[]).find(function(e){ return e.id===id; }); if(!x) return;
-  editingQuoteId=x.id;
-  document.getElementById('qNo').value=x.quoteNo||''; document.getElementById('qClient').value=x.client||'';
-  document.getElementById('qDate').value=x.date||''; document.getElementById('qValid').value=(x.validDays!=null?x.validDays:'');
-  document.getElementById('qCurrency').value=x.currency||'VND'; document.getElementById('qVat').value=(x.vat==='exempt'?'exempt':String(x.vat!=null?x.vat:'8'));
-  document.getElementById('qNotes').value=x.notes||'';
-  quoteLines=(x.lines||[]).map(function(l){ return Object.assign({}, l); });
-  quoteSwitchTab('build'); renderQuoteLines();
-  if(pdf) setTimeout(exportQuotePdf,150);
-}
-function openRelatedQuote(id){ showQuoteApp(); loadQuote(id); }
+
 function openRelatedCard(id){ showCardApp(); setTimeout(function(){ if(typeof viewCardDetail==='function') viewCardDetail(id); }, 60); }
 function openRelatedProject(id){ if(typeof showProjectApp==='function'){ showProjectApp(); setTimeout(function(){ if(typeof editProject==='function') editProject(id); }, 80); } }
 var _docNoteBuf={};
@@ -5269,102 +4994,10 @@ function toggleVendorDetail(i){
   d.style.display=open?'block':'none';
   var ch=document.getElementById('vchev-'+i); if(ch) ch.style.transform=open?'rotate(180deg)':'';
 }
-function deleteQuote(id){ if(!confirm('견적을 삭제할까요? · Delete this quote?')) return; state.quotes=(state.quotes||[]).filter(function(x){ return x.id!==id; }); saveState(); renderSavedQuotes(); showToast('삭제 완료 · Deleted'); }
 
 // ── Quote PDF (portrait A4) ──
 // 공식 로고 이미지를 쓰려면 아래에 data:image/png;base64,... 문자열을 넣으세요. 비우면 벡터 워드마크.
 var QUOTE_LOGO_IMG = 'data:image/png;base64,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';
-function buildQuoteHtml(q){
-  var cur=q.currency||'VND';
-  var sub=(q.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
-  var qExempt=(q.vat==='exempt'); var qVatPct=qExempt?0:qNum(q.vat);
-  var vatAmt=qExempt?0:sub*qVatPct/100, total=sub+vatAmt;
-  var rows=(q.lines||[]).map(function(l,i){
-    var img=l.image?window._img(l.image,'style="max-width:74px;max-height:60px;object-fit:contain;background:#fff"'):'';
-    return '<tr>'
-      +'<td style="text-align:center">'+(i+1)+'</td>'
-      +'<td>'+(l.category||'')+'</td>'
-      +'<td>'+(l.name||'')+'</td>'
-      +'<td style="text-align:center">'+img+'</td>'
-      +'<td style="text-align:center">'+(l.size||'')+'</td>'
-      +'<td style="text-align:center">'+(l.code||'')+'</td>'
-      +'<td style="text-align:center">'+(l.colorCode||'')+'</td>'
-      +'<td style="text-align:center">'+fmtN(l.qty)+'</td>'
-      +'<td style="text-align:right">'+fmtN(l.unitPrice)+'</td>'
-      +'<td style="text-align:right">'+fmtN(l.amount)+'</td>'
-      +'<td>'+(l.remark||'')+'</td>'
-      +'</tr>';
-  }).join('');
-  var th='padding:5px 4px;border:1px solid #bbb;background:#f3f4f6;font-size:8.5px;font-weight:700;color:#333';
-  var notesHtml=(q.notes||'').split(/\n/).map(function(n){ return n.trim()?'<div>'+n+'</div>':''; }).join('');
-  return '<div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a18;padding:22px 20px">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;border:1px solid #999;padding:10px 12px">'
-      +(QUOTE_LOGO_IMG?'<img src="'+QUOTE_LOGO_IMG+'" style="height:34px;object-fit:contain;display:block">':'<div style="display:flex;align-items:center;gap:9px">'+'<div style="width:6px;height:34px;background:#1d4ed8;border-radius:2px"></div>'+'<div><div style="font-size:22px;font-weight:800;letter-spacing:1.5px;color:#1a1a18;line-height:1">INICS</div>'+'<div style="font-size:7.5px;color:#666;letter-spacing:.5px;margin-top:3px">VINA · Authorized FURSYS Dealer</div></div>'+'</div>')
-      +'<div style="font-size:20px;font-weight:700;color:#6b7280;letter-spacing:2px;text-align:center;flex:1">QUOTATION</div>'
-      +'<div style="font-size:9px;text-align:right;color:#444"><div><b>No</b> '+(q.quoteNo||'')+'</div><div><b>Date</b> '+(q.date||'')+'</div><div><b>'+(validText(q.validDays)||'')+'</b></div></div>'
-    +'</div>'
-    +'<div style="border:1px solid #999;border-top:none;padding:7px 12px;font-size:10px"><b>Client:</b> '+(q.client||'')+'</div>'
-    +'<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:9px">'
-      +'<thead><tr>'
-        +'<th style="'+th+';width:22px">No</th><th style="'+th+'">Category</th><th style="'+th+'">Product Name</th><th style="'+th+';width:80px">Image</th>'
-        +'<th style="'+th+'">Size (WxDxH)</th><th style="'+th+'">Product Code</th><th style="'+th+'">Color CODE</th><th style="'+th+';width:28px">Qty</th>'
-        +'<th style="'+th+'">Unit Price<br>(before VAT)</th><th style="'+th+'">Amount<br>(before VAT)</th><th style="'+th+'">REMARK</th>'
-      +'</tr></thead>'
-      +'<tbody style="font-size:8.5px">'+rows.replace(/<td /g,'<td style="border:1px solid #ccc;padding:5px 4px;vertical-align:middle" ').replace(/<td>/g,'<td style="border:1px solid #ccc;padding:5px 4px;vertical-align:middle">')+'</tbody>'
-      +'<tfoot><tr><td colspan="9" style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#f3f4f6">TOTAL (Excl. VAT)</td><td style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#f3f4f6">'+fmtN(sub)+'</td><td style="border:1px solid #bbb;background:#f3f4f6"></td></tr>'
-      +(qExempt
-         ? '<tr><td colspan="9" style="border:1px solid #ccc;padding:5px;text-align:right">VAT</td><td colspan="2" style="border:1px solid #ccc;padding:5px;text-align:right">Exempt</td></tr>'
-         : (qVatPct>0?'<tr><td colspan="9" style="border:1px solid #ccc;padding:5px;text-align:right">VAT '+qVatPct+'%</td><td style="border:1px solid #ccc;padding:5px;text-align:right">'+fmtN(vatAmt)+'</td><td style="border:1px solid #ccc"></td></tr><tr><td colspan="9" style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#eef2ff">TOTAL (Incl. VAT)</td><td style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#eef2ff">'+fmtN(total)+'</td><td style="border:1px solid #bbb;background:#eef2ff"></td></tr>':''))
-      +'</tfoot>'
-    +'</table>'
-    +'<div style="margin-top:10px;font-size:8px;color:#555;line-height:1.5">'+notesHtml+'</div>'
-    +'<div style="margin-top:6px;font-size:8px;color:#999;text-align:right">Currency: '+cur+(q.preparedBy?(' · Prepared by '+q.preparedBy):'')+'</div>'
-    +'</div>';
-}
-function previewQuote(){
-  var q=collectQuote();
-  if(!q.lines.length || !q.lines.some(function(l){ return l.name||l.code; })){ showToast('품목을 추가하세요 · Add an item'); return; }
-  var ov=document.getElementById('quotePreviewModal');
-  if(!ov){ ov=document.createElement('div'); ov.id='quotePreviewModal'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto'; ov.onclick=function(e){ if(e.target===ov){ ov.style.display='none'; ov.innerHTML=''; } }; document.body.appendChild(ov); }
-  ov.innerHTML='<div style="background:#fff;border-radius:8px;max-width:840px;width:100%;margin:auto" onclick="event.stopPropagation()">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;border-radius:8px 8px 0 0">'
-      +'<div style="font-size:14px;font-weight:700">PDF 미리보기 · Preview <span style="font-size:11px;color:#888;font-weight:400">(원가·마진 미표시)</span></div>'
-      +'<div style="display:flex;gap:6px"><button class="btn btn-dark" style="font-size:12px;padding:6px 12px" onclick="exportQuotePdf()"><i class="ti ti-file-type-pdf"></i> PDF 저장</button>'
-      +'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'quotePreviewModal\').style.display=\'none\'">닫기 · Close</button></div>'
-    +'</div>'
-    +'<div style="padding:12px;background:#f3f4f6">'+buildQuoteHtml(q)+'</div>'
-    +'</div>';
-  ov.style.display='flex';
-}
-async function _quoteResolveImgs(q){
-  if(!window._resolveRef) return;
-  var ls=(q&&q.lines)||[];
-  try{ await Promise.all(ls.map(function(l){ return (l&&typeof l.image==='string'&&l.image.indexOf('\u00A7f\u00A7')===0)?window._resolveRef(l.image):null; })); }catch(_){}
-}
-function exportQuotePdf(){
-  if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
-  var q=collectQuote();
-  if(!q.lines.length){ showToast('품목을 추가하세요 · Add an item'); return; }
-  var area=document.getElementById('quotePrintArea');
-  showToast('PDF 생성 중…');
-  _quoteResolveImgs(q).then(function(){
-  area.innerHTML=buildQuoteHtml(q);
-  setTimeout(function(){
-    html2canvas(area,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
-      var img=canvas.toDataURL('image/jpeg',0.92);
-      var pdf=new window.jspdf.jsPDF('p','mm','a4');
-      var pw=210, ph=297, iw=pw, ih=canvas.height*pw/canvas.width, hLeft=ih, pos=0;
-      pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph;
-      while(hLeft>0){ pos=hLeft-ih; pdf.addPage(); pdf.addImage(img,'JPEG',0,pos,iw,ih); hLeft-=ph; }
-      var _qf=(q.quoteNo||'quotation')+(q.client?('_'+q.client.replace(/[^a-zA-Z0-9]/g,'')):'');
-      if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'), '견적서', _qf); }catch(_){ } }
-      pdf.save(_qf+'.pdf');
-      area.innerHTML=''; showToast('PDF 저장 완료 · Saved');
-    }).catch(function(e){ area.innerHTML=''; showToast('PDF 생성 실패'); });
-  },100);
-  });
-}
-
 
 function showHub() {
   if(typeof _eaStack!=='undefined') _eaStack=[];
@@ -5533,10 +5166,9 @@ var CONTRACT_TPL_DEFAULTS = {
   art7Ko:'1. 합의된 장소와 시간에 제품을 인도해야 하며, 양 당사자가 인수인계서에 서명할 때까지의 모든 운송/인도 비용과 위험을 부담한다(위험 책임은 인수인계서 서명 시 구매자에게 이전됨).\n2. 불가항력으로 인해 지연되는 경우, 즉시 통보하고 연장을 포함한 해결책을 상호 합의한다.\n3. 공급자는 상업적으로 합리적인 수준에서 재고를 유지하기 위해 노력한다.\n4. 물품의 소유권 및 제3자 청구로부터의 자유를 보장하며, 물품은 관련 법령 및 구매 주문서의 기준에 부합한다.\n5. 제조 및 품질 결함에 대한 책임을 지며, 인도일로부터 {warrantyYears}년 동안 제품 보증을 제공한다. 보증 조건, 예외 및 제외 사항에 대한 세부 정보는 첨부된 품질보증서(부록 2)에 따른다.\n6. 제품의 원산지가 명확하고 적법하며, 베트남 내에서 유통 가능한 제품임을 보장한다.\n7. 공급자의 과실로 인해 직접적으로 발생하는 분쟁, 청구, 벌금에 대해 법적 책임을 진다. 단, 공급자의 총 책임 한도는 총 계약 금액을 초과할 수 없으며, 간접적·결과적·특수적 또는 우발적 손해에 대해서는 책임을 지지 않는다.\n8. 제품이 제3자의 지식재산권을 침해하지 않음을 보장한다.',
   art8Ko:'1. 본 계약은 양 당사자가 서명한 날로부터 효력이 발생한다.\n2. 본 계약에 규정되지 않은 사항은 양 당사자가 서면으로 상호 합의하여 결정한다.\n3. 본 계약과 관련된 분쟁은 베트남 법을 준거법으로 하여 호치민시 소재 베트남 국제중재센터(VIAC)에서 해결한다. 중재인은 3명으로 하며, 사용 언어는 베트남어로 한다.\n4. 본 계약서는 베트남어와 영어로 작성되어 양 당사자가 각 1부씩 보관하며, 두 버전은 동일한 법적 효력을 가진다. 상이한 경우 베트남어본이 우선한다.'
 };
-function getContractTpl(){ var t=state.contractTemplate||{}; var out={}; for(var k in CONTRACT_TPL_DEFAULTS){ out[k]=(t[k]!=null&&t[k]!=='')?t[k]:CONTRACT_TPL_DEFAULTS[k]; } return out; }
 
 var _contractProjId=null;
-function _projQuotesC(p){ return (state.quotes||[]).filter(function(q){return (q.client||'').toLowerCase()===((p&&p.client)||'').toLowerCase();}).sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');}); }
+
 function _pad(n,w){ n=String(n||''); while(n.length<w) n='0'+n; return n; }
 function _deAccent(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D'); }
 function _clientCode(name){
@@ -5560,221 +5192,17 @@ function _clientCode(name){
   if(code.length>4) code=code.slice(0,4);
   return code||'XXXX';
 }
-function _assignContractSeq(p){
-  if(p && p.contractSeq) return p.contractSeq;
-  state.contractSeq=(state.contractSeq||0)+1;
-  if(p) p.contractSeq=state.contractSeq;
-  saveState();
-  return state.contractSeq;
-}
-function _ctNoFor(p){
-  var seq=_assignContractSeq(p);
-  var yr=(p&&p.contractOpts&&p.contractOpts.date)?String(p.contractOpts.date).slice(0,4):String(new Date().getFullYear());
-  return 'HD-'+_pad(seq,3)+'-'+yr+'/INICS-'+_clientCode(p?(p.clientFull||p.client):'');
-}
+
 // 구 형식(HD-<id>-<년도>) 또는 빈 값이면 신 형식으로 자동 갱신, 사용자가 직접 입력한 번호는 보존
-function _normalizeContractNo(p,saved){
-  if(!saved || /^HD-\d+-\d{4}$/.test(saved) || saved===('HD-'+(p&&p.id||'')+'-'+(new Date().getFullYear()))) return _ctNoFor(p);
-  return saved;
-}
-function _ctDefaults(p){ var qs=_projQuotesC(p); return { contractNo:_ctNoFor(p), date:projTodayISO(), vatRate:8, warrantyYears:10, depositPct:50, balancePct:50, paymentDays:3, deliveryDate:p.targetDate||'', buyerGender:'female', quoteId:(qs[0]?qs[0].id:null) }; }
+
 function _money(n,cur){ cur=cur||'VND'; return fmtN(Math.round(n||0))+' '+(cur==='VND'?'VND':cur); }
 function getBuyerFromDB(client){ var key=(client||'').trim().toLowerCase(); var rec=(state.vendors||[]).find(function(v){return v&&v.name&&v.name.trim().toLowerCase()===key;}); return rec?{rep:rec.buyerRep||'',gender:rec.buyerGender||'',addr:rec.buyerAddr||'',tax:rec.buyerTax||'',title:rec.buyerTitle||'',auth:rec.buyerAuth||''}:{rep:'',gender:'',addr:'',tax:'',title:'',auth:''}; }
 function saveBuyerToDB(client,b){ if(!client)return; if(!state.vendors)state.vendors=[]; var key=client.trim().toLowerCase(); var rec=state.vendors.find(function(v){return v&&v.name&&v.name.trim().toLowerCase()===key;}); if(!rec){ rec={name:client}; state.vendors.push(rec); } if(b.rep)rec.buyerRep=b.rep; if(b.gender)rec.buyerGender=b.gender; if(b.addr)rec.buyerAddr=b.addr; if(b.tax)rec.buyerTax=b.tax; if(b.title)rec.buyerTitle=b.title; if(b.auth)rec.buyerAuth=b.auth; rec.updatedAt=nowStr(); }
 
-function openContractModal(projId){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);});
-  if(!p){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요 · Save the project first, then create'); return; }
-  _contractProjId=projId;
-  _assignContractSeq(p);
-  var o=p.contractOpts||_ctDefaults(p);
-  o.contractNo=_normalizeContractNo(p,o.contractNo);
-  document.getElementById('ctNo').value=o.contractNo||'';
-  document.getElementById('ctDate').value=o.date||projTodayISO();
-  document.getElementById('ctVat').value=(o.vatRate==null?8:o.vatRate);
-  document.getElementById('ctWarranty').value=o.warrantyYears||10;
-  document.getElementById('ctDeposit').value=(o.depositPct==null?50:o.depositPct);
-  document.getElementById('ctBalance').value=(o.balancePct==null?(o.depositPct==null?50:Math.max(0,100-qNum(o.depositPct))):o.balancePct);
-  document.getElementById('ctPayDays').value=o.paymentDays||3;
-  document.getElementById('ctDeliveryDate').value=o.deliveryDate||p.targetDate||'';
-  var qs=_projQuotesC(p);
-  document.getElementById('ctQuote').innerHTML = qs.length
-    ? qs.map(function(q){ var tot=(q.lines||[]).reduce(function(s,l){return s+qNum(l.amount);},0); return '<option value="'+q.id+'"'+(String(o.quoteId)===String(q.id)?' selected':'')+'>'+(q.quoteNo||'견적')+' · '+fmtN(tot)+' · '+(q.lines||[]).length+'품목</option>'; }).join('')
-    : '<option value="">연결된 견적 없음 — 견적서에서 먼저 작성</option>';
-  var _b=getBuyerFromDB(p.client);
-  document.getElementById('ctBuyerRep').value=o.buyerRep||_b.rep||'';
-  document.getElementById('ctBuyerGender').value=o.buyerGender||_b.gender||'female';
-  document.getElementById('ctBuyerTitle').value=o.buyerTitle||_b.title||'';
-  document.getElementById('ctBuyerAddr').value=o.buyerAddr||_b.addr||p.buyerAddr||p.location||'';
-  document.getElementById('ctBuyerTax').value=o.buyerTax||_b.tax||p.buyerTax||'';
-  document.getElementById('ctDeliveryPlace').innerHTML = p.deliveryPlace ? '<b>'+p.deliveryPlace+'</b>' : '<span style="color:#b91c1c">미입력 — 프로젝트 PO 단계의 "납품 장소"에 입력</span>';
-  document.getElementById('contractModal').style.display='block';
-  _ctEditMode=false;
-  var _cbox=document.getElementById('contractPreview'); if(_cbox){ _cbox.removeAttribute('contenteditable'); _cbox.style.outline='none'; _cbox.style.background='#e5e7eb'; }
-  renderContractScans();
-  updateContractConfirmBtn();
-  renderContractPreview();
-}
-function updateContractConfirmBtn(){
-  var btn=document.getElementById('ctConfirmBtn'); if(!btn) return;
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
-  if(p&&p.contractConfirmed){ btn.className='btn btn-outline'; btn.innerHTML='<i class="ti ti-circle-check-filled"></i> 확정됨 · Confirmed (취소)'; btn.style.color='#15803d'; }
-  else { btn.className='btn btn-dark'; btn.innerHTML='<i class="ti ti-circle-check"></i> 계약 확정 · Confirm'; btn.style.color=''; }
-}
-function toggleContractConfirm(){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p){ return; }
-  if(p.contractConfirmed){
-    if(!confirm('계약 확정을 취소할까요? 계약서 모듈에서 제외됩니다.\nUn-confirm this contract?')) return;
-    p.contractConfirmed=false; p.contractConfirmedAt=''; p.contractConfirmedBy='';
-    saveState(); updateContractConfirmBtn(); showToast('확정 취소 · Un-confirmed');
-  } else {
-    // 확정 전 현재 설정 저장
-    var o=_readContractOpts();
-    if(!o.contractNo){ showToast('계약번호가 필요합니다 · Contract no. required'); return; }
-    p.contractOpts=o; saveBuyerToDB(p.client,_buyerOf(o));
-    var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
-    p.contractConfirmed=true; p.contractConfirmedAt=nowStr(); p.contractConfirmedBy=(u?u.name:'');
-    saveState(); updateContractConfirmBtn();
-    showToast('계약 확정 · 계약서 모듈에 등록됨 · Confirmed');
-    if(typeof contractAppOpen!=='undefined' && contractAppOpen && typeof renderContractApp==='function') renderContractApp();
-  }
-}
-function renderContractScans(){
-  var box=document.getElementById('contractScansBar'); if(!box) return;
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
-  var scans=(p&&p.contractScans)||[];
-  var head='<div style="font-size:10px;color:var(--text-3);font-weight:700;margin-bottom:4px">스캔본 · Signed scans ('+scans.length+')</div>';
-  if(!scans.length){ box.innerHTML=head+'<div style="font-size:11px;color:var(--text-3)">업로드된 스캔본 없음 — 「스캔본 업로드」로 서명·날인본을 첨부하세요 · No scan uploaded.</div>'; return; }
-  box.innerHTML=head+'<div style="display:flex;gap:6px;flex-wrap:wrap">'+scans.map(function(s,i){
-    var isImg=/^data:image\//.test(s.data||'');
-    var thumb=isImg?'<img src="'+s.data+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">':'<i class="ti ti-file-type-pdf" style="font-size:22px;color:#b91c1c"></i>';
-    return '<div style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--surface)">'
-      +'<a href="javascript:void(0)" onclick="viewContractScan('+i+')" title="열기 · Open" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text)">'+thumb+'<span style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(s.name||('scan-'+(i+1)))+'</span></a>'
-      +'<a href="javascript:void(0)" onclick="deleteContractScan('+i+')" title="삭제 · Delete" style="color:var(--danger);text-decoration:none"><i class="ti ti-x"></i></a></div>';
-  }).join('')+'</div>';
-}
-function handleContractScan(files){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p){ showToast('계약을 먼저 여세요 · Open a contract first'); return; }
-  if(!files||!files.length) return;
-  if(!p.contractScans) p.contractScans=[];
-  var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
-  var arr=Array.prototype.slice.call(files), done=0;
-  arr.forEach(function(f){
-    var r=new FileReader();
-    r.onload=function(){ p.contractScans.push({name:f.name, type:f.type, data:r.result, uploadedAt:nowStr(), uploadedBy:(u?u.name:'')}); done++; if(done===arr.length){ saveState(); renderContractScans(); showToast('스캔본 '+arr.length+'개 업로드 · '+arr.length+' uploaded'); } };
-    r.readAsDataURL(f);
-  });
-}
-function viewContractScan(idx){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p||!p.contractScans) return;
-  var s=p.contractScans[idx]; if(!s) return; viewImageLightbox(s.data);
-}
-function deleteContractScan(idx){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p||!p.contractScans) return;
-  if(!confirm('이 스캔본을 삭제할까요? · Delete this scan?')) return;
-  p.contractScans.splice(idx,1); saveState(); renderContractScans();
-}
-
 // ═══════════ CONTRACTS MODULE · 계약서 모듈 ═══════════
 var contractAppOpen=false;
-function showContractApp(){
-  var hub=document.getElementById('hubPage'); if(hub) hub.style.display='none';
-  var app=document.getElementById('contractApp'); if(app) app.style.display='block';
-  contractAppOpen=true;
-  var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
-  var nm=document.getElementById('contractUserName'); if(nm) nm.textContent=u?u.name:'';
-  renderContractApp();
-}
-function closeContractApp(){ var app=document.getElementById('contractApp'); if(app) app.style.display='none'; contractAppOpen=false; if(typeof showHub==='function') showHub(); }
-function _contractTotal(p){
-  var o=p.contractOpts||{}; var qs=_projQuotesC(p); var q=o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0];
-  var sub=(q?(q.lines||[]):[]).reduce(function(s,l){return s+qNum(l.amount);},0);
-  return {total:sub*(1+(qNum(o.vatRate)||0)/100), cur:(q?(q.currency||'VND'):'VND')};
-}
-function openContractFromApp(projId){ openContractModal(projId); }
+
 function viewProjScan(projId,idx){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);}); if(!p||!p.contractScans) return; var s=p.contractScans[idx]; if(s) viewImageLightbox(s.data); }
-function renderContractApp(){
-  var box=document.getElementById('contractList'); if(!box) return;
-  var q=((document.getElementById('contractSearch')||{}).value||'').trim().toLowerCase();
-  var projs=(state.projects||[]).filter(function(p){return p&&p.contractOpts;});
-  var cfilter=((document.getElementById('contractFilter')||{}).value)||'all';
-  if(cfilter==='confirmed') projs=projs.filter(function(p){return p.contractConfirmed;});
-  else if(cfilter==='draft') projs=projs.filter(function(p){return !p.contractConfirmed;});
-  var sdocs=(state.docs||[]).filter(function(d){return /계약체결/.test(d.type||'');});
-  function pHay(p){ var o=p.contractOpts||{}; return [o.contractNo,p.clientFull,p.client,p.title,o.date].join(' ').toLowerCase(); }
-  function dHay(d){ return [d.docNo,d.title,d.type,d.dept].join(' ').toLowerCase(); }
-  if(q){ var ts=q.split(/\s+/);
-    projs=projs.filter(function(p){ return ts.every(function(t){return pHay(p).indexOf(t)>=0;}); });
-    sdocs=sdocs.filter(function(d){ return ts.every(function(t){return dHay(d).indexOf(t)>=0;}); });
-  }
-  projs.sort(function(a,b){ return String((b.contractOpts||{}).date||'').localeCompare(String((a.contractOpts||{}).date||'')); });
-  var sEl=document.getElementById('contractSummary');
-  if(sEl){ var scanCount=projs.reduce(function(s,p){return s+((p.contractScans||[]).length);},0);
-    sEl.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      +_reconKpi('계약 · Contracts',projs.length,'#4338ca')+_reconKpi('스캔본 · Scans',scanCount,'#15803d')+_reconKpi('계약체결 결재 · Approvals',sdocs.length,'#92400e')+'</div>';
-  }
-  var html='';
-  var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
-  var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
-  // 1) 프로젝트 기반 계약 — 테이블
-  html+='<div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin:6px 0 8px">계약 · Contracts <span style="font-weight:400;color:var(--text-3);text-transform:none">(확정·미확정 모두 · use filter)</span></div>';
-  if(!projs.length){ html+='<div style="font-size:12px;color:var(--text-3);margin-bottom:16px">표시할 계약 없음 — 계약서에서 「설정 저장」 또는 「계약 확정」 시 등록됩니다 · No contracts.</div>'; }
-  else {
-    var prows=projs.map(function(p){
-      var o=p.contractOpts||{}; var tt=_contractTotal(p);
-      var prs=(state.paymentRequests||[]).filter(function(r){return String(r.projId)===String(p.id);});
-      var prPaid=prs.filter(function(r){return r.paid;}).length;
-      var prCell=prs.length?('<span title="입금 '+prPaid+' / 발행 '+prs.length+'" style="color:'+(prPaid===prs.length?'#15803d':(prPaid>0?'#b45309':'var(--text-2)'))+'">'+prPaid+' / '+prs.length+'</span>'):'<span style="color:var(--text-3)">0</span>';
-      var statusBadge=p.contractConfirmed?'<span class="badge b-done" style="font-size:10px"><i class="ti ti-circle-check"></i> 확정 · Confirmed</span>':'<span class="badge b-draft" style="font-size:10px">미확정·Draft</span>';
-      var scans=(p.contractScans||[]);
-      var scanCell=scans.length?scans.map(function(s,i){
-        var isImg=/^data:image\//.test(s.data||'');
-        var thumb=isImg?'<img src="'+s.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle">':'<i class="ti ti-file-type-pdf" style="font-size:16px;color:#b91c1c;vertical-align:middle"></i>';
-        return '<a href="javascript:void(0)" onclick="viewProjScan('+p.id+','+i+')" title="'+(s.name||'').replace(/"/g,'&quot;')+'" style="display:inline-block;margin-right:3px">'+thumb+'</a>';
-      }).join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
-      return '<tr>'
-        +'<td style="'+td+'">'+statusBadge+'</td>'
-        +'<td style="'+td+';font-family:var(--mono);font-weight:700;color:#4338ca;white-space:nowrap">'+(o.contractNo||'—')+'</td>'
-        +'<td style="'+td+';font-weight:600">'+(p.clientFull||p.client||'—')+(p.title?'<div style="font-size:10px;color:var(--text-3);font-weight:400">'+p.title+'</div>':'')+'</td>'
-        +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(o.date||'')+'</td>'
-        +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+tt.cur+' '+fmtN(Math.round(tt.total))+'</td>'
-        +'<td style="'+td+';white-space:nowrap;color:var(--text-2);font-size:11px">선금 '+(o.depositPct==null?'-':o.depositPct)+'% / 잔금 '+(o.balancePct==null?'-':o.balancePct)+'%</td>'
-        +'<td style="'+td+';white-space:nowrap">'+scanCell+'</td>'
-        +'<td style="'+td+';text-align:center;white-space:nowrap" title="대금 입금 / 발행 · Payment / Issue">'+prCell+'</td>'
-        +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openContractFromApp('+p.id+')"><i class="ti ti-edit"></i> 열기 · Open</button> <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="_contractProjId='+p.id+';document.getElementById(\'contractScanInput\').click()"><i class="ti ti-paperclip"></i> 스캔 · Scan</button></td>'
-      +'</tr>';
-    }).join('');
-    html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px"><table style="width:100%;border-collapse:collapse;min-width:980px">'
-      +'<thead><tr><th style="'+th+'">상태 · Status</th><th style="'+th+'">계약번호 · No.</th><th style="'+th+'">고객 · Client</th><th style="'+th+'">계약일 · Date</th><th style="'+th+';text-align:right">금액 · Amount</th><th style="'+th+'">선금/잔금 · Deposit/Balance</th><th style="'+th+'">스캔본 · Scan</th><th style="'+th+';text-align:center">입금·PR</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
-      +'<tbody>'+prows+'</tbody></table></div>';
-  }
-  // 2) 전자결재 계약체결 문서 — 테이블
-  html+='<div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px">계약체결 결재 · Contract-signing approvals</div>';
-  if(!sdocs.length){ html+='<div style="font-size:12px;color:var(--text-3)">전자결재에서 「계약」 또는 「계약체결」 유형으로 기안하면 여기로 모입니다 · File a 계약 approval to collect here.</div>'; }
-  else {
-    var drows=sdocs.slice().reverse().map(function(d){
-      var atts=(d.contractAtts||[]).concat(d.draftAtts||[]).concat(d.payAtts||[]);
-      var attCell=atts.length?atts.map(function(a,i){
-        var isImg=/^data:image\//.test(a.data||'');
-        if(isImg) return '<a href="javascript:void(0)" onclick="viewImageLightbox(\'\')" title="'+(a.name||'').replace(/"/g,'&quot;')+'"><img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:3px;cursor:zoom-in"></a>';
-        return '<a href="'+(a.data||'#')+'" download="'+(a.name||'file')+'" title="'+(a.name||'').replace(/"/g,'&quot;')+'" style="margin-right:3px"><i class="ti ti-file" style="font-size:16px;color:var(--text-3);vertical-align:middle"></i></a>';
-      }).join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
-      return '<tr>'
-        +'<td style="'+td+';font-family:var(--mono);font-size:11px;color:var(--text-3);white-space:nowrap">'+(d.docNo||'—')+'</td>'
-        +'<td style="'+td+';font-weight:600">'+(d.title||'—')+'</td>'
-        +'<td style="'+td+'"><span class="badge b-'+(d.dept==='FURNITURE'?'furniture':'sourcing')+'" style="font-size:10px">'+(d.dept||'')+'</span></td>'
-        +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(d.createdAt||'')+'</td>'
-        +'<td style="'+td+';white-space:nowrap">'+attCell+'</td>'
-        +'<td style="'+td+';color:var(--text-2);font-size:11px;white-space:nowrap">'+(typeof sLabel==='function'?sLabel(d.status):d.status)+'</td>'
-      +'</tr>';
-    }).join('');
-    html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:720px">'
-      +'<thead><tr><th style="'+th+'">문서번호 · No.</th><th style="'+th+'">제목 · Title</th><th style="'+th+'">부서 · Dept</th><th style="'+th+'">기안일 · Draft Date</th><th style="'+th+'">첨부 · Files</th><th style="'+th+'">상태 · Status</th></tr></thead>'
-      +'<tbody>'+drows+'</tbody></table></div>';
-  }
-  box.innerHTML=html;
-}
-function closeContractModal(){ if(_ctEditMode){ if(!confirm('편집 모드입니다. 저장하지 않은 편집 내용이 사라집니다.\n닫으시겠습니까?'))return; _ctEditMode=false; var b=document.getElementById('contractPreview'); if(b){ b.removeAttribute('contenteditable'); b.style.outline='none'; } } document.getElementById('contractModal').style.display='none'; }
 
 // ═══════════ INVOICE MODULE · 인보이스 모듈 ═══════════
 var invoiceAppOpen=false, _invTab='all', _invEditId=null, _invFileBuf=null;
@@ -5907,168 +5335,9 @@ function invoiceGmailInfo(){
     +'3) 브라우저에서 Google 로그인 동의 → 인보이스 메일/첨부를 검색·가져오기\n\n'
     +'클라이언트 ID를 발급해 주시면 이 모듈에 「Gmail 연동」 기능(인보이스 자동 수집)을 붙여드리겠습니다.\n현재는 PDF/이미지 파일을 직접 첨부해 등록하실 수 있습니다.');
 }
-function _readContractOpts(){
-  return {
-    contractNo:(document.getElementById('ctNo').value||'').trim(),
-    date:document.getElementById('ctDate').value||projTodayISO(),
-    vatRate:qNum(document.getElementById('ctVat').value)||0,
-    depositPct:qNum(document.getElementById('ctDeposit').value),
-    balancePct:qNum(document.getElementById('ctBalance').value),
-    warrantyYears:(document.getElementById('ctWarranty').value||'').trim(),
-    paymentDays:(document.getElementById('ctPayDays').value||'').trim(),
-    deliveryDate:document.getElementById('ctDeliveryDate').value||'',
-    quoteId:qNum(document.getElementById('ctQuote').value)||null,
-    buyerRep:(document.getElementById('ctBuyerRep').value||'').trim(),
-    buyerGender:(document.getElementById('ctBuyerGender')||{}).value||'female',
-    buyerTitle:(document.getElementById('ctBuyerTitle').value||'').trim(),
-    buyerAddr:(document.getElementById('ctBuyerAddr').value||'').trim(),
-    buyerTax:(document.getElementById('ctBuyerTax').value||'').trim()
-  };
-}
-function _buyerOf(o){ return {rep:o.buyerRep,gender:o.buyerGender,addr:o.buyerAddr,tax:o.buyerTax,title:o.buyerTitle,auth:o.buyerAuth}; }
+
 var _ctPrevLang='vnen', _ctPrevZoom=100;
 var _ctEditMode=false;
-function _ctHasCustom(p){ return !!(p && p.contractCustomHtml && String(p.contractCustomHtml).trim()); }
-function renderContractPreview(){
-  if(_ctEditMode) return; // 편집 중에는 자동 재생성으로 편집 내용을 덮어쓰지 않음
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
-  var box=document.getElementById('contractPreview'); if(!box)return;
-  if(_ctHasCustom(p)){
-    box.innerHTML='<div style="max-width:754px;margin:0 auto 10px;padding:8px 11px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;font-size:11px;color:#3730a3;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-      +'<span><i class="ti ti-edit"></i> <b>사용자 편집본</b> · Custom-edited — 자동 필드/템플릿·언어 전환이 적용되지 않습니다. 인쇄·PDF에는 이 편집본이 출력됩니다.</span>'
-      +'<span style="display:flex;gap:6px"><button onclick="toggleContractEdit()" style="font-size:10px;padding:3px 9px;border:1px solid #4338ca;background:#4338ca;color:#fff;border-radius:4px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-edit"></i> 계속 편집</button>'
-      +'<button onclick="resetContractCustom()" style="font-size:10px;padding:3px 9px;border:1px solid #b45309;background:#fff;color:#b45309;border-radius:4px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-refresh"></i> 자동 생성 복원</button></span>'
-      +'</div><div style="max-width:754px;margin:0 auto;box-shadow:0 0 0 1px #e5e7eb">'+p.contractCustomHtml+'</div>';
-    box.style.zoom=_ctPrevZoom/100;
-    updateContractEditUI();
-    return;
-  }
-  box.innerHTML=buildContractHtml(p,_readContractOpts(),true,null,null,_ctPrevLang);
-  box.style.zoom=_ctPrevZoom/100;
-  updateContractEditUI();
-}
-function updateContractEditUI(){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
-  var editBtn=document.getElementById('ctEditBtn'), cancelBtn=document.getElementById('ctEditCancelBtn'), resetBtn=document.getElementById('ctEditResetBtn');
-  if(editBtn){
-    if(_ctEditMode){ editBtn.className='btn btn-dark'; editBtn.style.borderColor=''; editBtn.style.color=''; editBtn.innerHTML='<i class="ti ti-device-floppy"></i> 편집 저장 · Save Edits'; }
-    else { editBtn.className='btn btn-outline'; editBtn.style.borderColor='#4338ca'; editBtn.style.color='#4338ca'; editBtn.innerHTML='<i class="ti ti-edit"></i> 전체 편집 · Edit All'; }
-  }
-  if(cancelBtn) cancelBtn.style.display=_ctEditMode?'':'none';
-  if(resetBtn) resetBtn.style.display=(!_ctEditMode && _ctHasCustom(p))?'':'none';
-}
-function toggleContractEdit(){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
-  if(!p){ showToast('계약을 먼저 여세요 · Open a contract first'); return; }
-  var box=document.getElementById('contractPreview'); if(!box)return;
-  if(!_ctEditMode){
-    // 편집 모드 진입 → 실제 출력본(형광펜·한국어 참고 없이)을 그대로 편집
-    var o=_readContractOpts();
-    box.innerHTML='<div style="max-width:754px;margin:0 auto">'+(_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false))+'</div>';
-    box.setAttribute('contenteditable','true');
-    box.style.outline='2px solid #4338ca'; box.style.outlineOffset='3px'; box.style.background='#eef2ff';
-    box.style.zoom=_ctPrevZoom/100;
-    _ctEditMode=true;
-    updateContractEditUI();
-    setTimeout(function(){ box.focus(); },30);
-    showToast('전체 편집 모드 — 계약서 어느 부분이든 클릭해서 수정하세요. 끝나면 "편집 저장"');
-  } else {
-    // 편집 저장
-    box.removeAttribute('contenteditable');
-    box.style.outline='none'; box.style.background='#e5e7eb';
-    var inner=box.querySelector('div'); // 편집 래퍼
-    p.contractCustomHtml=inner?inner.innerHTML:box.innerHTML;
-    p.contractCustomAt=Date.now();
-    _ctEditMode=false;
-    saveState();
-    if(typeof contractAppOpen!=='undefined'&&contractAppOpen&&typeof renderContractApp==='function')renderContractApp();
-    renderContractPreview();
-    showToast('편집 저장됨 · 인쇄·PDF에 편집본이 반영됩니다');
-  }
-}
-function cancelContractEdit(){
-  if(!_ctEditMode)return;
-  _ctEditMode=false;
-  var box=document.getElementById('contractPreview');
-  if(box){ box.removeAttribute('contenteditable'); box.style.outline='none'; box.style.background='#e5e7eb'; }
-  renderContractPreview();
-  showToast('편집 취소 · 변경 사항은 저장되지 않았습니다');
-}
-function resetContractCustom(){
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
-  if(!confirm('사용자 편집본을 삭제하고 자동 생성 계약서로 되돌립니다.\n계속하시겠습니까?'))return;
-  delete p.contractCustomHtml; delete p.contractCustomAt;
-  _ctEditMode=false;
-  var box=document.getElementById('contractPreview'); if(box){ box.removeAttribute('contenteditable'); box.style.outline='none'; box.style.background='#e5e7eb'; }
-  saveState();
-  if(typeof contractAppOpen!=='undefined'&&contractAppOpen&&typeof renderContractApp==='function')renderContractApp();
-  renderContractPreview();
-  showToast('자동 생성 계약서로 복원됨');
-}
-function setContractPrevLang(l){ _ctPrevLang=l;
-  var a=document.getElementById('ctLangVnen'), b=document.getElementById('ctLangKo');
-  if(a){ a.style.background=(l==='vnen')?'var(--text)':'var(--surface)'; a.style.color=(l==='vnen')?'#fff':'var(--text-2)'; }
-  if(b){ b.style.background=(l==='ko')?'var(--text)':'var(--surface)'; b.style.color=(l==='ko')?'#fff':'var(--text-2)'; }
-  renderContractPreview();
-}
-function ctPrevZoom(d){ _ctPrevZoom=Math.max(50,Math.min(220,_ctPrevZoom+d)); var lbl=document.getElementById('ctPrevZoomLabel'); if(lbl)lbl.textContent=_ctPrevZoom+'%'; var box=document.getElementById('contractPreview'); if(box)box.style.zoom=_ctPrevZoom/100; }
-function ctSyncDeposit(){ var dEl=document.getElementById('ctDeposit'), bEl=document.getElementById('ctBalance'); if(!dEl||!bEl) return; if(dEl.value.trim()===''){ bEl.value=''; renderContractPreview(); return; } var d=qNum(dEl.value); if(d>100){ d=100; dEl.value=100; } else if(d<0){ d=0; dEl.value=0; } bEl.value=100-d; renderContractPreview(); }
-function ctSyncBalance(){ var dEl=document.getElementById('ctDeposit'), bEl=document.getElementById('ctBalance'); if(!dEl||!bEl) return; if(bEl.value.trim()===''){ dEl.value=''; renderContractPreview(); return; } var b=qNum(bEl.value); if(b>100){ b=100; bEl.value=100; } else if(b<0){ b=0; bEl.value=0; } dEl.value=100-b; renderContractPreview(); }
-function saveContractOpts(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); p.contractOpts=o; saveBuyerToDB(p.client,_buyerOf(o)); saveState(); if(typeof updateContractConfirmBtn==='function')updateContractConfirmBtn(); if(typeof contractAppOpen!=='undefined'&&contractAppOpen&&typeof renderContractApp==='function')renderContractApp(); showToast('계약 설정 저장 · 미확정 상태로 계약서 모듈에 표시'); }
-function downloadContractPDF(){
-  if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
-  var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
-  var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState();
-  var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff';
-  wrap.innerHTML=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); document.body.appendChild(wrap);
-  showToast('PDF 생성 중...');
-  html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
-    var pdf=new window.jspdf.jsPDF('p','mm','a4');
-    var W=wrap.offsetWidth||794;
-    var scale=canvas.width/W;                  // css px -> canvas px
-    var mmPerCss=210/W;                         // 이미지 폭 = 210mm
-    var marginMm=6, usableMm=297-marginMm*2;    // 페이지당 본문 영역(mm)
-    var usableCss=usableMm/mmPerCss;
-    var Hcss=canvas.height/scale;               // 전체 높이(css px)
-    // 안전 절단 지점: 각 블록(.ct-blk)의 상단 = 블록 사이 여백 → 글자가 안 끊김
-    var wrapTop=wrap.getBoundingClientRect().top;
-    var bnds=[], forced=[], softs=[];
-    Array.prototype.forEach.call(wrap.querySelectorAll('.ct-blk'),function(el){
-      var t=el.getBoundingClientRect().top-wrapTop;
-      if(t>0.5){ bnds.push(t); if(el.classList&&el.classList.contains('ct-page')) forced.push(t); }
-    });
-    Array.prototype.forEach.call(wrap.querySelectorAll('.ct-soft'),function(el){
-      var t=el.getBoundingClientRect().top-wrapTop; if(t>0.5) softs.push(t);
-    });
-    bnds.push(Hcss);
-    bnds=bnds.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return a-b;});
-    softs=softs.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return a-b;});
-    var start=0, first=true, guard=0;
-    while(start<Hcss-1 && guard++<400){
-      var limit=start+usableCss;
-      var cut=null;                                   // 1순위: 조항/섹션 경계(.ct-blk)
-      for(var i=0;i<bnds.length;i++){ if(bnds[i]>start+1 && bnds[i]<=limit+0.5) cut=bnds[i]; }
-      var fc=null;                                    // 강제 개행(부록): 범위 안이면 거기서 끊어 다음 페이지로
-      for(var j=0;j<forced.length;j++){ if(forced[j]>start+1 && forced[j]<=(cut!=null?cut:limit)+0.5){ if(fc===null||forced[j]<fc) fc=forced[j]; } }
-      if(fc!==null) cut=fc;
-      if(cut===null){                                 // 한 섹션이 페이지보다 큰 경우만 2순위: 표 행/문단(.ct-soft)
-        for(var k=0;k<softs.length;k++){ if(softs[k]>start+1 && softs[k]<=limit+0.5) cut=softs[k]; }
-      }
-      if(cut===null || cut<=start) cut=Math.min(limit,Hcss);  // 그래도 없으면 부득이 절단
-      var sliceCss=cut-start;
-      var sc=document.createElement('canvas');
-      sc.width=canvas.width; sc.height=Math.max(1,Math.round(sliceCss*scale));
-      sc.getContext('2d').drawImage(canvas,0,Math.round(start*scale),canvas.width,sc.height,0,0,canvas.width,sc.height);
-      if(!first) pdf.addPage();
-      pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',0,marginMm,210,sliceCss*mmPerCss);
-      first=false; start=cut;
-    }
-    var _cf='Contract_'+((o.contractNo||p.client||'contract').replace(/[^a-zA-Z0-9_-]/g,'_'));
-    if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'), '계약서', _cf); }catch(_){ } }
-    pdf.save(_cf+'.pdf'); document.body.removeChild(wrap);
-  }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
-}
-function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
 
 // ═══════════ PAYMENT REQUEST (대금지급요청서) ═══════════
 var _prPrevZoom=100;
@@ -6376,229 +5645,9 @@ function buildPaymentRequestHtml(p,o,pr){
 
 // ─ 관리자: 계약서 템플릿 편집 ─
 var _CT_FIELDS=[['art1','제1조 목적 · Purpose'],['art2','제2조 제품·수량 · Product'],['art3','제3조 납품 · Delivery'],['art4','제4조 결제 · Payment'],['art5','제5조 해지 · Termination'],['art6','제6조 구매자 의무 · Buyer'],['art7','제7조 공급자 의무·보증 · Supplier'],['art8','제8조 일반 · General']];
-function openContractTpl(){
-  var t=getContractTpl();
-  var box=document.getElementById('ctTplBody');
-  box.innerHTML=_CT_FIELDS.map(function(f){
-    return '<div style="margin-bottom:14px;border:1px solid var(--border);border-radius:var(--radius);padding:10px">'
-      +'<div style="font-size:12px;font-weight:700;margin-bottom:6px">'+f[1]+'</div>'
-      +'<div style="font-size:10px;color:var(--text-3);margin-bottom:4px">🇻🇳 Tiếng Việt</div><textarea id="tpl_'+f[0]+'Vi" rows="4" style="width:100%;font-size:11px;padding:6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box;resize:vertical">'+(t[f[0]+'Vi']||'')+'</textarea>'
-      +'<div style="font-size:10px;color:var(--text-3);margin:6px 0 4px">🇬🇧 English</div><textarea id="tpl_'+f[0]+'En" rows="4" style="width:100%;font-size:11px;padding:6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box;resize:vertical">'+(t[f[0]+'En']||'')+'</textarea>'
-      +'<div style="font-size:10px;color:#1d4ed8;margin:6px 0 4px">🇰🇷 한국어 <span style="color:var(--text-3)">(미리보기 한국어본 — 출력에는 안 나옴)</span></div><textarea id="tpl_'+f[0]+'Ko" rows="4" style="width:100%;font-size:11px;padding:6px;border:1px solid #bfdbfe;border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box;resize:vertical;background:#f8fbff">'+(t[f[0]+'Ko']||'')+'</textarea>'
-      +'</div>';
-  }).join('');
-  document.getElementById('contractTplModal').style.display='block';
-}
-function closeContractTpl(){ document.getElementById('contractTplModal').style.display='none'; }
-function saveContractTpl(){
-  state.contractTemplate=state.contractTemplate||{};
-  _CT_FIELDS.forEach(function(f){ state.contractTemplate[f[0]+'Vi']=document.getElementById('tpl_'+f[0]+'Vi').value; state.contractTemplate[f[0]+'En']=document.getElementById('tpl_'+f[0]+'En').value; var _ko=document.getElementById('tpl_'+f[0]+'Ko'); if(_ko) state.contractTemplate[f[0]+'Ko']=_ko.value; });
-  saveState(); closeContractTpl(); showToast('계약서 템플릿 저장됨 · Template saved');
-}
-function resetContractTpl(){ if(!confirm('템플릿을 기본값으로 되돌릴까요?'))return; state.contractTemplate={}; saveState(); openContractTpl(); showToast('기본 템플릿으로 복원 · Restore Default Template'); }
+
 var _ctTplLang='vnen', _ctTplZoom=100, _ctTplSample=null;
-function previewContractTpl(){
-  // 편집 중(미저장)인 textarea 값으로 임시 템플릿 구성 — 미저장 수정사항도 그대로 미리보기
-  var tplLive={};
-  _CT_FIELDS.forEach(function(f){
-    var vi=document.getElementById('tpl_'+f[0]+'Vi'), en=document.getElementById('tpl_'+f[0]+'En'), ko=document.getElementById('tpl_'+f[0]+'Ko');
-    tplLive[f[0]+'Vi']=vi?vi.value:''; tplLive[f[0]+'En']=en?en.value:''; tplLive[f[0]+'Ko']=ko?ko.value:'';
-  });
-  for(var k in CONTRACT_TPL_DEFAULTS){ if(tplLive[k]==null||tplLive[k]==='') tplLive[k]=CONTRACT_TPL_DEFAULTS[k]; }
-  // 샘플 거래처·옵션 — 노란색으로 표시될 가변 항목들에 한글 안내 placeholder
-  var sampleP={ id:'SAMPLE', client:'거래처명', clientFull:'거래처 정식명칭', deliveryPlace:'납품 장소', location:'구매자 주소', targetDate:'' };
-  var sampleO={ contractNo:'계약번호', date:'계약일자', vatRate:8, depositPct:50, balancePct:50,
-    warrantyYears:'보증연수', paymentDays:'결제기한', deliveryDate:'납기일',
-    quoteId:null, buyerRep:'구매자 대표', buyerTitle:'직위', buyerAddr:'구매자 주소', buyerTax:'세금코드(MST)' };
-  // 샘플 견적 — 품목표 형태가 보이도록 (실제 견적 데이터는 건드리지 않음)
-  var sampleQuote={ currency:'VND', lines:[
-    { category:'CHAIR', name:'샘플 제품 A', code:'SMP-001', size:'600×600×1100', colorCode:'BK', qty:10, unitPrice:2000000, amount:20000000, remark:'' },
-    { category:'DESK',  name:'샘플 제품 B', code:'SMP-002', size:'1400×700×750', colorCode:'WH', qty:5, unitPrice:3000000, amount:15000000, remark:'' }
-  ]};
-  _ctTplSample={p:sampleP,o:sampleO,q:sampleQuote,tpl:tplLive};
-  _ctTplLang='vnen'; _ctTplZoom=100;
-  renderCtTplPreview();
-  document.getElementById('ctTplPreviewModal').style.display='block';
-}
-function renderCtTplPreview(){
-  if(!_ctTplSample)return;
-  var box=document.getElementById('ctTplPreviewBody'); if(!box)return;
-  box.innerHTML=buildContractHtml(_ctTplSample.p,_ctTplSample.o,true,_ctTplSample.tpl,_ctTplSample.q,_ctTplLang);
-  box.style.zoom=_ctTplZoom/100;
-  var a=document.getElementById('ctTplLangVnen'), b=document.getElementById('ctTplLangKo');
-  if(a){ a.style.background=(_ctTplLang==='vnen')?'var(--text)':'var(--surface)'; a.style.color=(_ctTplLang==='vnen')?'#fff':'var(--text-2)'; }
-  if(b){ b.style.background=(_ctTplLang==='ko')?'var(--text)':'var(--surface)'; b.style.color=(_ctTplLang==='ko')?'#fff':'var(--text-2)'; }
-  var z=document.getElementById('ctTplZoomLabel'); if(z)z.textContent=_ctTplZoom+'%';
-}
-function setCtTplLang(l){ _ctTplLang=l; renderCtTplPreview(); }
-function ctTplZoom(d){ _ctTplZoom=Math.max(50,Math.min(220,_ctTplZoom+d)); renderCtTplPreview(); }
-function closeCtTplPreview(){ document.getElementById('ctTplPreviewModal').style.display='none'; }
 
-function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
-  var isKo=(lang==='ko');
-  var qs=_projQuotesC(p);
-  var q=sampleQuote||(o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0]);
-  var lines=q?(q.lines||[]):[];
-  var sub=lines.reduce(function(s,l){return s+qNum(l.amount);},0);
-  var vatAmt=sub*o.vatRate/100, total=sub+vatAmt;
-  var cur=q?(q.currency||'VND'):'VND';
-  var M=function(n){return _money(n,cur);};
-  var H=review?function(v){return '<mark style="background:#fff59d;padding:0 2px;border-radius:1px">'+v+'</mark>';}:function(v){return v;};
-  var KO=review?function(t){return '<div style="font-size:9px;color:#1d4ed8;margin-top:3px">🇰🇷 '+t+'</div>';}:function(){return '';};
-  var tpl=tplOverride||getContractTpl();
-  var dep=(o.depositPct==null?100:qNum(o.depositPct));
-  var bal=(o.balancePct==null||o.balancePct===''?(100-dep):qNum(o.balancePct));
-  var payDays=o.paymentDays||'';
-  var payVi, payEn, payKo;
-  if(dep>=100 && bal<=0){
-    payVi='Bên Mua thanh toán 100% giá trị hợp đồng ('+H(M(total))+') trong vòng '+H(payDays)+' ngày làm việc kể từ ngày ký Hợp đồng (thanh toán trước khi giao hàng).';
-    payEn='The Buyer shall pay 100% of the contract value ('+H(M(total))+') within '+H(payDays)+' working days after signing the Contract (advance payment).';
-    payKo='구매자는 계약서 서명 후 '+H(payDays)+' 영업일 이내에 계약 총액('+H(M(total))+')의 100%를 선금으로 지급한다 (인도 전 선납).';
-  } else {
-    var _d=total*dep/100, _b=total*bal/100;
-    payVi='Đợt 1 – Tạm ứng '+H(dep+'%')+' ('+H(M(_d))+') trong vòng '+H(payDays)+' ngày làm việc kể từ ngày ký Hợp đồng. Thời gian sản xuất và giao hàng (Lead Time) của sản phẩm được tính kể từ ngày khoản tạm ứng này được ghi có đầy đủ vào tài khoản chỉ định của Nhà Cung Cấp. Đợt 2 – '+H(bal+'%')+' ('+H(M(_b))+') trong vòng '+H(payDays)+' ngày làm việc sau khi nghiệm thu / bàn giao.';
-    payEn='Phase 1 – Advance '+H(dep+'%')+' ('+H(M(_d))+') within '+H(payDays)+' working days of signing. The production and delivery lead time of the products shall be counted from the date on which this advance payment is fully credited to the Supplier\u2019s designated account. Phase 2 – '+H(bal+'%')+' ('+H(M(_b))+') within '+H(payDays)+' working days after acceptance / handover.';
-    payKo='1차 — 계약서 서명 후 '+H(payDays)+' 영업일 이내에 계약 총액의 '+H(dep+'%')+' 선금('+H(M(_d))+')을 지급한다. 제품의 생산 및 인도 리드타임(Lead Time)은 공급자의 지정 계좌로 본 선금이 완전히 입금된 날로부터 기산한다. 2차 — 검수 / 인도 후 '+H(payDays)+' 영업일 이내에 '+H(bal+'%')+' 잔금('+H(M(_b))+')을 지급한다.';
-  }
-  var baseVars={ no:o.contractNo||'', date:o.date||'', deliveryDate:o.deliveryDate||(review?'(미정)':'………'), deliveryPlace:p.deliveryPlace||(review?'(미입력)':'………'), total:M(total), paymentDays:payDays, warrantyYears:o.warrantyYears||'', cureDays:'' };
-  var varsVi=Object.assign({},baseVars,{paymentClause:payVi});
-  var varsEn=Object.assign({},baseVars,{paymentClause:payEn});
-  var varsKo=Object.assign({},baseVars,{paymentClause:payKo});
-  function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function fill(t,vars){ return esc(t||'').replace(/\{(\w+)\}/g,function(_,k){ var v=vars[k]; if(v==null)return '{'+k+'}'; return k==='paymentClause'?v:H(v); }).replace(/\n/g,'<br>'); }
-  var KO_TITLES=['목적 · Purpose','제품 및 수량 · Product & Quantity','납품 · Delivery','결제 조건 · Payment','계약의 해지 · Termination','구매자의 권리·의무 · Buyer','공급자의 권리·의무 · Supplier','일반 조항 · General'];
-  function art(no,titleVi,titleEn,viKey,enKey,ko){
-    if(isKo){
-      var idx=parseInt(String(viKey).replace(/\D/g,''))||0;
-      var koKey=String(viKey).replace('Vi','Ko');
-      return '<div class="ct-blk" style="margin-top:14px"><div style="font-weight:700;font-size:12.5px;margin-bottom:5px">제'+idx+'조 '+(KO_TITLES[idx-1]||'')+'</div>'
-        +'<div style="padding:7px 10px;border:1px solid #ccc;font-size:11.5px;line-height:1.75">'+fill(tpl[koKey]||tpl[viKey],varsKo)+'</div></div>';
-    }
-    return '<div class="ct-blk" style="margin-top:12px"><div style="font-weight:700;font-size:11px;margin-bottom:4px">'+no+'. '+titleVi+' · '+titleEn+'</div>'
-      +'<table style="width:100%;border-collapse:collapse;font-size:9.5px;line-height:1.5"><tr style="vertical-align:top">'
-      +'<td style="width:50%;padding:5px 8px;border:1px solid #ccc">'+fill(tpl[viKey],varsVi)+'</td>'
-      +'<td style="width:50%;padding:5px 8px;border:1px solid #ccc">'+fill(tpl[enKey],varsEn)+'</td>'
-      +'</tr></table>'+(ko?KO(ko):'')+'</div>';
-  }
-  var rows=lines.length?lines.map(function(l,i){
-    var img=l.image?'<img src="'+l.image+'" style="max-width:54px;max-height:44px;object-fit:contain">':'';
-    return '<tr class="ct-soft">'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+(i+1)+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;font-size:8px">'+(l.category||'')+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px">'+H(l.name||l.code||'')+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+img+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center;font-size:8px">'+(l.size||'')+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center;font-size:8px">'+(l.code||'')+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+(l.colorCode||'')+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+fmtN(l.qty)+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:right">'+fmtN(l.unitPrice)+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:right">'+fmtN(l.amount)+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;font-size:8px">'+(l.remark||'')+'</td>'
-      +'</tr>';
-  }).join(''):'<tr><td colspan="11" style="border:1px solid #999;padding:10px;text-align:center;color:#b91c1c">'+(review?'연결된 견적이 없습니다 — 견적서를 먼저 작성/연결하세요':'')+'</td></tr>';
-
-  return ''
-  +'<div style="width:754px;margin:0 auto;padding:22px 20px 30px;background:#fff;color:#111;font-family:Arial,sans-serif;box-sizing:border-box">'
-  +(isKo
-    ? '<div style="text-align:center"><div style="font-size:17px;font-weight:800">가구 공급 계약서 · Furniture Supply Contract</div><div style="font-size:12px;font-weight:700;color:#333">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:10px;margin-top:3px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
-    : '<div style="text-align:center"><div style="font-size:16px;font-weight:800">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:13px;font-weight:700;color:#333">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:10px;color:#1d4ed8">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:10px;margin-top:3px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
-  +(isKo
-    ? '<div style="font-size:11px;margin-top:20px">본 계약은 '+H(o.date||'')+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
-    : '<div style="font-size:9.5px;margin-top:20px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
-
-  // Bên A 공급자 / Bên B 구매자
-  +'<div class="ct-blk" style="display:flex;gap:12px;margin-top:8px;font-size:'+(isKo?'10px':'9px')+';line-height:1.5">'
-    +'<div style="flex:1;border:1px solid #888;padding:7px 9px">'
-      +'<div style="font-weight:700">'+(isKo?'갑 — 공급자 / Supplier':'Bên A – Nhà cung cấp / Supplier'+(review?'<span style="color:#1d4ed8"> · 공급자</span>':''))+'</div>'
-      +'<div><b>'+INICS_INFO.nameVi+' / '+INICS_INFO.nameEn+'</b></div>'
-      +'<div>'+(isKo?'주소':'Địa chỉ')+': '+INICS_INFO.addr+'</div>'
-      +'<div>'+(isKo?'대표':'Đại diện')+': '+INICS_INFO.rep+' – '+INICS_INFO.repTitleVi+' / '+INICS_INFO.repTitleEn+'</div>'
-      +'<div>'+(isKo?'세금코드':'MST')+': '+INICS_INFO.mst+'</div>'
-    +'</div>'
-    +'<div style="flex:1;border:1px solid #888;padding:7px 9px">'
-      +'<div style="font-weight:700">'+(isKo?'을 — 구매자 / Buyer':'Bên B – Bên mua / Buyer'+(review?'<span style="color:#1d4ed8"> · 구매자</span>':''))+'</div>'
-      +'<div><b>'+H(p.clientFull||p.client||'')+'</b></div>'
-      +'<div>'+(isKo?'주소':'Địa chỉ')+': '+H(o.buyerAddr||p.location||(review?'(미입력)':'………'))+'</div>'
-      +'<div>'+(isKo?'대표':'Đại diện')+': '+H(o.buyerRep?((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):(review?'(미입력)':'………'))+' – '+H(o.buyerTitle||(review?'(직위)':'………'))+'</div>'
-      +'<div>'+(isKo?'세금코드':'MST')+': '+H(o.buyerTax||(review?'(미입력)':'………'))+'</div>'
-    +'</div>'
-  +'</div>'
-  +(review?KO('공급자(Bên A)=INICS 고정, 구매자(Bên B) 정보는 옵션에서 입력 → 저장 시 거래처 DB 반영'):'')
-
-  +art('Điều 1','MỤC ĐÍCH','Purpose','art1Vi','art1En','계약 목적')
-  +art('Điều 2','SẢN PHẨM VÀ SỐ LƯỢNG','Product & Quantity','art2Vi','art2En','제품·수량 (부록1 견적 명세)')
-  +art('Điều 3','GIAO HÀNG','Delivery','art3Vi','art3En','납품: 납기 '+(o.deliveryDate||'미정')+', 장소 '+(p.deliveryPlace||'미입력'))
-  +art('Điều 4','ĐIỀU KHOẢN THANH TOÁN','Payment','art4Vi','art4En','결제: 선금 '+dep+'%'+(dep>=100?' (계약 후 '+(o.paymentDays||'')+'일 내 전액 선금)':' / 잔금 '+(100-dep)+'% 검수 후')+', 총액 '+M(total))
-  +art('Điều 5','CHẤM DỨT HỢP ĐỒNG','Termination','art5Vi','art5En','해지 조건')
-  +art('Điều 6','QUYỀN & NGHĨA VỤ BÊN MUA','Buyer','art6Vi','art6En','구매자 권리·의무')
-  +art('Điều 7','QUYỀN & NGHĨA VỤ NHÀ CUNG CẤP','Supplier','art7Vi','art7En','공급자 의무 · 보증 '+(o.warrantyYears||'')+'년')
-  +art('Điều 8','ĐIỀU KHOẢN CHUNG','General','art8Vi','art8En','일반 · VIAC 중재 · 2부')
-
-  // 서명란 (상단: 도장 공간 → 가운데: 줄+이름 → 하단: SUPPLIER/BUYER)
-  +'<div class="ct-blk" style="display:flex;gap:16px;margin-top:24px;font-size:9.5px;text-align:center">'
-    +'<div style="flex:1">'
-      +'<div style="font-size:8px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
-      +'<div style="position:relative;height:110px">'+(review?'<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%);width:104px;height:104px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
-      +'<div style="font-size:9px;color:#222;border-top:1px solid #111;padding-top:4px">'+INICS_INFO.rep+' – '+INICS_INFO.repTitleEn+'</div>'
-      +'<div style="font-weight:700;margin-top:5px">'+(isKo?'공급자 대표 / Supplier':'ĐẠI DIỆN NHÀ CUNG CẤP / Supplier')+'</div>'
-    +'</div>'
-    +'<div style="flex:1">'
-      +'<div style="font-size:8px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
-      +'<div style="position:relative;height:110px">'+(review?'<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%);width:104px;height:104px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
-      +'<div style="font-size:9px;color:#222;border-top:1px solid #111;padding-top:4px">'+H(o.buyerRep?((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'')+(o.buyerTitle?' – '+H(o.buyerTitle):'')+'</div>'
-      +'<div style="font-weight:700;margin-top:5px">'+(isKo?'구매자 대표 / Buyer':'ĐẠI DIỆN BÊN MUA / Buyer')+'</div>'
-    +'</div>'
-  +'</div>'
-
-  // APPENDIX 1 견적 품목표
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:13px;font-weight:800;margin-bottom:10px">APPENDIX 1 – DESCRIPTION OF ORDER INFORMATION</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:8.5px">'
-      +'<thead><tr style="background:#f1f5f9">'
-        +['No','Category','Product Name','Image','Size (WxDxH)','Code','Color','Qty','Unit Price<br>(Excl.VAT)','Amount<br>(Excl.VAT)','Remark'].map(function(h){return '<th style="border:1px solid #999;padding:4px">'+h+'</th>';}).join('')
-      +'</tr></thead><tbody>'+rows+'</tbody>'
-      +'<tfoot style="break-inside:avoid;page-break-inside:avoid">'
-        +'<tr><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right;font-weight:700">TOTAL (Excl. VAT)</td><td style="border:1px solid #999;padding:5px;text-align:right;font-weight:700">'+H(fmtN(sub))+'</td><td style="border:1px solid #999"></td></tr>'
-        +'<tr style="background:'+(review?'#fff59d':'#f8fafc')+'"><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right">VAT '+H(o.vatRate+'%')+'</td><td style="border:1px solid #999;padding:5px;text-align:right">'+fmtN(vatAmt)+'</td><td style="border:1px solid #999"></td></tr>'
-        +'<tr style="background:#eef2ff"><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right;font-weight:800">TOTAL (Incl. VAT)</td><td style="border:1px solid #999;padding:5px;text-align:right;font-weight:800">'+H(fmtN(total))+'</td><td style="border:1px solid #999"></td></tr>'
-        +'<tr class="ct-soft"><td colspan="11" style="border:1px solid #999;border-top:none;padding:6px 8px;font-size:8px;color:#555;background:#fbfbfb;line-height:1.5">Currency: '+cur+' &middot; All prices exclusive of taxes unless stated &middot; Prices include delivery and installation fee.</td></tr>'
-      +'</tfoot></table>'
-  +'</div>'
-
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:13px;font-weight:800;margin-bottom:3px">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH \u00b7 APPENDIX 2 \u2013 WARRANTY LETTER</div>'
-    +'<div style="text-align:center;font-size:9px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(o.date):'') + '</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:9px;line-height:1.55">'
-      +'<tr style="background:#f1f5f9;vertical-align:top"><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:8.5px">TIẾNG VIỆT</th><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:8.5px">ENGLISH</th></tr>'
-      +'<tr class="ct-soft" style="vertical-align:top">'
-        +'<td style="border:1px solid #ccc;padding:5px 8px">INICS VINA bảo hành sản phẩm của mình không có lỗi về vật liệu hoặc tay nghề gia công trong suốt vòng đời sản phẩm. INICS VINA sẽ sửa chữa hoặc thay thế bất kỳ sản phẩm nào bị hư hỏng trong điều kiện sử dụng bình thường do lỗi nêu trên.</td>'
-        +'<td style="border:1px solid #ccc;padding:5px 8px">INICS VINA warrants its products to be free from defects in materials or workmanship for lifetime. INICS VINA will repair or replace any items which fail under normal use as a result of such defect.</td>'
-      +'</tr>'
-      +'<tr class="ct-soft" style="vertical-align:top">'
-        +'<td style="border:1px solid #ccc;padding:5px 8px">Bảo hành này có hiệu lực kể từ ngày sản xuất và chỉ áp dụng cho người mua đầu tiên từ đại lý được ủy quyền và người sử dụng theo chế độ một ca làm việc.</td>'
-        +'<td style="border:1px solid #ccc;padding:5px 8px">This warranty applies from the date of manufacture and is valid only for the initial purchaser from an authorized dealer and the single-shift user.</td>'
-      +'</tr>'
-      +'<tr class="ct-soft" style="vertical-align:top">'
-        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Ngoại lệ về thời hạn</div>'
-          +'<div style="margin:3px 0"><b>5 năm:</b> Phụ kiện cửa; Ray trượt ngăn kéo; Cơ cấu ghế ngồi; Bản lề cho tấm ốp; Các bộ phận chuyển động và hao mòn cao bao gồm chân trượt và bánh xe; Hệ thống khóa; Linh kiện điện.</div>'
-          +'<div style="margin:3px 0"><b>3 năm:</b> Vải bọc tiêu chuẩn, da, veneer gỗ và các vật liệu bọc phủ khác; Tất cả các cơ cấu khác.</div>'
-          +'<div style="margin:3px 0"><b>1 năm:</b> Các bộ phận thay thế như bảng viết; Tất cả các sản phẩm phi tiêu chuẩn khác.</div></td>'
-        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Exceptions</div>'
-          +'<div style="margin:3px 0"><b>5 years:</b> Hardware for doors; Drawer runners; Seating mechanisms; Hinges for panel belt tiles; Moving wear and high wear parts including glides and casters; Locking system; Electrical components.</div>'
-          +'<div style="margin:3px 0"><b>3 years:</b> Standard textiles, leather, wood veneer and other covering materials; All other mechanisms.</div>'
-          +'<div style="margin:3px 0"><b>1 year:</b> Replacement parts such as marker boards; All other nonstandard products.</div></td>'
-      +'</tr>'
-      +'<tr class="ct-soft" style="vertical-align:top">'
-        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Các trường hợp loại trừ</div>Bảo hành này không áp dụng đối với: việc thay đổi hoặc chỉnh sửa sản phẩm; việc không sử dụng, lắp đặt hoặc bảo trì sản phẩm theo hướng dẫn sử dụng/lắp đặt hoặc cảnh báo đã công bố; sự khác biệt tự nhiên về vân gỗ hoặc hình dạng vân, hoặc sự xuất hiện của các dấu vết đặc trưng; thay đổi bề mặt hoàn thiện do lão hóa hoặc tiếp xúc với ánh sáng; các vết, sẹo hoặc nếp nhăn xuất hiện tự nhiên trên da; lỗi hoặc hư hỏng do hao mòn thông thường; độ bền màu hoặc sự tương đồng màu sắc của vải; sản phẩm sử dụng vật liệu do khách hàng cung cấp (COM) hoặc vật liệu phi tiêu chuẩn; lạm dụng, sử dụng sai mục đích hoặc tai nạn; hư hỏng xảy ra sau khi vận chuyển (mất thời gian, bất tiện, thiệt hại thương mại, hoặc thiệt hại ngẫu nhiên hay do hậu quả); sản phẩm được coi là vật tư tiêu hao (ví dụ: đèn); sản phẩm mang thương hiệu của nhà sản xuất khác; sản phẩm sử dụng cho mục đích cho thuê; sản phẩm không được lắp đặt và bảo trì bởi chuyên gia có chứng nhận.</td>'
-        +'<td style="border:1px solid #ccc;padding:5px 8px"><div style="font-weight:700;margin-bottom:3px">Exclusions</div>This warranty does not extend to: alteration or modification of the product; failure to apply, install, or maintain products according to published application/installation guidelines or warnings; natural variations in wood grain or figure or the presence of character marks; changes in surface finishes due to aging or exposure to light; marks, scars, or wrinkles occurring naturally in leather; defects or failure resulting from normal wear and tear; the colorfastness or matching of colors of textiles; products applied to Customer\u2019s Own (COM) or non-standard material; abuse, misuse, or accident; damage occurring after shipping (loss of time, inconvenience, commercial loss, or incidental or consequential damages); products considered consumables (e.g. lamps); other manufacturers\u2019 branded products; products used for rental purposes; products not installed and serviced by certified professionals.</td>'
-      +'</tr>'
-      +'<tr class="ct-soft" style="vertical-align:top">'
-        +'<td style="border:1px solid #ccc;padding:5px 8px">Trong mọi trường hợp, INICS VINA sẽ không chịu trách nhiệm dù theo trách nhiệm ngoài hợp đồng hay theo hợp đồng đối với bất kỳ tổn thất nào, hoặc các thiệt hại trực tiếp, đặc biệt, ngẫu nhiên, do hậu quả hoặc mang tính trừng phạt. Bảo hành này là biện pháp khắc phục duy nhất của khách hàng đối với lỗi sản phẩm. Ngoài các bảo đảm rõ ràng được nêu trong tài liệu này, INICS VINA không đưa ra bất kỳ bảo đảm nào khác, bao gồm các bảo đảm ngụ ý về khả năng thương mại và tính phù hợp cho một mục đích cụ thể.</td>'
-        +'<td style="border:1px solid #ccc;padding:5px 8px">In no event shall INICS VINA be liable in either tort or contract for any loss or direct, special, incidental, consequential or exemplary damages. This warranty is the customer\u2019s sole remedy for product defect. INICS VINA makes no warranties, including the implied warranties of merchantability and fitness for a particular purpose, other than the express warranties contained herein.</td>'
-      +'</tr>'
-    +'</table>'
-  +'</div>'
-  +(review?'<div style="margin-top:14px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;font-size:9px;color:#92400e;line-height:1.5">🟡 노란색은 프로젝트·견적에서 자동으로 채워진 값입니다. 출력(PDF/인쇄)에는 형광펜·한국어가 빠지고 베트남어·영문만 인쇄됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정할 수 있습니다. 실제 사용 전 현지 법무 검토를 권장합니다.</div>':'')
-  +'</div>';
-}
 function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
 function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 // ═══════════ TASK MANAGEMENT (업무 관리) ═══════════
@@ -7382,20 +6431,7 @@ function _openProjectForm(id){
   renderProjectHistory(id||null);
   document.getElementById('projectFormModal').style.display='block';
 }
-function renderProjLinkedQuotes(client){
-  var box=document.getElementById('projLinkedQuotes'); if(!box) return;
-  client=(client||'').trim();
-  var qs = client ? (state.quotes||[]).filter(function(q){ return (q.client||'').toLowerCase()===client.toLowerCase(); }) : [];
-  if(!qs.length){ box.innerHTML=''; return; }
-  qs.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
-  box.innerHTML='<div class="form-card-title" style="margin-bottom:6px;color:var(--text-2)"><i class="ti ti-file-invoice"></i> 연결 견적서 · Linked Quotes ('+qs.length+')</div>'
-    + qs.map(function(q){
-        var tot=(q.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
-        return '<a href="javascript:void(0)" onclick="closeProjectForm();openRelatedQuote('+q.id+')" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text);font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)">'
-          +'<i class="ti ti-file-invoice" style="color:#4338ca"></i><span class="docno">'+(q.quoteNo||('Q-'+q.id))+'</span> '
-          +'<span style="flex:1">'+(q.date||'')+'</span><span style="font-weight:600">'+(q.currency||'')+' '+fmtN(tot)+'</span></a>';
-      }).join('');
-}
+
 function closeProjectForm(){ document.getElementById('projectFormModal').style.display='none'; _editingProjId=null; }
 var _projCustDBOpen=false;
 function projCustomerInfoHTML(name){
@@ -7584,7 +6620,6 @@ function deleteProject(id){
   saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList(); showToast('삭제 완료 · Deleted');
 }
 
-
 // ── PROJECT IMPORT (Notion CSV → 프로젝트 모듈) ──
 function projOpenImport(){
   var m=document.getElementById('projImportModal'); if(m) m.style.display='block';
@@ -7698,7 +6733,6 @@ function projImportVietnamPnl(){
   showToast('Notion 손익 반영 · 신규 '+r.added+' / 갱신 '+r.updated);
 }
 
-
 function projRunImport(){
   var raw=(document.getElementById('projImportText').value||'').trim();
   var statusEl=document.getElementById('projImportStatus');
@@ -7741,7 +6775,6 @@ function projRunImport(){
   renderProjectBoard(); if(_projTab==='list') renderProjectList();
   showToast('가져오기 완료 · 신규 '+added+' / 갱신 '+updated);
 }
-
 
 // ── PROJECT SEED (Notion VIETNAM 1회 자동 주입) ──
 var PROJ_SEED = [
@@ -8111,7 +7144,6 @@ function renderFinanceDashboard(){
     +'</tbody></table>';
 }
 function showProjectAppToEdit(id){ closeFinanceApp(); if(typeof showProjectApp==='function'){ showProjectApp(); setTimeout(function(){ editProject(id); }, 60); } }
-
 
 // ═══════════════════════════════════════════
 // BANK STATEMENT (은행 명세서) — per-account statement import & categorization
@@ -8831,7 +7863,6 @@ function bankAutoVendor(){
   showToast('NOTE에서 거래처 '+n+'건 자동 인식 · '+n+' detected');
 }
 
-
 var bankListFilter = { q:'', cat:'', dir:'', match:'', dept:'' };
 function setBankFilter(field,val){ bankListFilter[field]=val; renderBankList(); }
 function clearBankFilter(){ bankListFilter={q:'',cat:'',dir:'',match:'',dept:''}; renderBankList(); }
@@ -9088,7 +8119,6 @@ function removeBankCategory(i){
   saveState(); renderBankAcctAdmin(); renderBankList(); showToast('Removed · 삭제');
 }
 
-
 function enterModule(module) {
   if(module==='admin'){ var _cu=cardCurrentUser(); if(!(sessionIsAdmin||(_cu&&_cu.isAdmin))){ showToast('관리자 전용 · Admin only'); return; } }
   else if(module==='hr'){ if(typeof hrModuleAllowed!=='function'||!hrModuleAllowed()){ showToast('접근 권한이 없습니다 · No access'); if(typeof showHub==='function') showHub(); return; } }
@@ -9212,7 +8242,6 @@ function handlePhotoUpload(memberId, file) {
   };
   reader.readAsDataURL(file);
 }
-
 
 function populateDeptTypeSelects() {
   var depts = state.departments || ['FURNITURE','SOURCING'];
