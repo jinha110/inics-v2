@@ -40,7 +40,7 @@
       issuerVi: "Bộ Công An", issuerEn: "Ministry of Public Security",
       addrVi: "76 Đường số 6, Phường Linh Xuân, Thành phố Hồ Chí Minh",
       addrEn: "76 6th Street, Linh Xuan Ward, Ho Chi Minh City", phone: "", email: "",
-      dept: "FINANCE", positionVi: "Nhân viên Hỗ trợ Vận hành (Hành chính – Tài chính – Mua hàng)",
+      dept: "COMMON", positionVi: "Nhân viên Hỗ trợ Vận hành (Hành chính – Tài chính – Mua hàng)",
       positionEn: "Business Support Officer (Administration – Finance – Purchasing)", positionKo: "경영지원·구매",
       jobDescVi: "Hỗ trợ vận hành & hành chính; phối hợp kế toán bên ngoài, kiểm soát chi phí; tìm nguồn & mua hàng (báo giá, điều khoản thương mại).",
       jobDescEn: "Operations & admin support; coordinating external accounting, cost control; sourcing & purchasing.",
