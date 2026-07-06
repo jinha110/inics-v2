@@ -92,33 +92,45 @@
     return o ? Object.keys(o).sort().reverse() : [];
   };
 
-  /* ---- 지급 증빙 (기존 Storage 재사용) ---- */
-  window.hrPayUploadProof = async function(ym, file) {
+  /* ---- 지급 증빙 (직원별) — /hr/payroll/{ym}/proofByEmp/{empId} ---- */
+  function _peBase(ym, empId) { return "/" + encodeURIComponent(ym) + "/proofByEmp/" + encodeURIComponent(empId); }
+
+  window.hrPayUploadProofEmp = async function(ym, empId, file) {
     if (typeof hrStorageUpload !== "function") throw new Error("hrStorageUpload 미로드 (hr.js 확인)");
     var safe = (file.name || "proof").replace(/[^\w.\-가-힣]/g, "_");
-    var path = "hr/payroll-proof/" + ym + "/" + Date.now() + "_" + safe;
+    var path = "hr/payroll-proof/" + ym + "/" + empId + "/" + Date.now() + "_" + safe;
     var meta = await hrStorageUpload(path, file, file.type || "application/octet-stream");
     var rec = { name: file.name, path: meta.path, url: meta.downloadUrl, token: meta.downloadToken,
       size: meta.size || file.size, uploadedAt: new Date().toISOString(),
       uploadedBy: (typeof hrActorName === "function" ? hrActorName() : "system") };
-    var cur = await fetch(payUrl("/" + encodeURIComponent(ym) + "/proofFiles"));
+    var cur = await fetch(payUrl(_peBase(ym, empId) + "/files"));
     var arr = cur.ok ? (await cur.json()) : null; arr = Array.isArray(arr) ? arr : [];
     arr.push(rec);
-    await fetch(payUrl("/" + encodeURIComponent(ym)), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ proofFiles: arr }) });
+    await fetch(payUrl(_peBase(ym, empId)), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ files: arr }) });
     return arr;
   };
-  window.hrPayRemoveProof = async function(ym, idx) {
-    var cur = await fetch(payUrl("/" + encodeURIComponent(ym) + "/proofFiles"));
+  window.hrPayRemoveProofEmp = async function(ym, empId, idx) {
+    var cur = await fetch(payUrl(_peBase(ym, empId) + "/files"));
     var arr = cur.ok ? (await cur.json()) : null; arr = Array.isArray(arr) ? arr : [];
     var rm = arr.splice(idx, 1)[0];
     if (rm && rm.path && typeof hrStorageDelete === "function") { try { await hrStorageDelete(rm.path); } catch (_) {} }
-    await fetch(payUrl("/" + encodeURIComponent(ym)), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ proofFiles: arr }) });
+    await fetch(payUrl(_peBase(ym, empId)), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ files: arr }) });
     return arr;
   };
-  window.hrPaySavePaid = async function(ym, paid, paidDate, note) {
-    var r = await fetch(payUrl("/" + encodeURIComponent(ym)), { method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paid: !!paid, paidDate: paidDate || "", proofNote: note || "" }) });
+  window.hrPaySavePaidEmp = async function(ym, empId, paid, paidDate) {
+    var r = await fetch(payUrl(_peBase(ym, empId)), { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paid: !!paid, paidDate: paidDate || "" }) });
     if (!r.ok) throw new Error("지급상태 저장 HTTP " + r.status);
+  };
+  // 월 롤업(paid=전원 지급 여부) — 히스토리 ✓지급 배지용
+  window.hrPayRollupPaid = async function(ym, rows, proofByEmp) {
+    var ids = (rows || []).map(function(r) { return r.id; });
+    var allPaid = ids.length > 0 && ids.every(function(id) { return proofByEmp[id] && proofByEmp[id].paid; });
+    var last = "";
+    ids.forEach(function(id) { var d = proofByEmp[id] && proofByEmp[id].paidDate; if (d && d > last) last = d; });
+    await fetch(payUrl("/" + encodeURIComponent(ym)), { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paid: allPaid, paidDate: last }) });
+    return allPaid;
   };
 
   /* ═══ 채산 인건비 원천 — 확정 대장 tc를 부서별 집계 ═══
@@ -295,8 +307,7 @@
     var finalized = !!(saved && saved.finalizedAt);
     _rows = (saved && Array.isArray(saved.rows)) ? JSON.parse(JSON.stringify(saved.rows)) : [];
     _dirty = false;
-    var proofFiles = (saved && saved.proofFiles) || [];
-    var paid = !!(saved && saved.paid), paidDate = (saved && saved.paidDate) || "", note = (saved && saved.proofNote) || "";
+    var proofByEmp = (saved && saved.proofByEmp) || {};
 
     // 자동계산 합계 vs 확정대장 합계 차이 힌트
     var live = hrPayCompute(ym).totals;
@@ -309,12 +320,25 @@
         + '<span style="flex:1"></span>' + (cur ? '<span style="font-size:10px;color:var(--text-3)">보는 중</span>' : "") + '</div>';
     }).join("") : '<div style="font-size:11px;color:var(--text-3)">확정된 월이 없습니다 / Chưa có tháng chốt</div>';
 
-    var filesHtml = proofFiles.length ? proofFiles.map(function(f, i) {
-      return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px">'
-        + '<span>📄</span><a href="' + E(f.url) + '" target="_blank" rel="noopener" style="color:var(--text);font-weight:600;font-size:12px;text-decoration:none;overflow:hidden;text-overflow:ellipsis">' + E(f.name) + '</a>'
-        + '<span style="flex:1"></span><span style="font-size:10px;color:var(--text-3)">' + Math.round((f.size || 0) / 1024) + 'KB</span>'
-        + '<button class="hrph-rmproof" data-i="' + i + '" style="border:1px solid var(--border);background:none;color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:11px">✕</button></div>';
-    }).join("") : '<div style="font-size:11px;color:var(--text-3)">첨부된 증빙 없음 / Chưa có chứng từ</div>';
+    // 직원별 지급·증빙 행
+    var paidCnt = _rows.filter(function(r) { return proofByEmp[r.id] && proofByEmp[r.id].paid; }).length;
+    var netSum = _rows.reduce(function(a, r) { return a + (+r.net || 0); }, 0);
+    var proofRows = _rows.map(function(r) {
+      var pe = proofByEmp[r.id] || { files: [], paid: false, paidDate: "" };
+      var chips = (pe.files || []).map(function(f, i) {
+        var nm = f.name || "file"; nm = nm.length > 18 ? nm.slice(0, 16) + "…" : nm;
+        return '<span style="display:inline-flex;align-items:center;gap:3px;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:11px;margin:0 4px 4px 0">'
+          + '<a href="' + E(f.url) + '" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">📄 ' + E(nm) + '</a>'
+          + '<span class="hrpe-rm" data-emp="' + E(r.id) + '" data-i="' + i + '" style="color:var(--danger);cursor:pointer">✕</span></span>';
+      }).join("");
+      return '<tr style="border-bottom:1px solid var(--border)"'+(pe.paid?' ':'')+'>'
+        + '<td style="padding:8px 10px"><b style="font-size:12px">' + E(r.nameVi) + '</b> <span style="font-size:10px;color:var(--text-3)">' + E(r.dept || "") + '</span></td>'
+        + '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);font-weight:600">' + F(r.net) + '</td>'
+        + '<td style="padding:8px 10px">' + chips
+          + '<label style="display:inline-block;border:1px dashed var(--border);border-radius:6px;padding:3px 9px;font-size:11px;color:var(--text-3);cursor:pointer">📎 첨부 / Đính kèm<input type="file" class="hrpe-file" data-emp="' + E(r.id) + '" accept="image/*,application/pdf" multiple style="display:none"></label></td>'
+        + '<td style="padding:8px 10px;text-align:center"><input type="checkbox" class="hrpe-paid" data-emp="' + E(r.id) + '"' + (pe.paid ? " checked" : "") + ' style="width:16px;height:16px"></td>'
+        + '<td style="padding:8px 10px"><input type="date" class="hrpe-date" data-emp="' + E(r.id) + '" value="' + E(pe.paidDate || "") + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px"></td></tr>';
+    }).join("");
 
     var el = document.createElement("div");
     el.id = "hrPayPanel"; el.style.marginTop = "16px";
@@ -337,21 +361,28 @@
           + '<div id="hrLedgerBox" style="padding:6px"></div>'
           + '<p style="font-size:11px;color:var(--text-3);padding:6px 16px 12px;line-height:1.6">모든 셀 직접 수정 가능(상여·정정·일회성 조정). <b>↻</b>=그 행을 자동계산값으로 초기화 · <b>+행</b>=대장에 없는 급여 라인 추가(예: 상여 정산). 합계는 대장 값 기준 실시간.</p></div>'
         : '<div class="form-card" style="padding:20px 16px;margin-bottom:12px;text-align:center;color:var(--text-3);font-size:12px">확정하면 여기에 <b>편집 가능한 급여대장</b>이 생성됩니다. / Sau khi chốt, bảng lương có thể sửa sẽ hiện ở đây.</div>')
-      // ── 히스토리 + 증빙 ──
+      // ── 직원별 지급·증빙 ──
+      + (finalized
+        ? '<div class="form-card" style="padding:0;overflow:hidden;margin-bottom:12px">'
+          + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+          + '<div style="font-size:13px;font-weight:600">직원별 지급·증빙 / Chứng từ chuyển lương theo NV — ' + E(ym) + '</div>'
+          + '<span class="badge ' + (paidCnt === _rows.length && _rows.length ? "b-done" : "b-p1") + '" style="font-size:10px">지급 ' + paidCnt + '/' + _rows.length + '명</span></div>'
+          + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">'
+          + '<th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--text-3)">직원 / NV</th>'
+          + '<th style="padding:8px 10px;text-align:right;font-size:10px;color:var(--text-3)">실지급액 / Thực nhận</th>'
+          + '<th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--text-3)">증빙 (이체증) / Chứng từ CK</th>'
+          + '<th style="padding:8px 10px;text-align:center;font-size:10px;color:var(--text-3)">지급 / Đã trả</th>'
+          + '<th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--text-3)">지급일 / Ngày</th></tr></thead><tbody>'
+          + proofRows
+          + '<tr style="background:var(--surface-2);font-weight:700;border-top:2px solid var(--text)"><td style="padding:8px 10px">합계 / Tổng</td>'
+          + '<td style="padding:8px 10px;text-align:right;font-family:var(--mono)">' + F(netSum) + '</td>'
+          + '<td colspan="3" style="padding:8px 10px;color:var(--text-3);font-weight:400;font-size:11px">직원마다 이체증빙 첨부 + 지급 체크(SHB 건별). 전원 지급 시 히스토리에 ✓지급.</td></tr>'
+          + '</tbody></table></div></div>'
+        : '')
+      // ── 히스토리 ──
       + '<div class="form-card" style="padding:0;overflow:hidden">'
-      + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">히스토리 · 지급증빙 / Lịch sử · Chứng từ lương</div>'
-      + '<div style="display:grid;grid-template-columns:0.85fr 1.15fr;gap:16px;padding:16px">'
-      + '<div><div style="font-size:11px;color:var(--text-3);font-weight:600;margin-bottom:8px">월별 / Theo tháng</div>'
-      + '<div style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto">' + histRows + '</div></div>'
-      + '<div><div style="font-size:11px;color:var(--text-3);font-weight:600;margin-bottom:8px">지급 증빙 (' + E(ym) + ') / Chứng từ chuyển lương</div>'
-      + '<label id="hrphDrop" style="display:block;border:2px dashed var(--border);border-radius:10px;padding:14px;text-align:center;color:var(--text-3);cursor:pointer;font-size:12px">📎 이체증빙 업로드 (이미지·PDF) / Tải chứng từ<input id="hrphFile" type="file" accept="image/*,application/pdf" multiple style="display:none"></label>'
-      + '<div id="hrphFiles" style="display:flex;flex-direction:column;gap:6px;margin-top:10px">' + filesHtml + '</div>'
-      + '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px">'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600"><input id="hrphPaid" type="checkbox"' + (paid ? " checked" : "") + ' style="width:16px;height:16px">지급 완료 / Đã chuyển</label>'
-      + '<input id="hrphPaidDate" type="date" value="' + E(paidDate) + '" style="border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px"></div>'
-      + '<input id="hrphNote" type="text" value="' + E(note) + '" placeholder="메모 / Ghi chú (예: SHB 이체 3건)" style="width:100%;margin-top:8px;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12px">'
-      + '<button id="hrphSaveProof" style="margin-top:10px;border:1px solid var(--text);background:none;color:var(--text);font-size:11px;cursor:pointer;padding:6px 12px;border-radius:7px">증빙·지급상태 저장 / Lưu</button>'
-      + '</div></div></div>';
+      + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">월별 히스토리 / Lịch sử theo tháng</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:16px">' + histRows + '</div></div>';
     host.appendChild(el);
 
     // 편집표 렌더
@@ -382,16 +413,32 @@
       };
     });
 
-    // 증빙
-    var drop = el.querySelector("#hrphDrop"), fileIn = el.querySelector("#hrphFile");
-    fileIn.onchange = async function() { drop.textContent = "업로드 중… / Đang tải…";
-      try { for (var i = 0; i < fileIn.files.length; i++) { await hrPayUploadProof(ym, fileIn.files[i]); } hrRenderPayPanel(); }
-      catch (e) { if (typeof showToast === "function") showToast("업로드 실패: " + e.message); console.error(e); hrRenderPayPanel(); } };
-    el.querySelectorAll(".hrph-rmproof").forEach(function(b) { b.onclick = async function() { await hrPayRemoveProof(ym, +b.getAttribute("data-i")); hrRenderPayPanel(); }; });
-    el.querySelector("#hrphSaveProof").onclick = async function() {
-      try { await hrPaySavePaid(ym, el.querySelector("#hrphPaid").checked, el.querySelector("#hrphPaidDate").value, el.querySelector("#hrphNote").value);
-        if (typeof showToast === "function") showToast("지급상태 저장 ✓"); hrRenderPayPanel(); }
-      catch (e) { if (typeof showToast === "function") showToast("저장 실패: " + e.message); console.error(e); } };
+    // 직원별 증빙·지급
+    el.querySelectorAll(".hrpe-file").forEach(function(inp) {
+      inp.onchange = async function() {
+        var emp = inp.getAttribute("data-emp");
+        if (typeof showToast === "function") showToast("업로드 중… / Đang tải…");
+        try { for (var i = 0; i < inp.files.length; i++) { await hrPayUploadProofEmp(ym, emp, inp.files[i]); } hrRenderPayPanel(); }
+        catch (e) { if (typeof showToast === "function") showToast("업로드 실패: " + e.message); console.error(e); hrRenderPayPanel(); }
+      };
+    });
+    el.querySelectorAll(".hrpe-rm").forEach(function(x) {
+      x.onclick = async function() { await hrPayRemoveProofEmp(ym, x.getAttribute("data-emp"), +x.getAttribute("data-i")); hrRenderPayPanel(); };
+    });
+    async function savePaidRow(emp) {
+      var chk = el.querySelector('.hrpe-paid[data-emp="' + emp + '"]');
+      var dt = el.querySelector('.hrpe-date[data-emp="' + emp + '"]');
+      if (chk.checked && !dt.value) dt.value = new Date().toISOString().slice(0, 10);
+      try {
+        await hrPaySavePaidEmp(ym, emp, chk.checked, dt.value);
+        var pbe = {}; el.querySelectorAll(".hrpe-paid").forEach(function(c) { var id = c.getAttribute("data-emp"); pbe[id] = { paid: c.checked, paidDate: (el.querySelector('.hrpe-date[data-emp="' + id + '"]') || {}).value || "" }; });
+        await hrPayRollupPaid(ym, _rows, pbe);
+        if (typeof showToast === "function") showToast("지급상태 저장 ✓");
+        hrRenderPayPanel();
+      } catch (e) { if (typeof showToast === "function") showToast("저장 실패: " + e.message); console.error(e); }
+    }
+    el.querySelectorAll(".hrpe-paid").forEach(function(c) { c.onchange = function() { savePaidRow(c.getAttribute("data-emp")); }; });
+    el.querySelectorAll(".hrpe-date").forEach(function(d) { d.onchange = function() { savePaidRow(d.getAttribute("data-emp")); }; });
   };
 
   /* ---- renderHrPay 래핑 (원본 실행 후 패널 append) ---- */
