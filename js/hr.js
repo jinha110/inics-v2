@@ -568,11 +568,15 @@
 
   window._hrInitDone = true;
 })();
-/* payroll-history + chasan 자가 로드 */
+/* payroll-history + chasan 자가 로드 (body 준비 후) */
 (function(){
-  ['hr-payroll-history.js','chasan.js'].forEach(function(f){
-    var s=document.createElement('script');
-    s.src='js/'+f+'?v='+Date.now();
-    document.body.appendChild(s);
-  });
+  function _hrLoadExtra(){
+    ['hr-payroll-history.js','chasan.js'].forEach(function(f){
+      var s=document.createElement('script');
+      s.src='js/'+f+'?v='+Date.now();
+      (document.body||document.head||document.documentElement).appendChild(s);
+    });
+  }
+  if(document.body){ _hrLoadExtra(); }
+  else{ document.addEventListener('DOMContentLoaded', _hrLoadExtra); }
 })();
