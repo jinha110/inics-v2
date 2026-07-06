@@ -2258,7 +2258,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
 // MEMBERS — JINHA LEE is ADMIN
 // ═══════════════════════════════════════════
 let MEMBERS = [
-  {id:1, name:'JINHA LEE',    role:'GENERAL MANAGER', dept:'SOURCING',  pw:'JINHA',      isAdmin:true},
+  {id:1, name:'JINHA LEE',    role:'GENERAL MANAGER', dept:'SOURCING',  pw:'JINHA',      isAdmin:true, taskPrivate:true},
   {id:2, name:'HWAN SHIN YU', role:'MANAGER',          dept:'FURNITURE', pw:'HWANSHINYU', isAdmin:false},
   {id:3, name:'HANA',         role:'PROJECT MANAGER',  dept:'FURNITURE', pw:'HANA',       isAdmin:false},
   {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',       isAdmin:false},
@@ -2896,7 +2896,7 @@ function loginNew(){
   document.getElementById('newAuthWrap').style.display='none';document.getElementById('newFormWrap').style.display='block';
   document.getElementById('newAuthLabel').textContent=`Authenticated · 인증: ${m.name} (${m.role})`;
   const chip=document.getElementById('sessionChip');chip.style.display='flex';document.getElementById('sessionName').textContent=m.name;
-  if(m.isAdmin){sessionIsAdmin=true;document.getElementById('sessionAdminBadge').style.display='';document.getElementById('nav-admin').style.display='';}
+  sessionIsAdmin=!!m.isAdmin;document.getElementById('sessionAdminBadge').style.display=m.isAdmin?'':'none';document.getElementById('nav-admin').style.display=m.isAdmin?'':'none';
   renderDraftAttList();onDeptChange();
 }
 function logoutNew(){newAuthId=null;draftAtts=[];sessionIsAdmin=false;window._editingDocId=null;document.getElementById('newAuthWrap').style.display='block';document.getElementById('newFormWrap').style.display='none';document.getElementById('sessionChip').style.display='none';document.getElementById('nav-admin').style.display='none';}
@@ -5660,6 +5660,29 @@ function taskSignal(k){ for(var i=0;i<TASK_SIGNALS.length;i++)if(TASK_SIGNALS[i]
 function daysBetween(a,b){ if(!a||!b)return 0; var d1=new Date(a+'T00:00:00'),d2=new Date(b+'T00:00:00'); return Math.round((d2-d1)/86400000); }
 function taskDelay(t){ var end=t.status==='done'?t.closedDate:projTodayISO(); return Math.max(0,daysBetween(t.startDate,end)); }
 function isReportMember(uid){ var rm=state.reportMembers; if(!rm||!Object.keys(rm).length)return true; return !!rm[uid]; }
+// 업무 열람 권한 · Task view scope
+//  - 본인 업무는 항상 열람 가능
+//  - taskPrivate가 아닌 멤버(JINHA 제외 전원)의 업무는 누구나 상호 열람 가능
+//  - taskPrivate 멤버(JINHA)의 업무는 본인만 열람 (다른 사람/관리자 모두 불가)
+function taskViewableMembers(){
+  var me=cardCurrentUser();
+  return MEMBERS.filter(function(m){
+    if(me && m.id===me.id) return true;   // 본인
+    if(!m.taskPrivate) return true;       // 비공개 아닌 전원 상호 열람
+    return false;                          // 비공개(JINHA) → 본인만
+  });
+}
+function canViewMemberTasks(uid){ return taskViewableMembers().some(function(m){return m.id==uid;}); }
+// 수정/완료/삭제 권한 · Edit scope — 열람과 분리
+//  - 본인 소유 업무 또는 관리자(JINHA)만 수정/완료/삭제 가능
+//  - 남의 업무는 열람만, 손대지 못함
+function canEditTask(t){ if(!t)return false; var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin); return isAdm||(!!me&&t.userId===me.id); }
+// DAILY/주간/월간 렌더 대상 멤버
+//  - 열람 가능(비공개 JINHA 제외) 멤버 중 리포트 대상 + 본인은 항상
+function taskDailyMembers(){
+  var me=cardCurrentUser();
+  return taskViewableMembers().filter(function(m){return (me&&m.id===me.id)||isReportMember(m.id);});
+}
 function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
 function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; if(pid==='networking')return '네트워킹 · Networking'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
 // Normalized list of project IDs linked to a task (supports legacy single projectId)
@@ -5733,8 +5756,9 @@ function closeReportApp(){ reportAppOpen=false; var a=document.getElementById('r
 function taskSwitchTab(t){ _taskTab=t; renderTaskApp(); }
 function reportSetDate(v){ _reportDate=v||projTodayISO(); renderTaskApp(); }
 function reportNav(dir){ var d=new Date(_reportDate||projTodayISO()); if(_taskTab==='weekly')d.setDate(d.getDate()+dir*7); else if(_taskTab==='monthly')d.setMonth(d.getMonth()+dir); else d.setDate(d.getDate()+dir); _reportDate=_isoD(d); renderTaskApp(); }
-function reportSetTarget(v){ _taskTargetUid=v||null; renderTaskApp(); }
+function reportSetTarget(v){ if(v && !canViewMemberTasks(v)){ showToast('열람 권한이 없습니다 · No permission'); return; } _taskTargetUid=v||null; renderTaskApp(); }
 function openTaskForm(id){
+  if(id!=null){ var _et=(state.tasks||[]).find(function(x){return x.id===id;}); if(_et && !canEditTask(_et)){ showToast('본인 업무만 수정할 수 있습니다 · No permission'); return; } }
   _editingTaskId=id||null;
   document.getElementById('tskType').innerHTML=TASK_TYPES.map(function(t){return '<option value="'+t.k+'">'+t.l+'</option>';}).join('');
   document.getElementById('tskSignal').innerHTML=TASK_SIGNALS.map(function(sg){return '<option value="'+sg.k+'">'+sg.l+'</option>';}).join('');
@@ -5833,6 +5857,8 @@ function saveTask(){
 }
 function deleteTask(id){
   if(id==null)return;
+  var _dt=(state.tasks||[]).find(function(x){return x.id===id;});
+  if(!canEditTask(_dt)){ showToast('본인 업무만 삭제할 수 있습니다 · No permission'); return; }
   if(!confirm('이 업무를 삭제할까요? · Delete this task?'))return;
   (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
   state.tasks=(state.tasks||[]).filter(function(x){return x.id!==id;});
@@ -5840,6 +5866,7 @@ function deleteTask(id){
 }
 function completeTask(id){
   var t=(state.tasks||[]).find(function(x){return x.id===id;}); if(!t)return;
+  if(!canEditTask(t)){ showToast('본인 업무만 완료할 수 있습니다 · No permission'); return; }
   var note=prompt('완료 내용 (금일 진행 업무) · Done note:', t.doneNote||t.title); if(note===null)return;
   note=note.trim(); if(!note){ showToast('완료 내용을 입력하세요'); return; }
   var hrs=prompt('실제 소요 시간(h) · Hours:', t.estHours||''); if(hrs===null)return;
@@ -5849,6 +5876,7 @@ function completeTask(id){
 }
 function reopenTask(id){
   var t=(state.tasks||[]).find(function(x){return x.id===id;}); if(!t)return;
+  if(!canEditTask(t)){ showToast('본인 업무만 재개할 수 있습니다 · No permission'); return; }
   t.status='open'; t.closedDate=''; t.updatedAt=nowStr();
   (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
   saveState(); renderTaskApp(); showToast('재개됨 · Reopened');
@@ -5886,9 +5914,11 @@ function taskCard(t, compact){
   var typeTag='<span style="font-size:10px;color:var(--text-3);background:var(--surface-2);padding:1px 7px;border-radius:8px">'+taskTypeLabel(t.taskType)+'</span>';
   var projTag=taskProjLabels(t).map(function(lb){ return '<span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px"><i class="ti ti-folder"></i> '+lb+'</span>'; }).join(' ');
   var hrs=t.estHours?'<span style="font-size:10px;color:var(--text-3)"><i class="ti ti-clock"></i> '+t.estHours+'h</span>':'';
-  var actions = done
+  var _canEd = canEditTask(t);
+  var actions = !_canEd ? ''
+    : (done
     ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="reopenTask('+t.id+')"><i class="ti ti-arrow-back-up"></i> 재개 · Resume</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>'
-    : '<button class="btn btn-dark" style="font-size:10px;padding:3px 9px" onclick="completeTask('+t.id+')"><i class="ti ti-check"></i> 완료 · Close</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>';
+    : '<button class="btn btn-dark" style="font-size:10px;padding:3px 9px" onclick="completeTask('+t.id+')"><i class="ti ti-check"></i> 완료 · Close</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>');
   return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+sg.c+';border-radius:var(--radius);padding:10px 12px;margin-bottom:8px'+(done?';opacity:.72':'')+'">'
     +'<div style="display:flex;gap:8px;align-items:flex-start"><div style="margin-top:3px">'+signalDot(t.signal)+'</div>'
     +'<div style="flex:1;min-width:0">'
@@ -5904,13 +5934,14 @@ function taskCard(t, compact){
 function renderMyTasks(){
   var me=cardCurrentUser(); var isAdm=sessionIsAdmin||(me&&me.isAdmin);
   var tu=reportTargetUser(); var uid=tu?tu.id:null;
+  if(tu && !canViewMemberTasks(tu.id)){ _taskTargetUid=null; tu=cardCurrentUser(); uid=tu?tu.id:null; }
   var viewBtn='<div style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">'
     +'<button onclick="setTaskView(\'card\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='card'?'var(--text)':'transparent')+';color:'+(_taskView==='card'?'#fff':'var(--text-3)')+'"><i class="ti ti-layout-cards"></i> 카드 · Card</button>'
     +'<button onclick="setTaskView(\'table\')" style="border:none;font-family:var(--sans);font-size:11px;padding:5px 10px;cursor:pointer;background:'+(_taskView==='table'?'var(--text)':'transparent')+';color:'+(_taskView==='table'?'#fff':'var(--text-3)')+'"><i class="ti ti-table"></i> 표 · Table</button></div>';
   var hdr='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<div style="font-size:14px;font-weight:700">'+(tu?tu.name:'')+'님의 업무'+(_taskTargetUid?' <span style="font-size:10px;color:#b45309;background:#b4530914;padding:1px 7px;border-radius:8px">관리자 작성 · Admin-created</span>':'')+'</div>'
     +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+viewBtn;
-  if(isAdm){ hdr+='<select onchange="reportSetTarget(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">본인 · Me</option>'+MEMBERS.map(function(m){return '<option value="'+m.id+'"'+(String(_taskTargetUid)===String(m.id)?' selected':'')+'>'+m.name+'</option>';}).join('')+'</select>'
+  if(isAdm){ hdr+='<select onchange="reportSetTarget(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">본인 · Me</option>'+taskViewableMembers().filter(function(m){return !me||m.id!==me.id;}).map(function(m){return '<option value="'+m.id+'"'+(String(_taskTargetUid)===String(m.id)?' selected':'')+'>'+m.name+'</option>';}).join('')+'</select>'
     +'<button class="btn btn-outline" onclick="openSlackConfig()" style="font-size:11px;padding:4px 8px" title="설정 · Settings"><i class="ti ti-settings"></i></button>'; }
   hdr+='<button class="btn btn-dark" onclick="openTaskForm(null)" style="font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i> 새 업무 · Add</button>'
     +'<button class="btn btn-outline" onclick="fetchSlackToReport()" style="font-size:11px;padding:6px 10px"><i class="ti ti-brand-slack"></i> Slack 불러오기</button>'
@@ -5945,7 +5976,7 @@ function dateNavBar(extra){
 }
 function renderDaily(){
   var nav=dateNavBar('<input type="date" value="'+_reportDate+'" onchange="reportSetDate(this.value)" style="font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><span style="font-size:12px;color:var(--text-3)">'+(_reportDate===projTodayISO()?'오늘 · Today':'')+'</span>');
-  var members=MEMBERS.filter(function(m){return isReportMember(m.id);});
+  var members=taskDailyMembers();
   var html=nav; var any=false;
   members.forEach(function(m){
     var doneT=(state.tasks||[]).filter(function(t){return t.userId===m.id && t.status==='done' && t.closedDate===_reportDate;});
@@ -5971,7 +6002,7 @@ function renderRollup(){
   if(_taskTab==='weekly'){ var d=new Date(base); var dow=(d.getDay()+6)%7; var mon=new Date(d); mon.setDate(d.getDate()-dow); var sun=new Date(mon); sun.setDate(mon.getDate()+6); start=_isoD(mon); end=_isoD(sun); label=start+' ~ '+end+' · Week'; }
   else { var y=+base.slice(0,4),m=+base.slice(5,7); start=base.slice(0,7)+'-01'; var last=new Date(y,m,0).getDate(); end=base.slice(0,7)+'-'+String(last).padStart(2,'0'); label=base.slice(0,7)+' · Month'; }
   var nav=dateNavBar('<span style="font-size:14px;font-weight:700">'+label+'</span>');
-  var members=MEMBERS.filter(function(m){return isReportMember(m.id);});
+  var members=taskDailyMembers();
   var html=nav; var any=false;
   var netAll=[];
   members.forEach(function(m){
@@ -6015,6 +6046,11 @@ function toggleAllTasks(el){
 function _refreshSelBar(){ var n=Object.keys(_taskSel).length; var bar=document.getElementById('taskSelBar'); if(bar)bar.style.display=n?'flex':'none'; var c=document.getElementById('taskSelCount'); if(c)c.textContent=n; }
 function deleteSelectedTasks(){
   var ids=Object.keys(_taskSel).map(Number); if(!ids.length)return;
+  var _tmap={}; (state.tasks||[]).forEach(function(x){_tmap[x.id]=x;});
+  var _blocked=ids.filter(function(id){return !canEditTask(_tmap[id]);});
+  ids=ids.filter(function(id){return canEditTask(_tmap[id]);});
+  if(_blocked.length){ showToast(_blocked.length+'건은 권한이 없어 제외됨 · '+_blocked.length+' skipped (no permission)'); }
+  if(!ids.length){ return; }
   if(!confirm(ids.length+'건을 삭제할까요? · Delete '+ids.length+' tasks?'))return;
   ids.forEach(function(id){ (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); }); });
   state.tasks=(state.tasks||[]).filter(function(x){return ids.indexOf(x.id)<0;});
@@ -6031,10 +6067,10 @@ function taskRow(t){
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+(t.startDate||'')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;white-space:nowrap">'+(!done&&delay>0?'<span style="color:#b91c1c;font-weight:700">D+'+delay+'</span>':(done?'<span style="color:#15803d">완료 · Done</span>':'-'))+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3)">'+(t.estHours||'')+'</td>'
-   +'<td style="padding:6px 8px;white-space:nowrap">'+(done
+   +'<td style="padding:6px 8px;white-space:nowrap">'+(canEditTask(t)?((done
        ?'<button class="btn btn-outline" style="font-size:10px;padding:2px 7px" onclick="reopenTask('+t.id+')">재개 · Resume</button>'
        :'<button class="btn btn-dark" style="font-size:10px;padding:2px 7px" onclick="completeTask('+t.id+')">완료 · Done</button>')
-     +' <button class="btn btn-outline" style="font-size:10px;padding:2px 6px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button></td>'
+     +' <button class="btn btn-outline" style="font-size:10px;padding:2px 6px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>'):'<span style="font-size:10px;color:var(--text-3)">열람 전용 · View</span>')+'</td>'
    +'</tr>';
 }
 function getSlackChannels(){
@@ -8460,12 +8496,12 @@ function applyGateSession(memberId) {
     var avatarChip = document.getElementById('sessionAvatarChip');
     if (avatarChip) avatarChip.innerHTML = getAvatar(m.id, 'sm');
   }
-  if (m.isAdmin) {
-    sessionIsAdmin = true;
+  sessionIsAdmin = !!m.isAdmin;
+  {
     const badge = document.getElementById('sessionAdminBadge');
     const navAdmin = document.getElementById('nav-admin');
-    if (badge) badge.style.display = '';
-    if (navAdmin) navAdmin.style.display = '';
+    if (badge) badge.style.display = m.isAdmin ? '' : 'none';
+    if (navAdmin) navAdmin.style.display = m.isAdmin ? '' : 'none';
   }
 
   // If currently on new page, show form
