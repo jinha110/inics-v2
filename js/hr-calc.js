@@ -32,15 +32,24 @@
     return { st: rec.days || rec.st || {}, ot: rec.ot || 0 };
   };
 
-  /** attStats — prototype 동일 (ATT → hrAttForCalc) */
+  /** attStats — prototype 동일 (ATT → hrAttForCalc)
+   *  + 입사일(joinDate)/퇴사일(endDate) 자동 일할계산:
+   *    입사 전·퇴사 후 평일은 소정근로일(std)에는 포함하되 무급(unpaid) 처리 →
+   *    factor = (std - unpaid)/std 로 자동 일할 차감. (예: BINH 6/15 입사 → 12/22) */
   window.hrAttStats = function(e, ym) {
     var y = ym.split("-").map(Number)[0], m = ym.split("-").map(Number)[1];
     var dim = new Date(y, m, 0).getDate();
     var rec = hrAttForCalc(e.id, ym);
-    var std = 0, unpaid = 0, leave = 0, hol = 0;
+    var join = e.joinDate || null;
+    var end = e.endDate || e.resignDate || e.leaveDate || null;
+    var pad = function(n) { return (n < 10 ? "0" : "") + n; };
+    var std = 0, unpaid = 0, leave = 0, hol = 0, preHire = 0;
     for (var d = 1; d <= dim; d++) {
       var wd = new Date(y, m - 1, d).getDay();
       if (wd === 0 || wd === 6) continue;
+      var iso = y + "-" + pad(m) + "-" + pad(d);
+      var employed = (!join || iso >= join) && (!end || iso <= end);
+      if (!employed) { std++; unpaid++; preHire++; continue; }   // 입사 전/퇴사 후 = 무급 일할
       var s = rec.st[d] || rec.st[String(d)] || "P";
       if (s === "H") { hol++; continue; }
       std++;
@@ -48,7 +57,7 @@
       if (s === "L") leave++;
     }
     var factor = std ? (std - unpaid) / std : 1;
-    return { dim: dim, std: std, unpaid: unpaid, leave: leave, hol: hol, ot: rec.ot || 0, factor: factor };
+    return { dim: dim, std: std, unpaid: unpaid, leave: leave, hol: hol, preHire: preHire, ot: rec.ot || 0, factor: factor };
   };
 
   window.hrLeaveUsed = function(e, year) {
