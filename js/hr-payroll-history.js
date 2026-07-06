@@ -15,12 +15,13 @@
 
   var _rows = [];        // 편집 중인 급여대장 행 (working copy)
   var _dirty = false;    // 저장 안 된 편집 있음
+  var _proofByEmp = {};  // 현재 월 직원별 증빙 (엑셀 export용)
 
   /* ---- 급여대장 행 스키마 (전부 편집 가능) ---- */
   var LCOLS = [
     { k: "nameVi", t: "text", vn: "Họ tên", kr: "이름", w: 150, l: 1 },
     { k: "nameKo", t: "text", vn: "Chức vụ", kr: "직급", w: 96, l: 1 },
-    { k: "dept",   t: "text", vn: "Phòng", kr: "부서", w: 92, l: 1 },
+    { k: "dept",   t: "sel", vn: "Phòng", kr: "부서", w: 108, opts: ["FURNITURE", "COMMON", "SOURCING"] },
     { k: "salaryType", t: "sel", vn: "Loại", kr: "유형", w: 76, opts: ["NET", "Gross"] },
     { k: "applied", t: "num", vn: "Lương áp dụng", kr: "적용급여", w: 108 },
     { k: "otPay",   t: "num", vn: "Tăng ca", kr: "OT", w: 84 },
@@ -133,6 +134,102 @@
     return allPaid;
   };
 
+  /* ═══ 사회보험 상세 (엑셀 Insurance 시트 재현) ═══ */
+  window.HR_INS_PAYEE = {
+    company: "CÔNG TY TNHH INICS VINA", taxCode: "0319562684",
+    address: "Số 28 Đường Đặng Hữu Phổ, Phường An Khánh, TP. Hồ Chí Minh",
+    unitVN: "YN0109W", unitNN: "IC0168W",
+    beneficiary: "BAO HIEM XA HOI CO SO THU DUC", account: "3456634567",
+    bank: "VIETCOMBANK", branch: "Chi nhánh Thủ Thiêm",
+    contentTpl: "+BHXH+103+00+{unitVN}+{period}+dong BHXH+"
+  };
+
+  // 대장 ib(보험기준액)>0 인원의 SI/HI/AI/UI 상세 (회사 21.5% + 본인 10.5%)
+  window.hrPayInsuranceDetail = function(ym) {
+    var S = (typeof hrPayrollSettings === "function") ? hrPayrollSettings() : null;
+    var com = (S && S.comRate) || { si: 0.17, hi: 0.03, ai: 0.005, ui: 0.01 };
+    var emp = (S && S.empRate) || { si: 0.08, hi: 0.015, ui: 0.01 };
+    var capSIHI = (S && S.capSIHI) || 46800000, capUI = (S && S.capUI) || 106200000;
+    var empMap = {};
+    if (typeof hrEmployeesList === "function") hrEmployeesList().forEach(function(e) { empMap[e.id] = e; });
+    var rows = _rows.filter(function(r) { return (+r.ib || 0) > 0; }).map(function(r, i) {
+      var b = +r.ib || 0, cs = Math.min(b, capSIHI), cu = Math.min(b, capUI);
+      var cSI = Math.round(cs * com.si), cHI = Math.round(cs * com.hi), cAI = Math.round(cs * com.ai), cUI = Math.round(cu * com.ui);
+      var eSI = Math.round(cs * emp.si), eHI = Math.round(cs * emp.hi), eUI = Math.round(cu * emp.ui);
+      var cTot = cSI + cHI + cAI + cUI, eTot = eSI + eHI + eUI;
+      var e = empMap[r.id] || {};
+      return { no: i + 1, id: r.id, name: r.nameVi, start: e.joinDate || "", base: b,
+        cSI: cSI, cHI: cHI, cAI: cAI, cUI: cUI, cTot: cTot, eSI: eSI, eHI: eHI, eUI: eUI, eTot: eTot, grand: cTot + eTot };
+    });
+    var T = rows.reduce(function(a, r) {
+      ["base","cSI","cHI","cAI","cUI","cTot","eSI","eHI","eUI","eTot","grand"].forEach(function(k) { a[k] = (a[k] || 0) + r[k]; }); return a;
+    }, {});
+    var period = ym.replace("-", "");
+    var content = HR_INS_PAYEE.contentTpl.replace("{unitVN}", HR_INS_PAYEE.unitVN).replace("{period}", period);
+    return { ym: ym, rows: rows, totals: T, payee: HR_INS_PAYEE, content: content, grand: T.grand || 0 };
+  };
+
+  /* ═══ 엑셀(.xlsx) — 급여대장 + 지급증빙 + 사회보험 ═══ */
+  function _reqXLSX() { if (typeof XLSX === "undefined") throw new Error("XLSX 미로드 (index.html의 xlsx.full.min.js 확인)"); return XLSX; }
+
+  window.hrPayBuildWorkbook = function(ym, proofByEmp) {
+    var X = _reqXLSX(); proofByEmp = proofByEmp || {};
+    var wb = X.utils.book_new();
+    // Sheet1 급여대장
+    var h1 = ["STT","이름/Họ tên","부서/Phòng","유형/Loại","적용급여/Applied","OT","보험기준/BH base","직원보험/BH NLĐ","과세/Taxable","PIT","실수령/Net","회사보험/BH cty","총비용/Tổng CP","비고/Note"];
+    var d1 = _rows.map(function(r, i) { return [i+1, r.nameVi, r.dept, r.salaryType, +r.applied||0, +r.otPay||0, +r.ib||0, +r.ei||0, +r.tax||0, +r.pit||0, +r.net||0, +r.ci||0, +r.tc||0, r.note||""]; });
+    var t = hrLedgerTotals(_rows);
+    d1.push(["","합계/Tổng","","", t.applied, t.ot, "", "", "", "", t.net, "", t.tc, ""]);
+    X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([["급여대장 / BẢNG LƯƠNG — "+ym], h1].concat(d1)), "급여대장");
+    // Sheet2 지급증빙
+    var h2 = ["STT","이름/Họ tên","부서","실지급액/Thực nhận","지급여부/Đã trả","지급일/Ngày","증빙수","증빙파일/Chứng từ (URL)"];
+    var d2 = _rows.map(function(r, i) {
+      var pe = proofByEmp[r.id] || {}; var files = pe.files || [];
+      return [i+1, r.nameVi, r.dept, +r.net||0, pe.paid ? "Y" : "N", pe.paidDate || "", files.length, files.map(function(f){return f.url;}).join(" | ")];
+    });
+    X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([["직원별 지급·증빙 — "+ym], h2].concat(d2)), "지급증빙");
+    // Sheet3 사회보험
+    X.utils.book_append_sheet(wb, _insAoaSheet(ym), "사회보험");
+    return wb;
+  };
+
+  function _insAoaSheet(ym) {
+    var X = _reqXLSX(); var d = hrPayInsuranceDetail(ym); var p = d.payee;
+    var mm = ym.slice(5), yy = ym.slice(0, 4);
+    var aoa = [
+      [p.company], ["Mã số thuế / 세금코드: " + p.taxCode], [p.address],
+      ["Mã đơn vị VN: " + p.unitVN, "", "Mã đơn vị NN: " + p.unitNN], [],
+      ["BẢNG TRÍCH BHXH, BHYT, BHTN / SOCIAL·HEALTH·UNEMPLOYMENT INSURANCE"], ["Tháng " + mm + " năm " + yy + " (" + ym + ")"], [],
+      ["STT","HỌ TÊN / FULL NAME","START DATE","LƯƠNG CƠ BẢN ĐÓNG BH","CÔNG TY ĐÓNG / COMPANY","","","","","NLĐ ĐÓNG / EMPLOYEE","","","","TỔNG PHẢI ĐÓNG (32%)"],
+      ["","","","","SI 17%","HI 3%","AI 0.5%","UI 1%","TỔNG 21.5%","SI 8%","HI 1.5%","UI 1%","TỔNG 10.5%",""]
+    ];
+    d.rows.forEach(function(r) { aoa.push([r.no, r.name, r.start, r.base, r.cSI, r.cHI, r.cAI, r.cUI, r.cTot, r.eSI, r.eHI, r.eUI, r.eTot, r.grand]); });
+    var T = d.totals;
+    aoa.push(["TỔNG CỘNG / TOTAL","","", T.base, T.cSI, T.cHI, T.cAI, T.cUI, T.cTot, T.eSI, T.eHI, T.eUI, T.eTot, T.grand]);
+    aoa.push([]);
+    aoa.push(["Đơn vị hưởng thụ / Beneficiary","Số tài khoản / Account","Ngân hàng / Bank","Chi nhánh / Branch","Số tiền / Amount","Nội dung / Content"]);
+    aoa.push([p.beneficiary, p.account, p.bank, p.branch, d.grand, d.content]);
+    return X.utils.aoa_to_sheet(aoa);
+  }
+
+  // 다운로드 (전체 3시트)
+  window.hrPayExportXlsx = function(ym, proofByEmp) { var X = _reqXLSX(); X.writeFile(hrPayBuildWorkbook(ym, proofByEmp), "payroll_" + ym + ".xlsx"); };
+  // 다운로드 (사회보험 단독)
+  window.hrPayExportInsuranceXlsx = function(ym) { var X = _reqXLSX(); var wb = X.utils.book_new(); X.utils.book_append_sheet(wb, _insAoaSheet(ym), "사회보험"); X.writeFile(wb, "insurance_" + ym + ".xlsx"); };
+
+  // Firebase Storage 저장 (A안: 확정/저장 시 자동)
+  window.hrPaySaveXlsxToStorage = async function(ym, proofByEmp) {
+    var X = _reqXLSX();
+    if (typeof hrStorageUpload !== "function") throw new Error("hrStorageUpload 미로드");
+    var arr = X.write(hrPayBuildWorkbook(ym, proofByEmp), { type: "array", bookType: "xlsx" });
+    var blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    var path = "hr/payroll-xlsx/" + ym + "/payroll_" + ym + ".xlsx";
+    var meta = await hrStorageUpload(path, blob, blob.type);
+    await fetch(payUrl("/" + encodeURIComponent(ym)), { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ xlsx: { url: meta.downloadUrl, path: meta.path, savedAt: new Date().toISOString() } }) });
+    return meta;
+  };
+
   /* ═══ 채산 인건비 원천 — 확정 대장 tc를 부서별 집계 ═══
      확정 대장(/hr/payroll/{ym}.rows)의 tc(회사총비용)를 row.dept 기준 합산.
      · finalized면 대장(수동조정 포함) = 진실의 원천
@@ -228,8 +325,12 @@
   function inCell(r, i, col) {
     var v = r[col.k];
     if (col.t === "sel") {
-      return '<select class="hrl-in" data-i="' + i + '" data-k="' + col.k + '" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:4px;font-size:11px">'
-        + col.opts.map(function(o) { return '<option' + (o === v ? " selected" : "") + '>' + o + '</option>'; }).join("") + '</select>';
+      var opts = col.opts.slice();
+      var off = (v != null && v !== "" && opts.indexOf(v) < 0);   // 목록에 없는 기존값(예: FINANCE)
+      var offColor = off ? "border-color:var(--warning);background:#fffbeb;" : "";
+      var extra = off ? '<option value="' + E(v) + '" selected>' + E(v) + ' ⚠</option>' : "";
+      return '<select class="hrl-in" data-i="' + i + '" data-k="' + col.k + '" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:4px;font-size:11px;' + offColor + '">'
+        + extra + opts.map(function(o) { return '<option' + (!off && o === v ? " selected" : "") + '>' + o + '</option>'; }).join("") + '</select>';
     }
     var isNum = col.t === "num";
     return '<input class="hrl-in" data-i="' + i + '" data-k="' + col.k + '" data-num="' + (isNum ? 1 : 0) + '" '
@@ -308,6 +409,7 @@
     _rows = (saved && Array.isArray(saved.rows)) ? JSON.parse(JSON.stringify(saved.rows)) : [];
     _dirty = false;
     var proofByEmp = (saved && saved.proofByEmp) || {};
+    _proofByEmp = proofByEmp;
 
     // 자동계산 합계 vs 확정대장 합계 차이 힌트
     var live = hrPayCompute(ym).totals;
@@ -356,7 +458,9 @@
         ? '<div class="form-card" style="padding:0;overflow:hidden;margin-bottom:12px">'
           + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
           + '<div style="font-size:13px;font-weight:600">급여 대장 (전체 편집 가능) / Bảng lương — ' + E(ym) + '</div>'
-          + '<div style="display:flex;gap:6px"><button id="hrlAdd" style="border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;padding:6px 10px;border-radius:7px">+ 행 추가 / Thêm dòng</button>'
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap"><button id="hrlIns" style="border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;padding:6px 10px;border-radius:7px">🛡 사회보험 상세 / BHXH</button>'
+          + '<button id="hrlXlsx" style="border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;padding:6px 10px;border-radius:7px">📥 엑셀 다운로드 / Tải Excel</button>'
+          + '<button id="hrlAdd" style="border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;padding:6px 10px;border-radius:7px">+ 행 추가 / Thêm dòng</button>'
           + '<button id="hrlSave" style="border:1px solid var(--text);background:none;color:var(--text);font-size:11px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:7px">💾 대장 저장 / Lưu</button></div></div>'
           + '<div id="hrLedgerBox" style="padding:6px"></div>'
           + '<p style="font-size:11px;color:var(--text-3);padding:6px 16px 12px;line-height:1.6">모든 셀 직접 수정 가능(상여·정정·일회성 조정). <b>↻</b>=그 행을 자동계산값으로 초기화 · <b>+행</b>=대장에 없는 급여 라인 추가(예: 상여 정산). 합계는 대장 값 기준 실시간.</p></div>'
@@ -389,17 +493,26 @@
     if (finalized) { var box = el.querySelector("#hrLedgerBox"); refreshLedger(box, ym);
       el.querySelector("#hrlAdd").onclick = function() { _rows.push({ id: "M" + Date.now(), nameVi: "", nameKo: "", dept: "", salaryType: "Gross", applied: 0, otPay: 0, ib: 0, ei: 0, tax: 0, pit: 0, net: 0, ci: 0, tc: 0, note: "", manual: true }); _dirty = true; refreshLedger(box, ym); };
       el.querySelector("#hrlSave").onclick = async function() {
-        try { await hrLedgerSaveRows(ym, _rows); _dirty = false; el.querySelector("#hrlSave").textContent = "✓ 저장됨 / Đã lưu"; if (typeof showToast === "function") showToast("급여대장 저장 ✓"); setTimeout(function(){ var b=document.getElementById("hrlSave"); if(b) b.textContent="💾 대장 저장 / Lưu"; },1500); hrRenderPayPanel(); }
-        catch (e) { if (typeof showToast === "function") showToast("저장 실패: " + e.message); console.error(e); }
+        try {
+          await hrLedgerSaveRows(ym, _rows);
+          try { await hrPaySaveXlsxToStorage(ym, _proofByEmp); } catch (xe) { console.warn("xlsx 자동저장 실패", xe); }  // A안: 자동 엑셀 저장
+          _dirty = false; el.querySelector("#hrlSave").textContent = "✓ 저장됨 / Đã lưu"; if (typeof showToast === "function") showToast("급여대장 저장 + 엑셀 ✓");
+          setTimeout(function(){ var b=document.getElementById("hrlSave"); if(b) b.textContent="💾 대장 저장 / Lưu"; },1500); hrRenderPayPanel();
+        } catch (e) { if (typeof showToast === "function") showToast("저장 실패: " + e.message); console.error(e); }
       };
+      el.querySelector("#hrlXlsx").onclick = function() { try { hrPayExportXlsx(ym, _proofByEmp); } catch (e) { if (typeof showToast === "function") showToast(e.message); alert(e.message); } };
+      el.querySelector("#hrlIns").onclick = function() { hrRenderInsuranceModal(ym); };
     }
 
     // 확정
     el.querySelector("#hrphFinalize").onclick = async function() {
       if (finalized && _dirty && !confirm("저장 안 된 편집이 있습니다. 계산값으로 덮어쓸까요? (수동조정 사라짐)")) return;
       if (finalized && !confirm("자동계산값으로 급여대장을 덮어씁니다. 계속할까요?")) return;
-      try { await hrLedgerFinalize(ym); if (typeof showToast === "function") showToast(ym + " 확정 → 급여대장 생성 ✓"); hrRenderPayPanel(); }
-      catch (e) { if (typeof showToast === "function") showToast("확정 실패: " + e.message); console.error(e); }
+      try {
+        await hrLedgerFinalize(ym);
+        try { _rows = hrPayCompute(ym).rows; await hrPaySaveXlsxToStorage(ym, _proofByEmp); } catch (xe) { console.warn("xlsx 자동저장 실패", xe); }  // A안
+        if (typeof showToast === "function") showToast(ym + " 확정 → 대장 생성 + 엑셀 ✓"); hrRenderPayPanel();
+      } catch (e) { if (typeof showToast === "function") showToast("확정 실패: " + e.message); console.error(e); }
     };
 
     // 히스토리
@@ -439,6 +552,63 @@
     }
     el.querySelectorAll(".hrpe-paid").forEach(function(c) { c.onchange = function() { savePaidRow(c.getAttribute("data-emp")); }; });
     el.querySelectorAll(".hrpe-date").forEach(function(d) { d.onchange = function() { savePaidRow(d.getAttribute("data-emp")); }; });
+  };
+
+  /* ═══ 사회보험 상세 모달 (엑셀 Insurance 시트 형태) ═══ */
+  window.hrRenderInsuranceModal = function(ym) {
+    var old = document.getElementById("hrInsModal"); if (old) old.remove();
+    var d = hrPayInsuranceDetail(ym), p = d.payee, T = d.totals;
+    var fmt = function(n) { return F(n); };
+    var rowsHtml = d.rows.length ? d.rows.map(function(r) {
+      return '<tr style="border-bottom:1px solid var(--border)">'
+        + '<td style="padding:6px 8px;text-align:center">' + r.no + '</td>'
+        + '<td style="padding:6px 8px"><b>' + E(r.name) + '</b></td>'
+        + '<td style="padding:6px 8px;text-align:center;color:var(--text-3)">' + E(r.start) + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;font-family:var(--mono)">' + fmt(r.base) + '</td>'
+        + [r.cSI,r.cHI,r.cAI,r.cUI].map(function(v){return '<td style="padding:6px 8px;text-align:right;font-family:var(--mono);color:var(--text-3)">'+fmt(v)+'</td>';}).join("")
+        + '<td style="padding:6px 8px;text-align:right;font-family:var(--mono);font-weight:600;background:#fff7ed">' + fmt(r.cTot) + '</td>'
+        + [r.eSI,r.eHI,r.eUI].map(function(v){return '<td style="padding:6px 8px;text-align:right;font-family:var(--mono);color:var(--text-3)">'+fmt(v)+'</td>';}).join("")
+        + '<td style="padding:6px 8px;text-align:right;font-family:var(--mono);font-weight:600;background:#fef2f2">' + fmt(r.eTot) + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;font-family:var(--mono);font-weight:700">' + fmt(r.grand) + '</td></tr>';
+    }).join("") : '<tr><td colspan="14" style="padding:16px;text-align:center;color:var(--text-3)">보험 가입 인원 없음 (대장 보험기준액=0) / Không có người tham gia BH</td></tr>';
+
+    var ov = document.createElement("div");
+    ov.id = "hrInsModal";
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px";
+    ov.innerHTML =
+      '<div style="background:var(--surface,#fff);border-radius:14px;max-width:1100px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+      + '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface,#fff);z-index:1">'
+      + '<div><div style="font-size:15px;font-weight:700">🛡 사회보험 상세 / BHXH·BHYT·BHTN — ' + E(ym) + '</div>'
+      + '<div style="font-size:11px;color:var(--text-3);margin-top:2px">' + E(p.company) + ' · MST ' + E(p.taxCode) + ' · Mã đơn vị ' + E(p.unitVN) + '</div></div>'
+      + '<div style="display:flex;gap:8px"><button id="hrInsXlsx" style="border:1px solid var(--text);background:var(--text);color:#fff;font-size:12px;font-weight:600;cursor:pointer;padding:8px 13px;border-radius:8px">📥 엑셀 다운로드</button>'
+      + '<button id="hrInsClose" style="border:1px solid var(--border);background:none;font-size:12px;cursor:pointer;padding:8px 13px;border-radius:8px">닫기</button></div></div>'
+      + '<div style="padding:16px 20px;overflow-x:auto">'
+      + '<table style="width:100%;border-collapse:collapse;font-size:11.5px;white-space:nowrap">'
+      + '<thead><tr style="background:var(--surface-2)">'
+      + '<th rowspan="2" style="padding:6px 8px">STT</th><th rowspan="2" style="padding:6px 8px;text-align:left">HỌ TÊN / 이름</th>'
+      + '<th rowspan="2" style="padding:6px 8px">START</th><th rowspan="2" style="padding:6px 8px">LƯƠNG BH<br>보험기준</th>'
+      + '<th colspan="5" style="padding:6px 8px;background:#fff7ed">CÔNG TY / 회사 21.5%</th>'
+      + '<th colspan="4" style="padding:6px 8px;background:#fef2f2">NLĐ / 본인 10.5%</th>'
+      + '<th rowspan="2" style="padding:6px 8px">TỔNG 32%<br>합계</th></tr>'
+      + '<tr style="background:var(--surface-2);font-size:10px;color:var(--text-3)">'
+      + '<th style="padding:4px 8px">SI 17%</th><th style="padding:4px 8px">HI 3%</th><th style="padding:4px 8px">AI 0.5%</th><th style="padding:4px 8px">UI 1%</th><th style="padding:4px 8px">계 21.5%</th>'
+      + '<th style="padding:4px 8px">SI 8%</th><th style="padding:4px 8px">HI 1.5%</th><th style="padding:4px 8px">UI 1%</th><th style="padding:4px 8px">계 10.5%</th></tr></thead>'
+      + '<tbody>' + rowsHtml
+      + '<tr style="background:var(--surface-2);font-weight:700;border-top:2px solid var(--text)">'
+      + '<td colspan="3" style="padding:8px">TỔNG CỘNG / TOTAL</td>'
+      + '<td style="padding:8px;text-align:right;font-family:var(--mono)">' + fmt(T.base||0) + '</td>'
+      + [T.cSI,T.cHI,T.cAI,T.cUI,T.cTot,T.eSI,T.eHI,T.eUI,T.eTot,T.grand].map(function(v){return '<td style="padding:8px;text-align:right;font-family:var(--mono)">'+fmt(v||0)+'</td>';}).join("")
+      + '</tr></tbody></table>'
+      + '<div style="margin-top:16px;border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px">'
+      + '<div style="font-weight:600;margin-bottom:6px">납부 / Nộp bảo hiểm</div>'
+      + '<div style="color:var(--text-2);line-height:1.7">수혜기관 / Beneficiary: <b>' + E(p.beneficiary) + '</b> · 계좌 ' + E(p.account) + ' · ' + E(p.bank) + ' ' + E(p.branch)
+      + '<br>금액 / Amount: <b style="font-family:var(--mono)">' + fmt(d.grand) + ' VND</b> · 적요 / Content: <code style="font-size:11px">' + E(d.content) + '</code></div></div>'
+      + '<p style="font-size:11px;color:var(--text-3);margin-top:10px">보험기준액(대장 ib)·요율은 hr-calc.js 설정 기준. 가입 인원만(대장 보험기준액>0) 표시됩니다.</p>'
+      + '</div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener("click", function(e) { if (e.target === ov) ov.remove(); });
+    ov.querySelector("#hrInsClose").onclick = function() { ov.remove(); };
+    ov.querySelector("#hrInsXlsx").onclick = function() { try { hrPayExportInsuranceXlsx(ym); } catch (e) { alert(e.message); } };
   };
 
   /* ---- renderHrPay 래핑 (원본 실행 후 패널 append) ---- */
