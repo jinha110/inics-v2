@@ -568,3 +568,11 @@
 
   window._hrInitDone = true;
 })();
+/* payroll-history + chasan 자가 로드 */
+(function(){
+  ['hr-payroll-history.js','chasan.js'].forEach(function(f){
+    var s=document.createElement('script');
+    s.src='js/'+f+'?v='+Date.now();
+    document.body.appendChild(s);
+  });
+})();
