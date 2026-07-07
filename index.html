@@ -4420,9 +4420,10 @@ var editingCardId = null;
 var CARD_CONFIRMERS = ['JINHA LEE', 'THANH BINH']; // 재무 확인자 목록 (Binh·Jinha) — 멤버명과 정확히 일치해야 함
 var CARD_CONFIRMER = CARD_CONFIRMERS[0]; // 하위호환
 
+function _normName(s){ return String(s||'').trim().replace(/\s+/g,' ').toUpperCase(); }
 function canConfirmCard(){
   var u=cardCurrentUser();
-  return !!(u && CARD_CONFIRMERS.indexOf(u.name) >= 0);
+  return !!(u && CARD_CONFIRMERS.some(function(c){ return _normName(c)===_normName(u.name); }));
 }
 function setCardFormTitle(editing){
   var t=document.querySelector('#cardFormCard .form-card-title');
