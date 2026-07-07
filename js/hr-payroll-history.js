@@ -21,7 +21,7 @@
   var LCOLS = [
     { k: "nameVi", t: "text", vn: "Họ tên", kr: "이름", w: 150, l: 1 },
     { k: "nameKo", t: "text", vn: "Chức vụ", kr: "직급", w: 96, l: 1 },
-    { k: "dept",   t: "sel", vn: "Phòng", kr: "부서", w: 108, opts: ["FURNITURE", "COMMON", "SOURCING"] },
+    { k: "dept",   t: "sel", vn: "Phòng", kr: "부서", w: 108, opts: ["FUR VN", "FUR MX", "SOURCING", "COMMON", "FURNITURE"] },
     { k: "salaryType", t: "sel", vn: "Loại", kr: "유형", w: 76, opts: ["NET", "Gross"] },
     { k: "applied", t: "num", vn: "Lương áp dụng", kr: "적용급여", w: 108 },
     { k: "otPay",   t: "num", vn: "Tăng ca", kr: "OT", w: 84 },

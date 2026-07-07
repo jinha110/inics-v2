@@ -91,7 +91,8 @@
   };
 
   window.hrDepts = function() {
-    var s = ((typeof state !== "undefined" && state && state.departments) || ["FURNITURE", "SOURCING"]).slice();
+    var s = ((typeof state !== "undefined" && state && state.departments) || ["FUR VN", "FUR MX", "SOURCING", "COMMON"]).slice();
+    ["FUR VN","FUR MX","SOURCING","COMMON"].forEach(function(d){ if(s.indexOf(d)<0) s.push(d); });
     hrEmployeesList().forEach(function(e) {
       if (e.dept && s.indexOf(e.dept) < 0) s.push(e.dept);
     });
@@ -571,7 +572,7 @@
 /* payroll-history + chasan 자가 로드 (body 준비 후) */
 (function(){
   function _hrLoadExtra(){
-    ['hr-payroll-history.js','chasan.js'].forEach(function(f){
+    ['hr-payroll-history.js'].forEach(function(f){
       var s=document.createElement('script');
       s.src='js/'+f+'?v='+Date.now();
       (document.body||document.head||document.documentElement).appendChild(s);
