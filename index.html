@@ -1094,8 +1094,8 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <button class="btn btn-outline" onclick="closeProjectForm()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
       </div>
       <div class="fgrid">
-        <div class="fg"><label>고객사 닉네임 · Client (약칭) <span>거래처DB 연동</span></label><input type="text" id="projClient" list="projectClients" placeholder="약칭/검색 또는 신규" autocomplete="off"></div>
-        <div class="fg"><label>고객사 정식명칭 · Official Name</label><input type="text" id="projClientFull" placeholder="계약서용 정식 회사명 (CÔNG TY ...)" autocomplete="off"></div>
+        <div class="fg"><label>고객사 닉네임 · Client (약칭) <span>거래처DB 연동</span></label><input type="text" id="projClient" list="projectClients" placeholder="약칭/검색 또는 신규" autocomplete="off" onchange="fillProjectFromVendor(this.value)"></div>
+        <div class="fg"><label>고객사 정식명칭 · Official Name <a href="javascript:void(0)" onclick="triggerErcUploadForProject()" style="font-size:10px;color:#4338ca;text-decoration:none;margin-left:6px" title="ERC PDF 자동인식으로 정식명칭·MST·주소 채우기"><i class="ti ti-file-certificate"></i> ERC 업로드</a></label><input type="text" id="projClientFull" placeholder="계약서용 정식 회사명 (CÔNG TY ...)" autocomplete="off"></div>
         <div class="fg"><label>담당자 · Owner</label><input type="text" id="projOwnerName" readonly="" style="background:var(--surface-2);color:var(--text-2)"><select id="projOwnerSelect" onchange="setProjOwner(this.value)" style="display:none"></select></div>
         <div class="fg"><label>지역 · Region <span>직접 입력·추가 가능</span></label><input type="text" id="projRegion" list="projRegionList" placeholder="선택 또는 신규 입력" autocomplete="off"><datalist id="projRegionList"></datalist></div>
         <div class="fg"><label>위치 · Location <span>직접 입력·추가 가능</span></label><input type="text" id="projLocation" list="projLocationList" placeholder="HANOI / HCMC 또는 신규" autocomplete="off"><datalist id="projLocationList"></datalist></div>
@@ -3908,6 +3908,9 @@ function renderVendorDB() {
     var _tc={'매출처':'#1d4ed8','매입처':'#b45309','판관비':'#15803d','기타':'#64748b'};
     var typeChip='<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:700;color:#fff;background:'+(_tc[v.type]||'#64748b')+';padding:2px 8px;border-radius:10px;margin-left:6px">'+(v.type||'기타')+'</span>';
     var _vesc=v.name.replace(/"/g,'&quot;');
+    var _ercM=(state.vendors||[]).find(function(x){ return (x.name||'').trim().toLowerCase()===(v.name||'').trim().toLowerCase(); })||{};
+    var _ercRows=[['세금코드 · MST',_ercM.taxCode||_ercM.reg||v.reg],['베트남 사명 · VN name',_ercM.nameVi],['주소 · Address',_ercM.address],['전화 · Phone',_ercM.phone],['이메일 · Email',_ercM.email],['자본금 · Capital',_ercM.capital]].filter(function(p){return p[1];});
+    var ercHtml=_ercRows.length?'<div class="ifield" style="margin-top:10px"><div class="lbl">사업자 정보 · Business Info (ERC)</div><div class="val" style="font-size:12px;line-height:1.9">'+_ercRows.map(function(p){return '<div><span style="color:var(--text-3)">'+p[0]+':</span> <b>'+String(p[1]).replace(/</g,'&lt;')+'</b></div>';}).join('')+'</div></div>':'';
     var typeSel='<div class="ifield"><div class="lbl">거래처 종류 · Type <span style="font-weight:400;color:var(--text-3)">(견적 고객사 드롭다운은 매출처만 노출)</span></div><div class="val"><select data-vname="'+_vesc+'" onchange="setVendorType(this.dataset.vname,this.value)" style="font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);background:var(--surface)">'+VENDOR_TYPES.map(function(t){return '<option'+(v.type===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select></div></div>';
     var _linkedIds={}; (v.docs||[]).forEach(function(d){ _linkedIds[d.id]=1; });
     var _linkOpts=(state.docs||[]).slice().sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); })
@@ -3926,7 +3929,7 @@ function renderVendorDB() {
       +'<div class="ifield"><div class="lbl">Related Docs · 관련 문서 ('+v.docs.length+')</div><div class="val" style="font-size:12px;line-height:1.9">'+docLinks+'</div></div>'
       +'<div id="vdet-'+vi+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">'
       +'<div style="margin-bottom:8px"><span class="badge b-draft">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">사업자 · '+v.reg+'</span>':'')+'</div>'
-      +typeSel
+      +typeSel+ercHtml      +'<div class="ifield" style="margin-top:10px"><div class="lbl">ERC 사업자등록증 · Auto-fill from ERC</div><div class="val"><button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="triggerErcUploadFor(\''+_vesc+'\')"><i class="ti ti-file-certificate"></i> ERC 업로드 · Upload &amp; auto-fill</button> <span style="font-size:10px;color:var(--text-3)">이 거래처에 세금코드·주소 자동채움</span></div></div>'
       +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+'</div></div>'+settleHtml+custLogHtml+forceLinkHtml
       +'</div>'
       +'</div></div>';
@@ -4152,7 +4155,11 @@ async function _ensureErcLibs(){
   if(typeof Tesseract==='undefined'){ await _ercLoadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'); }
   _ercLibsLoaded = true;
 }
-function triggerErcUpload(){ var i=document.getElementById('ercPdfInput'); if(i) i.click(); }
+var _ercTargetVendor=null;
+function triggerErcUpload(){ _ercTargetVendor=null; _ercMode='vendor'; var i=document.getElementById('ercPdfInput'); if(i) i.click(); }
+function triggerErcUploadFor(vname){ _ercTargetVendor=vname||null; _ercMode='vendor'; var i=document.getElementById('ercPdfInput'); if(i) i.click(); }
+var _ercMode='vendor';
+function triggerErcUploadForProject(){ _ercTargetVendor=null; _ercMode='project'; var i=document.getElementById('ercPdfInput'); if(i) i.click(); }
 function _ercProgress(msg, ov){
   if(!ov){ ov=document.getElementById('ercProgressOverlay'); if(!ov){ ov=document.createElement('div'); ov.id='ercProgressOverlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10002;display:flex;align-items:center;justify-content:center'; document.body.appendChild(ov); } }
   ov.innerHTML='<div style="background:#fff;padding:22px 28px;border-radius:12px;font-size:14px;text-align:center;min-width:250px"><div style="margin-bottom:8px">📄 '+msg+'</div><div style="font-size:11px;color:#888">ERC 자동인식 · Please wait</div></div>';
@@ -4201,26 +4208,56 @@ function _ercConfirmModal(f){
   function fld(id,label,val){ return '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:2px">'+label+'</label><input id="'+id+'" value="'+String(val||'').replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;font-size:13px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans)"></div>'; }
   ov.innerHTML='<div style="background:var(--surface,#fff);border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
     +'<div style="font-size:15px;font-weight:700;margin-bottom:4px">ERC 자동인식 결과 · Confirm &amp; edit</div>'
-    +'<div style="font-size:11px;color:var(--text-3);margin-bottom:14px">OCR 결과입니다. 특히 <b>세금코드(MST)·주소</b>를 확인·수정 후 저장하세요 — OCR 오독 가능.</div>'
-    +fld('ercName','업체명 · Name (영문)',f.name)
+    +'<div style="font-size:11px;color:var(--text-3);margin-bottom:14px">OCR 결과입니다. 특히 <b>세금코드(MST)·주소</b>를 확인·수정 후 '+(_ercMode==='project'?'프로젝트에 적용':'저장')+'하세요 — OCR 오독 가능.'+(_ercMode==='project'?' <b style="color:#4338ca">현재 프로젝트 고객사 정보로 채웁니다.</b>':'')+(_ercTargetVendor?' <b style="color:#4338ca">「'+String(_ercTargetVendor).replace(/</g,'&lt;')+'」 거래처에 저장됩니다.</b>':'')+'</div>'
+    +fld('ercName','업체명 · Name (영문)'+(_ercTargetVendor?' <span style="color:#4338ca">(대상 거래처 고정)</span>':''),_ercTargetVendor||f.name)
     +fld('ercNameVi','베트남 사명 · VN name',f.nameVi)
     +fld('ercMst','세금코드 · Tax (MST)',f.mst)
     +fld('ercAddr','주소 · Address',f.address)
     +fld('ercPhone','전화 · Phone',f.phone)
     +fld('ercEmail','이메일 · Email',f.email)
     +fld('ercCap','자본금 · Capital',f.capital)
+    +(_ercMode==='project'?'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-top:6px;cursor:pointer"><input type="checkbox" id="ercAlsoVendor" checked> 거래처 DB에도 저장 · Also save to Vendor DB <span style="font-size:10px;color:var(--text-3)">(중복 관리 방지)</span></label>':'')
     +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">'
     +'<button onclick="_ercCloseConfirm()" style="border:1px solid var(--border);background:none;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:13px;font-family:var(--sans)">취소 · Cancel</button>'
-    +'<button onclick="_ercSaveVendor()" style="border:1px solid var(--text);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans)">거래처 저장 · Save</button>'
+    +'<button onclick="'+(_ercMode==='project'?'_ercApplyToProject()':'_ercSaveVendor()')+'" style="border:1px solid var(--text);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans)">'+(_ercMode==='project'?'프로젝트에 적용 · Apply':'거래처 저장 · Save')+'</button>'
     +'</div></div>';
   ov.style.display='flex';
 }
 function _ercCloseConfirm(){ var ov=document.getElementById('ercConfirmOverlay'); if(ov) ov.style.display='none'; }
+function _ercApplyToProject(){
+  function v(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+  var name=v('ercName');
+  function setF(id,val){ var el=document.getElementById(id); if(el && val){ el.value=val; } }
+  setF('projClientFull', v('ercNameVi')||name);   // 정식명칭 (베트남어 우선)
+  setF('projBuyerTax', v('ercMst'));               // MST
+  setF('projBuyerAddr', v('ercAddr'));             // 주소
+  // 거래처 DB에도 저장 (체크 시)
+  var also=document.getElementById('ercAlsoVendor');
+  if(also && also.checked && name){ _ercTargetVendor=null; _ercSaveVendorSilent(); }
+  _ercCloseConfirm();
+  if(typeof showToast==='function') showToast('프로젝트에 ERC 정보 적용'+((also&&also.checked)?' + 거래처 DB 저장':'')+' · Applied');
+}
+function _ercSaveVendorSilent(){
+  function v(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+  var name=v('ercName'); if(!name) return;
+  if(!state.vendors) state.vendors=[];
+  var key=name.toLowerCase();
+  var rec=state.vendors.find(function(x){ return (x.name||'').trim().toLowerCase()===key; });
+  var isNew=!rec; if(!rec){ rec={ name:name, bankType:'vn' }; }
+  rec.nameVi=v('ercNameVi'); rec.reg=v('ercMst'); rec.taxCode=v('ercMst'); rec.address=v('ercAddr'); rec.phone=v('ercPhone'); rec.email=v('ercEmail'); rec.capital=v('ercCap');
+  var who=(window._gateUser&&window._gateUser.name)||'ERC';
+  rec.updatedAt=nowStr(); if(isNew){ rec.createdAt=nowStr(); rec.createdBy=who; rec.source='ERC'; state.vendors.push(rec); }
+  saveState();
+  if(typeof renderVendorDB==='function') renderVendorDB();
+  if(typeof populateVendorDatalist==='function') populateVendorDatalist();
+  if(typeof populateProjectClients==='function') populateProjectClients();
+}
 function _ercSaveVendor(){
   function v(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
   var name=v('ercName'); if(!name){ showToast('업체명을 입력하세요 · Enter name'); return; }
   if(!state.vendors) state.vendors=[];
-  var key=name.toLowerCase();
+  var _tgt=_ercTargetVendor;
+  var key=(_tgt||name).toLowerCase();
   var rec=state.vendors.find(function(x){ return (x.name||'').trim().toLowerCase()===key; });
   var isNew=!rec; if(!rec){ rec={ name:name, bankType:'vn' }; }
   rec.nameVi=v('ercNameVi'); rec.reg=v('ercMst'); rec.taxCode=v('ercMst'); rec.address=v('ercAddr'); rec.phone=v('ercPhone'); rec.email=v('ercEmail'); rec.capital=v('ercCap');
@@ -6503,6 +6540,18 @@ function populateProjectClients(){
   (state.projects||[]).forEach(function(p){ if(p.client) names[p.client]=true; });
   dl.innerHTML=Object.keys(names).sort().map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'; }).join('');
 }
+// 고객사(거래처) 선택 시 ERC/거래처 정보를 프로젝트 필드에 자동채움 (빈 칸만)
+function fillProjectFromVendor(name){
+  name=(name||'').trim(); if(!name) return;
+  var rec=null;
+  try{ var all=getAllVendors(); rec=all[name.toLowerCase()]; }catch(_){}
+  if(!rec){ var key=name.toLowerCase(); rec=(state.vendors||[]).find(function(x){ return (x.name||'').trim().toLowerCase()===key || (x.nameVi||'').trim().toLowerCase()===key; }); }
+  if(!rec) return;
+  function setIfEmpty(id,val){ var el=document.getElementById(id); if(el && !String(el.value||'').trim() && val){ el.value=val; } }
+  setIfEmpty('projClientFull', rec.nameVi||rec.name);   // 고객사 정식명칭 · Official Name (베트남어 우선)
+  setIfEmpty('projBuyerTax', rec.taxCode||rec.reg);     // TAX 코드 · MST
+  setIfEmpty('projBuyerAddr', rec.address);             // 주소 · Address
+}
 
 function openProjectForm(){ _openProjectForm(null); }
 function editProject(id){ _openProjectForm(id); }
@@ -7416,6 +7465,10 @@ function renderBankApp(){
   if(bankTab==='acct') renderBankAcctAdmin();
 }
 
+function chasanSetCatMapUI(i, area){
+  var cats=state.bankCategories||[]; var c=cats[i]; if(!c) return;
+  if(window.chasanSetCatMap){ window.chasanSetCatMap(c, area).then(function(){ if(typeof showToast==='function') showToast('채산 매핑 · '+c+' → '+(area||'자동')); renderBankAcctAdmin(); }).catch(function(e){ if(typeof showToast==='function') showToast('매핑 저장 실패: '+(e&&e.message)); }); }
+}
 function bankAcctBalance(acctNo){
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===acctNo;});
   var txns=(state.bankTxns||[]).filter(function(t){return t.acctNo===acctNo;});
@@ -8100,9 +8153,10 @@ function bankAutoVendor(){
   showToast('NOTE에서 거래처 '+n+'건 자동 인식 · '+n+' detected');
 }
 
-var bankListFilter = { q:'', cat:'', dir:'', match:'', dept:'' };
+var bankListFilter = { q:'', cat:'', dir:'', match:'', dept:'', month:'' };
+function _bankYm(d){ d=String(d||'').trim(); var m; if((m=d.match(/^(\d{4})-(\d{2})/))) return m[1]+'-'+m[2]; if((m=d.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/))) return m[3]+'-'+('0'+m[2]).slice(-2); return ''; }
 function setBankFilter(field,val){ bankListFilter[field]=val; renderBankList(); }
-function clearBankFilter(){ bankListFilter={q:'',cat:'',dir:'',match:'',dept:''}; renderBankList(); }
+function clearBankFilter(){ bankListFilter={q:'',cat:'',dir:'',match:'',dept:'',month:''}; renderBankList(); }
 function _bankMatchKind(t){
   if(t.matchCardId) return 'card';
   if(t.matchDocId) return 'doc';
@@ -8111,6 +8165,7 @@ function _bankMatchKind(t){
 }
 function _bankPassFilter(t){
   var f=bankListFilter;
+  if(f.month && _bankYm(t.date)!==f.month) return false;
   if(f.cat && (t.category||'Uncategorized')!==f.cat) return false;
   if(f.dir==='in'  && !(Math.round(t.credit||0)>0)) return false;
   if(f.dir==='out' && !(Math.round(t.debit||0)>0)) return false;
@@ -8239,6 +8294,7 @@ function renderBankList(){
   var filterBar='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius)">'
     +'<i class="ti ti-filter" style="color:var(--text-3)"></i>'
     +'<input value="'+String(f.q||'').replace(/"/g,'&quot;')+'" onchange="setBankFilter(\'q\',this.value)" placeholder="검색 · Search (비고·거래처)" style="'+selStyle+';width:180px">'
+    +'<input type="month" value="'+(f.month||'')+'" onchange="setBankFilter(\'month\',this.value)" title="월별 검색 · Month" style="'+selStyle+'">'
     +'<select onchange="setBankFilter(\'cat\',this.value)" style="'+selStyle+';max-width:150px">'+catOpts+'</select>'
     +'<select onchange="setBankFilter(\'dir\',this.value)" style="'+selStyle+'">'+opt('','입출금 전체',f.dir)+opt('in','입금 In',f.dir)+opt('out','출금 Out',f.dir)+'</select>'
     +'<select onchange="setBankFilter(\'dept\',this.value)" style="'+selStyle+'">'+opt('','부서 전체',f.dept)+_bankDeptList().map(function(d){return opt(d,d,f.dept);}).join('')+'</select>'
@@ -8246,7 +8302,7 @@ function renderBankList(){
       +opt('','매칭 전체',f.match)+opt('unmatched','미매칭',f.match)+opt('matched','매칭됨(전체)',f.match)
       +opt('card','카드',f.match)+opt('doc','전자결재',f.match)+opt('inv','인보이스',f.match)
       +opt('invpartial','인보이스 부분충당',f.match)+opt('invfull','인보이스 완납',f.match)+'</select>'
-    +((f.q||f.cat||f.dir||f.match||f.dept)?'<button class="btn btn-outline" style="font-size:11px;padding:5px 9px" onclick="clearBankFilter()"><i class="ti ti-x"></i> 필터해제 · Clear Filter</button> <span style="font-size:11px;color:var(--text-3)">'+txnsF.length+' / '+txnsAll.length+'건</span>':'')
+    +((f.q||f.cat||f.dir||f.match||f.dept||f.month)?'<button class="btn btn-outline" style="font-size:11px;padding:5px 9px" onclick="clearBankFilter()"><i class="ti ti-x"></i> 필터해제 · Clear Filter</button> <span style="font-size:11px;color:var(--text-3)">'+txnsF.length+' / '+txnsAll.length+'건</span>':'')
     +'<span style="flex:1"></span>'
     +'<button class="btn btn-dark" style="font-size:11px;padding:6px 14px" onclick="bankManualSave()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>'
     +'</div>';
@@ -8320,17 +8376,28 @@ function renderBankAcctAdmin(){
   var el=document.getElementById('bankAcctPane'); if(!el) return;
   if(!acctAdminAllowed()){ el.innerHTML='<div class="empty-state"><i class="ti ti-lock"></i><p>No access · 접근 권한 없음</p></div>'; return; }
   var cats=state.bankCategories||[];
+  if(window.chasanCatMapReady && !window.chasanCatMapReady() && window.chasanCatMapLoad){ window.chasanCatMapLoad().then(function(){ renderBankAcctAdmin(); }); }
+  var _cmap=(window.chasanGetCatMap?window.chasanGetCatMap():{});
+  var _areas=(window.CHASAN_AREAS||[["revenue","매출"],["cogs","매입원가"],["opex","판관비"],["refund","환입"],["excluded","제외"]]);
+  var _areaShort={revenue:'매출',cogs:'원가',opex:'판관비',refund:'환입',excluded:'제외',uncat:'미분류'};
   var list=cats.map(function(c,i){
     var used=(state.bankTxns||[]).filter(function(t){return t.category===c;}).length;
+    var cur=_cmap[c]||'';
+    var eff=(window.chasanClassify?window.chasanClassify(c):'');
+    var mapSel='<select onchange="chasanSetCatMapUI('+i+',this.value)" title="채산 분류 매핑 · Chasan mapping" style="font-size:11px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);'+(eff==='uncat'?'background:#fffbeb':'')+'">'
+      +'<option value=""'+(cur===''?' selected':'')+'>자동'+(eff?'(→'+(_areaShort[eff]||eff)+')':'')+' · Auto</option>'
+      +_areas.map(function(a){ return '<option value="'+a[0]+'"'+(cur===a[0]?' selected':'')+'>'+a[1]+'</option>'; }).join('')
+      +'</select>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'
-      +'<input value="'+c.replace(/"/g,'&quot;')+'" onchange="renameBankCategory('+i+',this.value)" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none">'
-      +'<span style="font-size:11px;color:var(--text-3);width:70px;text-align:right">'+used+' txns</span>'
+      +'<input value="'+c.replace(/"/g,'&quot;')+'" onchange="renameBankCategory('+i+',this.value)" style="flex:1;min-width:120px;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none">'
+      +mapSel
+      +'<span style="font-size:11px;color:var(--text-3);width:60px;text-align:right">'+used+' txns</span>'
       +'<button class="btn btn-outline" style="font-size:10px;padding:4px 8px;color:var(--danger)" onclick="removeBankCategory('+i+')"><i class="ti ti-trash"></i></button>'
       +'</div>';
   }).join('');
   el.innerHTML='<div style="max-width:640px">'
     +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">Accounting Category Catalog · 회계 계정 카탈로그</div>'
-    +'<div style="font-size:12px;color:var(--text-3);margin-bottom:14px">These categories appear in every Bank Statement row · 은행 명세서 분류 드롭다운에 사용됩니다. (English accounting accounts)</div>'
+    +'<div style="font-size:12px;color:var(--text-3);margin-bottom:14px">은행 명세서 분류에 사용 + <b>채산 매핑</b>으로 각 계정이 월별 채산의 어느 영역(매출/원가/판관비/제외)에 들어갈지 지정하세요. 「자동」은 기본 규칙(미지정 시 미분류).</div>'
     +'<div id="bankCatList">'+list+'</div>'
     +'<div style="display:flex;gap:7px;margin-top:14px">'
     +'<input type="text" id="newBankCat" placeholder="New category · 새 계정 (e.g. Insurance)" style="flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none" onkeydown="if(event.key===\'Enter\')addBankCategory()">'
