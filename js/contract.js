@@ -228,15 +228,18 @@ function renderContractApp(){
   if(!sdocs.length){ html+='<div style="font-size:12px;color:var(--text-3)">전자결재에서 「계약」 또는 「계약체결」 유형으로 기안하면 여기로 모입니다 · File a 계약 approval to collect here.</div>'; }
   else {
     var drows=sdocs.slice().reverse().map(function(d){
-      var atts=(d.contractAtts||[]).concat(d.draftAtts||[]).concat(d.payAtts||[]);
-      var attCell=atts.length?atts.map(function(a,i){
-        var isImg=/^data:image\//.test(a.data||'');
-        if(isImg) return '<a href="javascript:void(0)" onclick="viewImageLightbox(\'\')" title="'+(a.name||'').replace(/"/g,'&quot;')+'"><img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:3px;cursor:zoom-in"></a>';
-        return '<a href="'+(a.data||'#')+'" download="'+(a.name||'file')+'" title="'+(a.name||'').replace(/"/g,'&quot;')+'" style="margin-right:3px"><i class="ti ti-file" style="font-size:16px;color:var(--text-3);vertical-align:middle"></i></a>';
-      }).join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
+      var _attTypes=[['contract',d.contractAtts||[]],['draft',d.draftAtts||[]],['pay',d.payAtts||[]]];
+      var _attParts=[];
+      _attTypes.forEach(function(pair){ var typ=pair[0], arr=pair[1]; arr.forEach(function(a,i){
+        var nm=(a.name||'file').replace(/"/g,'&quot;');
+        var isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(a.name||'');
+        var icon=isImg?'ti-photo':(/\.pdf$/i.test(a.name||'')?'ti-file-type-pdf':'ti-file');
+        _attParts.push('<a href="javascript:void(0)" onclick="previewAtt('+d.id+',\''+typ+'\','+i+')" title="'+nm+' — 미리보기·다운로드 · Preview/Download" style="margin-right:5px;text-decoration:none"><i class="ti '+icon+'" style="font-size:17px;color:#4338ca;vertical-align:middle"></i></a>');
+      }); });
+      var attCell=_attParts.length?_attParts.join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
       return '<tr>'
         +'<td style="'+td+';font-family:var(--mono);font-size:11px;color:var(--text-3);white-space:nowrap">'+(d.docNo||'—')+'</td>'
-        +'<td style="'+td+';font-weight:600">'+(d.title||'—')+'</td>'
+        +'<td style="'+td+';font-weight:600"><a href="javascript:void(0)" onclick="openDocViewer('+d.id+')" style="color:#4338ca;text-decoration:none;cursor:pointer" title="기안 문서 열기 · View approval draft">'+(d.title||'—')+'</a></td>'
         +'<td style="'+td+'"><span class="badge b-'+(d.dept==='FURNITURE'?'furniture':'sourcing')+'" style="font-size:10px">'+(d.dept||'')+'</span></td>'
         +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(d.createdAt||'')+'</td>'
         +'<td style="'+td+';white-space:nowrap">'+attCell+'</td>'
