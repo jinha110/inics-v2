@@ -27,7 +27,7 @@
      아래 7개 값을 Firebase Console에서 복사해서 교체하세요
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
-<script src="js/sync.js?v=7"></script>
+<script src="js/sync.js?v=8"></script>
 <script src="js/hr.js?v=9"></script>
 <script src="js/hr-calc.js?v=1"></script>
 <script src="js/hr-emp.js?v=4"></script>
@@ -1523,6 +1523,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <button class="filter-chip" onclick="setFilter(&#39;payment&#39;,this)">Payment · 결제 중</button>
         <button class="filter-chip" onclick="setFilter(&#39;done&#39;,this)">Done · 완료</button>
         <button class="filter-chip" onclick="setFilter(&#39;rejected&#39;,this)">Rejected · 반려</button>
+        <input type="text" id="docSearch" oninput="docSearchQ=this.value.trim();renderList()" placeholder="전체 검색 · Search all (번호·제목·내용·기안자·금액)" style="min-width:240px;flex:1;font-size:13px;padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none">
         <div class="filter-spacer"></div>
         <button class="btn btn-dark" onclick="showPage(&#39;new&#39;)"><i class="ti ti-plus"></i> New · 기안</button>
       </div>
@@ -2276,7 +2277,7 @@ let state = {
   projects:[], projectSeq:0, projLocations:['HANOI','HCMC'], projRegionsX:[],
   docTypes:['지출결의서 · Expense Report','휴가신청서 · Leave Request','업무보고서 · Work Report','계약체결 · Contract Signing','기타 · Other']
 };
-let curPage='dashboard', curFilter='all', curDocId=null;
+let curPage='dashboard', curFilter='all', curDocId=null, docSearchQ='';
 let mineUserId=null, mineFilter='all', mineDocId=null;
 let newAuthId=null, sessionIsAdmin=false;
 let pinCb=null, pendingPayFileDocId=null;
@@ -2607,7 +2608,16 @@ function renderList(){
   const el=document.getElementById('docList');
   let docs=state.docs.slice().reverse();
   if(!canViewAll('approval')&&mineUserId)docs=docs.filter(d=>d.drafterId==mineUserId);
-  if(curFilter!=='all')docs=docs.filter(d=>d.status===curFilter);
+  if(docSearchQ){
+    const q=docSearchQ.toLowerCase();
+    docs=docs.filter(d=>{
+      const dr=gm(d.drafterId); const drN=dr?dr.name:'';
+      return [d.docNo,d.title,d.content,d.type,d.dept,d.amount,drN,sLabel(d.status)]
+        .some(v=>String(v||'').toLowerCase().includes(q));
+    });
+  } else if(curFilter!=='all'){
+    docs=docs.filter(d=>d.status===curFilter);
+  }
   if(!docs.length){el.innerHTML='<div class="empty-state"><i class="ti ti-inbox"></i><p>No documents · 문서 없음</p></div>';if(!curDocId)document.getElementById('detailWrap').innerHTML='';return;}
   el.innerHTML=docs.map(d=>docRowHTML(d,curDocId,'detailWrap')).join('');
   if(curDocId)showDetail(curDocId,'detailWrap');
@@ -2724,6 +2734,7 @@ function showDetail(id,wrapId='detailWrap'){
 
   const contractAttHTML = (doc.contractAtts && doc.contractAtts.length) ? `<div class="att-section"><div class="att-hdr"><div class="att-hdr-title"><i class="ti ti-file-certificate" style="font-size:13px;color:#4338ca"></i> 계약서 첨부 · Contract File <span class="cnt-badge">${doc.contractAtts.length}</span></div></div><div class="att-body">${attListHTML(doc.contractAtts,false,id,'contract')}</div></div>` : '';
   const draftAttHTML=`<div class="att-section"><div class="att-hdr"><div class="att-hdr-title"><i class="ti ti-paperclip" style="font-size:13px"></i> Attachments · 기안 첨부 ${doc.draftAtts?.length?`<span class="cnt-badge">${doc.draftAtts.length}</span>`:''}</div>${s==='draft'?`<button class="btn btn-outline" onclick="triggerAddAtt(${id})" style="font-size:11px;padding:3px 9px"><i class="ti ti-plus"></i> Add · 추가</button>`:''}</div><div class="att-body">${attListHTML(doc.draftAtts,s==='draft',id,'draft')}</div></div>`;
+  const payAttHTML=(doc.payAtts&&doc.payAtts.length&&s!=='payment')?`<div class="att-section"><div class="att-hdr"><div class="att-hdr-title"><i class="ti ti-credit-card" style="font-size:13px"></i> 결제 증빙 · Payment proof <span class="cnt-badge">${doc.payAtts.length}</span></div></div><div class="att-body">${attListHTML(doc.payAtts,false,id,'pay')}</div></div>`:'';
 
   let actionHTML='';
   if(s==='pending1'||s==='pending2'){
@@ -2766,7 +2777,7 @@ function showDetail(id,wrapId='detailWrap'){
 
   document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?window._img(doc.descImage,'style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px"'):''}` + '</div>':''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
-      ${contractAttHTML}${draftAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${notesHTML}${actionHTML}</div></div>`;
+      ${contractAttHTML}${draftAttHTML}${payAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${notesHTML}${actionHTML}</div></div>`;
   document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
@@ -2875,7 +2886,7 @@ function openAttPreviewModal(url, name, type, docId, idx, isBlob){
 }
 function closeAttPreview(){ var ov=document.getElementById('attPreviewOverlay'); if(ov){ if(ov._blobUrl){ try{ URL.revokeObjectURL(ov._blobUrl); }catch(_){} ov._blobUrl=null; } ov.style.display='none'; ov.innerHTML=''; } }
 
-function removeAtt(docId,type,idx){const doc=state.docs.find(d=>d.id===docId);if(!doc)return;var arr=_attsFor(doc,type);if(arr)arr.splice(idx,1);saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();}
+function removeAtt(docId,type,idx){const doc=state.docs.find(d=>d.id===docId);if(!doc)return;if(type==='pay'&&doc.status!=='payment'){showToast('완료된 결제 증빙은 삭제 불가 · Locked after completion');return;}var arr=_attsFor(doc,type);if(arr)arr.splice(idx,1);saveState();const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';if(wrap==='detailWrap')renderList();else renderMineList();}
 
 // ═══════════════════════════════════════════
 // PIN MODAL
@@ -3264,17 +3275,43 @@ function onDeptChange(){
 
 function triggerDraftFile(){document.getElementById('draftFileInput').click();}
 
-function handleDraftFile(e){
-  var files = Array.from(e.target.files);
-  var loaded = 0;
-  files.forEach(function(f){
+// 첨부 읽기 + 이미지 자동압축 (폰 사진 3~5MB → ~200-400KB). 이미지 외(PDF/xlsx/doc)는 원본 유지.
+// createImageBitmap(imageOrientation:'from-image')로 EXIF 회전 보정 → 옆으로 눕는 영수증 방지.
+function _readAttFile(file){
+  return new Promise(function(resolve){
+    var isImg = file && /^image\//.test(file.type||'') && !/svg/.test(file.type||'');
     var reader = new FileReader();
     reader.onload = function(ev){
-      draftAtts.push({name:f.name, size:fmtSize(f.size), addedAt:nowStr(), data:ev.target.result, type:f.type});
-      loaded++;
-      if(loaded===files.length){ renderDraftAttList(); showToast(files.length+' file(s) attached · 첨부됨'); }
+      var dataUrl = ev.target.result;
+      var done = function(name,size,type,data){ resolve({name:name,size:size,addedAt:nowStr(),data:data,type:type}); };
+      if(!isImg){ done(file.name, fmtSize(file.size), file.type, dataUrl); return; }
+      var draw = function(src, natW, natH){
+        var MAX=1600, w=natW, h=natH;
+        if(w>MAX||h>MAX){ var r=Math.min(MAX/w, MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
+        var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(src,0,0,w,h);
+        var out; try{ out=cv.toDataURL('image/jpeg',0.7); }catch(_){ out=dataUrl; }
+        if(!out || out.length>=dataUrl.length) out=dataUrl;
+        var kb=Math.round(out.length*0.75/1024);
+        var nm=(file.name||'image').replace(/\.(png|jpe?g|gif|webp|bmp|heic|heif)$/i,'')+'.jpg';
+        done(nm, kb+' KB', 'image/jpeg', out);
+      };
+      if(window.createImageBitmap){
+        createImageBitmap(file,{imageOrientation:'from-image'})
+          .then(function(bmp){ draw(bmp, bmp.width, bmp.height); })
+          .catch(function(){ var im=new Image(); im.onload=function(){ draw(im,im.width,im.height); }; im.onerror=function(){ done(file.name,fmtSize(file.size),file.type,dataUrl); }; im.src=dataUrl; });
+      } else {
+        var im=new Image(); im.onload=function(){ draw(im,im.width,im.height); }; im.onerror=function(){ done(file.name,fmtSize(file.size),file.type,dataUrl); }; im.src=dataUrl;
+      }
     };
-    reader.readAsDataURL(f);
+    reader.readAsDataURL(file);
+  });
+}
+function handleDraftFile(e){
+  var files = Array.from(e.target.files);
+  Promise.all(files.map(_readAttFile)).then(function(items){
+    items.forEach(function(it){ draftAtts.push(it); });
+    renderDraftAttList(); showToast(files.length+' file(s) attached · 첨부됨');
   });
   e.target.value='';
 }
@@ -3292,20 +3329,13 @@ function triggerAddAtt(docId){
   inp.onchange=function(e){
     const doc=state.docs.find(d=>d.id===docId);if(!doc)return;
     doc.draftAtts=doc.draftAtts||[];
-    var files=Array.from(e.target.files), loaded=0;
-    files.forEach(function(f){
-      var reader=new FileReader();
-      reader.onload=function(ev){
-        doc.draftAtts.push({name:f.name,size:fmtSize(f.size),addedAt:nowStr(),data:ev.target.result,type:f.type});
-        loaded++;
-        if(loaded===files.length){
-          saveState();
-          const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';
-          if(wrap==='detailWrap')renderList();else renderMineList();
-          showToast('Attached · 첨부 완료');
-        }
-      };
-      reader.readAsDataURL(f);
+    var files=Array.from(e.target.files);
+    Promise.all(files.map(_readAttFile)).then(function(items){
+      items.forEach(function(it){ doc.draftAtts.push(it); });
+      saveState();
+      const wrap=curDocId===docId?'detailWrap':'mineDetailWrap';
+      if(wrap==='detailWrap')renderList();else renderMineList();
+      showToast('Attached · 첨부 완료');
     });
   };
   inp.click();
@@ -3314,16 +3344,14 @@ function triggerPayFile(id){pendingPayFileDocId=id;document.getElementById('payF
 function handlePayFile(e){
   const file=e.target.files[0];if(!file||pendingPayFileDocId===null)return;
   const doc=state.docs.find(d=>d.id===pendingPayFileDocId);if(!doc)return;
-  var reader=new FileReader();
-  reader.onload=function(ev){
+  _readAttFile(file).then(function(it){
     doc.payAtts=doc.payAtts||[];
-    doc.payAtts.push({name:file.name,size:fmtSize(file.size),addedAt:nowStr(),data:ev.target.result,type:file.type});
+    doc.payAtts.push(it);
     saveState();
     const wrap=curDocId===doc.id?'detailWrap':mineDocId===doc.id?'mineDetailWrap':null;
     if(wrap){if(wrap==='detailWrap')renderList();else renderMineList();}
-    showToast('"'+file.name+'" attached · 첨부 완료');
-  };
-  reader.readAsDataURL(file);
+    showToast('"'+it.name+'" attached · 첨부 완료');
+  });
   e.target.value='';
 }
 
@@ -3410,7 +3438,7 @@ function doApproval(id,step,action,wrapId){
   _autoArchiveApproval(doc);   // 매 승인/반려 단계마다 최신 상태로 덮어쓰기
   saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();
 }
-function completePayment(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.payAtts?.length){showToast('Attach proof · 증빙 파일 첨부 필요');return;}doc.status='done';doc.doneAt=today();_autoArchiveApproval(doc);saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();showToast('Payment done · 결제 완료 — Fully approved · 결재 최종 완료');}
+function completePayment(id,wrapId){const doc=state.docs.find(d=>d.id===id);if(!doc)return;if(!doc.payAtts?.length||!doc.payAtts.some(a=>a&&a.data&&a.data.length>100)){showToast('유효한 결제 증빙을 첨부하세요 · Attach a valid proof');return;}doc.status='done';doc.doneAt=today();_autoArchiveApproval(doc);saveState();if(wrapId==='detailWrap'){curDocId=id;renderList();}else{mineDocId=id;renderMineList();}renderDashboard();showToast('Payment done · 결제 완료 — Fully approved · 결재 최종 완료');}
 function deleteDoc(id){state.docs=state.docs.filter(d=>d.id!==id);saveState();curDocId=null;mineDocId=null;document.getElementById('detailWrap').innerHTML='';document.getElementById('mineDetailWrap').innerHTML='';renderList();renderMineList();renderDashboard();showToast('Deleted · 삭제 완료');}
 
 // ═══════════════════════════════════════════
