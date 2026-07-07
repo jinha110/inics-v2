@@ -787,7 +787,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
       <input type="text" id="invoiceSearch" oninput="renderInvoiceApp()" placeholder="검색 · Search (번호·거래처·비고)" style="flex:1;min-width:180px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)">
       <select id="invoicePayFilter" onchange="renderInvoiceApp()" style="font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">결제 전체 · All Payments</option><option value="open">미결제 · Open</option><option value="paid">결제완료 · Settled</option></select>
-      <button class="btn btn-dark" onclick="openInvoiceForm(null)" style="font-size:12px;padding:7px 13px"><i class="ti ti-plus"></i> 인보이스 추가 · Add</button>
+      <button class="btn btn-dark" onclick="openInvoiceForm(null)" style="font-size:12px;padding:7px 13px"><i class="ti ti-plus"></i> 인보이스 추가 · Add</button><button class="btn btn-outline" onclick="triggerReceivedInvoiceExcel()" style="font-size:12px;padding:7px 13px" title="GDT 수취 인보이스 엑셀 업로드 → 자동 등록"><i class="ti ti-file-spreadsheet"></i> 수취 Excel · Import</button><input type="file" id="recvInvExcelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleReceivedInvoiceExcel(this.files[0]);this.value=''">
       <button class="btn btn-outline" onclick="runInvoiceAutoMatch()" style="font-size:12px;padding:7px 13px" title="은행 명세서와 금액·통화·방향 일치 인보이스 자동 결제 매칭"><i class="ti ti-arrows-diff"></i> 결제 자동매칭 · Auto-match</button>
       <button class="btn btn-dark" onclick="invoiceManualSave()" style="font-size:12px;padding:7px 13px"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
       <button class="btn btn-outline" onclick="invoiceGmailInfo()" style="font-size:12px;padding:7px 13px"><i class="ti ti-mail"></i> Gmail 가져오기</button>
@@ -813,7 +813,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="fg" style="margin:0"><label style="font-size:10px">공급가액 · Subtotal</label><input type="text" id="invSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);invRecalc()" style="font-size:13px;padding:6px 9px"></div>
       <div class="fg" style="margin:0"><label style="font-size:10px">VAT %</label><select id="invVatPct" onchange="invRecalc()" style="font-size:13px;padding:6px 9px"><option value="8">8%</option><option value="10">10%</option><option value="0">0%</option></select></div>
       <div class="fg" style="margin:0"><label style="font-size:10px">합계 · Total</label><input type="text" id="invTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);invRecalcFromTotal()" style="font-size:13px;padding:6px 9px;font-weight:700"></div>
-      <div class="fg" style="margin:0"><label style="font-size:10px">분류 · Category</label><input type="text" id="invCategory" autocomplete="off" placeholder="예: 가구 매출 / 자재 매입" style="font-size:13px;padding:6px 9px"></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">분류 · Category</label><input type="text" id="invCategory" autocomplete="off" placeholder="예: 가구 매출 / 자재 매입" style="font-size:13px;padding:6px 9px"></div><div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">프로젝트 연결 · Project</label><select id="invProject" style="font-size:13px;padding:6px 9px"></select></div>
       <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">비고 · Note</label><input type="text" id="invNote" autocomplete="off" style="font-size:13px;padding:6px 9px"></div>
       <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">첨부 파일 · File (PDF/이미지)</label><input type="file" id="invFileInput" accept="image/*,application/pdf" onchange="handleInvoiceFile(this.files[0])" style="font-size:12px"><div id="invFileName" style="font-size:11px;color:var(--text-3);margin-top:4px"></div></div>
     </div>
@@ -5438,13 +5438,13 @@ function renderInvoiceApp(){
       +'<td style="'+td+';font-weight:600">'+(v.vendor||'—')+'</td>'
       +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+_invFmt(v.total,v.currency)+'</td>'
       +'<td style="'+td+'">'+_invPayCell(v)+'</td>'
-      +'<td style="'+td+';color:var(--text-2);font-size:11px">'+(v.category||'')+'</td>'
+      +'<td style="'+td+';color:var(--text-2);font-size:11px">'+(v.category||'')+'</td>'+'<td style="'+td+'"><select onchange="setInvoiceProject(\''+v.id+'\',this.value)" style="font-size:10px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;max-width:130px;font-family:var(--sans)">'+_invProjectOptions(v.projectId)+'</select></td>'
       +'<td style="'+td+';text-align:center">'+fileCell+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openInvoiceForm(\''+v.id+'\')"><i class="ti ti-edit"></i> 수정 · Edit</button></td>'
       +'</tr>';
   }).join('');
-  box.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:960px">'
-    +'<thead><tr><th style="'+th+'">구분 · Type</th><th style="'+th+'">번호 · No.</th><th style="'+th+'">발행일 · Date</th><th style="'+th+'">거래처 · Party</th><th style="'+th+';text-align:right">합계 · Total</th><th style="'+th+'">결제 · Payment</th><th style="'+th+'">분류 · Category</th><th style="'+th+';text-align:center">파일 · File</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
+  box.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1090px">'
+    +'<thead><tr><th style="'+th+'">구분 · Type</th><th style="'+th+'">번호 · No.</th><th style="'+th+'">발행일 · Date</th><th style="'+th+'">거래처 · Party</th><th style="'+th+';text-align:right">합계 · Total</th><th style="'+th+'">결제 · Payment</th><th style="'+th+'">분류 · Category</th><th style="'+th+'">프로젝트 · Project</th><th style="'+th+';text-align:center">파일 · File</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 function invRecalc(){ var sub=qNum(document.getElementById('invSubtotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var tot=sub*(1+r); document.getElementById('invTotal').value=fmtN(Math.round(tot)); }
@@ -5463,6 +5463,7 @@ function openInvoiceForm(id){
   document.getElementById('invVatPct').value=v&&v.vatPct!=null?v.vatPct:'8';
   document.getElementById('invTotal').value=v&&v.total!=null?fmtN(v.total):'';
   document.getElementById('invCategory').value=v?(v.category||''):'';
+  var _ipEl=document.getElementById('invProject'); if(_ipEl){ _ipEl.innerHTML=_invProjectOptions(v?v.projectId:''); }
   document.getElementById('invNote').value=v?(v.note||''):'';
   document.getElementById('invFileName').textContent=v&&v.fileName?('현재 파일: '+v.fileName):'';
   document.getElementById('invFileInput').value='';
@@ -5472,6 +5473,80 @@ function openInvoiceForm(id){
 }
 function closeInvoiceForm(){ document.getElementById('invoiceModal').style.display='none'; }
 function handleInvoiceFile(f){ if(!f) return; var r=new FileReader(); r.onload=function(){ _invFileBuf={name:f.name,type:f.type,data:r.result}; document.getElementById('invFileName').textContent='첨부됨: '+f.name; }; r.readAsDataURL(f); }
+function _invNum(v){ v=String(v==null?"":v).replace(/[,\s]/g,""); var n=parseFloat(v); return isNaN(n)?0:n; }
+function _invGdtDate(v){ v=String(v==null?"":v).trim(); var m=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); if(m) return m[3]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2); if(/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10); return v; }
+function triggerReceivedInvoiceExcel(){ var i=document.getElementById("recvInvExcelInput"); if(i) i.click(); }
+function handleReceivedInvoiceExcel(file){
+  if(!file){ return; }
+  if(typeof XLSX==="undefined"){ showToast("엑셀 엔진 미로드 · XLSX not loaded"); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
+      // 헤더 행 탐색 (Invoice Number / Số hóa đơn / STT+MST)
+      var hi=-1;
+      for(var r=0;r<Math.min(rows.length,15);r++){ var line=(rows[r]||[]).join("|").toLowerCase(); if(line.indexOf("invoice number")>=0||line.indexOf("s\u1ed1 h\u00f3a \u0111\u01a1n")>=0||(line.indexOf("stt")>=0&&line.indexOf("mst")>=0)){ hi=r; break; } }
+      if(hi<0){ hi=6; }
+      // 열 인덱스(0-based): 2=Symbol,3=Number,4=Date,5=SellerMST,6=SellerName,7=Addr,8=BuyerMST,9=BuyerName,11=Subtotal,12=Tax,13=Discount,14=Total,15=Class,16=Status
+      var existing={}; (state.invoices||[]).forEach(function(v){ if(v.invoiceNo) existing[String(v.invoiceNo).trim()+"|"+String(v.invSymbol||"")]=1; });
+      var u=(typeof cardCurrentUser==="function"?cardCurrentUser():null);
+      var added=0, skipped=0;
+      for(var i=hi+1;i<rows.length;i++){
+        var row=rows[i]; if(!row) continue;
+        var num=String(row[3]||"").trim(); if(!num||num.toLowerCase()==="stt"||isNaN(parseFloat(num))) continue;
+        var sym=String(row[2]||"").trim();
+        var key=num+"|"+sym;
+        if(existing[key]){ skipped++; continue; }
+        var sub=_invNum(row[11]), tax=_invNum(row[12]), tot=_invNum(row[14])||(sub+tax);
+        var vat=sub>0?Math.round(tax/sub*100):0;
+        var rec={ id:"INV"+Date.now()+"_"+i, seq:(state.invoiceSeq=(state.invoiceSeq||0)+1),
+          dir:"received", invoiceNo:num, invSymbol:sym, date:_invGdtDate(row[4]),
+          vendor:String(row[6]||"").trim(), vendorMst:String(row[5]||"").trim(),
+          currency:"VND", subtotal:String(sub), vatPct:String(vat), total:String(tot),
+          category:String(row[15]||"").trim(), note:String(row[16]||"").trim(),
+          source:"GDT-Excel", createdAt:nowStr(), createdBy:(u?u.name:"") };
+        if(!state.invoices) state.invoices=[];
+        state.invoices.push(rec); existing[key]=1; added++;
+      }
+      saveState();
+      if(typeof invoiceSetTab==="function") invoiceSetTab("received"); else renderInvoiceApp();
+      showToast("수취 인보이스 "+added+"건 추가"+(skipped?(" · 중복 "+skipped+"건 제외"):"")+" · Imported "+added);
+    }catch(err){ showToast("엑셀 분석 실패 · Import failed: "+err.message); console.error("[recvInv]",err); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function _invProjectOptions(sel){
+  sel=String(sel==null?"":sel);
+  var opts='<option value="">— 프로젝트 미연결 · None</option>';
+  var ps=(state.projects||[]).slice().sort(function(a,b){ return String(a.client||"").localeCompare(String(b.client||"")); });
+  opts+=ps.map(function(p){ var lbl=(p.client||("PJ-"+p.id))+(p.clientFull?(" · "+p.clientFull):""); return '<option value="'+p.id+'"'+(String(p.id)===sel?" selected":"")+'>'+String(lbl).replace(/</g,"&lt;").slice(0,50)+'</option>'; }).join("");
+  return opts;
+}
+function setInvoiceProject(id, projId){
+  var v=(state.invoices||[]).find(function(x){ return String(x.id)===String(id); }); if(!v) return;
+  v.projectId=projId||""; v.updatedAt=nowStr(); saveState();
+  if(typeof renderProjectBoard==="function") renderProjectBoard();
+  if(typeof renderProjectList==="function") renderProjectList();
+  if(typeof showToast==="function") showToast(projId?"프로젝트 연결 · Linked":"연결 해제 · Unlinked");
+}
+function _projInvoicesHtml(p){
+  var invs=(state.invoices||[]).filter(function(v){ return String(v.projectId||"")===String(p.id); });
+  if(!invs.length) return "";
+  var rows=invs.map(function(v){
+    var dir=v.dir==="issued"?"발행":"수취"; var col=v.dir==="issued"?"#15803d":"#0e7490";
+    return '<div style="display:flex;gap:6px;align-items:center;font-size:10px;padding:2px 0;border-top:1px dashed #fde68a">'
+      +'<span style="color:'+col+';font-weight:700;width:26px;flex-shrink:0">'+dir+'</span>'
+      +'<span style="font-family:var(--mono);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+String(v.vendor||"").replace(/"/g,"&quot;")+'">'+(v.invoiceNo||"—")+'</span>'
+      +'<span style="color:var(--text-3);flex-shrink:0">'+(v.date||"")+'</span>'
+      +'<span style="font-family:var(--mono);font-weight:600;flex-shrink:0">'+(typeof _invFmt==="function"?_invFmt(v.total,v.currency):(v.total||""))+'</span></div>';
+  }).join("");
+  var tot={}; invs.forEach(function(v){ var c=v.currency||"VND"; tot[c]=(tot[c]||0)+(parseFloat(String(v.total||"0").replace(/[,\s]/g,""))||0); });
+  var totStr=Object.keys(tot).map(function(c){ return (typeof _invFmt==="function"?_invFmt(tot[c],c):tot[c]+" "+c); }).join(" · ");
+  return '<div style="margin-top:6px;background:#fefce8;border:1px solid #fde68a;border-radius:var(--radius);padding:7px 9px">'
+    +'<div style="font-size:9px;font-weight:700;color:#92400e;margin-bottom:3px"><i class="ti ti-file-dollar"></i> 연동 인보이스 · Invoices ('+invs.length+') · '+totStr+'</div>'+rows+'</div>';
+}
 function saveInvoice(){
   var gv=function(id){ return (document.getElementById(id).value||'').replace(/,/g,'').trim(); };
   var no=(document.getElementById('invNo').value||'').trim();
@@ -5483,7 +5558,8 @@ function saveInvoice(){
     invoiceNo:no, date:document.getElementById('invDate').value||projTodayISO(),
     vendor:vendor, currency:document.getElementById('invCurrency').value||'VND',
     subtotal:gv('invSubtotal'), vatPct:document.getElementById('invVatPct').value, total:gv('invTotal'),
-    category:(document.getElementById('invCategory').value||'').trim(), note:(document.getElementById('invNote').value||'').trim()
+    category:(document.getElementById('invCategory').value||'').trim(), note:(document.getElementById('invNote').value||'').trim(),
+    projectId:(document.getElementById('invProject')?document.getElementById('invProject').value:'')
   };
   if(!state.invoices) state.invoices=[];
   if(_invEditId){
@@ -6433,7 +6509,7 @@ function projCardHtml(p){
       +'<button onclick="event.stopPropagation();toggleProjDetail('+p.id+')" draggable="false" style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:9px;color:var(--text-2);padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:var(--sans)">DETAIL <i class="ti ti-chevron-down" id="pchev-'+p.id+'" style="font-size:11px;vertical-align:-1px"></i></button>'
     +'</div>'
     +'<div id="pdet-'+p.id+'" style="display:none;margin-top:6px">'
-      +(typeof _projPnlHtml==='function'?_projPnlHtml(p):'')
+      +(typeof _projPnlHtml==='function'?_projPnlHtml(p):'')+(typeof _projInvoicesHtml==='function'?_projInvoicesHtml(p):'')
       +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:6px">'+custBadge+typeBadge+qBadge+regChip+'</div>'
       +(noteShort?'<div style="font-size:11px;color:var(--text-2);margin-top:5px;line-height:1.4">'+noteShort+'</div>':'')
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'
