@@ -28,13 +28,14 @@
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
 <script src="js/sync.js?v=8"></script>
-<script src="js/hr.js?v=9"></script>
+<script src="js/hr.js?v=11"></script>
 <script src="js/hr-calc.js?v=1"></script>
 <script src="js/hr-emp.js?v=4"></script>
 <script src="js/hr-pay-att.js?v=2"></script>
 <script src="js/hr-con.js?v=9" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/quote.js?v=1"></script>
 <script src="js/contract.js?v=1"></script>
+<script src="js/chasan.js?v=1"></script>
 <script>
 (function() {
   if (typeof renderHrCon === "function" && window._hrConLoaded) {
@@ -555,6 +556,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-desc">발행 · 수취 인보이스 관리<br>Issued · Received Invoices</div>
       </div>
 
+      <div class="hub-card active-module" id="hubCard-chasan" onclick="enterModule(&#39;chasan&#39;)">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#7c3aed">Active</div>
+        <div class="hub-card-icon" style="background:#f5f3ff;color:#7c3aed"><i class="ti ti-chart-pie"></i></div>
+        <div class="hub-card-title">부서 채산 · Departmental P&amp;L</div>
+        <div class="hub-card-desc">부서별 손익 · 확정 · 이력<br>By-dept P&amp;L · Finalize · History</div>
+      </div>
+
       <div class="hub-card active-module" id="hubCard-finance" onclick="enterModule(&#39;finance&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#ecfdf5;color:#047857"><i class="ti ti-report-money"></i></div>
@@ -733,6 +741,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 <input type="file" id="bankExcelInput" style="display:none" accept=".xlsx,.xls" onchange="handleBankExcel(this.files[0]);this.value=&#39;&#39;">
+<input type="file" id="grabCsvInput" style="display:none" accept=".csv,.xlsx,.xls" onchange="handleGrabReport(this.files[0]);this.value=&#39;&#39;">
 <input type="file" id="contractScanInput" style="display:none" accept="image/*,application/pdf" multiple="" onchange="handleContractScan(this.files);this.value=&#39;&#39;">
 
 <div id="contractApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
@@ -855,7 +864,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="fg"><label>예상 소요(시간 h)</label><input type="text" id="tskHours" placeholder="예: 1.5" inputmode="decimal" autocomplete="off"></div>
         <div class="fg" id="tskStartWrap"><label>시작일 · Start Date</label><input type="date" id="tskStart"></div>
       </div>
-      <div class="fg" style="margin-top:10px"><label>메모 · Memo</label><input type="text" id="tskIssue" placeholder="메모 · 참고사항 (선택)" autocomplete="off"></div>
+      <div class="fg" style="margin-top:10px"><label>메모 · Memo</label><textarea id="tskIssue" placeholder="메모 · 참고사항 (선택)" rows="4" style="width:100%;resize:vertical;min-height:84px;font-family:inherit;font-size:inherit;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);box-sizing:border-box"></textarea></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button class="btn btn-danger" id="tskDeleteBtn" onclick="deleteTask(_editingTaskId)" style="display:none"><i class="ti ti-trash"></i> 삭제 · Delete</button>
         <button class="btn btn-dark" onclick="saveTask()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
@@ -1378,6 +1387,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div class="sidebar-section">Admin · 관리자</div>
     <button class="nav-item" id="nav-admin" onclick="showPage(&#39;admin&#39;)" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
     <button class="nav-item" onclick="showPage(&#39;vendors&#39;)"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
+    <button class="nav-item" onclick="showPage(&#39;chasan&#39;)"><i class="ti ti-chart-pie"></i>채산 · P&amp;L</button>
     <button class="nav-item" onclick="showHubFromApp()"><i class="ti ti-layout-grid"></i>Hub · 모듈 허브</button>
     <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
   </nav>
@@ -2084,6 +2094,15 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     </div>
 
     <!-- VENDOR DB PAGE -->
+    <div class="page" id="page-chasan">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <label style="font-size:12px;color:var(--text-3)">월 · Month</label>
+        <input type="month" id="csMonth" onchange="renderChasanPage()" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px">
+        <span style="flex:1"></span>
+        <button class="btn btn-outline" onclick="renderChasanPage()" style="font-size:11px;padding:6px 11px"><i class="ti ti-refresh"></i> 새로고침 · Refresh</button>
+      </div>
+      <div id="csHost"></div>
+    </div>
     <div class="page" id="page-vendors">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-size:14px;font-weight:600">Vendors · 거래처 DB</div>
@@ -2265,12 +2284,12 @@ let MEMBERS = [
   {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',       isAdmin:false},
   {id:5, name:'JACOB',        role:'CEO',              dept:'COMMON',    pw:'JACOB',      isAdmin:false},
 ];
-const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}, COMMON:{a1:1,a2:null}};
+const LINES = {'FUR VN':{a1:2,a2:1}, 'FUR MX':{a1:2,a2:1}, FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}, COMMON:{a1:1,a2:null}};
 const ADMIN_EXTRA_PW = 'JINHA'; // Admin panel extra password · 관리자 패널 추가 비밀번호
 
 let state = {
   docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{},
-  departments:['FURNITURE','SOURCING'],
+  departments:['FUR VN','FUR MX','SOURCING','COMMON'],
   vendors:[], vendorRequests:[], vendorReqSeq:0,
   cardExpenses:[], cardSeq:0, cardMerchants:[], modulePerms:{}, viewScope:{},
   products:[], quotes:[], quoteSeq:0,
@@ -2470,7 +2489,7 @@ function gm(id){return MEMBERS.find(m=>m.id==id)||null;}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function today(){const d=new Date();return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;}
 function nowStr(){const d=new Date();return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
-function genDocNo(dept){const ym=new Date();const p=dept==='FURNITURE'?'FUR':'SRC';const k=`${p}${ym.getFullYear()}${String(ym.getMonth()+1).padStart(2,'0')}`;state.docSeq[k]=(state.docSeq[k]||0)+1;return`${k}-${String(state.docSeq[k]).padStart(3,'0')}`;}
+function genDocNo(dept){const ym=new Date();const p=({'FUR VN':'FVN','FUR MX':'FMX',FURNITURE:'FUR',SOURCING:'SRC',COMMON:'COM'})[dept]||'SRC';const k=`${p}${ym.getFullYear()}${String(ym.getMonth()+1).padStart(2,'0')}`;state.docSeq[k]=(state.docSeq[k]||0)+1;return`${k}-${String(state.docSeq[k]).padStart(3,'0')}`;}
 function fmtSize(b){if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return(b/1048576).toFixed(1)+'MB';}
 function fileIcon(n){const e=(n||'').split('.').pop().toLowerCase();return{pdf:'ti-file-type-pdf',xlsx:'ti-file-type-xls',xls:'ti-file-type-xls',docx:'ti-file-type-doc',doc:'ti-file-type-doc',jpg:'ti-photo',jpeg:'ti-photo',png:'ti-photo'}[e]||'ti-file';}
 function getRadio(name){const r=document.querySelector(`input[name="${name}"]:checked`);return r?r.value:null;}
@@ -2495,12 +2514,13 @@ function showPage(name){
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(`'${name}'`))n.classList.add('active');});
-  const titles={dashboard:'전자결재 Dashboard · 전자결재 대시보드',list:'All Documents · 전체 문서',mine:'My Documents · 내 문서함',new:'New Draft · 기안하기',admin:'Admin Panel · 관리자 패널',vendors:'Vendors · 거래처 DB'};
+  const titles={dashboard:'전자결재 Dashboard · 전자결재 대시보드',list:'All Documents · 전체 문서',mine:'My Documents · 내 문서함',new:'New Draft · 기안하기',admin:'Admin Panel · 관리자 패널',vendors:'Vendors · 거래처 DB',chasan:'부서 채산 · Departmental P&L'};
   document.getElementById('pageTitle').textContent=titles[name]||'';
   if(name==='dashboard')renderDashboard();
   if(name==='list')renderList();
   if(name==='admin')renderAdmin();
   if(name==='vendors')renderVendorDB();
+  if(name==='chasan'&&typeof renderChasanPage==='function')renderChasanPage();
   if(name==='new')populateVendorDatalist();
   if(name==='mine') {
     var gu2 = window._gateUser;
@@ -2571,7 +2591,7 @@ function miniCard(doc){
       <div class="doc-title-row" style="font-size:12px">
         ${doc.docNo?`<span class="docno">${doc.docNo}</span>`:''}
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${doc.title}</span>
-        <span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>
+        <span class="badge b-${/^FUR/.test(doc.dept)?'furniture':'sourcing'}">${doc.dept}</span>
       </div>
       <div class="doc-meta"><span>${gm(doc.drafterId)?.name||'—'}</span><span>${doc.createdAt}</span>${doc.amount?`<span>${doc.currency} ${doc.amount}</span>`:''}</div>
     </div>
@@ -2586,7 +2606,7 @@ function docRowHTML(doc,selId,wrap){
       <div class="doc-title-row">
         ${doc.docNo?`<span class="docno">${doc.docNo}</span>`:''}
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${doc.title}</span>
-        <span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>
+        <span class="badge b-${/^FUR/.test(doc.dept)?'furniture':'sourcing'}">${doc.dept}</span>
       </div>
       <div class="doc-meta">
         <span><i class="ti ti-file-text" style="font-size:10px"></i> ${doc.type}</span>
@@ -2775,7 +2795,7 @@ function showDetail(id,wrapId='detailWrap'){
     </div>`;
   }
 
-  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?window._img(doc.descImage,'style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px"'):''}` + '</div>':''}
+  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${/^FUR/.test(doc.dept)?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?window._img(doc.descImage,'style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px"'):''}` + '</div>':''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
       ${contractAttHTML}${draftAttHTML}${payAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${notesHTML}${actionHTML}</div></div>`;
   document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -3004,7 +3024,7 @@ function renderDeptTypeAdmin() {
 function addDept() {
   var val = document.getElementById('newDeptInput').value.trim().toUpperCase();
   if(!val) return;
-  if(!state.departments) state.departments = ['FURNITURE','SOURCING'];
+  if(!state.departments) state.departments = ['FUR VN','FUR MX','SOURCING','COMMON'];
   if(state.departments.includes(val)){showToast('Already exists · 이미 존재');return;}
   state.departments.push(val);
   document.getElementById('newDeptInput').value = '';
@@ -4305,11 +4325,12 @@ function getCardItems(){
 }
 
 var editingCardId = null;
-var CARD_CONFIRMER = 'JINHA LEE'; // 재무 확인자 (추후 변경 가능)
+var CARD_CONFIRMERS = ['JINHA LEE', 'THANH BINH']; // 재무 확인자 목록 (Binh·Jinha) — 멤버명과 정확히 일치해야 함
+var CARD_CONFIRMER = CARD_CONFIRMERS[0]; // 하위호환
 
 function canConfirmCard(){
   var u=cardCurrentUser();
-  return !!(u && u.name===CARD_CONFIRMER);
+  return !!(u && CARD_CONFIRMERS.indexOf(u.name) >= 0);
 }
 function setCardFormTitle(editing){
   var t=document.querySelector('#cardFormCard .form-card-title');
@@ -4352,7 +4373,7 @@ function editCardExpense(id){
   if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
 }
 function confirmCardExpense(id){
-  if(!canConfirmCard()){ showToast('재무 확인 권한이 없습니다 ('+CARD_CONFIRMER+')'); return; }
+  if(!canConfirmCard()){ showToast('재무 확인 권한이 없습니다 ('+CARD_CONFIRMERS.join(', ')+')'); return; }
   var x=(state.cardExpenses||[]).find(function(e){ return e.id===id; }); if(!x) return;
   var u=cardCurrentUser();
   if(x.confirmed){ x.confirmed=false; x.confirmedBy=''; x.confirmedAt=''; }
@@ -5679,7 +5700,7 @@ var _ctTplLang='vnen', _ctTplZoom=100, _ctTplSample=null;
 function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
 function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 // ═══════════ TASK MANAGEMENT (업무 관리) ═══════════
-var TASK_TYPES=[{k:'meeting',l:'고객상담/미팅 · Meeting'},{k:'networking',l:'네트워킹/영업개발 · Networking'},{k:'design',l:'도면/디자인 · Design'},{k:'quote',l:'견적/서류 · Quote/Docs'},{k:'logistics',l:'발주/물류 · Order/Logistics'},{k:'site',l:'현장시공/감리 · Site'},{k:'etc',l:'기타 · Etc'}];
+var TASK_TYPES=[{k:'meeting',l:'고객상담/미팅 · Meeting'},{k:'networking',l:'네트워킹/영업개발 · Networking'},{k:'design',l:'도면/디자인 · Design'},{k:'quote',l:'견적/서류 · Quote/Docs'},{k:'logistics',l:'발주/물류 · Order/Logistics'},{k:'mxsupport',l:'MX 지원 · MX Support'},{k:'site',l:'현장시공/감리 · Site'},{k:'etc',l:'기타 · Etc'}];
 var TASK_SIGNALS=[{k:'green',l:'정상 진행 · On track',c:'#15803d'},{k:'yellow',l:'확인 필요 · Needs check',c:'#b45309'},{k:'red',l:'문제 발생 · Issue',c:'#b91c1c'}];
 var reportAppOpen=false, _taskTab='mytasks', _reportDate='', _taskTargetUid=null, _editingTaskId=null;
 function _isoD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -7341,6 +7362,7 @@ function renderBankUploadBar(){
     +'<div style="font-size:12px;color:var(--text-2)">Upload statement for <b>'+acc.acctNo+'</b> ('+acc.currency+') · 명세서 업로드</div>'
     +'<div style="flex:1"></div>'
     +'<button class="btn btn-dark" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'bankExcelInput\').click()"><i class="ti ti-upload"></i> Upload Excel · 엑셀 업로드</button>'
+    +'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'grabCsvInput\').click()" title="GRAB 사용리포트 CSV로 부서 자동태깅"><i class="ti ti-car"></i> GRAB 리포트</button>'
     +((cnt && (sessionIsAdmin||(cardCurrentUser&&cardCurrentUser()&&cardCurrentUser().isAdmin)))?'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px;color:var(--danger)" onclick="bankClearAcct(\''+acc.acctNo+'\')"><i class="ti ti-trash"></i> Clear · 초기화 <span style="font-size:9px;color:var(--text-3)">(admin)</span></button>':'')
     +'</div>'
     +'<div style="font-size:10px;color:var(--text-3);margin-top:6px">Format · 인식 컬럼: <b>날짜 · 거래구분 · 출금 · 입금 · 잔액 · 참조번호 · 비고</b> (SHB export). Duplicate rows are skipped · 중복 자동 제외.</div>';
@@ -7356,6 +7378,62 @@ function bankClearAcct(acctNo){
   saveState(); renderBankApp(); showToast('Cleared · 초기화 완료');
 }
 
+// ── GRAB 사용리포트 → 은행거래 Booking ID 매칭 · 부서 자동태깅 ──
+// 사용자→채산부서 매핑 (소문자 정규화 · 확장: 여기 한 줄 추가)
+window.GRAB_USER_DEPT = { "jinha lee": "FUR MX", "hwan shin yu": "FUR VN" };
+function _grabBookingId(s){ var m=String(s||'').match(/Grab\*?\s*(A-[A-Za-z0-9]+)/i); return m?m[1].toUpperCase():''; }
+function _archiveGrabCsv(file){
+  try{
+    var BUCKET="inics-approval.firebasestorage.app";
+    var safe=(file.name||'grab.csv').replace(/[\/\\:*?"<>|#\[\]]/g,'_').replace(/\s+/g,'_').slice(0,90);
+    var path="grab/"+safe;
+    var url="https://firebasestorage.googleapis.com/v0/b/"+BUCKET+"/o?name="+encodeURIComponent(path);
+    fetch(url,{method:"POST",headers:{"Content-Type":"text/csv"},body:file})
+      .then(function(r){ if(r.ok){ console.log('[GRAB] Storage 저장:',path); } else { console.warn('[GRAB] Storage 실패 HTTP',r.status); } })
+      .catch(function(e){ console.warn('[GRAB] Storage 오류',e&&e.message); });
+  }catch(e){}
+}
+function handleGrabReport(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){ showToast('XLSX 로더 없음'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      var hi=-1;
+      for(var i=0;i<rows.length;i++){ var rr=rows[i]||[]; if(rr.indexOf('Employee Name')>=0 && rr.indexOf('Booking ID')>=0){ hi=i; break; } }
+      if(hi<0){ showToast('GRAB 형식 아님 · Employee Name/Booking ID 컬럼 없음'); return; }
+      var H=rows[hi];
+      var cEmp=H.indexOf('Employee Name'), cBid=H.indexOf('Booking ID');
+      var cAmt=H.indexOf('Revised Total (After Refund)'); if(cAmt<0) cAmt=H.indexOf('Total Fare');
+      var grab={}, gCount=0;
+      for(var r=hi+1;r<rows.length;r++){ var row=rows[r]||[]; var bid=String(row[cBid]||'').trim().toUpperCase(); if(!bid||bid.charAt(0)!=='A') continue; grab[bid]={emp:String(row[cEmp]||'').trim(), amt:+String(row[cAmt]||'').replace(/[^\d.-]/g,'')||0}; gCount++; }
+      if(!gCount){ showToast('GRAB 행 없음 · No booking rows'); return; }
+      var matched=0, hit={}, unmapped=[];
+      (state.bankTxns||[]).forEach(function(t){
+        var bid=_grabBookingId(t.note); if(!bid) return;
+        var g=grab[bid]; if(!g) return;
+        hit[bid]=1;
+        t.category='Travel & Transport';
+        t.vendor='Grab';
+        t.cardLink='N/A';
+        var dept=GRAB_USER_DEPT[(g.emp||'').toLowerCase()];
+        if(dept){ t.dept=dept; t.chasanDept=dept; } else if(g.emp){ unmapped.push(g.emp); }
+        if(typeof _stampEdit==='function') _stampEdit(t);
+        matched++;
+      });
+      saveState(); if(typeof renderBankApp==='function') renderBankApp();
+      _archiveGrabCsv(file);
+      var uu=[]; unmapped.forEach(function(x){ if(uu.indexOf(x)<0) uu.push(x); });
+      var unmatchedReport=gCount-Object.keys(hit).length;
+      showToast('GRAB 매칭 '+matched+'건 · 리포트 미매칭 '+unmatchedReport+'건'+(uu.length?(' · 부서미매핑: '+uu.join(', ')):''));
+      console.log('[GRAB] 리포트 '+gCount+'건 · 은행매칭 '+matched+'건 · 리포트미매칭 '+unmatchedReport+' · 부서미매핑 사용자:',uu);
+    }catch(err){ console.error(err); showToast('GRAB 파싱 오류: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
 function handleBankExcel(file){
   if(!file) return;
   if(typeof XLSX==='undefined'){ showToast('Excel 모듈 로드 실패 · reload'); return; }
@@ -7421,6 +7499,7 @@ function _bankCandidates(card){
   var amt=_cardAmt(card); if(amt<=0) return [];
   return (state.bankTxns||[]).filter(function(t){
     if(t.matchCardId||t.matchDocId) return false;
+    if(t.cardLink==='N/A') return false;   // GRAB 등 카드연결 불필요 건 대사후보 제외
     if(_bankDebit(t)!==amt) return false;
     if((t.currency||'')!==(card.currency||'')) return false;
     var dd=_mDayDiff(t.date,card.date);
@@ -7772,6 +7851,7 @@ function openDocViewer(docId){
 function closeDocViewer(){ var ov=document.getElementById('docViewerOverlay'); if(ov){ ov.style.display='none'; ov.innerHTML=''; } }
 // 명세서 행의 「전자결재」 열 — 카드 열과 동일 패턴
 function _bankDocCell(t){
+  if(t.category==='Bank Charges'||t.category==='Inter-account Transfer') return '<span style="color:var(--text-3);font-size:11px" title="전자결재 대상 아님 · No approval needed">N/A</span>';
   if(!_isDocTxn(t)) return '<span style="color:var(--text-3)">—</span>';
   var info=_bankDocInfo(t);
   if(info.status==='auto'||info.status==='manual'){
@@ -7957,6 +8037,7 @@ async function bankManualSave(){ try{ await saveState(); showToast('저장 완�
 // ── 부서(Dept): 카드·전자결재 매칭 시 자동, 미매칭 시 수기 ──
 function _bankDeptList(){ var d=(state.departments&&state.departments.length)?state.departments.slice():['FURNITURE','SOURCING','COMMON']; if(d.indexOf('COMMON')<0)d.push('COMMON'); return d; }
 function _bankAutoDept(t){
+  if(t.category==='Bank Charges') return 'COMMON';        // Bank Charges → COMMON 자동지정
   if(t.matchCardId){ var c=(state.cardExpenses||[]).find(function(x){return x.id===t.matchCardId;}); if(c&&c.dept) return c.dept; }
   if(t.matchDocId){ var d=(state.docs||[]).find(function(x){return x.id===t.matchDocId;}); if(d&&d.dept) return d.dept; }
   return '';
@@ -7964,6 +8045,7 @@ function _bankAutoDept(t){
 function _bankDept(t){ var a=_bankAutoDept(t); return a||t.dept||''; }
 function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.dept=String(val||'').trim(); _stampEdit(t); saveState(); }
 function _bankDeptCell(t){
+  if(t.category==='Inter-account Transfer') return '<span style="color:var(--text-3);font-size:11px" title="부서 지정 불필요 · No dept needed">N/A</span>';
   var auto=_bankAutoDept(t);
   if(auto){ return '<span style="font-size:11px;font-weight:700;white-space:nowrap" title="매칭에서 자동 · From matched card/approval">'+auto+' <span style="font-size:8px;font-weight:600;color:#15803d">auto</span></span>'; }
   var cur=t.dept||'';
@@ -7991,6 +8073,8 @@ function bankAutoChargeClassify(silent){
   return n;
 }
 function bankRunAutoCharge(){ var n=bankAutoChargeClassify(false); showToast(n?('은행수수료 자동분류 '+n+'건 · '+n+' bank charges'):'해당 거래 없음 · None found'); }
+var bankSort={key:'',dir:1};
+function setBankSort(k){ if(bankSort.key===k){ bankSort.dir=-bankSort.dir; } else { bankSort.key=k; bankSort.dir=1; } if(typeof renderBankList==='function') renderBankList(); }
 function renderBankList(){
   var el=document.getElementById('bankList'); if(!el) return;
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
@@ -8012,10 +8096,11 @@ function renderBankList(){
   if(!txns.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-file-spreadsheet"></i><p>No transactions · 거래내역 없음 — Upload an Excel statement · 엑셀 업로드</p></div>'; return; }
   var txnsAll=txns;
   var txnsF=txns.filter(_bankPassFilter);
+  if(bankSort.key==='dept'){ txnsF=txnsF.slice().sort(function(a,b){ var da=(_bankDept(a)||'').toString(), db=(_bankDept(b)||'').toString(); if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1; if(da===db)return 0; return da<db?-bankSort.dir:bankSort.dir; }); }
   var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
   var rows=txnsF.map(function(t){
-    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:150px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
+    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:104px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
     var guess=(!t.vendor||!t.vendor.trim())?_bankAutoVendorName(t.note||t.ref||''):'';
     var vph=guess?('추천: '+guess.replace(/"/g,'&quot;')):'거래처 선택·입력';
     var vendorInp='<input list="bankVendorList" value="'+String(t.vendor||'').replace(/"/g,'&quot;')+'" placeholder="'+vph+'" onchange="setBankTxnVendor('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);width:140px;'+((!t.vendor||!t.vendor.trim())?'background:#fffbeb':'')+'">'
@@ -8029,10 +8114,10 @@ function renderBankList(){
       +'<td style="'+td+';max-width:260px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
       +'<td style="'+td+'">'+catSel+'</td>'
       +'<td style="'+td+'">'+_bankDeptCell(t)+'</td>'
-      +'<td style="'+td+';white-space:nowrap">'+vendorInp+'</td>'
+      +'<td style="'+td+';white-space:nowrap">'+(t.category==='Bank Charges'?'<span style="font-size:11px;font-weight:600">SHINHAN VN <span style="font-size:8px;color:#15803d">auto</span></span>':vendorInp)+'</td>'
       +'<td style="'+td+'">'+_bankCardCell(t)+'</td>'
-      +'<td style="'+td+'">'+_bankDocCell(t)+'</td>'
       +'<td style="'+td+'">'+_bankInvoiceCell(t)+'</td>'
+      +'<td style="'+td+'">'+_bankDocCell(t)+'</td>'
       +'<td style="'+td+';text-align:right"><button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button></td>'
       +'</tr>';
   }).join('');
@@ -8073,12 +8158,13 @@ function renderBankList(){
     +'<button class="btn btn-dark" style="font-size:11px;padding:6px 14px" onclick="bankManualSave()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>'
     +'</div>';
   var listHtml = txnsF.length
-    ? '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1580px">'
+    ? '<div id="bankScrollTop" style="overflow-x:auto;overflow-y:hidden" onscroll="var b=document.getElementById(\'bankScrollBody\');if(b)b.scrollLeft=this.scrollLeft"><div style="width:1580px;height:1px"></div></div>'
+      +'<div id="bankScrollBody" style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)" onscroll="var tp=document.getElementById(\'bankScrollTop\');if(tp)tp.scrollLeft=this.scrollLeft"><table style="width:100%;border-collapse:collapse;min-width:1580px">'
       +'<thead><tr>'
       +'<th style="'+th+'">Date<br>날짜 · Date</th><th style="'+th+';max-width:64px">Type<br>거래 · Transaction</th>'
       +'<th style="'+th+';text-align:right">Out<br>출금 · Debit</th><th style="'+th+';text-align:right">In<br>입금 · Credit</th>'
       +'<th style="'+th+';text-align:right">Balance<br>잔액 · Balance</th><th style="'+th+'">Note<br>비고 · Remarks</th>'
-      +'<th style="'+th+'">Category<br>분류 · Category</th><th style="'+th+'">Dept<br>부서 · Dept</th><th style="'+th+'">Vendor<br>거래처 · Vendor</th><th style="'+th+'">Card<br>카드 · Card</th><th style="'+th+'">Approval<br>전자결재 · E-Approval</th><th style="'+th+'">Invoice<br>인보이스 · Invoice</th><th style="'+th+';text-align:right"></th></tr></thead>'
+      +'<th style="'+th+'">Category<br>분류 · Category</th><th style="'+th+';cursor:pointer;user-select:none" onclick="setBankSort(\'dept\')" title="부서 정렬 · Sort by dept">Dept<br>부서 · Dept'+(bankSort.key==='dept'?(bankSort.dir>0?' ▲':' ▼'):'')+'</th><th style="'+th+'">Vendor<br>거래처 · Vendor</th><th style="'+th+'">Card<br>카드 · Card</th><th style="'+th+'">Invoice<br>인보이스 · Invoice</th><th style="'+th+'">Approval<br>전자결재 · E-Approval</th><th style="'+th+';text-align:right"></th></tr></thead>'
       +'<tbody>'+rows+'</tbody></table></div>'
     : '<div class="empty-state" style="padding:24px"><i class="ti ti-filter-off"></i><p>필터 조건에 맞는 거래가 없습니다 · No transactions match the filter</p></div>';
   el.innerHTML=bankVendorDatalist()+vendorBar+filterBar+listHtml;
@@ -8093,6 +8179,7 @@ function _bankInvoiceChecked(t){
 }
 function toggleBankInvoice(id,checked){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.invoice=!!checked; saveState(); }
 function _bankCardCell(t){
+  if((t.vendor||'').toLowerCase()==='grab' || t.cardLink==='N/A') return '<span style="color:var(--text-3);font-size:11px" title="카드 연결 불필요 · No card link">N/A</span>';
   if(!_isCardTxn(t)) return '<span style="color:var(--text-3)">—</span>';
   var info=_bankCardInfo(t);
   function thumb(c){ return (c&&c.receipt)?'<img src="'+c.receipt+'" onclick="viewCardDetail('+c.id+')" title="카드 사용 전체 보기 · View full card detail" style="width:26px;height:26px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;vertical-align:middle;margin-right:5px">':''; }
@@ -8118,7 +8205,7 @@ function _bankCardCell(t){
 }
 function setBankTxnCategory(id,val){
   var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return;
-  t.category=val; _stampEdit(t); saveState();
+  t.category=val; if(val==='Bank Charges'){ t.vendor='SHINHAN VN'; } _stampEdit(t); saveState();
   // light refresh of summary only
   renderBankList();
 }
@@ -8209,6 +8296,9 @@ function enterModule(module) {
     showContractApp();
   } else if(module === 'invoice') {
     showInvoiceApp();
+  } else if(module === 'chasan') {
+    if(hubPage) hubPage.style.display = 'none';
+    showPage('chasan');
   } else if(module === 'hr') {
     showHrApp();
   } else if(module === 'admin') {
@@ -8314,8 +8404,10 @@ function populateDeptTypeSelects() {
   var deptEl = document.getElementById('docDept');
   if(deptEl) {
     var curDept = deptEl.value;
-    deptEl.innerHTML = depts.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
-    if(curDept && depts.includes(curDept)) deptEl.value = curDept;
+    var _opts = depts.slice();
+    if(curDept && _opts.indexOf(curDept)<0) _opts.unshift(curDept);   // 레거시 부서(FURNITURE 등) 보존
+    deptEl.innerHTML = _opts.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
+    if(curDept) deptEl.value = curDept;
   }
   
   var typeEl = document.getElementById('docType');
