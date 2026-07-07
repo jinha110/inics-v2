@@ -2110,6 +2110,8 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <input type="text" id="vendorSearch" placeholder="Search · 검색..." oninput="renderVendorDB()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none;width:100%">
         </div>
       </div>
+      <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button class="btn btn-dark" onclick="triggerErcUpload()" style="font-size:12px;padding:6px 12px"><i class="ti ti-file-certificate"></i> ERC 업로드 · Auto-fill</button><span style="font-size:10px;color:var(--text-3)">사업자등록증(ERC) PDF → 자동인식 → 확인·수정 후 저장 (반자동)</span></div>
+      <input type="file" id="ercPdfInput" accept=".pdf" style="display:none" onchange="handleErcUpload(this.files[0]);this.value=''">
       <div id="vendorDBList"></div>
     </div>
 
@@ -4139,6 +4141,96 @@ function findSimilarVendors(name){
     if(en.indexOf(n)>=0 || n.indexOf(en)>=0){ if(out.indexOf(ex.name)<0) out.push(ex.name); }
   });
   return out;
+}
+// ── 거래처 ERC(사업자등록증) OCR 자동채움 · 반자동 (pdf.js 렌더 → Tesseract.js vie+eng → 확인폼) ──
+var _ercLibsLoaded = false;
+function _ercLoadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){rej(new Error('load fail: '+src));}; document.head.appendChild(s); }); }
+async function _ensureErcLibs(){
+  if(_ercLibsLoaded) return;
+  if(typeof pdfjsLib==='undefined'){ await _ercLoadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'); }
+  if(typeof pdfjsLib!=='undefined'){ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }
+  if(typeof Tesseract==='undefined'){ await _ercLoadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'); }
+  _ercLibsLoaded = true;
+}
+function triggerErcUpload(){ var i=document.getElementById('ercPdfInput'); if(i) i.click(); }
+function _ercProgress(msg, ov){
+  if(!ov){ ov=document.getElementById('ercProgressOverlay'); if(!ov){ ov=document.createElement('div'); ov.id='ercProgressOverlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10002;display:flex;align-items:center;justify-content:center'; document.body.appendChild(ov); } }
+  ov.innerHTML='<div style="background:#fff;padding:22px 28px;border-radius:12px;font-size:14px;text-align:center;min-width:250px"><div style="margin-bottom:8px">📄 '+msg+'</div><div style="font-size:11px;color:#888">ERC 자동인식 · Please wait</div></div>';
+  ov.style.display='flex'; return ov;
+}
+function _ercCloseProgress(ov){ ov=ov||document.getElementById('ercProgressOverlay'); if(ov) ov.style.display='none'; }
+async function handleErcUpload(file){
+  if(!file) return;
+  var ov=_ercProgress('엔진 로딩 · Loading engine…');
+  try{
+    await _ensureErcLibs();
+    if(typeof pdfjsLib==='undefined'||typeof Tesseract==='undefined') throw new Error('라이브러리 로드 실패 (네트워크 확인)');
+    _ercProgress('PDF 렌더링 · Rendering…', ov);
+    var buf=await file.arrayBuffer();
+    var pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+    var page=await pdf.getPage(1);
+    var vp=page.getViewport({scale:3.0});
+    var canvas=document.createElement('canvas'); canvas.width=vp.width; canvas.height=vp.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    _ercProgress('OCR 인식 중 (베트남어) · Reading… 최대 30초', ov);
+    var result=await Tesseract.recognize(canvas,'vie+eng',{logger:function(m){ if(m.status==='recognizing text'){ _ercProgress('OCR '+Math.round((m.progress||0)*100)+'%', ov); } }});
+    var txt=(result&&result.data&&result.data.text)||'';
+    _ercCloseProgress(ov);
+    if(!txt.trim()){ showToast('OCR 텍스트 없음 · 스캔 품질 확인'); return; }
+    _ercConfirmModal(_parseErc(txt));
+  }catch(e){ _ercCloseProgress(ov); if(typeof showToast==='function') showToast('ERC 분석 실패: '+e.message); console.error('[ERC]',e); }
+}
+function _parseErc(t){
+  t=t.replace(/\r/g,'');
+  function m(re){ var x=t.match(re); return x?(x[1]||'').trim():''; }
+  var mst=m(/doanh nghi[^:\n]{0,4}:?\s*(\d{10,13})/i) || (t.match(/\b(\d{10})\b/)||[])[1] || '';
+  var email=(m(/([A-Za-z0-9._%+\-]+\s*@\s*[A-Za-z0-9.\-]+\.[A-Za-z]{2,})/)||'').replace(/\s+/g,'');
+  var phone=(m(/tho[a-zạ]{0,2}i[:\s]*\(?([\d()\s\-]{7,})/i)||'').replace(/\s+/g,' ').trim();
+  var nameEn=m(/ngo[^:\n]{0,4}i:?\s*([A-Za-z0-9][^\n]*?(?:LIMITED|LTD|COMPANY|JSC|CORP)[^\n]*)/i);
+  var nameAbbr=m(/t[^:\n]{0,3}t:?\s*([A-Za-z0-9][^\n]*?(?:CO\.,?\s*LTD|LTD|JSC)[^\n]*)/i);
+  var nameVi=m(/Vi[^:\n]{0,4}t:?\s*(C[\u00d4O][^\n]*?)(?:\n|T[eé\u00e9]n)/i);
+  var addr=m(/(S[\u1ed1\u00f46][^\n]*?(?:Vi[e\u00ea\u1ec7]t Nam|Viet Nam))/i);
+  var cap=m(/(\d{1,3}(?:[.,]\d{3}){2,})\s*[\u0111d\u00ff]/i);
+  var dReg=t.match(/[\u00e0a]u:?\s*ng[\u00e0a]y\s*(\d{1,2})\s*th[\u00e0a]ng\s*(\d{1,2})\s*n[\u0103a]m\s*(\d{4})/i);
+  var estDate=dReg?(dReg[3]+'-'+('0'+dReg[2]).slice(-2)+'-'+('0'+dReg[1]).slice(-2)):'';
+  return { name:nameEn||nameVi||nameAbbr, nameVi:nameVi, nameEn:nameEn, nameAbbr:nameAbbr, mst:mst, address:addr, phone:phone, email:email, capital:cap, estDate:estDate };
+}
+function _ercConfirmModal(f){
+  var ov=document.getElementById('ercConfirmOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='ercConfirmOverlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px'; document.body.appendChild(ov); }
+  function fld(id,label,val){ return '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:2px">'+label+'</label><input id="'+id+'" value="'+String(val||'').replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;font-size:13px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans)"></div>'; }
+  ov.innerHTML='<div style="background:var(--surface,#fff);border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:4px">ERC 자동인식 결과 · Confirm &amp; edit</div>'
+    +'<div style="font-size:11px;color:var(--text-3);margin-bottom:14px">OCR 결과입니다. 특히 <b>세금코드(MST)·주소</b>를 확인·수정 후 저장하세요 — OCR 오독 가능.</div>'
+    +fld('ercName','업체명 · Name (영문)',f.name)
+    +fld('ercNameVi','베트남 사명 · VN name',f.nameVi)
+    +fld('ercMst','세금코드 · Tax (MST)',f.mst)
+    +fld('ercAddr','주소 · Address',f.address)
+    +fld('ercPhone','전화 · Phone',f.phone)
+    +fld('ercEmail','이메일 · Email',f.email)
+    +fld('ercCap','자본금 · Capital',f.capital)
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">'
+    +'<button onclick="_ercCloseConfirm()" style="border:1px solid var(--border);background:none;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:13px;font-family:var(--sans)">취소 · Cancel</button>'
+    +'<button onclick="_ercSaveVendor()" style="border:1px solid var(--text);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans)">거래처 저장 · Save</button>'
+    +'</div></div>';
+  ov.style.display='flex';
+}
+function _ercCloseConfirm(){ var ov=document.getElementById('ercConfirmOverlay'); if(ov) ov.style.display='none'; }
+function _ercSaveVendor(){
+  function v(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+  var name=v('ercName'); if(!name){ showToast('업체명을 입력하세요 · Enter name'); return; }
+  if(!state.vendors) state.vendors=[];
+  var key=name.toLowerCase();
+  var rec=state.vendors.find(function(x){ return (x.name||'').trim().toLowerCase()===key; });
+  var isNew=!rec; if(!rec){ rec={ name:name, bankType:'vn' }; }
+  rec.nameVi=v('ercNameVi'); rec.reg=v('ercMst'); rec.taxCode=v('ercMst'); rec.address=v('ercAddr'); rec.phone=v('ercPhone'); rec.email=v('ercEmail'); rec.capital=v('ercCap');
+  var who=(window._gateUser&&window._gateUser.name)||'ERC';
+  rec.updatedAt=nowStr(); if(isNew){ rec.createdAt=nowStr(); rec.createdBy=who; rec.source='ERC'; state.vendors.push(rec); }
+  saveState();
+  if(typeof renderVendorDB==='function') renderVendorDB();
+  if(typeof populateVendorDatalist==='function') populateVendorDatalist();
+  _ercCloseConfirm();
+  showToast((isNew?'거래처 등록':'거래처 갱신')+' · '+name+' (ERC)');
 }
 function addVendorFromDraft(){
   var rec = vendorRecordFromFields();
