@@ -29,13 +29,32 @@
     cats: {
       revenue: ["Sales Revenue"], refund: ["Refund"], cogs: ["Purchase / COGS"],
       opex: ["Internet & Telecom", "Utilities", "Office Rent", "Bank Charges",
-             "Tax / VAT", "Office Supplies", "Travel & Transport", "Meals & Entertainment", "Service fee"],
+             "Tax / VAT", "Office Supplies", "Travel & Transport", "Meals & Entertainment", "Service fee", "Software"],
       excluded: ["Salary & Wages", "Social Insurance", "BHXH", "BHYT", "BHTN",
-                 "Owner / Capital Transfer", "Inter-account Transfer"]
+                 "Owner / Capital Transfer", "Inter-account Transfer", "Others income"]
     }
   };
 
+  var _catMap = null;
+  window.chasanCatMapLoad = async function () {
+    try { var r = await fetch(csUrl("/chasan_cat_map"), { cache: "no-cache" }); _catMap = (r.ok && await r.json()) || {}; } catch (e) { _catMap = {}; }
+    return _catMap;
+  };
+  window.chasanCatMapSave = async function () {
+    var r = await fetch(csUrl("/chasan_cat_map"), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(_catMap || {}) });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+  };
+  window.chasanGetCatMap = function () { return _catMap || {}; };
+  window.chasanCatMapReady = function () { return _catMap !== null; };
+  window.chasanSetCatMap = async function (cat, area) {
+    _catMap = _catMap || {};
+    if (!area) { delete _catMap[cat]; } else { _catMap[cat] = area; }
+    await chasanCatMapSave();
+    return true;
+  };
+  window.CHASAN_AREAS = [["revenue","매출 · Revenue"],["cogs","매입원가 · COGS"],["opex","판관비 · OpEx"],["refund","환입 · Refund"],["excluded","제외(영업외/이체/급여) · Excluded"]];
   function classify(cat) {
+    if (_catMap && _catMap[cat]) return _catMap[cat];
     var c = CHASAN_CFG.cats;
     if (c.excluded.indexOf(cat) >= 0) return "excluded";
     if (c.revenue.indexOf(cat) >= 0) return "revenue";
@@ -44,6 +63,7 @@
     if (c.opex.indexOf(cat) >= 0) return "opex";
     return "uncat";
   }
+  window.chasanClassify = function (cat) { return classify(cat); };
   // 날짜 → YYYY-MM 정규화 (YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY 등 모두 지원)
   function _ym(d) {
     d = String(d || "").trim(); if (!d) return "";
@@ -147,6 +167,7 @@
   /* ── 채산 계산 ─────────────────────────────────────────────── */
   window.chasanCompute = async function (ym, opts) {
     opts = opts || {};
+    if (_catMap === null) await chasanCatMapLoad();
     var bank = chasanBankAgg(ym);
     var lab = await chasanLabor(ym, opts);
     var ex = extraByDept(ym);
@@ -552,7 +573,6 @@
     var dq = r.dq, dqWarn = (dq.uncat.count || dq.untagged) ? '<span style="font-size:11px;color:var(--warning)"> · ⚠ 미분류 ' + dq.uncat.count + '건 · 부서미태깅 ' + dq.untagged + '건</span>' : "";
 
     window._csLastR = r; window._csLastYm = ym;
-    var fcHTML = '<div id="csForecast">' + _fcBuildHTML(ym, r) + '</div>';
     host.querySelector("#csBody").innerHTML =
       _csTabs("month") + _driftWarn
       + '<div class="form-card" style="padding:0;overflow:hidden">'
@@ -583,7 +603,7 @@
       + pcline()
       + phline()
       + '</tbody></table></div>'
-      + retag + uncatPanel + untagPanel + lwEditor + extraEditor + fcHTML
+      + retag + uncatPanel + untagPanel + lwEditor + extraEditor
       + '<p style="font-size:11px;color:var(--text-3);padding:8px 16px;line-height:1.6">현금주의(뱅크) · 인건비=확정대장 tc를 인원별 가중치로 4부서 분배(급여·이체 카테고리는 OpEx 제외). EXTRA는 타법인 부담분 수기입력. FUR VN/MX는 거래 채산부서 태그 기준. COMMON은 배분 ON 시 FUR VN/FUR MX/SOURCING에 3:3:1 비율로 완전분배(정규화).</p></div>';
 
     var usdEl = host.querySelector("#csUsd"), rateEl = host.querySelector("#csRate"), allocEl = host.querySelector("#csAlloc");
@@ -654,7 +674,7 @@
   window.chasanHistYear = function (y) { _csHistYear = String(y); renderChasanPage(); };
   function _csTabs(active) {
     var tab = function (v, label) { return '<button onclick="chasanSwitchView(\'' + v + '\')" style="border:none;background:none;cursor:pointer;font-size:13px;font-weight:' + (active === v ? "700" : "400") + ';color:' + (active === v ? "var(--text)" : "var(--text-3)") + ';padding:8px 2px;margin-right:18px;border-bottom:2px solid ' + (active === v ? "var(--text)" : "transparent") + '">' + label + "</button>"; };
-    return '<div style="border-bottom:1px solid var(--border);margin-bottom:14px">' + tab("month", "월별 채산 · Monthly") + tab("history", "History · 이력") + "</div>";
+    return '<div style="border-bottom:1px solid var(--border);margin-bottom:14px">' + tab("month", "월별 채산 · Monthly") + tab("forecast", "예상채산 · Forecast") + tab("history", "History · 이력") + "</div>";
   }
   function _csLineChart(series, monthsLbl) {
     var W = 680, H = 220, pl = 8, pr = 8, pt = 12, pb = 22, n = monthsLbl.length; if (!n) return "";
@@ -761,11 +781,24 @@
       return r.ok;
     } catch (e) { console.warn("채산 xlsx 아카이브 실패:", e && e.message); return false; }
   };
+  window.renderChasanForecastView = async function (host, ym) {
+    host = typeof host === "string" ? document.getElementById(host) : host; if (!host) return;
+    host.innerHTML = _csTabs("forecast") + '<div id="csBody" style="font-size:13px;color:var(--text-3)">계산 중… / Đang tính…</div>';
+    var body = host.querySelector("#csBody");
+    try {
+      if (_lw === null) await chasanLwLoad();
+      if (_fcCfg === null) await chasanFcCfgLoad();
+      var r = await chasanCompute(ym);
+      window._csLastR = r; window._csLastYm = ym;
+      body.innerHTML = '<div style="font-size:12px;color:var(--text-3);margin:0 16px 10px">기준월 · Based on ' + E(ym) + ' 확정/라이브 채산 → 다음달 손익분기 목표매출</div><div id="csForecast">' + _fcBuildHTML(ym, r) + '</div>';
+    } catch (e) { body.innerHTML = '<div style="padding:20px;color:var(--danger)">예상채산 로드 실패 · Forecast load failed: ' + (e && e.message) + '</div>'; }
+  };
   window.renderChasanPage = function () {
     var el = document.getElementById("csMonth");
     var ym = (el && el.value) || (typeof hrYmOf === "function" && window.hrAsof ? hrYmOf(window.hrAsof) : new Date().toISOString().slice(0, 7));
     if (el && !el.value) el.value = ym;
     if (_csView === "history") renderChasanHistory("csHost", ym);
+    else if (_csView === "forecast") renderChasanForecastView("csHost", ym);
     else renderChasan(ym, "csHost");
   };
 })();
