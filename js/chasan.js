@@ -24,6 +24,7 @@
     allocateCommon: true,                                // COMMON 자동분배 기본 ON
     commonAllocNormalize: true,                          // 가중치 합≠100%면 비율 유지하며 100% 완전분배(정규화)
     commonWeights: { "FUR VN": 0.30, "FUR MX": 0.30, "SOURCING": 0.10 },  // 3:3:1 (입력 합 70% → 정규화 시 42.9/42.9/14.3)
+    forecast: { cogsRate: 0.85, fixedOpexCats: ["Office Rent", "Utilities", "Internet & Telecom", "Service fee"] },  // 예상채산: COGS 85% 가정 + 고정판관비 항목
     deptMap: {},
     cats: {
       revenue: ["Sales Revenue"], refund: ["Refund"], cogs: ["Purchase / COGS"],
@@ -92,7 +93,7 @@
   /* ── 뱅크 집계 ─────────────────────────────────────────────── */
   window.chasanBankAgg = function (ym) {
     var buckets = {}; DEPTS.forEach(function (t) { buckets[t] = { revenue: 0, cogs: 0, opex: 0 }; });
-    var uncat = { count: 0, debit: 0, credit: 0 }, untagged = 0, excludedSum = 0, unsplit = [];
+    var uncat = { count: 0, debit: 0, credit: 0 }, untagged = 0, excludedSum = 0, unsplit = [], uncatList = [], untaggedList = [];
     var txns = (typeof state !== "undefined" && state && state.bankTxns) || [];
     txns.forEach(function (t) {
       if (!t || _ym(t.date) !== ym) return;
@@ -101,15 +102,15 @@
       if (kind === "excluded") { excludedSum += debit; return; }
       var d = csDept(t);
       if (d === "_FUR_UNSPLIT") { unsplit.push(t); d = CHASAN_CFG.furnitureDefault; }
-      if (!t.dept && !t.chasanDept) untagged++;
+      if (!t.dept && !t.chasanDept) { untagged++; untaggedList.push(t); }
       var into = buckets[d] || buckets.COMMON;
       if (kind === "revenue") into.revenue += credit - debit;
       else if (kind === "refund") into.revenue -= (debit - credit);
       else if (kind === "cogs") into.cogs += debit - credit;
       else if (kind === "opex") into.opex += debit - credit;
-      else { uncat.count++; uncat.debit += debit; uncat.credit += credit; }
+      else { uncat.count++; uncat.debit += debit; uncat.credit += credit; uncatList.push(t); }
     });
-    return { ym: ym, byDept: buckets, uncat: uncat, untagged: untagged, excludedOpexSkipped: excludedSum, unsplit: unsplit };
+    return { ym: ym, byDept: buckets, uncat: uncat, untagged: untagged, excludedOpexSkipped: excludedSum, unsplit: unsplit, uncatList: uncatList, untaggedList: untaggedList };
   };
 
   /* ── 인건비: 인원별 tc → 인원별 가중치 → 4부서 ─────────────── */
@@ -133,14 +134,14 @@
   };
   window.chasanLabor = async function (ym, opts) {
     var lr = await chasanLaborRows(ym, opts);
-    var out = {}; DEPTS.forEach(function (t) { out[t] = 0; });
+    var out = {}, head = {}; DEPTS.forEach(function (t) { out[t] = 0; head[t] = 0; });
     lr.rows.forEach(function (row) {
       var w = _lw && _lw[row.id], vec;
       if (w) { var s = DEPTS.reduce(function (a, d) { return a + (+w[d] || 0); }, 0); vec = s > 0 ? {} : laborFallback(row.dept); if (s > 0) DEPTS.forEach(function (d) { vec[d] = (+w[d] || 0) / s; }); }
       else vec = laborFallback(row.dept);
-      DEPTS.forEach(function (d) { out[d] += row.tc * (vec[d] || 0); });
+      DEPTS.forEach(function (d) { out[d] += row.tc * (vec[d] || 0); head[d] += (vec[d] || 0); });
     });
-    return { byDept: out, source: lr.source, finalized: lr.finalized, rows: lr.rows };
+    return { byDept: out, head: head, source: lr.source, finalized: lr.finalized, rows: lr.rows };
   };
 
   /* ── 채산 계산 ─────────────────────────────────────────────── */
@@ -156,6 +157,7 @@
       var op = revenue - cogs - labor - opex - extra;
       byDept[t] = { revenue: revenue, cogs: cogs, labor: labor, opex: opex, extra: extra, op: op, margin: revenue ? op / revenue : 0 };
     });
+    var headByDept = {}; DEPTS.forEach(function (t) { headByDept[t] = lab.head ? (lab.head[t] || 0) : 0; });
     if (CHASAN_CFG.allocateCommon) {
       var com = byDept.COMMON;
       var _keys = ["revenue", "cogs", "labor", "opex", "extra"];   // 매출 포함 전항목 재분배 → 총계 불변
@@ -168,7 +170,10 @@
         byDept[t].op = byDept[t].revenue - byDept[t].cogs - byDept[t].labor - byDept[t].opex - byDept[t].extra;
         byDept[t].margin = byDept[t].revenue ? byDept[t].op / byDept[t].revenue : 0;
       });
+      var _comHead = headByDept.COMMON;
+      REVENUE_DEPTS.forEach(function (t) { headByDept[t] += _comHead * ((CHASAN_CFG.commonWeights[t] || 0) * _factor); });
       var _res = _norm ? 0 : Math.max(0, 1 - _wsum);               // 미정규화 시 COMMON 잔여
+      headByDept.COMMON = _comHead * _res;
       var C = {}; _keys.forEach(function (k) { C[k] = Math.round(com[k] * _res); });
       byDept.COMMON = { revenue: C.revenue, cogs: C.cogs, labor: C.labor, opex: C.opex, extra: C.extra,
         op: C.revenue - C.cogs - C.labor - C.opex - C.extra, margin: C.revenue ? (C.revenue - C.cogs - C.labor - C.opex - C.extra) / C.revenue : 0 };
@@ -176,8 +181,9 @@
     var tot = { revenue: 0, cogs: 0, labor: 0, opex: 0, extra: 0, op: 0 };
     DEPTS.forEach(function (t) { ["revenue", "cogs", "labor", "opex", "extra", "op"].forEach(function (k) { tot[k] += byDept[t][k]; }); });
     tot.margin = tot.revenue ? tot.op / tot.revenue : 0;
-    return { ym: ym, byDept: byDept, totals: tot, laborSource: lab.source, laborFinalized: lab.finalized, laborRows: lab.rows,
-      dq: { uncat: bank.uncat, untagged: bank.untagged, unsplit: bank.unsplit }, allocated: CHASAN_CFG.allocateCommon };
+    var totHead = DEPTS.reduce(function (a, t) { return a + (headByDept[t] || 0); }, 0);
+    return { ym: ym, byDept: byDept, totals: tot, headByDept: headByDept, totHead: totHead, laborSource: lab.source, laborFinalized: lab.finalized, laborRows: lab.rows,
+      dq: { uncat: bank.uncat, untagged: bank.untagged, unsplit: bank.unsplit, uncatList: bank.uncatList, untaggedList: bank.untaggedList }, allocated: CHASAN_CFG.allocateCommon };
   };
 
   window.chasanSaveSnapshot = async function (ym, data, finalize) {
@@ -212,6 +218,11 @@
     if (typeof saveState === "function") saveState();
     if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
   };
+  window.chasanSetTxnCat = function (id, val) {
+    if (typeof setBankTxnCategory === "function") { setBankTxnCategory(id, val); }
+    else { var t = (typeof state !== "undefined" && state.bankTxns || []).find(function (x) { return String(x.id) === String(id); }); if (t) { t.category = val; if (typeof _stampEdit === "function") _stampEdit(t); if (typeof saveState === "function") saveState(); } }
+    if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
+  };
   window.chasanLwEdit = function (id, dept, val) {
     _lw = _lw || {}; _lw[id] = _lw[id] || {};
     var n = parseFloat(val);
@@ -240,6 +251,141 @@
   /* ── 렌더 ─────────────────────────────────────────────────── */
   var _usd = false, _rate = 0, _lastYm = null, _lastHost = null, _lastOpts = null;
 
+  // ── 예상채산 (BEP): 다음달 손익분기 목표매출 역산 ──
+  //   COGS=매출×cogsRate → 공헌이익률=(1-cogsRate). 인건비=전월 확정, 고정판관비=fixedOpexCats만.
+  //   BEP 목표매출 = (인건비 + 고정판관비) / 공헌이익률.  변동판관비·EXTRA는 0 가정.
+  var _fcCfg = null;
+  window.chasanFcCfgLoad = async function () {
+    try { var r = await fetch(csUrl("/chasan_forecast_cfg"), { cache: "no-cache" }); _fcCfg = (r.ok && await r.json()) || {}; } catch (e) { _fcCfg = {}; }
+    _fcCfg.excludeTxns = _fcCfg.excludeTxns || {};
+    _fcCfg.manualItems = _fcCfg.manualItems || [];
+    if (!_fcCfg.fixedOpexCats) _fcCfg.fixedOpexCats = ((CHASAN_CFG.forecast && CHASAN_CFG.forecast.fixedOpexCats) || ["Office Rent", "Utilities", "Internet & Telecom", "Service fee"]).slice();
+    if (_fcCfg.cogsRate == null) _fcCfg.cogsRate = (CHASAN_CFG.forecast && CHASAN_CFG.forecast.cogsRate) || 0.85;
+    return _fcCfg;
+  };
+  window.chasanFcCfgSave = async function () {
+    var r = await fetch(csUrl("/chasan_forecast_cfg"), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(_fcCfg || {}) });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+  };
+  var _fcPanelOpen = false, _fcCatOpen = {};
+  window.chasanFcPanelOpen = function (o) { _fcPanelOpen = o; };
+  window.chasanFcCatOpen = function (c, o) { _fcCatOpen[c] = o; };
+  function _fcRerender() { var el = document.getElementById("csForecast"); if (el && window._csLastR) el.innerHTML = window._fcBuildHTML(window._csLastYm, window._csLastR); }
+  window.chasanFcToggleCat = function (cat) { if (!_fcCfg) return; var i = _fcCfg.fixedOpexCats.indexOf(cat); if (i >= 0) _fcCfg.fixedOpexCats.splice(i, 1); else _fcCfg.fixedOpexCats.push(cat); _fcRerender(); };
+  window.chasanFcToggleTxn = function (id) { if (!_fcCfg) return; if (_fcCfg.excludeTxns[id]) delete _fcCfg.excludeTxns[id]; else _fcCfg.excludeTxns[id] = true; _fcRerender(); };
+  window.chasanFcAddManual = function () {
+    if (!_fcCfg) return;
+    var lb = (document.getElementById("fcmLabel").value || "").trim();
+    var am = +(document.getElementById("fcmAmt").value || 0);
+    var dp = document.getElementById("fcmDept").value || "COMMON";
+    if (!lb || !am) { if (typeof showToast === "function") showToast("항목명·금액 입력 · Enter name & amount"); return; }
+    _fcCfg.manualItems.push({ label: lb, amount: am, dept: dp }); _fcRerender();
+  };
+  window.chasanFcDelManual = function (i) { if (!_fcCfg) return; _fcCfg.manualItems.splice(i, 1); _fcRerender(); };
+  window.chasanFcSetCogs = function (v) { if (!_fcCfg) return; var n = +v; if (!isNaN(n) && n > 0 && n < 100) { _fcCfg.cogsRate = n / 100; _fcRerender(); } };
+  window.chasanFcSave = async function () { try { await chasanFcCfgSave(); if (typeof showToast === "function") showToast("예상채산 설정 저장 ✓ · Saved"); } catch (e) { if (typeof showToast === "function") showToast("저장 실패: " + e.message); } };
+
+  window.chasanForecast = function (ym, r) {
+    var cfg = _fcCfg || {};
+    var cogsRate = cfg.cogsRate != null ? cfg.cogsRate : 0.85;
+    var cm = 1 - cogsRate;
+    var fixedCats = cfg.fixedOpexCats || [];
+    var excl = cfg.excludeTxns || {};
+    var manual = cfg.manualItems || [];
+    var txns = (typeof state !== "undefined" && state && state.bankTxns) || [];
+    var cats = {};
+    var fxRaw = {}; DEPTS.forEach(function (t) { fxRaw[t] = 0; });
+    txns.forEach(function (t) {
+      if (!t || _ym(t.date) !== ym) return;
+      if (classify(t.category || "Uncategorized") !== "opex") return;
+      var cat = t.category || "(미분류)";
+      var d = csDept(t); if (d === "_FUR_UNSPLIT") d = CHASAN_CFG.furnitureDefault;
+      var amt = (+t.debit || 0) - (+t.credit || 0);
+      var isFixed = fixedCats.indexOf(cat) >= 0;
+      var inc = isFixed && !excl[t.id];
+      (cats[cat] = cats[cat] || { txns: [], sumAll: 0, sumIncl: 0, isFixed: isFixed });
+      cats[cat].txns.push({ id: t.id, date: t.date || "", note: (t.note || t.ref || "").trim(), dept: d, amt: amt, included: inc });
+      cats[cat].sumAll += amt; if (inc) { cats[cat].sumIncl += amt; fxRaw[d] += amt; }
+    });
+    manual.forEach(function (m) { var d = DEPTS.indexOf(m.dept) >= 0 ? m.dept : "COMMON"; fxRaw[d] += (+m.amount || 0); });
+    var fx = {}; DEPTS.forEach(function (t) { fx[t] = fxRaw[t]; });
+    if (CHASAN_CFG.allocateCommon) {
+      var wsum = REVENUE_DEPTS.reduce(function (a, t) { return a + (CHASAN_CFG.commonWeights[t] || 0); }, 0);
+      var norm = CHASAN_CFG.commonAllocNormalize !== false; var factor = (norm && wsum > 0) ? 1 / wsum : 1;
+      var comfx = fx.COMMON;
+      REVENUE_DEPTS.forEach(function (t) { fx[t] += comfx * ((CHASAN_CFG.commonWeights[t] || 0) * factor); });
+      fx.COMMON = norm ? 0 : comfx * Math.max(0, 1 - wsum);
+    }
+    var out = {}, tot = { labor: 0, fixedOpex: 0, bepRev: 0, cogs: 0 };
+    DEPTS.forEach(function (t) {
+      var labor = Math.round((r.byDept[t] && r.byDept[t].labor) || 0);
+      var fo = Math.round(fx[t] || 0);
+      var bep = cm > 0 ? Math.round((labor + fo) / cm) : 0;
+      out[t] = { labor: labor, fixedOpex: fo, bepRev: bep, cogs: Math.round(bep * cogsRate) };
+      tot.labor += labor; tot.fixedOpex += fo; tot.bepRev += bep;
+    });
+    tot.cogs = Math.round(tot.bepRev * cogsRate);
+    var opexCats = Object.keys(cats).map(function (c) { return { cat: c, isFixed: cats[c].isFixed, sumAll: cats[c].sumAll, sumIncl: cats[c].sumIncl, txns: cats[c].txns.sort(function (a, b) { return b.amt - a.amt; }) }; }).sort(function (a, b) { return b.sumAll - a.sumAll; });
+    return { cogsRate: cogsRate, cm: cm, byDept: out, totals: tot, opexCats: opexCats, manualItems: manual };
+  };
+
+  window._fcBuildHTML = function (ym, r) {
+    var F2 = function (v) { return (typeof F === "function") ? F(v) : Math.round(v || 0).toLocaleString("en-US"); };
+    var fc = chasanForecast(ym, r);
+    var T = DEPTS;
+    var row = function (label, key, cls) {
+      return '<tr' + (cls || "") + '><td style="padding:6px 10px;text-align:left">' + label + '</td>'
+        + T.map(function (t) { return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono)">' + F2(fc.byDept[t][key]) + '</td>'; }).join("")
+        + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700">' + F2(fc.totals[key]) + '</td></tr>';
+    };
+    var h = '<details style="margin:0 16px 12px" ' + (_fcPanelOpen ? "open" : "") + ' ontoggle="chasanFcPanelOpen(this.open)"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text-2);padding:8px 0">📊 다음달 예상채산 (BEP) · Next-month Break-even Forecast</summary>';
+    h += '<div style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.9">가정 · Assumptions: 매입원가 <input type="number" value="' + Math.round(fc.cogsRate * 100) + '" onchange="chasanFcSetCogs(this.value)" style="width:46px;text-align:right;border:1px solid var(--border);border-radius:5px;padding:2px 4px;font-size:11px">% (공헌이익률 ' + Math.round(fc.cm * 100) + '%) · 인건비=전월 확정 · 고정판관비=아래 선택분 · BEP=영업이익 0 최소매출</div>';
+    h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--text-3)">항목 · Item</th>'
+      + T.map(function (t) { return '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">' + E(t) + '</th>'; }).join("")
+      + '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">합계 (VND)</th></tr></thead><tbody>'
+      + row("(−) 인건비 · Labor (전월)", "labor")
+      + row("(−) 고정판관비 · Fixed OpEx", "fixedOpex")
+      + '<tr style="border-top:2px solid var(--text)"><td style="padding:8px 10px;font-weight:700;color:#7c3aed">🎯 BEP 목표매출 · Target Revenue</td>'
+      + T.map(function (t) { return '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:#7c3aed">' + F2(fc.byDept[t].bepRev) + '</td>'; }).join("")
+      + '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:#7c3aed">' + F2(fc.totals.bepRev) + '</td></tr>'
+      + row('(−) 매입원가 · COGS (' + Math.round(fc.cogsRate * 100) + '%)', "cogs", ' style="color:var(--text-3)"')
+      + '<tr style="font-weight:600;color:var(--text-3)"><td style="padding:6px 10px">= 영업이익 · OP (BEP)</td>' + T.map(function () { return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono)">0</td>'; }).join("") + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono)">0</td></tr>'
+      + '</tbody></table></div>';
+    h += '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px"><div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px">고정판관비 선택 · Fixed-cost selection <span style="font-size:10px;color:var(--text-3)">(카테고리 체크=고정 / 클릭하면 거래별 선택)</span></div>';
+    fc.opexCats.forEach(function (c) {
+      var sel = c.txns.filter(function (x) { return x.included; }).length;
+      var ce = c.cat.replace(/'/g, "\\'");
+      h += '<details style="margin-bottom:2px" ' + (_fcCatOpen[c.cat] ? "open" : "") + ' ontoggle="chasanFcCatOpen(\'' + ce + '\',this.open)">'
+        + '<summary style="cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px;padding:4px 0">'
+        + '<input type="checkbox" ' + (c.isFixed ? "checked" : "") + ' onclick="event.stopPropagation();chasanFcToggleCat(\'' + ce + '\')">'
+        + '<span style="flex:1;font-weight:600' + (c.isFixed ? "" : ";color:var(--text-3)") + '">' + E(c.cat) + '</span>'
+        + '<span style="font-size:10px;color:var(--text-3)">' + sel + '/' + c.txns.length + '건</span>'
+        + '<span style="font-family:var(--mono);' + (c.isFixed ? "font-weight:700" : "color:var(--text-3)") + '">' + F2(c.sumIncl) + (c.sumIncl !== c.sumAll ? ' <span style="font-size:9px;color:var(--text-3)">/' + F2(c.sumAll) + '</span>' : '') + '</span></summary><div style="padding:2px 0 6px 26px">';
+      c.txns.forEach(function (x) {
+        var dis = !c.isFixed;
+        h += '<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:2px 0;border-top:1px solid var(--border)' + (dis ? ";opacity:.4" : "") + '">'
+          + '<input type="checkbox" ' + (x.included ? "checked" : "") + ' ' + (dis ? "disabled" : "") + ' onclick="chasanFcToggleTxn(\'' + x.id + '\')">'
+          + '<span style="color:var(--text-3);width:68px;flex-shrink:0">' + E(x.date) + '</span>'
+          + '<span style="color:var(--text-3);width:52px;flex-shrink:0;font-size:10px">' + E(x.dept) + '</span>'
+          + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E(x.note).replace(/"/g, "&quot;") + '">' + E(x.note || "—") + '</span>'
+          + '<span style="font-family:var(--mono);flex-shrink:0">' + F2(x.amt) + '</span></div>';
+      });
+      h += '</div></details>';
+    });
+    h += '<div style="margin-top:8px;padding:8px;background:var(--surface-2);border-radius:8px">';
+    if (fc.manualItems.length) {
+      h += '<div style="font-size:10px;color:var(--text-3);margin-bottom:4px">직접 추가 항목 · Manual items</div>';
+      fc.manualItems.forEach(function (m, i) {
+        h += '<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:2px 0"><span style="flex:1">' + E(m.label) + ' <span style="color:var(--text-3)">(' + E(m.dept) + ')</span></span><span style="font-family:var(--mono)">' + F2(m.amount) + '</span><a href="javascript:void(0)" onclick="chasanFcDelManual(' + i + ')" style="color:var(--danger);text-decoration:none;font-size:11px">삭제</a></div>';
+      });
+    }
+    var ip = "border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px";
+    h += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px"><input id="fcmLabel" placeholder="＋ 고정비 항목명 (예: 신규 창고임차)" style="' + ip + ';flex:1;min-width:150px"><input id="fcmAmt" type="number" placeholder="월 금액" style="' + ip + ';width:110px;text-align:right"><select id="fcmDept" style="' + ip + '">' + DEPTS.map(function (d) { return '<option>' + d + '</option>'; }).join("") + '</select><button onclick="chasanFcAddManual()" style="border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer;font-size:11px;padding:5px 11px;border-radius:6px">추가 · Add</button></div></div>';
+    h += '<div style="margin-top:10px;display:flex;align-items:center;gap:8px"><button onclick="chasanFcSave()" style="border:1px solid var(--text);background:none;color:var(--text);cursor:pointer;font-size:11px;padding:6px 14px;border-radius:7px">설정 저장 · Save</button><span style="font-size:10px;color:var(--text-3)">체크 변경은 즉시 반영 · 저장 눌러야 Firebase 유지</span></div>';
+    h += '</div></details>';
+    return h;
+  };
+
   window.renderChasan = async function (ym, host, opts) {
     opts = opts || {}; _lastYm = ym; _lastOpts = opts;
     host = typeof host === "string" ? document.getElementById(host) : host;
@@ -251,6 +397,7 @@
       if (g.blocked) { host.querySelector("#csBody").innerHTML = '<div style="padding:20px;color:var(--text-3)">급여 확정 후 채산이 표시됩니다.</div>'; return; }
     }
     if (_lw === null) await chasanLwLoad();
+    if (_fcCfg === null) await chasanFcCfgLoad();
     await chasanExtraLoad(ym);
 
     var _live = await chasanCompute(ym, { fallbackLive: opts.fallbackLive !== false });
@@ -258,7 +405,7 @@
     var _final = !!(_snap && _snap.finalizedAt && _snap.byDept && _snap.totals);
     var _drift = _final ? Math.round(Math.abs((_live.totals.op || 0) - (_snap.totals.op || 0))) : 0;
     var r = _final
-      ? { byDept: _snap.byDept, totals: _snap.totals, allocated: !!_snap.allocated, laborFinalized: true, laborSource: "확정", laborRows: [], dq: { uncat: { count: 0, debit: 0, credit: 0 }, untagged: 0, unsplit: [] } }
+      ? { byDept: _snap.byDept, totals: _snap.totals, allocated: !!_snap.allocated, laborFinalized: true, laborSource: "확정", laborRows: [], dq: { uncat: { count: 0, debit: 0, credit: 0 }, untagged: 0, unsplit: [], uncatList: [], untaggedList: [] } }
       : _live;
     var money = function (v) { return _usd && _rate ? (v / _rate).toLocaleString("en-US", { maximumFractionDigits: 0 }) : F(v); };
     var unit = _usd && _rate ? "USD" : "VND";
@@ -272,7 +419,7 @@
       var main = '<tr' + (opt.top ? ' style="border-top:2px solid var(--text);font-weight:700"' : "") + '>'
         + '<td style="padding:8px 12px;text-align:left">' + label + (dz ? ' <span style="font-size:9px;color:var(--text-3)">▸ 클릭</span>' : '') + '</td>'
         + T.map(function (t) { var v = r.byDept[t][key];
-          var cell = '<td style="padding:8px 12px;text-align:right;font-family:var(--mono);' + (v < 0 ? "color:var(--danger)" : "") + (dz && v !== 0 ? ';cursor:pointer;text-decoration:underline dotted' : '') + '"' + (dz && v !== 0 ? ' onclick="chasanToggleDetail(\'' + ym + '\',\'' + t + '\',\'' + key + '\')"' : '') + '>' + money(v) + '</td>';
+          var cell = '<td style="padding:8px 12px;text-align:right;font-family:var(--mono);' + (v < 0 ? "color:var(--danger)" : "") + (dz ? ';cursor:pointer;text-decoration:underline dotted' : '') + '"' + (dz ? ' onclick="chasanToggleDetail(\'' + ym + '\',\'' + t + '\',\'' + key + '\')"' : '') + '>' + money(v) + '</td>';
           return cell; }).join("")
         + '<td style="padding:8px 12px;text-align:right;font-family:var(--mono);font-weight:700;' + (r.totals[key] < 0 ? "color:var(--danger)" : "") + '">' + money(r.totals[key]) + '</td></tr>';
       if (dz) {
@@ -286,6 +433,25 @@
       return '<tr><td style="padding:6px 12px;text-align:left;color:var(--text-3)">영업이익률 / Margin</td>'
         + T.map(function (t) { return '<td style="padding:6px 12px;text-align:right;color:var(--text-3)">' + pct(r.byDept[t].margin) + '</td>'; }).join("")
         + '<td style="padding:6px 12px;text-align:right;color:var(--text-3);font-weight:600">' + pct(r.totals.margin) + '</td></tr>';
+    };
+    var HRS = Math.round(40 * 4.345);   // 월 근무시간: 주5일×8h(40h/주) × 4.345주 ≈ 174h
+    var hc = function (h) { return h > 0 ? (Math.round(h * 10) / 10) : 0; };
+    var pcCell = function (op, h, bold) { var st = 'padding:6px 12px;text-align:right;font-family:var(--mono);color:var(--text-2)' + (bold ? ';font-weight:700' : ''); return '<td style="' + st + (h > 0 && op < 0 ? ';color:var(--danger)' : '') + '">' + (h > 0 ? money(Math.round(op / h)) : '—') + '</td>'; };
+    var phCell = function (op, h, bold) { var st = 'padding:6px 12px;text-align:right;font-family:var(--mono);color:var(--text-2)' + (bold ? ';font-weight:700' : ''); return '<td style="' + st + (h > 0 && op < 0 ? ';color:var(--danger)' : '') + '">' + (h > 0 ? money(Math.round(op / h / HRS)) : '—') + '</td>'; };
+    var pcline = function () {
+      return '<tr style="border-top:1px solid var(--border)"><td style="padding:6px 12px;text-align:left;color:var(--text-3)">인당 채산(월) · OP/person <span style="font-size:9px">영업이익÷인원</span></td>'
+        + T.map(function (t) { return pcCell(r.byDept[t].op, r.headByDept[t] || 0); }).join("")
+        + pcCell(r.totals.op, r.totHead || 0, true) + '</tr>';
+    };
+    var phline = function () {
+      return '<tr><td style="padding:6px 12px;text-align:left;color:var(--text-3)">시간당 채산 · OP/hour <span style="font-size:9px">÷174h(주5일·8h)</span></td>'
+        + T.map(function (t) { return phCell(r.byDept[t].op, r.headByDept[t] || 0); }).join("")
+        + phCell(r.totals.op, r.totHead || 0, true) + '</tr>';
+    };
+    var hdline = function () {
+      return '<tr><td style="padding:4px 12px;text-align:left;color:var(--text-3);font-size:10px">인원 · Headcount</td>'
+        + T.map(function (t) { return '<td style="padding:4px 12px;text-align:right;color:var(--text-3);font-size:10px">' + hc(r.headByDept[t] || 0) + '</td>'; }).join("")
+        + '<td style="padding:4px 12px;text-align:right;color:var(--text-3);font-size:10px;font-weight:600">' + hc(r.totHead || 0) + '</td></tr>';
     };
 
     // FURNITURE 미분류 재태깅
@@ -302,6 +468,37 @@
             + '<button onclick="chasanRetag(\'' + E(t.id) + '\',\'FUR VN\')" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:3px 9px;border-radius:6px;flex-shrink:0">VN</button>'
             + '<button onclick="chasanRetag(\'' + E(t.id) + '\',\'FUR MX\')" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:3px 9px;border-radius:6px;flex-shrink:0">MX</button>'
             + '</div>';
+        }).join("") + '</div>';
+    }
+
+    // 미분류(Uncategorized) 처리 패널 — 분류 지정
+    var uncatPanel = "";
+    if (r.dq.uncatList && r.dq.uncatList.length) {
+      uncatPanel = '<div style="border:1px solid var(--warning);background:#fffbeb;border-radius:10px;padding:12px 14px;margin:12px 16px">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--warning);margin-bottom:8px">⚠ 미분류 · Uncategorized ' + r.dq.uncatList.length + '건 — 분류 지정 필요</div>'
+        + r.dq.uncatList.map(function (t) {
+          var amt = (+t.debit || 0) || (+t.credit || 0);
+          var catSel = (typeof bankCategoryOptions === "function") ? '<select onchange="chasanSetTxnCat(' + t.id + ',this.value)" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;flex-shrink:0;max-width:150px;background:#fffbeb">' + bankCategoryOptions(t.category || "Uncategorized") + '</select>' : '';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--border);font-size:12px">'
+            + '<span style="color:var(--text-3);width:82px;flex-shrink:0">' + E(t.date || "") + '</span>'
+            + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E(t.note || "").replace(/"/g, "&quot;") + '">' + E(t.note || t.ref || "—") + '</span>'
+            + '<span style="font-family:var(--mono);flex-shrink:0">' + F(amt) + '</span>'
+            + catSel + '</div>';
+        }).join("") + '</div>';
+    }
+    // 부서 미태깅 처리 패널 — 부서 지정
+    var untagPanel = "";
+    if (r.dq.untaggedList && r.dq.untaggedList.length) {
+      untagPanel = '<div style="border:1px solid var(--warning);background:#fffbeb;border-radius:10px;padding:12px 14px;margin:12px 16px">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--warning);margin-bottom:8px">⚠ 부서 미태깅 · No dept ' + r.dq.untaggedList.length + '건 — 부서 지정 (미지정 시 COMMON 귀속)</div>'
+        + r.dq.untaggedList.map(function (t) {
+          var amt = (+t.debit || 0) || (+t.credit || 0);
+          var btns = DEPTS.map(function (d) { return '<button onclick="chasanRetag(\'' + E(t.id) + '\',\'' + d + '\')" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:10px;padding:3px 7px;border-radius:6px;flex-shrink:0">' + E(d) + '</button>'; }).join("");
+          return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--border);font-size:12px;flex-wrap:wrap">'
+            + '<span style="color:var(--text-3);width:82px;flex-shrink:0">' + E(t.date || "") + '</span>'
+            + '<span style="flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E(t.note || "").replace(/"/g, "&quot;") + '">' + E(t.note || t.ref || "—") + ' <span style="color:var(--text-3)">[' + E(t.category || "") + ']</span></span>'
+            + '<span style="font-family:var(--mono);flex-shrink:0">' + F(amt) + '</span>'
+            + btns + '</div>';
         }).join("") + '</div>';
     }
 
@@ -349,11 +546,13 @@
       + '<button onclick="chasanExtraAdd(\'' + E(ym) + '\')" style="border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer;font-size:11px;padding:6px 12px;border-radius:7px">추가 · Add</button>'
       + '</div><div style="font-size:10px;color:var(--text-3);padding-bottom:4px">ERP(뱅크)에 없는 타법인 부담분 · Costs paid by other entities. 외화는 환율 입력 → VND 환산 후 부서 영업이익 차감.</div></details>';
 
-    if (_final) { retag = ""; lwEditor = ""; extraEditor = ""; }
+    if (_final) { retag = ""; uncatPanel = ""; untagPanel = ""; lwEditor = ""; extraEditor = ""; }
     var _finBadge = _final ? '<span style="font-size:11px;color:var(--success);font-weight:700"> · ✓ 확정됨 · Finalized ' + E((_snap.finalizedAt || "").slice(0, 10)) + (_snap.finalizedBy ? " (" + E(_snap.finalizedBy) + ")" : "") + '</span>' : "";
     var _driftWarn = (_final && _drift > 0) ? '<div style="border:1px solid var(--warning);background:#fffbeb;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:11px;color:var(--warning)">⚠ 확정 후 원천 변동 · Source changed after finalize — 라이브 영업이익이 확정본과 ' + F(_drift) + ' VND 차이. 재확정하면 현재값으로 갱신됩니다.</div>' : "";
     var dq = r.dq, dqWarn = (dq.uncat.count || dq.untagged) ? '<span style="font-size:11px;color:var(--warning)"> · ⚠ 미분류 ' + dq.uncat.count + '건 · 부서미태깅 ' + dq.untagged + '건</span>' : "";
 
+    window._csLastR = r; window._csLastYm = ym;
+    var fcHTML = '<div id="csForecast">' + _fcBuildHTML(ym, r) + '</div>';
     host.querySelector("#csBody").innerHTML =
       _csTabs("month") + _driftWarn
       + '<div class="form-card" style="padding:0;overflow:hidden">'
@@ -380,8 +579,11 @@
       + line("(−) EXTRA (타법인부담)", "extra")
       + line("영업이익 / Operating Profit", "op", { top: true })
       + mline()
+      + hdline()
+      + pcline()
+      + phline()
       + '</tbody></table></div>'
-      + retag + lwEditor + extraEditor
+      + retag + uncatPanel + untagPanel + lwEditor + extraEditor + fcHTML
       + '<p style="font-size:11px;color:var(--text-3);padding:8px 16px;line-height:1.6">현금주의(뱅크) · 인건비=확정대장 tc를 인원별 가중치로 4부서 분배(급여·이체 카테고리는 OpEx 제외). EXTRA는 타법인 부담분 수기입력. FUR VN/MX는 거래 채산부서 태그 기준. COMMON은 배분 ON 시 FUR VN/FUR MX/SOURCING에 3:3:1 비율로 완전분배(정규화).</p></div>';
 
     var usdEl = host.querySelector("#csUsd"), rateEl = host.querySelector("#csRate"), allocEl = host.querySelector("#csAlloc");
@@ -427,9 +629,11 @@
     if (el.getAttribute("data-open") === "1") { el.innerHTML = ""; el.setAttribute("data-open", "0"); return; }
     var d = chasanLineDetail(ym, dept, key);
     var glabel = d.groupKey === "category" ? "카테고리 · Category" : "거래처 · Vendor";
+    var _an = "";
+    if (CHASAN_CFG.allocateCommon) { _an = (dept === "COMMON") ? ' · 배분 전 원천 · pre-alloc pool' : ' · 직접귀속만(배분분 제외) · direct only'; }
     var html = '<div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:2px 0 6px">'
-      + '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">' + E(dept) + ' · ' + glabel + '별 (' + d.count + '건)</div>';
-    if (!d.groups.length) html += '<div style="font-size:11px;color:var(--text-3)">거래 없음</div>';
+      + '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">' + E(dept) + ' · ' + glabel + '별 (' + d.count + '건)' + _an + '</div>';
+    if (!d.groups.length) { var _m = "직접 귀속 거래 없음 · No direct txns"; if (CHASAN_CFG.allocateCommon && dept !== "COMMON") _m += " — 표시값은 COMMON 배분분입니다. COMMON 열을 클릭해 원천 확인"; html += '<div style="font-size:11px;color:var(--text-3)">' + _m + '</div>'; }
     d.groups.forEach(function (g) {
       html += '<details style="margin-bottom:3px"><summary style="cursor:pointer;font-size:12px;display:flex;justify-content:space-between;gap:10px;padding:3px 0">'
         + '<span style="font-weight:600">' + E(g.name) + '</span><span style="font-family:var(--mono);' + (g.sum < 0 ? "color:var(--danger)" : "") + '">' + F(g.sum) + '</span></summary>'
