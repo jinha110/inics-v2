@@ -265,12 +265,22 @@
     var pct = function (x) { return (x * 100).toFixed(1) + "%"; };
     var T = DEPTS;
 
+    var _drillable = { revenue: 1, cogs: 1, opex: 1 };
     var line = function (label, key, opt) {
       opt = opt || {};
-      return '<tr' + (opt.top ? ' style="border-top:2px solid var(--text);font-weight:700"' : "") + '>'
-        + '<td style="padding:8px 12px;text-align:left">' + label + '</td>'
-        + T.map(function (t) { var v = r.byDept[t][key]; return '<td style="padding:8px 12px;text-align:right;font-family:var(--mono);' + (v < 0 ? "color:var(--danger)" : "") + '">' + money(v) + '</td>'; }).join("")
+      var dz = _drillable[key] && !_final;   // 확정(동결) 시엔 드릴다운 비활성(원천 스냅샷 아님)
+      var main = '<tr' + (opt.top ? ' style="border-top:2px solid var(--text);font-weight:700"' : "") + '>'
+        + '<td style="padding:8px 12px;text-align:left">' + label + (dz ? ' <span style="font-size:9px;color:var(--text-3)">▸ 클릭</span>' : '') + '</td>'
+        + T.map(function (t) { var v = r.byDept[t][key];
+          var cell = '<td style="padding:8px 12px;text-align:right;font-family:var(--mono);' + (v < 0 ? "color:var(--danger)" : "") + (dz && v !== 0 ? ';cursor:pointer;text-decoration:underline dotted' : '') + '"' + (dz && v !== 0 ? ' onclick="chasanToggleDetail(\'' + ym + '\',\'' + t + '\',\'' + key + '\')"' : '') + '>' + money(v) + '</td>';
+          return cell; }).join("")
         + '<td style="padding:8px 12px;text-align:right;font-family:var(--mono);font-weight:700;' + (r.totals[key] < 0 ? "color:var(--danger)" : "") + '">' + money(r.totals[key]) + '</td></tr>';
+      if (dz) {
+        main += '<tr><td colspan="' + (T.length + 2) + '" style="padding:0 12px">'
+          + T.map(function (t) { return '<div id="csd_' + t.replace(/\s/g, "") + '_' + key + '" data-open="0"></div>'; }).join("")
+          + '</td></tr>';
+      }
+      return main;
     };
     var mline = function () {
       return '<tr><td style="padding:6px 12px;text-align:left;color:var(--text-3)">영업이익률 / Margin</td>'
@@ -388,6 +398,53 @@
     _bind("#csUnfinal", async function () { if (!_csIsAdmin()) { alert("확정 해제는 관리자만 가능합니다."); return; } if (!confirm(ym + " 채산 확정을 해제합니다. 다시 편집 가능해집니다. 진행할까요?")) return; try { await chasanUnfinalize(ym); if (typeof showToast === "function") showToast(ym + " 확정 해제 · Unlocked ✓"); renderChasan(ym, host, opts); } catch (e) { if (typeof showToast === "function") showToast("해제 실패: " + e.message); } });
   };
 
+  // ── 라인 드릴다운: 특정 부서/항목(revenue|cogs|opex)을 구성한 거래 목록 ──
+  //   revenue/cogs → 거래처(vendor) 합계, opex → 카테고리 합계. 하위에 개별 거래.
+  window.chasanLineDetail = function (ym, dept, key) {
+    var txns = (typeof state !== "undefined" && state && state.bankTxns) || [];
+    var rows = [];
+    txns.forEach(function (t) {
+      if (!t || _ym(t.date) !== ym) return;
+      if (classify(t.category || "Uncategorized") !== key) return;
+      var d = csDept(t);
+      if (d === "_FUR_UNSPLIT") d = CHASAN_CFG.furnitureDefault;
+      if (d !== dept) return;
+      var credit = +t.credit || 0, debit = +t.debit || 0;
+      var amt = (key === "revenue" || key === "refund") ? (credit - debit) : (debit - credit);
+      rows.push({ date: t.date || "", vendor: (t.vendor || "").trim() || "(미지정)", category: t.category || "",
+        note: (t.note || t.ref || "").trim(), amt: amt });
+    });
+    // 그룹 기준: opex=카테고리 / 그 외=거래처
+    var groupKey = (key === "opex") ? "category" : "vendor";
+    var groups = {};
+    rows.forEach(function (r) { var g = r[groupKey] || "(미지정)"; (groups[g] = groups[g] || { sum: 0, items: [] }); groups[g].sum += r.amt; groups[g].items.push(r); });
+    var list = Object.keys(groups).map(function (g) { return { name: g, sum: groups[g].sum, items: groups[g].items.sort(function (a, b) { return b.amt - a.amt; }) }; }).sort(function (a, b) { return b.sum - a.sum; });
+    return { groupKey: groupKey, groups: list, total: rows.reduce(function (a, r) { return a + r.amt; }, 0), count: rows.length };
+  };
+  window.chasanToggleDetail = function (ym, dept, key) {
+    var id = "csd_" + dept.replace(/\s/g, "") + "_" + key;
+    var el = document.getElementById(id); if (!el) return;
+    if (el.getAttribute("data-open") === "1") { el.innerHTML = ""; el.setAttribute("data-open", "0"); return; }
+    var d = chasanLineDetail(ym, dept, key);
+    var glabel = d.groupKey === "category" ? "카테고리 · Category" : "거래처 · Vendor";
+    var html = '<div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:2px 0 6px">'
+      + '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">' + E(dept) + ' · ' + glabel + '별 (' + d.count + '건)</div>';
+    if (!d.groups.length) html += '<div style="font-size:11px;color:var(--text-3)">거래 없음</div>';
+    d.groups.forEach(function (g) {
+      html += '<details style="margin-bottom:3px"><summary style="cursor:pointer;font-size:12px;display:flex;justify-content:space-between;gap:10px;padding:3px 0">'
+        + '<span style="font-weight:600">' + E(g.name) + '</span><span style="font-family:var(--mono);' + (g.sum < 0 ? "color:var(--danger)" : "") + '">' + F(g.sum) + '</span></summary>'
+        + '<div style="padding:4px 0 6px 10px">'
+        + g.items.map(function (it) {
+          return '<div style="display:flex;gap:8px;font-size:11px;padding:2px 0;border-top:1px solid var(--border)">'
+            + '<span style="color:var(--text-3);width:78px;flex-shrink:0">' + E(it.date) + '</span>'
+            + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E(it.note).replace(/"/g, "&quot;") + '">' + E(it.note || "—") + '</span>'
+            + '<span style="font-family:var(--mono);flex-shrink:0;' + (it.amt < 0 ? "color:var(--danger)" : "") + '">' + F(it.amt) + '</span></div>';
+        }).join("")
+        + '</div></details>';
+    });
+    html += '</div>';
+    el.innerHTML = html; el.setAttribute("data-open", "1");
+  };
   var _csView = "month", _csHistYear = null;
   window.chasanSwitchView = function (v) { _csView = v; renderChasanPage(); };
   window.chasanHistYear = function (y) { _csHistYear = String(y); renderChasanPage(); };
