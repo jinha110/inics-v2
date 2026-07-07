@@ -325,6 +325,51 @@
     }catch(e){ console.warn("PDF 보관 실패:",e&&e.message); if(typeof showToast==='function' && !opts.silent) showToast("PDF Storage 저장 실패(다운로드는 정상)"); return false; }
   };
 
+  // ── 고아 파일 GC: 어떤 레코드도 참조하지 않는 /files/{hash} 삭제 ──
+  //   기본 dry-run(카운트만). 실삭제: inicsGCFiles({dryRun:false})
+  //   ⚠ 실행 전 반드시 inicsExportFiles()로 /files 안전 사본 확보 권장.
+  window.inicsGCFiles = async function(opts){
+    opts = opts||{};
+    var dryRun = opts.dryRun !== false;
+    try{
+      var referenced = {};
+      var extColls = Object.keys(EXT);
+      var esc = REF.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      var re  = new RegExp(esc+"([0-9a-z]+_[0-9]+)","g");
+      for(var i=0;i<extColls.length;i++){
+        var r=await fetch(V2URL("/"+extColls[i]+".json"),{cache:'no-cache'});
+        if(!r.ok) continue;
+        var s=JSON.stringify((await r.json())||{});
+        var m; while((m=re.exec(s))){ referenced[m[1]]=1; }
+      }
+      var allR=await fetch(BASE+FILES+".json?shallow=true",{cache:'no-cache'});
+      var all=allR.ok?(await allR.json()):null;
+      if(!all){ console.log("[GC] /files 비었거나 접근불가"); return []; }
+      var keys=Object.keys(all);
+      var orphans=keys.filter(function(k){ return !referenced[k]; });
+      console.log("[GC] /files 총 "+keys.length+" · 참조중 "+Object.keys(referenced).length+" · 고아 "+orphans.length);
+      if(dryRun){ console.log("[GC] DRY-RUN. 실삭제: inicsGCFiles({dryRun:false})"); console.log(orphans); return orphans; }
+      var del=0;
+      for(var j=0;j<orphans.length;j++){
+        try{ var dr=await fetch(FILEURL(orphans[j]),{method:"DELETE"}); if(dr.ok) del++; }catch(_){}
+      }
+      console.log("[GC] "+del+"/"+orphans.length+" 삭제 완료");
+      return orphans;
+    }catch(e){ console.error("[GC] 오류:",e); }
+  };
+
+  // GC 안전망: /files 전체를 로컬 JSON으로 내려받기
+  window.inicsExportFiles = async function(){
+    try{
+      var d=await (await fetch(BASE+FILES+".json",{cache:'no-cache'})).json();
+      var b=new Blob([JSON.stringify(d)],{type:'application/json'});
+      var u=URL.createObjectURL(b); var a=document.createElement('a');
+      a.href=u; a.download='inics_files_backup_'+Date.now()+'.json'; a.click();
+      setTimeout(function(){ URL.revokeObjectURL(u); },2000);
+      console.log("[Export] /files 사본 다운로드 완료");
+    }catch(e){ console.error("[Export] 오류:",e); }
+  };
+
   window._firebaseReady = true;
   window._fbInitDone = true;
   if (typeof window._onFirebaseReady === 'function') { window._onFirebaseReady(); }
