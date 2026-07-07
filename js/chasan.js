@@ -28,7 +28,7 @@
     cats: {
       revenue: ["Sales Revenue"], refund: ["Refund"], cogs: ["Purchase / COGS"],
       opex: ["Internet & Telecom", "Utilities", "Office Rent", "Bank Charges",
-             "Tax / VAT", "Office Supplies", "Travel & Transport", "Meals & Entertainment"],
+             "Tax / VAT", "Office Supplies", "Travel & Transport", "Meals & Entertainment", "Service fee"],
       excluded: ["Salary & Wages", "Social Insurance", "BHXH", "BHYT", "BHTN",
                  "Owner / Capital Transfer", "Inter-account Transfer"]
     }
@@ -42,6 +42,14 @@
     if (c.cogs.indexOf(cat) >= 0) return "cogs";
     if (c.opex.indexOf(cat) >= 0) return "opex";
     return "uncat";
+  }
+  // 날짜 → YYYY-MM 정규화 (YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY 등 모두 지원)
+  function _ym(d) {
+    d = String(d || "").trim(); if (!d) return "";
+    var m;
+    if ((m = d.match(/^(\d{4})[-\/.](\d{1,2})/))) return m[1] + "-" + ("0" + m[2]).slice(-2);
+    if ((m = d.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/))) return m[3] + "-" + ("0" + m[2]).slice(-2);
+    return d.slice(0, 7);
   }
   function csDept(t) {
     var ex = t.chasanDept;
@@ -87,7 +95,7 @@
     var uncat = { count: 0, debit: 0, credit: 0 }, untagged = 0, excludedSum = 0, unsplit = [];
     var txns = (typeof state !== "undefined" && state && state.bankTxns) || [];
     txns.forEach(function (t) {
-      if (!t || (t.date || "").slice(0, 7) !== ym) return;
+      if (!t || _ym(t.date) !== ym) return;
       var credit = +t.credit || 0, debit = +t.debit || 0;
       var kind = classify(t.category || "Uncategorized");
       if (kind === "excluded") { excludedSum += debit; return; }
