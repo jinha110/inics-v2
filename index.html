@@ -7379,7 +7379,7 @@ function bankClearAcct(acctNo){
 
 // ── GRAB 사용리포트 → 은행거래 Booking ID 매칭 · 부서 자동태깅 ──
 // 사용자→채산부서 매핑 (소문자 정규화 · 확장: 여기 한 줄 추가)
-window.GRAB_USER_DEPT = { "jinha lee": "COMMON", "hwan shin yu": "FUR VN" };
+window.GRAB_USER_DEPT = { "jinha lee": "FUR MX", "hwan shin yu": "FUR VN" };
 function _grabBookingId(s){ var m=String(s||'').match(/Grab\*?\s*(A-[A-Za-z0-9]+)/i); return m?m[1].toUpperCase():''; }
 function _archiveGrabCsv(file){
   try{
@@ -7850,6 +7850,7 @@ function openDocViewer(docId){
 function closeDocViewer(){ var ov=document.getElementById('docViewerOverlay'); if(ov){ ov.style.display='none'; ov.innerHTML=''; } }
 // 명세서 행의 「전자결재」 열 — 카드 열과 동일 패턴
 function _bankDocCell(t){
+  if(t.category==='Bank Charges'||t.category==='Inter-account Transfer') return '<span style="color:var(--text-3);font-size:11px" title="전자결재 대상 아님 · No approval needed">N/A</span>';
   if(!_isDocTxn(t)) return '<span style="color:var(--text-3)">—</span>';
   var info=_bankDocInfo(t);
   if(info.status==='auto'||info.status==='manual'){
@@ -8035,6 +8036,7 @@ async function bankManualSave(){ try{ await saveState(); showToast('저장 완�
 // ── 부서(Dept): 카드·전자결재 매칭 시 자동, 미매칭 시 수기 ──
 function _bankDeptList(){ var d=(state.departments&&state.departments.length)?state.departments.slice():['FURNITURE','SOURCING','COMMON']; if(d.indexOf('COMMON')<0)d.push('COMMON'); return d; }
 function _bankAutoDept(t){
+  if(t.category==='Bank Charges') return 'COMMON';        // Bank Charges → COMMON 자동지정
   if(t.matchCardId){ var c=(state.cardExpenses||[]).find(function(x){return x.id===t.matchCardId;}); if(c&&c.dept) return c.dept; }
   if(t.matchDocId){ var d=(state.docs||[]).find(function(x){return x.id===t.matchDocId;}); if(d&&d.dept) return d.dept; }
   return '';
@@ -8042,6 +8044,7 @@ function _bankAutoDept(t){
 function _bankDept(t){ var a=_bankAutoDept(t); return a||t.dept||''; }
 function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.dept=String(val||'').trim(); _stampEdit(t); saveState(); }
 function _bankDeptCell(t){
+  if(t.category==='Inter-account Transfer') return '<span style="color:var(--text-3);font-size:11px" title="부서 지정 불필요 · No dept needed">N/A</span>';
   var auto=_bankAutoDept(t);
   if(auto){ return '<span style="font-size:11px;font-weight:700;white-space:nowrap" title="매칭에서 자동 · From matched card/approval">'+auto+' <span style="font-size:8px;font-weight:600;color:#15803d">auto</span></span>'; }
   var cur=t.dept||'';
@@ -8069,6 +8072,8 @@ function bankAutoChargeClassify(silent){
   return n;
 }
 function bankRunAutoCharge(){ var n=bankAutoChargeClassify(false); showToast(n?('은행수수료 자동분류 '+n+'건 · '+n+' bank charges'):'해당 거래 없음 · None found'); }
+var bankSort={key:'',dir:1};
+function setBankSort(k){ if(bankSort.key===k){ bankSort.dir=-bankSort.dir; } else { bankSort.key=k; bankSort.dir=1; } if(typeof renderBankList==='function') renderBankList(); }
 function renderBankList(){
   var el=document.getElementById('bankList'); if(!el) return;
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
@@ -8090,10 +8095,11 @@ function renderBankList(){
   if(!txns.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-file-spreadsheet"></i><p>No transactions · 거래내역 없음 — Upload an Excel statement · 엑셀 업로드</p></div>'; return; }
   var txnsAll=txns;
   var txnsF=txns.filter(_bankPassFilter);
+  if(bankSort.key==='dept'){ txnsF=txnsF.slice().sort(function(a,b){ var da=(_bankDept(a)||'').toString(), db=(_bankDept(b)||'').toString(); if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1; if(da===db)return 0; return da<db?-bankSort.dir:bankSort.dir; }); }
   var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
   var rows=txnsF.map(function(t){
-    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:150px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
+    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:104px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
     var guess=(!t.vendor||!t.vendor.trim())?_bankAutoVendorName(t.note||t.ref||''):'';
     var vph=guess?('추천: '+guess.replace(/"/g,'&quot;')):'거래처 선택·입력';
     var vendorInp='<input list="bankVendorList" value="'+String(t.vendor||'').replace(/"/g,'&quot;')+'" placeholder="'+vph+'" onchange="setBankTxnVendor('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);width:140px;'+((!t.vendor||!t.vendor.trim())?'background:#fffbeb':'')+'">'
@@ -8107,10 +8113,10 @@ function renderBankList(){
       +'<td style="'+td+';max-width:260px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(t.note||'').replace(/"/g,'&quot;')+'">'+(t.note||'')+(t.ref?' <span style=\"color:var(--text-3)\">['+t.ref+']</span>':'')+'</div></td>'
       +'<td style="'+td+'">'+catSel+'</td>'
       +'<td style="'+td+'">'+_bankDeptCell(t)+'</td>'
-      +'<td style="'+td+';white-space:nowrap">'+vendorInp+'</td>'
+      +'<td style="'+td+';white-space:nowrap">'+(t.category==='Bank Charges'?'<span style="font-size:11px;font-weight:600">SHINHAN VN <span style="font-size:8px;color:#15803d">auto</span></span>':vendorInp)+'</td>'
       +'<td style="'+td+'">'+_bankCardCell(t)+'</td>'
-      +'<td style="'+td+'">'+_bankDocCell(t)+'</td>'
       +'<td style="'+td+'">'+_bankInvoiceCell(t)+'</td>'
+      +'<td style="'+td+'">'+_bankDocCell(t)+'</td>'
       +'<td style="'+td+';text-align:right"><button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button></td>'
       +'</tr>';
   }).join('');
@@ -8151,12 +8157,13 @@ function renderBankList(){
     +'<button class="btn btn-dark" style="font-size:11px;padding:6px 14px" onclick="bankManualSave()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>'
     +'</div>';
   var listHtml = txnsF.length
-    ? '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:1580px">'
+    ? '<div id="bankScrollTop" style="overflow-x:auto;overflow-y:hidden" onscroll="var b=document.getElementById(\'bankScrollBody\');if(b)b.scrollLeft=this.scrollLeft"><div style="width:1580px;height:1px"></div></div>'
+      +'<div id="bankScrollBody" style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)" onscroll="var tp=document.getElementById(\'bankScrollTop\');if(tp)tp.scrollLeft=this.scrollLeft"><table style="width:100%;border-collapse:collapse;min-width:1580px">'
       +'<thead><tr>'
       +'<th style="'+th+'">Date<br>날짜 · Date</th><th style="'+th+';max-width:64px">Type<br>거래 · Transaction</th>'
       +'<th style="'+th+';text-align:right">Out<br>출금 · Debit</th><th style="'+th+';text-align:right">In<br>입금 · Credit</th>'
       +'<th style="'+th+';text-align:right">Balance<br>잔액 · Balance</th><th style="'+th+'">Note<br>비고 · Remarks</th>'
-      +'<th style="'+th+'">Category<br>분류 · Category</th><th style="'+th+'">Dept<br>부서 · Dept</th><th style="'+th+'">Vendor<br>거래처 · Vendor</th><th style="'+th+'">Card<br>카드 · Card</th><th style="'+th+'">Approval<br>전자결재 · E-Approval</th><th style="'+th+'">Invoice<br>인보이스 · Invoice</th><th style="'+th+';text-align:right"></th></tr></thead>'
+      +'<th style="'+th+'">Category<br>분류 · Category</th><th style="'+th+';cursor:pointer;user-select:none" onclick="setBankSort(\'dept\')" title="부서 정렬 · Sort by dept">Dept<br>부서 · Dept'+(bankSort.key==='dept'?(bankSort.dir>0?' ▲':' ▼'):'')+'</th><th style="'+th+'">Vendor<br>거래처 · Vendor</th><th style="'+th+'">Card<br>카드 · Card</th><th style="'+th+'">Invoice<br>인보이스 · Invoice</th><th style="'+th+'">Approval<br>전자결재 · E-Approval</th><th style="'+th+';text-align:right"></th></tr></thead>'
       +'<tbody>'+rows+'</tbody></table></div>'
     : '<div class="empty-state" style="padding:24px"><i class="ti ti-filter-off"></i><p>필터 조건에 맞는 거래가 없습니다 · No transactions match the filter</p></div>';
   el.innerHTML=bankVendorDatalist()+vendorBar+filterBar+listHtml;
@@ -8171,6 +8178,7 @@ function _bankInvoiceChecked(t){
 }
 function toggleBankInvoice(id,checked){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.invoice=!!checked; saveState(); }
 function _bankCardCell(t){
+  if((t.vendor||'').toLowerCase()==='grab' || t.cardLink==='N/A') return '<span style="color:var(--text-3);font-size:11px" title="카드 연결 불필요 · No card link">N/A</span>';
   if(!_isCardTxn(t)) return '<span style="color:var(--text-3)">—</span>';
   var info=_bankCardInfo(t);
   function thumb(c){ return (c&&c.receipt)?'<img src="'+c.receipt+'" onclick="viewCardDetail('+c.id+')" title="카드 사용 전체 보기 · View full card detail" style="width:26px;height:26px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;vertical-align:middle;margin-right:5px">':''; }
@@ -8196,7 +8204,7 @@ function _bankCardCell(t){
 }
 function setBankTxnCategory(id,val){
   var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return;
-  t.category=val; _stampEdit(t); saveState();
+  t.category=val; if(val==='Bank Charges'){ t.vendor='SHINHAN VN'; } _stampEdit(t); saveState();
   // light refresh of summary only
   renderBankList();
 }
