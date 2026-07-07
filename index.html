@@ -741,6 +741,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 <input type="file" id="bankExcelInput" style="display:none" accept=".xlsx,.xls" onchange="handleBankExcel(this.files[0]);this.value=&#39;&#39;">
+<input type="file" id="grabCsvInput" style="display:none" accept=".csv,.xlsx,.xls" onchange="handleGrabReport(this.files[0]);this.value=&#39;&#39;">
 <input type="file" id="contractScanInput" style="display:none" accept="image/*,application/pdf" multiple="" onchange="handleContractScan(this.files);this.value=&#39;&#39;">
 
 <div id="contractApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
@@ -7360,6 +7361,7 @@ function renderBankUploadBar(){
     +'<div style="font-size:12px;color:var(--text-2)">Upload statement for <b>'+acc.acctNo+'</b> ('+acc.currency+') · 명세서 업로드</div>'
     +'<div style="flex:1"></div>'
     +'<button class="btn btn-dark" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'bankExcelInput\').click()"><i class="ti ti-upload"></i> Upload Excel · 엑셀 업로드</button>'
+    +'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'grabCsvInput\').click()" title="GRAB 사용리포트 CSV로 부서 자동태깅"><i class="ti ti-car"></i> GRAB 리포트</button>'
     +((cnt && (sessionIsAdmin||(cardCurrentUser&&cardCurrentUser()&&cardCurrentUser().isAdmin)))?'<button class="btn btn-outline" style="font-size:12px;padding:6px 12px;color:var(--danger)" onclick="bankClearAcct(\''+acc.acctNo+'\')"><i class="ti ti-trash"></i> Clear · 초기화 <span style="font-size:9px;color:var(--text-3)">(admin)</span></button>':'')
     +'</div>'
     +'<div style="font-size:10px;color:var(--text-3);margin-top:6px">Format · 인식 컬럼: <b>날짜 · 거래구분 · 출금 · 입금 · 잔액 · 참조번호 · 비고</b> (SHB export). Duplicate rows are skipped · 중복 자동 제외.</div>';
@@ -7375,6 +7377,62 @@ function bankClearAcct(acctNo){
   saveState(); renderBankApp(); showToast('Cleared · 초기화 완료');
 }
 
+// ── GRAB 사용리포트 → 은행거래 Booking ID 매칭 · 부서 자동태깅 ──
+// 사용자→채산부서 매핑 (소문자 정규화 · 확장: 여기 한 줄 추가)
+window.GRAB_USER_DEPT = { "jinha lee": "COMMON", "hwan shin yu": "FUR VN" };
+function _grabBookingId(s){ var m=String(s||'').match(/Grab\*?\s*(A-[A-Za-z0-9]+)/i); return m?m[1].toUpperCase():''; }
+function _archiveGrabCsv(file){
+  try{
+    var BUCKET="inics-approval.firebasestorage.app";
+    var safe=(file.name||'grab.csv').replace(/[\/\\:*?"<>|#\[\]]/g,'_').replace(/\s+/g,'_').slice(0,90);
+    var path="grab/"+safe;
+    var url="https://firebasestorage.googleapis.com/v0/b/"+BUCKET+"/o?name="+encodeURIComponent(path);
+    fetch(url,{method:"POST",headers:{"Content-Type":"text/csv"},body:file})
+      .then(function(r){ if(r.ok){ console.log('[GRAB] Storage 저장:',path); } else { console.warn('[GRAB] Storage 실패 HTTP',r.status); } })
+      .catch(function(e){ console.warn('[GRAB] Storage 오류',e&&e.message); });
+  }catch(e){}
+}
+function handleGrabReport(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){ showToast('XLSX 로더 없음'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      var hi=-1;
+      for(var i=0;i<rows.length;i++){ var rr=rows[i]||[]; if(rr.indexOf('Employee Name')>=0 && rr.indexOf('Booking ID')>=0){ hi=i; break; } }
+      if(hi<0){ showToast('GRAB 형식 아님 · Employee Name/Booking ID 컬럼 없음'); return; }
+      var H=rows[hi];
+      var cEmp=H.indexOf('Employee Name'), cBid=H.indexOf('Booking ID');
+      var cAmt=H.indexOf('Revised Total (After Refund)'); if(cAmt<0) cAmt=H.indexOf('Total Fare');
+      var grab={}, gCount=0;
+      for(var r=hi+1;r<rows.length;r++){ var row=rows[r]||[]; var bid=String(row[cBid]||'').trim().toUpperCase(); if(!bid||bid.charAt(0)!=='A') continue; grab[bid]={emp:String(row[cEmp]||'').trim(), amt:+String(row[cAmt]||'').replace(/[^\d.-]/g,'')||0}; gCount++; }
+      if(!gCount){ showToast('GRAB 행 없음 · No booking rows'); return; }
+      var matched=0, hit={}, unmapped=[];
+      (state.bankTxns||[]).forEach(function(t){
+        var bid=_grabBookingId(t.note); if(!bid) return;
+        var g=grab[bid]; if(!g) return;
+        hit[bid]=1;
+        t.category='Travel & Transport';
+        t.vendor='Grab';
+        t.cardLink='N/A';
+        var dept=GRAB_USER_DEPT[(g.emp||'').toLowerCase()];
+        if(dept){ t.dept=dept; t.chasanDept=dept; } else if(g.emp){ unmapped.push(g.emp); }
+        if(typeof _stampEdit==='function') _stampEdit(t);
+        matched++;
+      });
+      saveState(); if(typeof renderBankApp==='function') renderBankApp();
+      _archiveGrabCsv(file);
+      var uu=[]; unmapped.forEach(function(x){ if(uu.indexOf(x)<0) uu.push(x); });
+      var unmatchedReport=gCount-Object.keys(hit).length;
+      showToast('GRAB 매칭 '+matched+'건 · 리포트 미매칭 '+unmatchedReport+'건'+(uu.length?(' · 부서미매핑: '+uu.join(', ')):''));
+      console.log('[GRAB] 리포트 '+gCount+'건 · 은행매칭 '+matched+'건 · 리포트미매칭 '+unmatchedReport+' · 부서미매핑 사용자:',uu);
+    }catch(err){ console.error(err); showToast('GRAB 파싱 오류: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
 function handleBankExcel(file){
   if(!file) return;
   if(typeof XLSX==='undefined'){ showToast('Excel 모듈 로드 실패 · reload'); return; }
@@ -7440,6 +7498,7 @@ function _bankCandidates(card){
   var amt=_cardAmt(card); if(amt<=0) return [];
   return (state.bankTxns||[]).filter(function(t){
     if(t.matchCardId||t.matchDocId) return false;
+    if(t.cardLink==='N/A') return false;   // GRAB 등 카드연결 불필요 건 대사후보 제외
     if(_bankDebit(t)!==amt) return false;
     if((t.currency||'')!==(card.currency||'')) return false;
     var dd=_mDayDiff(t.date,card.date);
