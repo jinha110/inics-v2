@@ -28,13 +28,14 @@
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
 <script src="js/sync.js?v=8"></script>
-<script src="js/hr.js?v=9"></script>
+<script src="js/hr.js?v=11"></script>
 <script src="js/hr-calc.js?v=1"></script>
 <script src="js/hr-emp.js?v=4"></script>
 <script src="js/hr-pay-att.js?v=2"></script>
 <script src="js/hr-con.js?v=9" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/quote.js?v=1"></script>
 <script src="js/contract.js?v=1"></script>
+<script src="js/chasan.js?v=1"></script>
 <script>
 (function() {
   if (typeof renderHrCon === "function" && window._hrConLoaded) {
@@ -1378,6 +1379,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div class="sidebar-section">Admin · 관리자</div>
     <button class="nav-item" id="nav-admin" onclick="showPage(&#39;admin&#39;)" style="display:none"><i class="ti ti-shield-check"></i>Admin Panel · 관리자 패널</button>
     <button class="nav-item" onclick="showPage(&#39;vendors&#39;)"><i class="ti ti-building-store"></i>Vendors · 거래처 DB</button>
+    <button class="nav-item" onclick="showPage(&#39;chasan&#39;)"><i class="ti ti-chart-pie"></i>채산 · P&amp;L</button>
     <button class="nav-item" onclick="showHubFromApp()"><i class="ti ti-layout-grid"></i>Hub · 모듈 허브</button>
     <button class="nav-item" onclick="showAdminLogin()"><i class="ti ti-lock"></i>Admin Login · 관리자 로그인</button>
   </nav>
@@ -2084,6 +2086,15 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     </div>
 
     <!-- VENDOR DB PAGE -->
+    <div class="page" id="page-chasan">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <label style="font-size:12px;color:var(--text-3)">월 · Month</label>
+        <input type="month" id="csMonth" onchange="renderChasanPage()" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px">
+        <span style="flex:1"></span>
+        <button class="btn btn-outline" onclick="renderChasanPage()" style="font-size:11px;padding:6px 11px"><i class="ti ti-refresh"></i> 새로고침 · Refresh</button>
+      </div>
+      <div id="csHost"></div>
+    </div>
     <div class="page" id="page-vendors">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-size:14px;font-weight:600">Vendors · 거래처 DB</div>
@@ -2265,12 +2276,12 @@ let MEMBERS = [
   {id:4, name:'KMON',         role:'DESIGNER',         dept:'FURNITURE', pw:'KMON',       isAdmin:false},
   {id:5, name:'JACOB',        role:'CEO',              dept:'COMMON',    pw:'JACOB',      isAdmin:false},
 ];
-const LINES = {FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}, COMMON:{a1:1,a2:null}};
+const LINES = {'FUR VN':{a1:2,a2:1}, 'FUR MX':{a1:2,a2:1}, FURNITURE:{a1:2,a2:1}, SOURCING:{a1:1,a2:null}, COMMON:{a1:1,a2:null}};
 const ADMIN_EXTRA_PW = 'JINHA'; // Admin panel extra password · 관리자 패널 추가 비밀번호
 
 let state = {
   docs:[], nextId:1, docSeq:{}, memberPasswords:{}, memberPhotos:{},
-  departments:['FURNITURE','SOURCING'],
+  departments:['FUR VN','FUR MX','SOURCING','COMMON'],
   vendors:[], vendorRequests:[], vendorReqSeq:0,
   cardExpenses:[], cardSeq:0, cardMerchants:[], modulePerms:{}, viewScope:{},
   products:[], quotes:[], quoteSeq:0,
@@ -2470,7 +2481,7 @@ function gm(id){return MEMBERS.find(m=>m.id==id)||null;}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function today(){const d=new Date();return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;}
 function nowStr(){const d=new Date();return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
-function genDocNo(dept){const ym=new Date();const p=dept==='FURNITURE'?'FUR':'SRC';const k=`${p}${ym.getFullYear()}${String(ym.getMonth()+1).padStart(2,'0')}`;state.docSeq[k]=(state.docSeq[k]||0)+1;return`${k}-${String(state.docSeq[k]).padStart(3,'0')}`;}
+function genDocNo(dept){const ym=new Date();const p=({'FUR VN':'FVN','FUR MX':'FMX',FURNITURE:'FUR',SOURCING:'SRC',COMMON:'COM'})[dept]||'SRC';const k=`${p}${ym.getFullYear()}${String(ym.getMonth()+1).padStart(2,'0')}`;state.docSeq[k]=(state.docSeq[k]||0)+1;return`${k}-${String(state.docSeq[k]).padStart(3,'0')}`;}
 function fmtSize(b){if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return(b/1048576).toFixed(1)+'MB';}
 function fileIcon(n){const e=(n||'').split('.').pop().toLowerCase();return{pdf:'ti-file-type-pdf',xlsx:'ti-file-type-xls',xls:'ti-file-type-xls',docx:'ti-file-type-doc',doc:'ti-file-type-doc',jpg:'ti-photo',jpeg:'ti-photo',png:'ti-photo'}[e]||'ti-file';}
 function getRadio(name){const r=document.querySelector(`input[name="${name}"]:checked`);return r?r.value:null;}
@@ -2495,12 +2506,13 @@ function showPage(name){
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(`'${name}'`))n.classList.add('active');});
-  const titles={dashboard:'전자결재 Dashboard · 전자결재 대시보드',list:'All Documents · 전체 문서',mine:'My Documents · 내 문서함',new:'New Draft · 기안하기',admin:'Admin Panel · 관리자 패널',vendors:'Vendors · 거래처 DB'};
+  const titles={dashboard:'전자결재 Dashboard · 전자결재 대시보드',list:'All Documents · 전체 문서',mine:'My Documents · 내 문서함',new:'New Draft · 기안하기',admin:'Admin Panel · 관리자 패널',vendors:'Vendors · 거래처 DB',chasan:'부서 채산 · Departmental P&L'};
   document.getElementById('pageTitle').textContent=titles[name]||'';
   if(name==='dashboard')renderDashboard();
   if(name==='list')renderList();
   if(name==='admin')renderAdmin();
   if(name==='vendors')renderVendorDB();
+  if(name==='chasan'&&typeof renderChasanPage==='function')renderChasanPage();
   if(name==='new')populateVendorDatalist();
   if(name==='mine') {
     var gu2 = window._gateUser;
@@ -2571,7 +2583,7 @@ function miniCard(doc){
       <div class="doc-title-row" style="font-size:12px">
         ${doc.docNo?`<span class="docno">${doc.docNo}</span>`:''}
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${doc.title}</span>
-        <span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>
+        <span class="badge b-${/^FUR/.test(doc.dept)?'furniture':'sourcing'}">${doc.dept}</span>
       </div>
       <div class="doc-meta"><span>${gm(doc.drafterId)?.name||'—'}</span><span>${doc.createdAt}</span>${doc.amount?`<span>${doc.currency} ${doc.amount}</span>`:''}</div>
     </div>
@@ -2586,7 +2598,7 @@ function docRowHTML(doc,selId,wrap){
       <div class="doc-title-row">
         ${doc.docNo?`<span class="docno">${doc.docNo}</span>`:''}
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${doc.title}</span>
-        <span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>
+        <span class="badge b-${/^FUR/.test(doc.dept)?'furniture':'sourcing'}">${doc.dept}</span>
       </div>
       <div class="doc-meta">
         <span><i class="ti ti-file-text" style="font-size:10px"></i> ${doc.type}</span>
@@ -2775,7 +2787,7 @@ function showDetail(id,wrapId='detailWrap'){
     </div>`;
   }
 
-  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${doc.dept==='FURNITURE'?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?window._img(doc.descImage,'style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px"'):''}` + '</div>':''}
+  document.getElementById(wrapId).innerHTML=`<div class="detail-panel" id="dp_${wrapId}"><div class="detail-hdr"><div style="flex:1;min-width:0"><div class="detail-title">${doc.docNo?`<span style="font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;margin-right:8px">${doc.docNo}</span>`:''}${doc.title}</div><div class="detail-badges"><span class="badge ${sBadge(s)}">${sLabel(s)}</span><span class="badge b-${/^FUR/.test(doc.dept)?'furniture':'sourcing'}">${doc.dept}</span>${doc.needPayment?'<span class="badge b-payment">PAYMENT required · 필요</span>':''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-outline" onclick="printPDF(${id})" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> PDF</button><button class="btn btn-outline" onclick="closeDetail('${wrapId}')" style="padding:5px 9px"><i class="ti ti-x"></i></button></div></div><div class="detail-body"><div class="flow-track">${flow}</div><hr class="divider"><div class="info-grid"><div class="ifield"><div class="lbl">Type · 유형</div><div class="val">${doc.type}</div></div><div class="ifield"><div class="lbl">Created · 기안일</div><div class="val">${doc.createdAt}</div></div>${doc.amount?`<div class="ifield"><div class="lbl">Amount · 금액</div><div class="val" style="font-weight:600">${doc.currency} ${Number(doc.amount.replace(/,/g,'')).toLocaleString()}</div></div>`:''} ${doc.doneAt?`<div class="ifield"><div class="lbl">Completed · 완료일</div><div class="val">${doc.doneAt}</div></div>`:''}</div>${doc.content||doc.descImage?`<div class="ifield" style="margin-bottom:14px"><div class="lbl" style="font-size:11px;font-weight:700;margin-bottom:6px">Description · 내용</div><div class="val" style="margin-top:3px;line-height:1.8;white-space:pre-wrap;font-size:13px">${doc.content||''}</div>${doc.descImage?window._img(doc.descImage,'style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-top:10px"'):''}` + '</div>':''}
       ${doc.expenseData ? expenseDetailHTML(doc.expenseData) : ''}
       ${contractAttHTML}${draftAttHTML}${payAttHTML}<hr class="divider"><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Approval History · 결재 이력</div><div class="cmt-list">${cmts}</div>${notesHTML}${actionHTML}</div></div>`;
   document.getElementById(`dp_${wrapId}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -3004,7 +3016,7 @@ function renderDeptTypeAdmin() {
 function addDept() {
   var val = document.getElementById('newDeptInput').value.trim().toUpperCase();
   if(!val) return;
-  if(!state.departments) state.departments = ['FURNITURE','SOURCING'];
+  if(!state.departments) state.departments = ['FUR VN','FUR MX','SOURCING','COMMON'];
   if(state.departments.includes(val)){showToast('Already exists · 이미 존재');return;}
   state.departments.push(val);
   document.getElementById('newDeptInput').value = '';
@@ -8314,8 +8326,10 @@ function populateDeptTypeSelects() {
   var deptEl = document.getElementById('docDept');
   if(deptEl) {
     var curDept = deptEl.value;
-    deptEl.innerHTML = depts.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
-    if(curDept && depts.includes(curDept)) deptEl.value = curDept;
+    var _opts = depts.slice();
+    if(curDept && _opts.indexOf(curDept)<0) _opts.unshift(curDept);   // 레거시 부서(FURNITURE 등) 보존
+    deptEl.innerHTML = _opts.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
+    if(curDept) deptEl.value = curDept;
   }
   
   var typeEl = document.getElementById('docType');
