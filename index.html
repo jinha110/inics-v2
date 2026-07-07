@@ -556,6 +556,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-desc">발행 · 수취 인보이스 관리<br>Issued · Received Invoices</div>
       </div>
 
+      <div class="hub-card active-module" id="hubCard-chasan" onclick="enterModule(&#39;chasan&#39;)">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#7c3aed">Active</div>
+        <div class="hub-card-icon" style="background:#f5f3ff;color:#7c3aed"><i class="ti ti-chart-pie"></i></div>
+        <div class="hub-card-title">부서 채산 · Departmental P&amp;L</div>
+        <div class="hub-card-desc">부서별 손익 · 확정 · 이력<br>By-dept P&amp;L · Finalize · History</div>
+      </div>
+
       <div class="hub-card active-module" id="hubCard-finance" onclick="enterModule(&#39;finance&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#1d4ed8">Active</div>
         <div class="hub-card-icon" style="background:#ecfdf5;color:#047857"><i class="ti ti-report-money"></i></div>
@@ -8221,6 +8228,9 @@ function enterModule(module) {
     showContractApp();
   } else if(module === 'invoice') {
     showInvoiceApp();
+  } else if(module === 'chasan') {
+    if(hubPage) hubPage.style.display = 'none';
+    showPage('chasan');
   } else if(module === 'hr') {
     showHrApp();
   } else if(module === 'admin') {
