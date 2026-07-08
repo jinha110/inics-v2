@@ -7656,6 +7656,13 @@ function handleGrabReport(file){
   };
   reader.readAsArrayBuffer(file);
 }
+function _bankLooksLikeTxnRow(r){
+  if(!r) return false;
+  var d=String(r[0]==null?'':r[0]).trim();
+  if(!/^\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(d)) return false;   // DD/MM/YYYY 필수
+  var amt=String(r[2]==null?'':r[2])+String(r[3]==null?'':r[3])+String(r[4]==null?'':r[4]);
+  return /\d/.test(amt);   // 출금·입금·잔액 중 숫자 존재
+}
 function handleBankExcel(file){
   if(!file) return;
   if(typeof XLSX==='undefined'){ showToast('Excel 모듈 로드 실패 · reload'); return; }
@@ -7668,10 +7675,22 @@ function handleBankExcel(file){
       var ws=wb.Sheets[wb.SheetNames[0]];
       var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       if(!rows.length){ showToast('빈 파일 · Empty file'); return; }
-      // detect header row
-      var start=0;
-      var first=(rows[0]||[]).join(' ');
-      if(/날짜|Date|거래구분/.test(first)) start=1;
+      // ── 형식 검증 (Format validation): SHB 은행명세서 형식이 아니면 업로드 거부 ──
+      var start=0, headerFound=false;
+      for(var _h=0; _h<Math.min(rows.length,6); _h++){
+        var _line=(rows[_h]||[]).join(' ');
+        if((/날짜|Date/.test(_line) && /출금|입금|잔액|Debit|Credit|Balance/i.test(_line)) || /거래구분/.test(_line)){ start=_h+1; headerFound=true; break; }
+      }
+      var _valid=0, _data=0;
+      for(var _v=start; _v<rows.length; _v++){
+        var _rr=rows[_v]||[]; if(!_rr.join('').trim()) continue;
+        _data++; if(_bankLooksLikeTxnRow(_rr)) _valid++;
+      }
+      if(_data===0){ showToast('빈 파일 또는 형식 오류 · Empty / invalid file'); return; }
+      if(_valid===0 || _valid < _data*0.4){
+        showToast('형식 불일치 · Wrong format — 업로드 취소 · nothing imported. 필요 컬럼: 날짜·거래구분·출금·입금·잔액·참조번호·비고 (SHB export)');
+        return;
+      }
       // existing dedup keys for this account
       var existing={};
       (state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;}).forEach(function(t){ existing[bankTxnKey(t)]=true; });
@@ -7745,7 +7764,7 @@ function _linkCardBank(card,txn,how){ if(typeof bankGuardLocked==='function' && 
 function _unlinkCard(card){ if(card.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;}); if(t){ if(typeof bankGuardLocked==='function' && bankGuardLocked(t)) return; t.matchCardId=null; t.matchStatus=null; t.matchedAt=null; _stampEdit(t); } } card.matchTxnId=null; card.matchStatus=null; card.matchedAt=null; _stampEdit(card); }
 function _reconRefresh(){ saveState(); if(typeof renderBankList==='function') renderBankList(); if(typeof renderCard==='function') renderCard(); if(typeof renderCardBankRecon==='function' && document.getElementById('bankReconPane')) renderCardBankRecon(); }
 // 은행 행(체크카드결제) → 카드 매칭 (명세서 페이지 통합용)
-function _isCardTxn(t){ return /카드/.test(String(t.type||'')) && _bankDebit(t)>0; }
+function _isCardTxn(t){ return /카드|card/i.test(String(t.type||'')) && _bankDebit(t)>0; }
 function _bankCardCandidates(txn){
   var amt=_bankDebit(txn); if(amt<=0) return [];
   return (state.cardExpenses||[]).filter(function(c){
