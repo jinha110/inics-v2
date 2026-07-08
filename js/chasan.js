@@ -359,7 +359,7 @@
         + T.map(function (t) { return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono)">' + F2(fc.byDept[t][key]) + '</td>'; }).join("")
         + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700">' + F2(fc.totals[key]) + '</td></tr>';
     };
-    var h = '<details style="margin:0 16px 12px" ' + (_fcPanelOpen ? "open" : "") + ' ontoggle="chasanFcPanelOpen(this.open)"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text-2);padding:8px 0">📊 다음달 예상채산 (BEP) · Next-month Break-even Forecast</summary>';
+    var h = '<div style="margin:0 16px 12px"><div style="font-size:13px;font-weight:700;color:var(--text-2);padding:8px 0">📊 다음달 예상채산 (BEP) · Next-month Break-even Forecast</div>';
     h += '<div style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.9">가정 · Assumptions: 매입원가 <input type="number" value="' + Math.round(fc.cogsRate * 100) + '" onchange="chasanFcSetCogs(this.value)" style="width:46px;text-align:right;border:1px solid var(--border);border-radius:5px;padding:2px 4px;font-size:11px">% (공헌이익률 ' + Math.round(fc.cm * 100) + '%) · 인건비=전월 확정 · 고정판관비=아래 선택분 · BEP=영업이익 0 최소매출</div>';
     h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--text-3)">항목 · Item</th>'
       + T.map(function (t) { return '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">' + E(t) + '</th>'; }).join("")
@@ -403,7 +403,7 @@
     var ip = "border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px";
     h += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px"><input id="fcmLabel" placeholder="＋ 고정비 항목명 (예: 신규 창고임차)" style="' + ip + ';flex:1;min-width:150px"><input id="fcmAmt" type="number" placeholder="월 금액" style="' + ip + ';width:110px;text-align:right"><select id="fcmDept" style="' + ip + '">' + DEPTS.map(function (d) { return '<option>' + d + '</option>'; }).join("") + '</select><button onclick="chasanFcAddManual()" style="border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer;font-size:11px;padding:5px 11px;border-radius:6px">추가 · Add</button></div></div>';
     h += '<div style="margin-top:10px;display:flex;align-items:center;gap:8px"><button onclick="chasanFcSave()" style="border:1px solid var(--text);background:none;color:var(--text);cursor:pointer;font-size:11px;padding:6px 14px;border-radius:7px">설정 저장 · Save</button><span style="font-size:10px;color:var(--text-3)">체크 변경은 즉시 반영 · 저장 눌러야 Firebase 유지</span></div>';
-    h += '</div></details>';
+    h += '</div></div>';
     return h;
   };
 
@@ -444,9 +444,9 @@
           return cell; }).join("")
         + '<td style="padding:8px 12px;text-align:right;font-family:var(--mono);font-weight:700;' + (r.totals[key] < 0 ? "color:var(--danger)" : "") + '">' + money(r.totals[key]) + '</td></tr>';
       if (dz) {
-        main += '<tr><td colspan="' + (T.length + 2) + '" style="padding:0 12px">'
-          + T.map(function (t) { return '<div id="csd_' + t.replace(/\s/g, "") + '_' + key + '" data-open="0"></div>'; }).join("")
-          + '</td></tr>';
+        main += '<tr class="csd-detailrow"><td style="padding:0"></td>'
+          + T.map(function (t) { return '<td style="padding:0 4px;vertical-align:top"><div id="csd_' + t.replace(/\s/g, "") + '_' + key + '" data-open="0"></div></td>'; }).join("")
+          + '<td style="padding:0"></td></tr>';
       }
       return main;
     };
@@ -633,7 +633,7 @@
       if (d !== dept) return;
       var credit = +t.credit || 0, debit = +t.debit || 0;
       var amt = (key === "revenue" || key === "refund") ? (credit - debit) : (debit - credit);
-      rows.push({ date: t.date || "", vendor: (t.vendor || "").trim() || "(미지정)", category: t.category || "",
+      rows.push({ id: t.id, date: t.date || "", vendor: (t.vendor || "").trim() || "(미지정)", category: t.category || "",
         note: (t.note || t.ref || "").trim(), amt: amt });
     });
     // 그룹 기준: opex=카테고리 / 그 외=거래처
@@ -651,7 +651,7 @@
     var glabel = d.groupKey === "category" ? "카테고리 · Category" : "거래처 · Vendor";
     var _an = "";
     if (CHASAN_CFG.allocateCommon) { _an = (dept === "COMMON") ? ' · 배분 전 원천 · pre-alloc pool' : ' · 직접귀속만(배분분 제외) · direct only'; }
-    var html = '<div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:2px 0 6px">'
+    var html = '<div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:2px 0 6px;min-width:260px">'
       + '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">' + E(dept) + ' · ' + glabel + '별 (' + d.count + '건)' + _an + '</div>';
     if (!d.groups.length) { var _m = "직접 귀속 거래 없음 · No direct txns"; if (CHASAN_CFG.allocateCommon && dept !== "COMMON") _m += " — 표시값은 COMMON 배분분입니다. COMMON 열을 클릭해 원천 확인"; html += '<div style="font-size:11px;color:var(--text-3)">' + _m + '</div>'; }
     d.groups.forEach(function (g) {
@@ -659,10 +659,14 @@
         + '<span style="font-weight:600">' + E(g.name) + '</span><span style="font-family:var(--mono);' + (g.sum < 0 ? "color:var(--danger)" : "") + '">' + F(g.sum) + '</span></summary>'
         + '<div style="padding:4px 0 6px 10px">'
         + g.items.map(function (it) {
-          return '<div style="display:flex;gap:8px;font-size:11px;padding:2px 0;border-top:1px solid var(--border)">'
-            + '<span style="color:var(--text-3);width:78px;flex-shrink:0">' + E(it.date) + '</span>'
+          var _catSel = (typeof bankCategoryOptions === "function") ? '<select onchange="chasanSetTxnCat(' + it.id + ',this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px;flex:1;min-width:90px;max-width:140px">' + bankCategoryOptions(it.category || "Uncategorized") + '</select>' : '';
+          var _depSel = '<select onchange="chasanRetag(\'' + String(it.id).replace(/\x27/g, "\\\x27") + '\',this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px">' + DEPTS.map(function (d) { return '<option' + (d === dept ? " selected" : "") + '>' + E(d) + '</option>'; }).join("") + '</select>';
+          return '<div style="padding:4px 0;border-top:1px solid var(--border)">'
+            + '<div style="display:flex;gap:8px;font-size:11px;align-items:center">'
+            + '<span style="color:var(--text-3);flex-shrink:0">' + E(it.date) + '</span>'
             + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E(it.note).replace(/"/g, "&quot;") + '">' + E(it.note || "—") + '</span>'
-            + '<span style="font-family:var(--mono);flex-shrink:0;' + (it.amt < 0 ? "color:var(--danger)" : "") + '">' + F(it.amt) + '</span></div>';
+            + '<span style="font-family:var(--mono);flex-shrink:0;' + (it.amt < 0 ? "color:var(--danger)" : "") + '">' + F(it.amt) + '</span></div>'
+            + '<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">' + _catSel + _depSel + '</div></div>';
         }).join("")
         + '</div></details>';
     });
