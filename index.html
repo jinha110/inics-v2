@@ -7573,7 +7573,7 @@ function renderBankAccountBar(){
       +'</div>';
   }).join('')+'</div>';
 }
-function bankSelectAcct(acctNo){ bankCurrentAcct=acctNo; renderBankApp(); }
+function bankSelectAcct(acctNo){ bankCurrentAcct=acctNo; window.bankSel={}; renderBankApp(); }
 
 function renderBankUploadBar(){
   var el=document.getElementById('bankUploadBar'); if(!el) return;
@@ -7596,8 +7596,8 @@ function bankClearAcct(acctNo){
   (state.cardExpenses||[]).forEach(function(c){ if(c.matchTxnId!=null && removedIds[c.id]){ c.matchTxnId=null; c.matchStatus=null; c.matchedAt=null; } });
   var removedDocIds={}; (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acctNo && t.matchDocId!=null) removedDocIds[t.matchDocId]=true; });
   (state.docs||[]).forEach(function(d){ if(d.matchTxnId!=null && removedDocIds[d.id]){ d.matchTxnId=null; d.matchStatus=null; d.matchedAt=null; } });
-  state.bankTxns=(state.bankTxns||[]).filter(function(t){return t.acctNo!==acctNo;});
-  saveState(); renderBankApp(); showToast('Cleared · 초기화 완료');
+  state.bankTxns=(state.bankTxns||[]).filter(function(t){return !(t.acctNo===acctNo && !bankIsLocked(t));});
+  saveState(); renderBankApp(); showToast('Cleared · 초기화 완료 (마감분 제외 · closed periods kept)');
 }
 
 // ── GRAB 사용리포트 → 은행거래 Booking ID 매칭 · 부서 자동태깅 ──
@@ -7675,7 +7675,7 @@ function handleBankExcel(file){
       // existing dedup keys for this account
       var existing={};
       (state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;}).forEach(function(t){ existing[bankTxnKey(t)]=true; });
-      var added=0, skipped=0;
+      var added=0, skipped=0, lockedSkip=0;
       for(var i=start;i<rows.length;i++){
         var r=rows[i]||[];
         var date=String(r[0]||'').trim();
@@ -7688,6 +7688,7 @@ function handleBankExcel(file){
         if(!date && !type && !debit && !credit && !note) continue;
         if(!debit && !credit) continue; // 금액 이동 없는 행(개설/플레이스홀더, 예: 잔액 0) 제외
         var txn={id:++state.bankSeq, acctNo:acc.acctNo, currency:acc.currency, date:date, type:type, debit:debit, credit:credit, balance:bal, ref:ref, note:note, vendor:_bankAutoVendorName(note||ref), category:'Uncategorized', seq:state.bankSeq};
+        if(bankIsMonthClosed(acc.acctNo, bankTxnMonth(txn))){ lockedSkip++; continue; }
         var k=bankTxnKey(txn);
         if(existing[k]){ skipped++; continue; }
         existing[k]=true;
@@ -7697,7 +7698,7 @@ function handleBankExcel(file){
       saveState(); renderBankApp();
       var _bc=(typeof bankAutoChargeClassify==='function')?bankAutoChargeClassify(true):0;
       if(_bc && typeof renderBankApp==='function') renderBankApp();
-      showToast('Imported · 등록 '+added+' · skipped '+skipped+' (중복)'+(_bc?(' · 수수료 자동분류 '+_bc):''));
+      showToast('Imported · 등록 '+added+' · skipped '+skipped+' (중복)'+(lockedSkip?(' · 마감제외 '+lockedSkip):'')+(_bc?(' · 수수료 자동분류 '+_bc):''));
     }catch(err){ console.error(err); showToast('파싱 오류 · Parse error: '+err.message); }
   };
   reader.readAsArrayBuffer(file);
@@ -7740,8 +7741,8 @@ function _cardMatchInfo(card){
   if(cands.length>=1) return {status:'review', txn:null, candidates:cands};
   return {status:'none', txn:null, candidates:[]};
 }
-function _linkCardBank(card,txn,how){ card.matchTxnId=txn.id; card.matchStatus=how; card.matchedAt=nowStr(); txn.matchCardId=card.id; txn.matchStatus=how; txn.matchedAt=nowStr(); _stampEdit(txn); _stampEdit(card); }
-function _unlinkCard(card){ if(card.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;}); if(t){ t.matchCardId=null; t.matchStatus=null; t.matchedAt=null; _stampEdit(t); } } card.matchTxnId=null; card.matchStatus=null; card.matchedAt=null; _stampEdit(card); }
+function _linkCardBank(card,txn,how){ if(typeof bankGuardLocked==='function' && bankGuardLocked(txn)) return; card.matchTxnId=txn.id; card.matchStatus=how; card.matchedAt=nowStr(); txn.matchCardId=card.id; txn.matchStatus=how; txn.matchedAt=nowStr(); _stampEdit(txn); _stampEdit(card); }
+function _unlinkCard(card){ if(card.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===card.matchTxnId;}); if(t){ if(typeof bankGuardLocked==='function' && bankGuardLocked(t)) return; t.matchCardId=null; t.matchStatus=null; t.matchedAt=null; _stampEdit(t); } } card.matchTxnId=null; card.matchStatus=null; card.matchedAt=null; _stampEdit(card); }
 function _reconRefresh(){ saveState(); if(typeof renderBankList==='function') renderBankList(); if(typeof renderCard==='function') renderCard(); if(typeof renderCardBankRecon==='function' && document.getElementById('bankReconPane')) renderCardBankRecon(); }
 // 은행 행(체크카드결제) → 카드 매칭 (명세서 페이지 통합용)
 function _isCardTxn(t){ return /카드/.test(String(t.type||'')) && _bankDebit(t)>0; }
@@ -7815,8 +7816,8 @@ function _bankDocInfo(txn){
   if(cands.length>=2) return {status:'review', doc:null, candidates:cands};
   return {status:'none', doc:null, candidates:cands};
 }
-function _linkDocBank(doc,txn,how){ doc.matchTxnId=txn.id; doc.matchStatus=how; doc.matchedAt=nowStr(); txn.matchDocId=doc.id; txn.matchDocStatus=how; txn.matchDocAt=nowStr(); _stampEdit(txn); }
-function _unlinkDoc(doc){ if(doc.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===doc.matchTxnId;}); if(t){ t.matchDocId=null; t.matchDocStatus=null; t.matchDocAt=null; _stampEdit(t); } } doc.matchTxnId=null; doc.matchStatus=null; doc.matchedAt=null; }
+function _linkDocBank(doc,txn,how){ if(typeof bankGuardLocked==='function' && bankGuardLocked(txn)) return; doc.matchTxnId=txn.id; doc.matchStatus=how; doc.matchedAt=nowStr(); txn.matchDocId=doc.id; txn.matchDocStatus=how; txn.matchDocAt=nowStr(); _stampEdit(txn); }
+function _unlinkDoc(doc){ if(doc.matchTxnId){ var t=(state.bankTxns||[]).find(function(x){return x.id===doc.matchTxnId;}); if(t){ if(typeof bankGuardLocked==='function' && bankGuardLocked(t)) return; t.matchDocId=null; t.matchDocStatus=null; t.matchDocAt=null; _stampEdit(t); } } doc.matchTxnId=null; doc.matchStatus=null; doc.matchedAt=null; }
 function _docReconRefresh(){ saveState(); if(typeof renderBankList==='function') renderBankList(); }
 function runDocAutoMatch(){
   var docs=(state.docs||[]).filter(_docPayable).filter(function(d){ return !d.matchTxnId; });
@@ -7913,6 +7914,7 @@ function _bankInvInfo(txn){
   return {linked:linked, remaining:remaining, candidates:cands, blocked:_txnInvBlocked(txn), full:(linked.length>0 && remaining<=0)};
 }
 function _linkInvBank(inv,txn,how){
+  if(typeof bankGuardLocked==='function' && bankGuardLocked(txn)) return;
   inv.matchTxnId=txn.id; inv.matchStatus=how; inv.paidAt=nowStr();
   if(!Array.isArray(txn.matchInvIds)) txn.matchInvIds=(txn.matchInvId!=null)?[txn.matchInvId]:[];
   txn.matchInvId=null;   // 구버전 단일 필드 → 배열로 이관
@@ -7923,6 +7925,7 @@ function _unlinkInv(inv){
   if(inv.matchTxnId){
     var t=(state.bankTxns||[]).find(function(x){return x.id===inv.matchTxnId;});
     if(t){
+      if(typeof bankGuardLocked==='function' && bankGuardLocked(t)) return;
       if(Array.isArray(t.matchInvIds)) t.matchInvIds=t.matchInvIds.filter(function(id){return String(id)!==String(inv.id);});
       if(t.matchInvId!=null && String(t.matchInvId)===String(inv.id)) t.matchInvId=null;
       if(!_txnInvLinked(t)){ t.matchInvStatus=null; t.matchInvAt=null; if(Array.isArray(t.matchInvIds)&&!t.matchInvIds.length) t.matchInvIds=null; }
@@ -8220,7 +8223,7 @@ function _bankExtractVendorFromNote(note){
 }
 // NOTE 추출 우선 → 없으면 거래처 DB 부분일치
 function _bankAutoVendorName(note){ var v=_bankExtractVendorFromNote(note); return v?v:_bankGuessVendor(note); }
-function setBankTxnVendor(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return; t.vendor=String(val||'').trim(); _stampEdit(t); saveState(); }
+function setBankTxnVendor(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return; if(bankGuardLocked(t)){ renderBankList(); return; } t.vendor=String(val||'').trim(); _stampEdit(t); saveState(); }
 function bankAutoVendor(){
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;}); if(!acc){ return; }
   var n=0;
@@ -8267,8 +8270,9 @@ function _bankAutoDept(t){
   return '';
 }
 function _bankDept(t){ var a=_bankAutoDept(t); return a||t.dept||''; }
-function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; t.dept=String(val||'').trim(); _stampEdit(t); saveState(); }
+function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; if(bankGuardLocked(t)){ renderBankList(); return; } t.dept=String(val||'').trim(); _stampEdit(t); saveState(); }
 function _bankDeptCell(t){
+  if(typeof bankIsLocked==='function' && bankIsLocked(t)){ var _dl=_bankDept(t); return '<span style="font-size:11px;color:#6b7280">'+(_dl||'—')+'</span>'; }
   if(t.category==='Inter-account Transfer') return '<span style="color:var(--text-3);font-size:11px" title="부서 지정 불필요 · No dept needed">N/A</span>';
   var auto=_bankAutoDept(t);
   if(auto){ return '<span style="font-size:11px;font-weight:700;white-space:nowrap" title="매칭에서 자동 · From matched card/approval">'+auto+' <span style="font-size:8px;font-weight:600;color:#15803d">auto</span></span>'; }
@@ -8299,6 +8303,83 @@ function bankAutoChargeClassify(silent){
 function bankRunAutoCharge(){ var n=bankAutoChargeClassify(false); showToast(n?('은행수수료 자동분류 '+n+'건 · '+n+' bank charges'):'해당 거래 없음 · None found'); }
 var bankSort={key:'',dir:1};
 function setBankSort(k){ if(bankSort.key===k){ bankSort.dir=-bankSort.dir; } else { bankSort.key=k; bankSort.dir=1; } if(typeof renderBankList==='function') renderBankList(); }
+// ═══════════ 기간 마감(Period Close) + 다중선택 삭제(Multi-select) ═══════════
+window.bankSel = window.bankSel || {};
+function bankIsAdmin(){ return !!(sessionIsAdmin || (typeof cardCurrentUser==='function' && cardCurrentUser() && cardCurrentUser().isAdmin) || (typeof acctAdminAllowed==='function' && acctAdminAllowed())); }
+function bankTxnMonth(t){ var m=String((t&&t.date)||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if(!m) return ''; var y=m[3].length===2?('20'+m[3]):m[3]; var mo=('0'+m[2]).slice(-2); return y+'-'+mo; }
+function bankPeriodKey(acctNo,ym){ return String(acctNo)+'|'+String(ym); }
+function bankIsMonthClosed(acctNo,ym){ return !!(ym && state.bankClosedPeriods && state.bankClosedPeriods[bankPeriodKey(acctNo,ym)]); }
+function bankIsLocked(t){ if(!t) return false; var ym=bankTxnMonth(t); if(!ym) return false; return bankIsMonthClosed(t.acctNo,ym); }
+function bankGuardLocked(t){ if(t && bankIsLocked(t)){ if(typeof showToast==='function') showToast('마감된 기간 · Closed period ('+bankTxnMonth(t)+') — 수정 불가 · read-only'); return true; } return false; }
+function _bankCloserName(){ try{ var u=(typeof bankCurrentUser==='function')?bankCurrentUser():null; return (u&&(u.name||u.id))||'admin'; }catch(e){ return 'admin'; } }
+function bankClosePeriod(acctNo,ym){
+  if(!bankIsAdmin()){ showToast('권한 없음 · Admin only'); return; }
+  if(!ym){ showToast('마감할 월을 먼저 선택하세요 · Pick a month'); return; }
+  var n=(state.bankTxns||[]).filter(function(t){return t.acctNo===acctNo && bankTxnMonth(t)===ym;}).length;
+  if(!confirm('Close period '+ym+' for '+acctNo+'?\n'+acctNo+' · '+ym+' 기간을 마감합니다 ('+n+' txns).\n마감 후에는 해당 기간 거래를 수정·삭제·재업로드할 수 없습니다.')) return;
+  if(!state.bankClosedPeriods) state.bankClosedPeriods={};
+  state.bankClosedPeriods[bankPeriodKey(acctNo,ym)]={closedAt:(typeof nowStr==='function'?nowStr():new Date().toISOString()), closedBy:_bankCloserName(), count:n};
+  saveState(); renderBankApp(); showToast('마감 완료 · Period closed · '+ym);
+}
+function bankReopenPeriod(acctNo,ym){
+  if(!bankIsAdmin()){ showToast('권한 없음 · Admin only'); return; }
+  if(!ym || !(state.bankClosedPeriods && state.bankClosedPeriods[bankPeriodKey(acctNo,ym)])) return;
+  if(!confirm('Re-open period '+ym+' for '+acctNo+'?\n'+acctNo+' · '+ym+' 마감을 해제합니다.')) return;
+  delete state.bankClosedPeriods[bankPeriodKey(acctNo,ym)];
+  saveState(); renderBankApp(); showToast('마감 해제 · Re-opened · '+ym);
+}
+function bankClosePeriodBtn(acctNo,ym){
+  if(!bankIsAdmin()) return '';
+  if(!ym) return '<span style="font-size:10px;color:var(--text-3)">← 월 선택 후 마감 · pick month to close</span>';
+  if(bankIsMonthClosed(acctNo,ym)) return '<button class="btn btn-outline" style="font-size:11px;padding:5px 10px;color:#7c3aed;border-color:#c4b5fd" onclick="bankReopenPeriod(\''+acctNo+'\',\''+ym+'\')"><i class="ti ti-lock-open"></i> 마감해제 · Re-open '+ym+'</button>';
+  return '<button class="btn btn-outline" style="font-size:11px;padding:5px 10px;color:#7c3aed;border-color:#c4b5fd" onclick="bankClosePeriod(\''+acctNo+'\',\''+ym+'\')"><i class="ti ti-lock"></i> 이 기간 마감 · Close '+ym+'</button>';
+}
+function bankClosedBanner(acctNo){
+  var cp=state.bankClosedPeriods||{}; var pre=acctNo+'|';
+  var months=Object.keys(cp).filter(function(k){return k.indexOf(pre)===0;}).map(function(k){return k.slice(pre.length);}).sort();
+  if(!months.length) return '';
+  var admin=bankIsAdmin();
+  return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;padding:8px 10px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:var(--radius)">'
+    +'<i class="ti ti-lock" style="color:#7c3aed"></i><span style="font-size:11px;font-weight:700;color:#6d28d9">마감된 기간 · Closed periods</span>'
+    +months.map(function(m){ return '<span style="font-size:11px;font-weight:600;color:#6d28d9;background:#fff;border:1px solid #e9d5ff;border-radius:20px;padding:2px 10px">'+m+(admin?' <a href="javascript:void(0)" onclick="bankReopenPeriod(\''+acctNo+'\',\''+m+'\')" style="color:#9333ea;text-decoration:none" title="마감해제 · Re-open">✕</a>':'')+'</span>'; }).join('')
+    +'</div>';
+}
+function _bankUnlinkMatches(t){
+  if(t.matchCardId!=null){ var _c=(state.cardExpenses||[]).find(function(x){return x.id===t.matchCardId;}); if(_c){ _c.matchTxnId=null; _c.matchStatus=null; _c.matchedAt=null; } }
+  if(t.matchDocId!=null){ var _d=(state.docs||[]).find(function(x){return x.id===t.matchDocId;}); if(_d){ _d.matchTxnId=null; _d.matchStatus=null; _d.matchedAt=null; } }
+  if(t.matchInvId!=null || (Array.isArray(t.matchInvIds)&&t.matchInvIds.length)){
+    (typeof _txnInvIds==='function'?_txnInvIds(t):[]).forEach(function(id){ var _iv=(state.invoices||[]).find(function(x){return String(x.id)===String(id);}); if(_iv){ _iv.matchTxnId=null; _iv.matchStatus=null; _iv.paidAt=null; } });
+  }
+}
+function bankBulkBar(){
+  return '<div id="bankBulkBar" style="display:none;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius)">'
+    +'<span style="font-size:12px;font-weight:700;color:#b91c1c"><span id="bankBulkCount">0</span>건 선택됨 · selected</span>'
+    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px;color:var(--danger);border-color:#fecaca" onclick="bankDeleteSelected()"><i class="ti ti-trash"></i> 선택 삭제 · Delete selected</button>'
+    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="bankClearSel()">선택 해제 · Clear</button>'
+    +'</div>';
+}
+function bankToggleSel(id,ck){ if(ck) window.bankSel[id]=true; else delete window.bankSel[id]; bankUpdateSelBar(); }
+function bankToggleSelAll(ck){ (window._bankVisibleIds||[]).forEach(function(id){ if(ck) window.bankSel[id]=true; else delete window.bankSel[id]; }); renderBankList(); }
+function bankClearSel(){ window.bankSel={}; renderBankList(); }
+function bankUpdateSelBar(){
+  var vis=(window._bankVisibleIds||[]);
+  var ids=vis.filter(function(id){return window.bankSel[id];});
+  var bar=document.getElementById('bankBulkBar');
+  if(bar){ bar.style.display=ids.length?'flex':'none'; var c=document.getElementById('bankBulkCount'); if(c) c.textContent=ids.length; }
+  var sa=document.getElementById('bankSelAll'); if(sa){ sa.checked=vis.length>0 && ids.length===vis.length; sa.indeterminate=ids.length>0 && ids.length<vis.length; }
+}
+function bankDeleteSelected(){
+  var selIds=(window._bankVisibleIds||[]).filter(function(id){return window.bankSel[id];});
+  var txns=(state.bankTxns||[]).filter(function(t){return selIds.indexOf(t.id)>=0;});
+  var lockedN=txns.filter(bankIsLocked).length;
+  var del=txns.filter(function(t){return !bankIsLocked(t);});
+  if(!del.length){ showToast(lockedN?('선택 '+lockedN+'건 모두 마감 기간 · all in closed period'):'선택된 거래 없음 · None selected'); return; }
+  if(!confirm('Delete '+del.length+' selected transaction(s)?'+(lockedN?(' ('+lockedN+' skipped · 마감기간 제외)'):'')+'\n선택한 '+del.length+'건을 삭제할까요?')) return;
+  var delIds={}; del.forEach(function(t){ _bankUnlinkMatches(t); delIds[t.id]=true; });
+  state.bankTxns=(state.bankTxns||[]).filter(function(t){return !delIds[t.id];});
+  window.bankSel={};
+  saveState(); renderBankApp(); showToast('삭제 · Deleted '+del.length+(lockedN?(' · skipped '+lockedN):''));
+}
 function renderBankList(){
   var el=document.getElementById('bankList'); if(!el) return;
   var acc=(state.bankAccounts||[]).find(function(a){return a.acctNo===bankCurrentAcct;});
@@ -8323,14 +8404,17 @@ function renderBankList(){
   if(bankSort.key==='dept'){ txnsF=txnsF.slice().sort(function(a,b){ var da=(_bankDept(a)||'').toString(), db=(_bankDept(b)||'').toString(); if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1; if(da===db)return 0; return da<db?-bankSort.dir:bankSort.dir; }); }
   var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
+  window._bankVisibleIds=txnsF.filter(function(t){return !bankIsLocked(t);}).map(function(t){return t.id;});
   var rows=txnsF.map(function(t){
-    var catSel='<select onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:104px;'+((!t.category||t.category==='Uncategorized')?'background:#fffbeb':'')+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
+    var lk=bankIsLocked(t);
+    var catSel='<select '+(lk?'disabled ':'')+'onchange="setBankTxnCategory('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);max-width:104px;'+(lk?'background:#f3f4f6;color:#6b7280;':((!t.category||t.category==='Uncategorized')?'background:#fffbeb':''))+'">'+bankCategoryOptions(t.category||'Uncategorized')+'</select>';
     var guess=(!t.vendor||!t.vendor.trim())?_bankAutoVendorName(t.note||t.ref||''):'';
     var vph=guess?('추천: '+guess.replace(/"/g,'&quot;')):'거래처 선택·입력';
-    var vendorInp='<input list="bankVendorList" value="'+String(t.vendor||'').replace(/"/g,'&quot;')+'" placeholder="'+vph+'" onchange="setBankTxnVendor('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);width:140px;'+((!t.vendor||!t.vendor.trim())?'background:#fffbeb':'')+'">'
+    var vendorInp='<input list="bankVendorList" value="'+String(t.vendor||'').replace(/"/g,'&quot;')+'" placeholder="'+vph+'" '+(lk?'disabled ':'')+'onchange="setBankTxnVendor('+t.id+',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);width:140px;'+(lk?'background:#f3f4f6;color:#6b7280;':((!t.vendor||!t.vendor.trim())?'background:#fffbeb':''))+'">'
       +(guess?' <a href="javascript:void(0)" onclick="applyBankVendorGuess('+t.id+')" style="font-size:10px;color:#1d4ed8;text-decoration:none;white-space:nowrap" title="추천 거래처 적용 · Apply suggestion">Apply</a>':'');
-    return '<tr>'
-      +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(t.date||'—')+'</td>'
+    return '<tr'+(lk?' style="background:#faf7ff"':'')+'>'
+      +'<td style="'+td+';text-align:center;width:34px"><input type="checkbox" class="bankSelChk" '+(lk?'disabled':((window.bankSel[t.id])?'checked':''))+' onchange="bankToggleSel('+t.id+',this.checked)" style="cursor:pointer"></td>'
+      +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(lk?'<i class="ti ti-lock" style="font-size:11px;color:#7c3aed" title="마감됨 · Closed"></i> ':'')+(t.date||'—')+'</td>'
       +'<td style="'+td+';white-space:nowrap;max-width:64px;overflow:hidden;text-overflow:ellipsis;font-size:11px">'+_bankTypeShort(t.type)+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#b91c1c">'+(t.debit?bankFmt(t.debit,acc.currency):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:#15803d">'+(t.credit?bankFmt(t.credit,acc.currency):'')+'</td>'
@@ -8342,7 +8426,7 @@ function renderBankList(){
       +'<td style="'+td+'">'+_bankCardCell(t)+'</td>'
       +'<td style="'+td+'">'+_bankInvoiceCell(t)+'</td>'
       +'<td style="'+td+'">'+_bankDocCell(t)+'</td>'
-      +'<td style="'+td+';text-align:right"><button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button></td>'
+      +'<td style="'+td+';text-align:right">'+(lk?'<span style="font-size:9px;color:#7c3aed;font-weight:700" title="마감 · Closed">LOCK</span>':'<button class="btn btn-outline" style="font-size:10px;padding:3px 7px" onclick="deleteBankTxn('+t.id+')"><i class="ti ti-trash"></i></button>')+'</td>'
       +'</tr>';
   }).join('');
   var noVendor=txns.filter(function(t){ return !t.vendor||!t.vendor.trim(); }).length;
@@ -8371,6 +8455,7 @@ function renderBankList(){
     +'<i class="ti ti-filter" style="color:var(--text-3)"></i>'
     +'<input value="'+String(f.q||'').replace(/"/g,'&quot;')+'" onchange="setBankFilter(\'q\',this.value)" placeholder="검색 · Search (비고·거래처)" style="'+selStyle+';width:180px">'
     +'<input type="month" value="'+(f.month||'')+'" onchange="setBankFilter(\'month\',this.value)" title="월별 검색 · Month" style="'+selStyle+'">'
+    +bankClosePeriodBtn(acc.acctNo, f.month)
     +'<select onchange="setBankFilter(\'cat\',this.value)" style="'+selStyle+';max-width:150px">'+catOpts+'</select>'
     +'<select onchange="setBankFilter(\'dir\',this.value)" style="'+selStyle+'">'+opt('','입출금 전체',f.dir)+opt('in','입금 In',f.dir)+opt('out','출금 Out',f.dir)+'</select>'
     +'<select onchange="setBankFilter(\'dept\',this.value)" style="'+selStyle+'">'+opt('','부서 전체',f.dept)+_bankDeptList().map(function(d){return opt(d,d,f.dept);}).join('')+'</select>'
@@ -8383,19 +8468,21 @@ function renderBankList(){
     +'<button class="btn btn-dark" style="font-size:11px;padding:6px 14px" onclick="bankManualSave()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>'
     +'</div>';
   var listHtml = txnsF.length
-    ? '<div id="bankScrollTop" style="overflow-x:auto;overflow-y:hidden" onscroll="var b=document.getElementById(\'bankScrollBody\');if(b)b.scrollLeft=this.scrollLeft"><div style="width:1580px;height:1px"></div></div>'
-      +'<div id="bankScrollBody" style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)" onscroll="var tp=document.getElementById(\'bankScrollTop\');if(tp)tp.scrollLeft=this.scrollLeft"><table style="width:100%;border-collapse:collapse;min-width:1580px">'
+    ? '<div id="bankScrollTop" style="overflow-x:auto;overflow-y:hidden" onscroll="var b=document.getElementById(\'bankScrollBody\');if(b)b.scrollLeft=this.scrollLeft"><div style="width:1620px;height:1px"></div></div>'
+      +'<div id="bankScrollBody" style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)" onscroll="var tp=document.getElementById(\'bankScrollTop\');if(tp)tp.scrollLeft=this.scrollLeft"><table style="width:100%;border-collapse:collapse;min-width:1620px">'
       +'<thead><tr>'
+      +'<th style="'+th+';text-align:center;width:34px"><input type="checkbox" id="bankSelAll" onclick="bankToggleSelAll(this.checked)" title="전체선택 · Select all" style="cursor:pointer"></th>'
       +'<th style="'+th+'">Date<br>날짜 · Date</th><th style="'+th+';max-width:64px">Type<br>거래 · Transaction</th>'
       +'<th style="'+th+';text-align:right">Out<br>출금 · Debit</th><th style="'+th+';text-align:right">In<br>입금 · Credit</th>'
       +'<th style="'+th+';text-align:right">Balance<br>잔액 · Balance</th><th style="'+th+'">Note<br>비고 · Remarks</th>'
       +'<th style="'+th+'">Category<br>분류 · Category</th><th style="'+th+';cursor:pointer;user-select:none" onclick="setBankSort(\'dept\')" title="부서 정렬 · Sort by dept">Dept<br>부서 · Dept'+(bankSort.key==='dept'?(bankSort.dir>0?' ▲':' ▼'):'')+'</th><th style="'+th+'">Vendor<br>거래처 · Vendor</th><th style="'+th+'">Card<br>카드 · Card</th><th style="'+th+'">Invoice<br>인보이스 · Invoice</th><th style="'+th+'">Approval<br>전자결재 · E-Approval</th><th style="'+th+';text-align:right"></th></tr></thead>'
       +'<tbody>'+rows+'</tbody></table></div>'
     : '<div class="empty-state" style="padding:24px"><i class="ti ti-filter-off"></i><p>필터 조건에 맞는 거래가 없습니다 · No transactions match the filter</p></div>';
-  el.innerHTML=bankVendorDatalist()+vendorBar+filterBar+listHtml;
+  el.innerHTML=bankVendorDatalist()+vendorBar+bankClosedBanner(acc.acctNo)+filterBar+bankBulkBar()+listHtml;
+  bankUpdateSelBar();
 }
 function _bankTypeShort(ty){ ty=String(ty||''); if(/카드/.test(ty)) return '카드'; return ty; }
-function applyBankVendorGuess(id){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; _stampEdit(t); saveState(); renderBankList(); } }
+function applyBankVendorGuess(id){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; if(bankGuardLocked(t)){ return; } var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; _stampEdit(t); saveState(); renderBankList(); } }
 function _bankInvoiceChecked(t){
   if(t.invoice===true) return true;
   if(t.invoice===false) return false;
@@ -8430,12 +8517,14 @@ function _bankCardCell(t){
 }
 function setBankTxnCategory(id,val){
   var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t) return;
+  if(bankGuardLocked(t)){ renderBankList(); return; }
   t.category=val; if(val==='Bank Charges'){ t.vendor='SHINHAN VN'; } _stampEdit(t); saveState();
   // light refresh of summary only
   renderBankList();
 }
 function deleteBankTxn(id){
   var _t=(state.bankTxns||[]).find(function(x){return x.id===id;});
+  if(_t && bankIsLocked(_t)){ showToast('마감된 기간 · Closed period — 삭제 불가 · cannot delete'); return; }
   if(_t){
     if(_t.matchCardId!=null){ var _c=(state.cardExpenses||[]).find(function(x){return x.id===_t.matchCardId;}); if(_c){ _c.matchTxnId=null; _c.matchStatus=null; _c.matchedAt=null; } }
     if(_t.matchDocId!=null){ var _d=(state.docs||[]).find(function(x){return x.id===_t.matchDocId;}); if(_d){ _d.matchTxnId=null; _d.matchStatus=null; _d.matchedAt=null; } }
