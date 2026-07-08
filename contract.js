@@ -48,7 +48,7 @@ function _normalizeContractNo(p,saved){
   return saved;
 }
 
-function _ctDefaults(p){ var qs=_projQuotesC(p); return { contractNo:_ctNoFor(p), date:projTodayISO(), vatRate:8, warrantyYears:10, depositPct:50, balancePct:50, paymentDays:3, deliveryDate:p.targetDate||'', buyerGender:'female', quoteId:(qs[0]?qs[0].id:null) }; }
+function _ctDefaults(p){ var qs=_projQuotesC(p); return { contractNo:_ctNoFor(p), date:projTodayISO(), vatRate:8, warrantyYears:10, depositPct:100, balancePct:0, paymentDays:3, installments:[{pct:100,timing:'po',afterDays:14}], deliveryDate:p.targetDate||'', buyerGender:'female', quoteId:(qs[0]?qs[0].id:null) }; }
 
 function openContractModal(projId){
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);});
@@ -61,8 +61,7 @@ function openContractModal(projId){
   document.getElementById('ctDate').value=o.date||projTodayISO();
   document.getElementById('ctVat').value=(o.vatRate==null?8:o.vatRate);
   document.getElementById('ctWarranty').value=o.warrantyYears||10;
-  document.getElementById('ctDeposit').value=(o.depositPct==null?50:o.depositPct);
-  document.getElementById('ctBalance').value=(o.balancePct==null?(o.depositPct==null?50:Math.max(0,100-qNum(o.depositPct))):o.balancePct);
+  _ctInst=_ctInstallments(o); ctRenderInstallments();
   document.getElementById('ctPayDays').value=o.paymentDays||3;
   document.getElementById('ctDeliveryDate').value=o.deliveryDate||p.targetDate||'';
   var qs=_projQuotesC(p);
@@ -228,15 +227,18 @@ function renderContractApp(){
   if(!sdocs.length){ html+='<div style="font-size:12px;color:var(--text-3)">전자결재에서 「계약」 또는 「계약체결」 유형으로 기안하면 여기로 모입니다 · File a 계약 approval to collect here.</div>'; }
   else {
     var drows=sdocs.slice().reverse().map(function(d){
-      var atts=(d.contractAtts||[]).concat(d.draftAtts||[]).concat(d.payAtts||[]);
-      var attCell=atts.length?atts.map(function(a,i){
-        var isImg=/^data:image\//.test(a.data||'');
-        if(isImg) return '<a href="javascript:void(0)" onclick="viewImageLightbox(\'\')" title="'+(a.name||'').replace(/"/g,'&quot;')+'"><img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:3px;cursor:zoom-in"></a>';
-        return '<a href="'+(a.data||'#')+'" download="'+(a.name||'file')+'" title="'+(a.name||'').replace(/"/g,'&quot;')+'" style="margin-right:3px"><i class="ti ti-file" style="font-size:16px;color:var(--text-3);vertical-align:middle"></i></a>';
-      }).join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
+      var _attTypes=[['contract',d.contractAtts||[]],['draft',d.draftAtts||[]],['pay',d.payAtts||[]]];
+      var _attParts=[];
+      _attTypes.forEach(function(pair){ var typ=pair[0], arr=pair[1]; arr.forEach(function(a,i){
+        var nm=(a.name||'file').replace(/"/g,'&quot;');
+        var isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(a.name||'');
+        var icon=isImg?'ti-photo':(/\.pdf$/i.test(a.name||'')?'ti-file-type-pdf':'ti-file');
+        _attParts.push('<a href="javascript:void(0)" onclick="previewAtt('+d.id+',\''+typ+'\','+i+')" title="'+nm+' — 미리보기·다운로드 · Preview/Download" style="margin-right:5px;text-decoration:none"><i class="ti '+icon+'" style="font-size:17px;color:#4338ca;vertical-align:middle"></i></a>');
+      }); });
+      var attCell=_attParts.length?_attParts.join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
       return '<tr>'
         +'<td style="'+td+';font-family:var(--mono);font-size:11px;color:var(--text-3);white-space:nowrap">'+(d.docNo||'—')+'</td>'
-        +'<td style="'+td+';font-weight:600">'+(d.title||'—')+'</td>'
+        +'<td style="'+td+';font-weight:600"><a href="javascript:void(0)" onclick="openDocViewer('+d.id+')" style="color:#4338ca;text-decoration:none;cursor:pointer" title="기안 문서 열기 · View approval draft">'+(d.title||'—')+'</a></td>'
         +'<td style="'+td+'"><span class="badge b-'+(d.dept==='FURNITURE'?'furniture':'sourcing')+'" style="font-size:10px">'+(d.dept||'')+'</span></td>'
         +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(d.createdAt||'')+'</td>'
         +'<td style="'+td+';white-space:nowrap">'+attCell+'</td>'
@@ -257,8 +259,9 @@ function _readContractOpts(){
     contractNo:(document.getElementById('ctNo').value||'').trim(),
     date:document.getElementById('ctDate').value||projTodayISO(),
     vatRate:qNum(document.getElementById('ctVat').value)||0,
-    depositPct:qNum(document.getElementById('ctDeposit').value),
-    balancePct:qNum(document.getElementById('ctBalance').value),
+    installments:(_ctInst||[]).map(function(x){return {pct:qNum(x.pct)||0,timing:x.timing,afterDays:qNum(x.afterDays)||14};}),
+    depositPct:((_ctInst&&_ctInst[0])?qNum(_ctInst[0].pct):100),
+    balancePct:((_ctInst&&_ctInst[1])?qNum(_ctInst[1].pct):0),
     warrantyYears:(document.getElementById('ctWarranty').value||'').trim(),
     paymentDays:(document.getElementById('ctPayDays').value||'').trim(),
     deliveryDate:document.getElementById('ctDeliveryDate').value||'',
@@ -368,6 +371,24 @@ function ctPrevZoom(d){ _ctPrevZoom=Math.max(50,Math.min(220,_ctPrevZoom+d)); va
 function ctSyncDeposit(){ var dEl=document.getElementById('ctDeposit'), bEl=document.getElementById('ctBalance'); if(!dEl||!bEl) return; if(dEl.value.trim()===''){ bEl.value=''; renderContractPreview(); return; } var d=qNum(dEl.value); if(d>100){ d=100; dEl.value=100; } else if(d<0){ d=0; dEl.value=0; } bEl.value=100-d; renderContractPreview(); }
 
 function ctSyncBalance(){ var dEl=document.getElementById('ctDeposit'), bEl=document.getElementById('ctBalance'); if(!dEl||!bEl) return; if(bEl.value.trim()===''){ dEl.value=''; renderContractPreview(); return; } var b=qNum(bEl.value); if(b>100){ b=100; bEl.value=100; } else if(b<0){ b=0; bEl.value=0; } dEl.value=100-b; renderContractPreview(); }
+var _ctInst=[];
+function ctSetInstallmentCount(n){ n=qNum(n)||1; if(n<1)n=1; if(n>3)n=3; _ctInst=_ctInstDefault(n).map(function(x){return {pct:x.pct,timing:x.timing,afterDays:x.afterDays};}); ctRenderInstallments(); renderContractPreview(); }
+function ctInstSet(i,field,val){ if(!_ctInst[i])return; if(field==='pct'){ var v=qNum(val); if(v>100)v=100; if(v<0)v=0; _ctInst[i].pct=v; } else if(field==='afterDays'){ _ctInst[i].afterDays=qNum(val)||14; } else { _ctInst[i].timing=val; ctRenderInstallments(); } renderContractPreview(); }
+function ctRenderInstallments(){ var box=document.getElementById('ctInstallments'); if(!box)return; if(!_ctInst||!_ctInst.length)_ctInst=_ctInstDefault(1);
+  var TL=[['po','PO발행 · PO issuance'],['preship','출고전 · Before shipment'],['delivery','납기후 · After delivery']];
+  var DD=[7,14,30];
+  var sum=_ctInst.reduce(function(a,x){return a+(qNum(x.pct)||0);},0);
+  box.innerHTML=_ctInst.map(function(x,i){
+    var tsel='<select onchange="ctInstSet('+i+',\'timing\',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px">'+TL.map(function(o){return '<option value="'+o[0]+'"'+(x.timing===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>';
+    var dsel=(x.timing==='delivery')?'<select onchange="ctInstSet('+i+',\'afterDays\',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px">'+DD.map(function(d){return '<option value="'+d+'"'+((qNum(x.afterDays)||14)===d?' selected':'')+'>'+d+'일</option>';}).join('')+'</select>':'';
+    return '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      +'<span style="font-size:11px;font-weight:700;width:26px">'+(i+1)+'차</span>'
+      +'<input type="text" inputmode="decimal" value="'+(x.pct||0)+'" oninput="ctInstSet('+i+',\'pct\',this.value)" style="width:52px;font-size:12px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px"><span style="font-size:11px">%</span>'
+      +tsel+dsel+'</div>';
+  }).join('')
+   +'<div style="font-size:10px;margin-top:2px;'+(sum===100?'color:var(--text-3)':'color:var(--danger);font-weight:700')+'">합계 · Total: '+sum+'%'+(sum===100?' ✓':' — 100%가 되어야 합니다')+'</div>';
+  var cEl=document.getElementById('ctInstCount'); if(cEl)cEl.value=String(_ctInst.length);
+}
 
 function saveContractOpts(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); p.contractOpts=o; saveBuyerToDB(p.client,_buyerOf(o)); saveState(); if(typeof updateContractConfirmBtn==='function')updateContractConfirmBtn(); if(typeof contractAppOpen!=='undefined'&&contractAppOpen&&typeof renderContractApp==='function')renderContractApp(); showToast('계약 설정 저장 · 미확정 상태로 계약서 모듈에 표시'); }
 
@@ -492,6 +513,27 @@ function ctTplZoom(d){ _ctTplZoom=Math.max(50,Math.min(220,_ctTplZoom+d)); rende
 
 function closeCtTplPreview(){ document.getElementById('ctTplPreviewModal').style.display='none'; }
 
+var INICS_LOGO_CT='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAVQAAABmCAMAAACjiZmVAAAAwFBMVEX+/v74ABzzAyH+ydL+6u/aFi/th5XjOk7aN0vaDCbqdobyl6X3p7PgESz+2uPWJTv7ucX+1NznZnjXK0LlV2vaRFjaVWnkRlrxkZ73srzYTWLkS2LdCB7sboLjK0XwjqDqJDzZaHjbcoTabIHdcH3/r8EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJqO4MAAAAMHRSTlP//////////////////////////////////////////////////wAAAAAAAAAAAACjyeTfAAALG0lEQVR42u2dC3erqhKA4wBGxPg2j6bd3efce///X7yCLwRUTNQkazmr3W3XFoXPgYFhhhwOu+yyyy677LLLLrvssssuu+yyyy677LLLVoJxggJ2dblcWXCLURJi68IhioOgKsxLBzFCYYjxA9WIGZfrtfxmLEimrk8CJq688hKMIYvb86td95exGFvV5lqLRW16EsbMPxeeF5FKosjziuKcukGcTD05RIGbisL90l/n1HdZiTecwRa7HpHlHI9fH5+j3vUeG31Y6GfyxS6eVZvojGYoh3v2CAVJHCEAhGRnF02WJVWRtnRTnpY1yYrzvwxZcsUso+3Dgd/ha1Q7kjMVz2uFRmwUUtTcXpQh41RFbeq7iwLUlmrC0kwQbak4NZS6mmT4TmFQlv0WlzpQ/+jeSdNWSqcUqLvhuWp092qjYOz6IJKqKv79LkbanXzVTOvG0mL0lYV5V5uqcaOvTEKaN0QbEt1v9R2H3icO0og6uoAjQxU/aRbYvWEPQC7pOOPKdCXa04k/XAAdoX+xN6p52uVlbWw6fhqBY5LeKHAOjY/0PQrm0lIHrn+jvpWqIk9jNAYVuzpU53gboaS8+xWgYnYkRh2Vhkf+u3Fci3MCoJUbxGt+MUOaag9Vf600Da2g2mjqrFdctcCPhjVNsllGqOhctwemiQptT6yhgiNVawLqCfpNEOaHjage9O4+EypMaipKiTQMG/VV/AUmIIIpyF28V0QbYyG3gspb3a/ENFRNF+igrRJQZVM6F+rJnWTqqEzVOVUNRO+6YUoBBtQcDKoKM6HO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';
+function _ctInstDefault(n){ n=qNum(n)||1;
+  if(n<=1) return [{pct:100,timing:'po',afterDays:14}];
+  if(n===2) return [{pct:50,timing:'po',afterDays:14},{pct:50,timing:'delivery',afterDays:14}];
+  return [{pct:30,timing:'po',afterDays:14},{pct:40,timing:'preship',afterDays:14},{pct:30,timing:'delivery',afterDays:14}];
+}
+function _ctInstallments(o){ o=o||{};
+  if(Array.isArray(o.installments)&&o.installments.length){
+    return o.installments.map(function(x){ var t=(x.timing==='po'||x.timing==='preship'||x.timing==='delivery')?x.timing:'po';
+      return { pct:qNum(x.pct)||0, timing:t, afterDays:qNum(x.afterDays)||14 }; });
+  }
+  var _dep=(o.depositPct==null?100:qNum(o.depositPct));
+  var _bal=(o.balancePct==null||o.balancePct===''?(100-_dep):qNum(o.balancePct));
+  if(_dep>=100&&_bal<=0) return [{pct:100,timing:'po',afterDays:14}];
+  return [{pct:_dep,timing:'po',afterDays:14},{pct:_bal,timing:'delivery',afterDays:(qNum(o.paymentDays)||14)}];
+}
+function _ctTimingPhrase(inst,payDays,lang){ var t=inst.timing, ad=qNum(inst.afterDays)||14, pd=(payDays===''||payDays==null)?'3':payDays;
+  if(t==='po') return {vi:'trong vòng '+pd+' ngày làm việc kể từ ngày phát hành Đơn đặt hàng (PO)', en:'within '+pd+' working days from the PO issuance date', ko:'PO 발행 후 '+pd+' 영업일 이내'}[lang];
+  if(t==='preship') return {vi:'trước khi xuất hàng (trong vòng '+pd+' ngày làm việc kể từ ngày thông báo xuất hàng)', en:'before shipment (within '+pd+' working days of the shipment notice)', ko:'출고 전 ('+pd+' 영업일 이내)'}[lang];
+  return {vi:'trong vòng '+ad+' ngày sau khi giao hàng / nghiệm thu', en:'within '+ad+' days after delivery / acceptance', ko:'납품 / 검수 후 '+ad+'일 이내'}[lang];
+}
 function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   var isKo=(lang==='ko');
   var qs=_projQuotesC(p);
@@ -502,22 +544,24 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   var cur=q?(q.currency||'VND'):'VND';
   var M=function(n){return _money(n,cur);};
   var H=review?function(v){return '<mark style="background:#fff59d;padding:0 2px;border-radius:1px">'+v+'</mark>';}:function(v){return v;};
-  var KO=review?function(t){return '<div style="font-size:9px;color:#1d4ed8;margin-top:3px">🇰🇷 '+t+'</div>';}:function(){return '';};
+  var KO=review?function(t){return '<div style="font-size:10.8px;color:#1d4ed8;margin-top:3px">🇰🇷 '+t+'</div>';}:function(){return '';};
   var tpl=tplOverride||getContractTpl();
-  var dep=(o.depositPct==null?100:qNum(o.depositPct));
-  var bal=(o.balancePct==null||o.balancePct===''?(100-dep):qNum(o.balancePct));
+  var _insts=_ctInstallments(o);
+  var dep=(_insts[0]?_insts[0].pct:100);
   var payDays=o.paymentDays||'';
   var payVi, payEn, payKo;
-  if(dep>=100 && bal<=0){
-    payVi='Bên Mua thanh toán 100% giá trị hợp đồng ('+H(M(total))+') trong vòng '+H(payDays)+' ngày làm việc kể từ ngày ký Hợp đồng (thanh toán trước khi giao hàng).';
-    payEn='The Buyer shall pay 100% of the contract value ('+H(M(total))+') within '+H(payDays)+' working days after signing the Contract (advance payment).';
-    payKo='구매자는 계약서 서명 후 '+H(payDays)+' 영업일 이내에 계약 총액('+H(M(total))+')의 100%를 선금으로 지급한다 (인도 전 선납).';
-  } else {
-    var _d=total*dep/100, _b=total*bal/100;
-    payVi='Đợt 1 – Tạm ứng '+H(dep+'%')+' ('+H(M(_d))+') trong vòng '+H(payDays)+' ngày làm việc kể từ ngày ký Hợp đồng. Thời gian sản xuất và giao hàng (Lead Time) của sản phẩm được tính kể từ ngày khoản tạm ứng này được ghi có đầy đủ vào tài khoản chỉ định của Nhà Cung Cấp. Đợt 2 – '+H(bal+'%')+' ('+H(M(_b))+') trong vòng '+H(payDays)+' ngày làm việc sau khi nghiệm thu / bàn giao.';
-    payEn='Phase 1 – Advance '+H(dep+'%')+' ('+H(M(_d))+') within '+H(payDays)+' working days of signing. The production and delivery lead time of the products shall be counted from the date on which this advance payment is fully credited to the Supplier\u2019s designated account. Phase 2 – '+H(bal+'%')+' ('+H(M(_b))+') within '+H(payDays)+' working days after acceptance / handover.';
-    payKo='1차 — 계약서 서명 후 '+H(payDays)+' 영업일 이내에 계약 총액의 '+H(dep+'%')+' 선금('+H(M(_d))+')을 지급한다. 제품의 생산 및 인도 리드타임(Lead Time)은 공급자의 지정 계좌로 본 선금이 완전히 입금된 날로부터 기산한다. 2차 — 검수 / 인도 후 '+H(payDays)+' 영업일 이내에 '+H(bal+'%')+' 잔금('+H(M(_b))+')을 지급한다.';
-  }
+  var _pv=[],_pe=[],_pk=[];
+  var _leadVi=' Thời gian sản xuất và giao hàng (Lead Time) của sản phẩm được tính kể từ ngày khoản thanh toán đợt 1 này được ghi có đầy đủ vào tài khoản chỉ định của Nhà Cung Cấp.';
+  var _leadEn=' The production and delivery lead time of the products shall be counted from the date on which this first payment is fully credited to the Supplier\u2019s designated account.';
+  var _leadKo=' 제품의 생산 및 인도 리드타임(Lead Time)은 본 1차 대금이 공급자의 지정 계좌에 완전히 입금된 날로부터 기산한다.';
+  _insts.forEach(function(inst,i){
+    var amt=total*(qNum(inst.pct)||0)/100;
+    var lead=(i===0&&(inst.timing==='po'||inst.timing==='preship'));
+    _pv.push('Đợt '+(i+1)+' – '+H((inst.pct||0)+'%')+' ('+H(M(amt))+') '+_ctTimingPhrase(inst,payDays,'vi')+(lead?_leadVi:'')+'.');
+    _pe.push('Phase '+(i+1)+' – '+H((inst.pct||0)+'%')+' ('+H(M(amt))+') '+_ctTimingPhrase(inst,payDays,'en')+(lead?_leadEn:'')+'.');
+    _pk.push((i+1)+'차 — 계약 총액의 '+H((inst.pct||0)+'%')+' ('+H(M(amt))+')을(를) '+_ctTimingPhrase(inst,payDays,'ko')+' 지급한다.'+(lead?_leadKo:''));
+  });
+  payVi=_pv.join(' '); payEn=_pe.join(' '); payKo=_pk.join(' ');
   var baseVars={ no:o.contractNo||'', date:o.date||'', deliveryDate:o.deliveryDate||(review?'(미정)':'………'), deliveryPlace:p.deliveryPlace||(review?'(미입력)':'………'), total:M(total), paymentDays:payDays, warrantyYears:o.warrantyYears||'', cureDays:'' };
   var varsVi=Object.assign({},baseVars,{paymentClause:payVi});
   var varsEn=Object.assign({},baseVars,{paymentClause:payEn});
@@ -529,11 +573,11 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
     if(isKo){
       var idx=parseInt(String(viKey).replace(/\D/g,''))||0;
       var koKey=String(viKey).replace('Vi','Ko');
-      return '<div class="ct-blk" style="margin-top:14px"><div style="font-weight:700;font-size:12.5px;margin-bottom:5px">제'+idx+'조 '+(KO_TITLES[idx-1]||'')+'</div>'
-        +'<div style="padding:7px 10px;border:1px solid #ccc;font-size:11.5px;line-height:1.75">'+fill(tpl[koKey]||tpl[viKey],varsKo)+'</div></div>';
+      return '<div class="ct-blk" style="margin-top:14px"><div style="font-weight:700;font-size:15px;margin-bottom:5px">제'+idx+'조 '+(KO_TITLES[idx-1]||'')+'</div>'
+        +'<div style="padding:7px 10px;border:1px solid #ccc;font-size:13.8px;line-height:1.75">'+fill(tpl[koKey]||tpl[viKey],varsKo)+'</div></div>';
     }
-    return '<div class="ct-blk" style="margin-top:12px"><div style="font-weight:700;font-size:11px;margin-bottom:4px">'+no+'. '+titleVi+' · '+titleEn+'</div>'
-      +'<table style="width:100%;border-collapse:collapse;font-size:9.5px;line-height:1.5"><tr style="vertical-align:top">'
+    return '<div class="ct-blk" style="margin-top:12px"><div style="font-weight:700;font-size:13.2px;margin-bottom:4px">'+no+'. '+titleVi+' · '+titleEn+'</div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:11.4px;line-height:1.5"><tr style="vertical-align:top">'
       +'<td style="width:50%;padding:5px 8px;border:1px solid #ccc">'+fill(tpl[viKey],varsVi)+'</td>'
       +'<td style="width:50%;padding:5px 8px;border:1px solid #ccc">'+fill(tpl[enKey],varsEn)+'</td>'
       +'</tr></table>'+(ko?KO(ko):'')+'</div>';
@@ -542,27 +586,30 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
     var img=l.image?'<img src="'+l.image+'" style="max-width:54px;max-height:44px;object-fit:contain">':'';
     return '<tr class="ct-soft">'
       +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+(i+1)+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;font-size:8px">'+(l.category||'')+'</td>'
+      +'<td style="border:1px solid #999;padding:3px 4px;font-size:9.6px">'+(l.category||'')+'</td>'
       +'<td style="border:1px solid #999;padding:3px 4px">'+H(l.name||l.code||'')+'</td>'
       +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+img+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center;font-size:8px">'+(l.size||'')+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center;font-size:8px">'+(l.code||'')+'</td>'
+      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center;font-size:9.6px">'+(l.size||'')+'</td>'
+      +'<td style="border:1px solid #999;padding:3px 4px;text-align:center;font-size:9.6px">'+(l.code||'')+'</td>'
       +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+(l.colorCode||'')+'</td>'
       +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+fmtN(l.qty)+'</td>'
       +'<td style="border:1px solid #999;padding:3px 4px;text-align:right">'+fmtN(l.unitPrice)+'</td>'
       +'<td style="border:1px solid #999;padding:3px 4px;text-align:right">'+fmtN(l.amount)+'</td>'
-      +'<td style="border:1px solid #999;padding:3px 4px;font-size:8px">'+(l.remark||'')+'</td>'
+      +'<td style="border:1px solid #999;padding:3px 4px;font-size:9.6px">'+(l.remark||'')+'</td>'
       +'</tr>';
   }).join(''):'<tr><td colspan="11" style="border:1px solid #999;padding:10px;text-align:center;color:#b91c1c">'+(review?'연결된 견적이 없습니다 — 견적서를 먼저 작성/연결하세요':'')+'</td></tr>';
 
   return ''
   +'<div style="width:754px;margin:0 auto;padding:22px 20px 30px;background:#fff;color:#111;font-family:Arial,sans-serif;box-sizing:border-box">'
+  +'<div style="position:relative;min-height:48px">'
+  +'<img src="'+INICS_LOGO_CT+'" alt="INICS" style="position:absolute;left:0;top:0;height:42px;width:auto;object-fit:contain">'
   +(isKo
-    ? '<div style="text-align:center"><div style="font-size:17px;font-weight:800">가구 공급 계약서 · Furniture Supply Contract</div><div style="font-size:12px;font-weight:700;color:#333">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:10px;margin-top:3px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
-    : '<div style="text-align:center"><div style="font-size:16px;font-weight:800">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:13px;font-weight:700;color:#333">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:10px;color:#1d4ed8">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:10px;margin-top:3px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
+    ? '<div style="text-align:center"><div style="font-size:20.4px;font-weight:800">가구 공급 계약서 · Furniture Supply Contract</div><div style="font-size:14.4px;font-weight:700;color:#333">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:12px;margin-top:3px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
+    : '<div style="text-align:center"><div style="font-size:19.2px;font-weight:800">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:15.6px;font-weight:700;color:#333">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:12px;color:#1d4ed8">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:12px;margin-top:3px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
+  +'</div>'
   +(isKo
-    ? '<div style="font-size:11px;margin-top:20px">본 계약은 '+H(o.date||'')+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
-    : '<div style="font-size:9.5px;margin-top:20px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
+    ? '<div style="font-size:13.2px;margin-top:20px">본 계약은 '+H(o.date||'')+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
+    : '<div style="font-size:11.4px;margin-top:20px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
 
   // Bên A 공급자 / Bên B 구매자
   +'<div class="ct-blk" style="display:flex;gap:12px;margin-top:8px;font-size:'+(isKo?'10px':'9px')+';line-height:1.5">'
@@ -586,31 +633,31 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   +art('Điều 1','MỤC ĐÍCH','Purpose','art1Vi','art1En','계약 목적')
   +art('Điều 2','SẢN PHẨM VÀ SỐ LƯỢNG','Product & Quantity','art2Vi','art2En','제품·수량 (부록1 견적 명세)')
   +art('Điều 3','GIAO HÀNG','Delivery','art3Vi','art3En','납품: 납기 '+(o.deliveryDate||'미정')+', 장소 '+(p.deliveryPlace||'미입력'))
-  +art('Điều 4','ĐIỀU KHOẢN THANH TOÁN','Payment','art4Vi','art4En','결제: 선금 '+dep+'%'+(dep>=100?' (계약 후 '+(o.paymentDays||'')+'일 내 전액 선금)':' / 잔금 '+(100-dep)+'% 검수 후')+', 총액 '+M(total))
+  +art('Điều 4','ĐIỀU KHOẢN THANH TOÁN','Payment','art4Vi','art4En','결제: '+_insts.length+'차 ('+_insts.map(function(x){return (x.pct||0)+'%';}).join('/')+'), 총액 '+M(total))
   +art('Điều 5','CHẤM DỨT HỢP ĐỒNG','Termination','art5Vi','art5En','해지 조건')
   +art('Điều 6','QUYỀN & NGHĨA VỤ BÊN MUA','Buyer','art6Vi','art6En','구매자 권리·의무')
   +art('Điều 7','QUYỀN & NGHĨA VỤ NHÀ CUNG CẤP','Supplier','art7Vi','art7En','공급자 의무 · 보증 '+(o.warrantyYears||'')+'년')
   +art('Điều 8','ĐIỀU KHOẢN CHUNG','General','art8Vi','art8En','일반 · VIAC 중재 · 2부')
 
   // 서명란 (상단: 도장 공간 → 가운데: 줄+이름 → 하단: SUPPLIER/BUYER)
-  +'<div class="ct-blk" style="display:flex;gap:16px;margin-top:24px;font-size:9.5px;text-align:center">'
+  +'<div class="ct-blk" style="display:flex;gap:16px;margin-top:24px;font-size:11.4px;text-align:center">'
     +'<div style="flex:1">'
-      +'<div style="font-size:8px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
+      +'<div style="font-size:9.6px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
       +'<div style="position:relative;height:110px">'+(review?'<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%);width:104px;height:104px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
-      +'<div style="font-size:9px;color:#222;border-top:1px solid #111;padding-top:4px">'+INICS_INFO.rep+' – '+INICS_INFO.repTitleEn+'</div>'
+      +'<div style="font-size:10.8px;color:#222;border-top:1px solid #111;padding-top:4px">'+INICS_INFO.rep+' – '+INICS_INFO.repTitleEn+'</div>'
       +'<div style="font-weight:700;margin-top:5px">'+(isKo?'공급자 대표 / Supplier':'ĐẠI DIỆN NHÀ CUNG CẤP / Supplier')+'</div>'
     +'</div>'
     +'<div style="flex:1">'
-      +'<div style="font-size:8px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
+      +'<div style="font-size:9.6px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
       +'<div style="position:relative;height:110px">'+(review?'<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%);width:104px;height:104px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
-      +'<div style="font-size:9px;color:#222;border-top:1px solid #111;padding-top:4px">'+H(o.buyerRep?((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'')+(o.buyerTitle?' – '+H(o.buyerTitle):'')+'</div>'
+      +'<div style="font-size:10.8px;color:#222;border-top:1px solid #111;padding-top:4px">'+H(o.buyerRep?((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'')+(o.buyerTitle?' – '+H(o.buyerTitle):'')+'</div>'
       +'<div style="font-weight:700;margin-top:5px">'+(isKo?'구매자 대표 / Buyer':'ĐẠI DIỆN BÊN MUA / Buyer')+'</div>'
     +'</div>'
   +'</div>'
 
   // APPENDIX 1 견적 품목표
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:13px;font-weight:800;margin-bottom:10px">APPENDIX 1 – DESCRIPTION OF ORDER INFORMATION</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:8.5px">'
+  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:15.6px;font-weight:800;margin-bottom:10px">APPENDIX 1 – DESCRIPTION OF ORDER INFORMATION</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:10.2px">'
       +'<thead><tr style="background:#f1f5f9">'
         +['No','Category','Product Name','Image','Size (WxDxH)','Code','Color','Qty','Unit Price<br>(Excl.VAT)','Amount<br>(Excl.VAT)','Remark'].map(function(h){return '<th style="border:1px solid #999;padding:4px">'+h+'</th>';}).join('')
       +'</tr></thead><tbody>'+rows+'</tbody>'
@@ -618,14 +665,14 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
         +'<tr><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right;font-weight:700">TOTAL (Excl. VAT)</td><td style="border:1px solid #999;padding:5px;text-align:right;font-weight:700">'+H(fmtN(sub))+'</td><td style="border:1px solid #999"></td></tr>'
         +'<tr style="background:'+(review?'#fff59d':'#f8fafc')+'"><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right">VAT '+H(o.vatRate+'%')+'</td><td style="border:1px solid #999;padding:5px;text-align:right">'+fmtN(vatAmt)+'</td><td style="border:1px solid #999"></td></tr>'
         +'<tr style="background:#eef2ff"><td colspan="9" style="border:1px solid #999;padding:5px;text-align:right;font-weight:800">TOTAL (Incl. VAT)</td><td style="border:1px solid #999;padding:5px;text-align:right;font-weight:800">'+H(fmtN(total))+'</td><td style="border:1px solid #999"></td></tr>'
-        +'<tr class="ct-soft"><td colspan="11" style="border:1px solid #999;border-top:none;padding:6px 8px;font-size:8px;color:#555;background:#fbfbfb;line-height:1.5">Currency: '+cur+' &middot; All prices exclusive of taxes unless stated &middot; Prices include delivery and installation fee.</td></tr>'
+        +'<tr class="ct-soft"><td colspan="11" style="border:1px solid #999;border-top:none;padding:6px 8px;font-size:9.6px;color:#555;background:#fbfbfb;line-height:1.5">Currency: '+cur+' &middot; All prices exclusive of taxes unless stated &middot; Prices include delivery and installation fee.</td></tr>'
       +'</tfoot></table>'
   +'</div>'
 
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:13px;font-weight:800;margin-bottom:3px">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH \u00b7 APPENDIX 2 \u2013 WARRANTY LETTER</div>'
-    +'<div style="text-align:center;font-size:9px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(o.date):'') + '</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:9px;line-height:1.55">'
-      +'<tr style="background:#f1f5f9;vertical-align:top"><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:8.5px">TIẾNG VIỆT</th><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:8.5px">ENGLISH</th></tr>'
+  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:15.6px;font-weight:800;margin-bottom:3px">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH \u00b7 APPENDIX 2 \u2013 WARRANTY LETTER</div>'
+    +'<div style="text-align:center;font-size:10.8px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(o.date):'') + '</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:10.8px;line-height:1.55">'
+      +'<tr style="background:#f1f5f9;vertical-align:top"><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">TIẾNG VIỆT</th><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">ENGLISH</th></tr>'
       +'<tr class="ct-soft" style="vertical-align:top">'
         +'<td style="border:1px solid #ccc;padding:5px 8px">INICS VINA bảo hành sản phẩm của mình không có lỗi về vật liệu hoặc tay nghề gia công trong suốt vòng đời sản phẩm. INICS VINA sẽ sửa chữa hoặc thay thế bất kỳ sản phẩm nào bị hư hỏng trong điều kiện sử dụng bình thường do lỗi nêu trên.</td>'
         +'<td style="border:1px solid #ccc;padding:5px 8px">INICS VINA warrants its products to be free from defects in materials or workmanship for lifetime. INICS VINA will repair or replace any items which fail under normal use as a result of such defect.</td>'
@@ -654,6 +701,6 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
       +'</tr>'
     +'</table>'
   +'</div>'
-  +(review?'<div style="margin-top:14px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;font-size:9px;color:#92400e;line-height:1.5">🟡 노란색은 프로젝트·견적에서 자동으로 채워진 값입니다. 출력(PDF/인쇄)에는 형광펜·한국어가 빠지고 베트남어·영문만 인쇄됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정할 수 있습니다. 실제 사용 전 현지 법무 검토를 권장합니다.</div>':'')
+  +(review?'<div style="margin-top:14px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;font-size:10.8px;color:#92400e;line-height:1.5">🟡 노란색은 프로젝트·견적에서 자동으로 채워진 값입니다. 출력(PDF/인쇄)에는 형광펜·한국어가 빠지고 베트남어·영문만 인쇄됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정할 수 있습니다. 실제 사용 전 현지 법무 검토를 권장합니다.</div>':'')
   +'</div>';
 }
