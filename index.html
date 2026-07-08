@@ -1107,7 +1107,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fg"><label>부가세 · VAT</label><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:6px;align-items:center;white-space:nowrap;margin-top:7px"><input type="checkbox" id="projVatApplied" checked="" style="width:auto;margin:0"> 적용됨 · Applied</label></div>
         <div class="fg"><label>통화 · Currency</label><select id="projCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
         <div class="fg"><label>등록일 · Reg. Date</label><input type="date" id="projRegDate"></div>
-        <div class="fg"><label>목표 프로젝트 완료일 · Target</label><input type="date" id="projTargetDate"></div>
+        <div class="fg"><label>예상 납기일 · Expected Delivery</label><input type="date" id="projTargetDate"></div>
         <div class="fg"><label>납품 장소 · Delivery Place <span style="color:#b45309;font-size:9px">(PO단계 입력)</span></label><input type="text" id="projDeliveryPlace" placeholder="배송·설치 주소 / Địa điểm giao hàng" autocomplete="off"></div>
         <div class="fg"><label>주소 · Address <span>계약서 구매자 주소 · Buyer Address</span></label><input type="text" id="projBuyerAddr" placeholder="구매자 주소 / Địa chỉ" autocomplete="off"></div>
         <div class="fg"><label>TAX 코드 · Tax (MST)</label><input type="text" id="projBuyerTax" placeholder="세금코드 / Mã số thuế" autocomplete="off"></div>
@@ -1127,12 +1127,13 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="salesSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesSubtotal&#39;)"></div>
           <div class="fg"><label>부가세 · VAT <span>자동 · Auto</span></label><input type="text" id="salesVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
           <div class="fg"><label>매출 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="salesTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesTotal&#39;)" style="font-weight:700"></div>
-          <div class="fg"><label>선금 % · Deposit %</label><input type="text" id="salesDepositPct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance(&#39;salesDepositPct&#39;)"></div>
-          <div class="fg"><label>잔금 % · Balance % <span>자동 · Auto</span></label><input type="text" id="salesBalancePct" inputmode="decimal" autocomplete="off" placeholder="50" oninput="recalcProjFinance(&#39;salesBalancePct&#39;)"></div>
-          <div class="fg"><label>선금 금액 · Deposit</label><input type="text" id="salesDeposit" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
-          <div class="fg"><label>선금 입금 · Deposit In</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료 · Received</label><input type="date" id="salesDepositDate" style="flex:1"></div></div>
-          <div class="fg"><label>잔금 금액 · Balance</label><input type="text" id="salesBalance" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()"></div>
-          <div class="fg"><label>잔금 입금 · Balance In</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesBalancePaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 입금완료 · Received</label><input type="date" id="salesBalanceDate" style="flex:1"></div></div>
+          <div class="fg" style="grid-column:1/-1"><label>대금 지급 조건 · Payment Schedule <span>차수 · % · 시점</span></label>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+              <select id="salesTermCount" onchange="setTermCount(this.value)" style="font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="1">1차 (일시불)</option><option value="2">2차</option><option value="3">3차</option></select>
+              <span style="font-size:11px;color:var(--text-3)">차수 선택 후 각 회차 % · 금액 · 시점 입력 (마지막 차수 자동 보정)</span>
+            </div>
+            <div id="salesTermRows"></div>
+          </div>
           <div class="fg"><label>인보이스 발행 · Invoice</label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="salesInvoiceIssued" onchange="projMarginRefresh()" style="width:auto;margin:0"> 발행됨 · Issued</label><input type="text" id="salesInvoiceNo" placeholder="인보이스 번호 · Invoice No." autocomplete="off" style="flex:1"></div></div>
           <div class="fg"><label>인보이스 금액 / 발행일 · Invoice Amount / Date <span>미입력=총액</span></label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="salesInvoiceAmount" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projMarginRefresh()" placeholder="발행 금액 · Issued Amount" style="flex:1"><input type="date" id="salesInvoiceDate" style="flex:1"></div></div>
         </div>
@@ -1145,7 +1146,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="purchaseSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseSubtotal&#39;)"></div>
           <div class="fg"><label>부가세 · VAT <span>자동 · Auto</span></label><input type="text" id="purchaseVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
           <div class="fg"><label>매입 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="purchaseTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseTotal&#39;)" style="font-weight:700"></div>
-          <div class="fg" style="grid-column:1/-1"><label>전액 선금 지급 · Full advance <span style="color:#b45309">(매입은 선금 일괄)</span></label><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" id="purchaseDepositPaid" onchange="projMarginRefresh()" style="width:auto;margin:0"> 지급완료 · Paid</label><input type="date" id="purchaseDepositDate" style="flex:1"></div></div>
+          <div class="fg" style="grid-column:1/-1"><label>매입 지급 · Purchase Payment <span style="color:#b45309">(FURSYS 100% · 인보이스 매칭)</span></label><div style="font-size:11px;color:var(--text-3)">매입 대금은 FURSYS 수취 인보이스 + 은행 출금 자동매칭으로 처리 (다음 단계 연동).</div></div>
         </div>
         <div class="line-preview" id="projMarginPreview" style="margin-top:10px">마진 —</div>
       </div>
@@ -6555,14 +6556,33 @@ function setProjectStage(id,stageKey){
 var _projSortKey='regDate', _projSortDir='desc';
 function setProjSort(key){
   if(_projSortKey===key){ _projSortDir=(_projSortDir==='asc'?'desc':'asc'); }
-  else { _projSortKey=key; _projSortDir=(key==='regDate'||key==='targetDate'||key==='amount')?'desc':'asc'; }
+  else { _projSortKey=key; _projSortDir=(key==='regDate'||key==='targetDate'||key==='amount'||key==='salesTotal'||key==='purchaseTotal'||key==='margin'||key==='marginPct')?'desc':'asc'; }
   renderProjectList();
+}
+function _projFxRates(){ if(!state.projFxRates) state.projFxRates={VND:26000,MXN:18,KRW:1350,USD:1}; if(state.projFxRates.USD==null) state.projFxRates.USD=1; return state.projFxRates; }
+function _projFxOf(cur){ if(cur==='USD') return 1; var r=parseFloat(_projFxRates()[cur]); return (isFinite(r)&&r>0)?r:0; }
+function _toUSD(amt,cur){ if(cur==='USD') return amt; var r=_projFxOf(cur); return r>0?(amt/r):null; }
+function setProjFx(cur,v){ _projFxRates(); state.projFxRates[cur]=parseFloat(String(v).replace(/,/g,''))||0; if(typeof saveState==='function') saveState(); if(typeof renderProjectList==='function') renderProjectList(); }
+function _projNum(v){ return parseFloat(String(v==null?'':v).replace(/,/g,''))||0; }
+function _projFin(p){
+  var s=p.sales||{}, pu=p.purchase||{};
+  var sCur=s.currency||p.currency||'VND', pCur=pu.currency||sCur;
+  var sTot=_projNum(s.total), pTot=_projNum(pu.total);
+  if(sCur===pCur){ var m0=sTot-pTot; return {sCur:sCur,pCur:pCur,sTot:sTot,pTot:pTot,same:true,conv:false,mCur:sCur,margin:m0,marginPct:(sTot>0?m0/sTot*100:null)}; }
+  var su=_toUSD(sTot,sCur), puu=_toUSD(pTot,pCur);
+  if(su==null||puu==null){ return {sCur:sCur,pCur:pCur,sTot:sTot,pTot:pTot,same:false,conv:true,mCur:'USD',margin:null,marginPct:null}; }
+  var m=su-puu;
+  return {sCur:sCur,pCur:pCur,sTot:sTot,pTot:pTot,same:false,conv:true,mCur:'USD',margin:m,marginPct:(su>0?m/su*100:null),sUSD:su,pUSD:puu};
 }
 function _projSortVal(p,key){
   if(key==='stage'){ for(var k=0;k<PROJ_STAGES.length;k++){ if(PROJ_STAGES[k].key===p.stage) return k; } return 99; }
   if(key==='owner') return projOwnerName(p.ownerId)||'';
   if(key==='region') return (p.region||'')+' '+(p.location||'');
   if(key==='amount') return parseFloat(String(p.amount||'').replace(/,/g,''))||0;
+  if(key==='salesTotal') return _projFin(p).sTot;
+  if(key==='purchaseTotal') return _projFin(p).pTot;
+  if(key==='margin'){ var _fm=_projFin(p); return _fm.margin==null?-1e18:_fm.margin; }
+  if(key==='marginPct'){ var _fp=_projFin(p); return _fp.marginPct==null?-1e18:_fp.marginPct; }
   return (p[key]||'');
 }
 function _projArrow(key){
@@ -6585,22 +6605,37 @@ function renderProjectList(){
   var H=function(key,label,extra){ return '<th onclick="setProjSort(\''+key+'\')" style="'+th+(extra||'')+';cursor:pointer;user-select:none" title="클릭하여 정렬 · Sort">'+label+_projArrow(key)+'</th>'; };
   var rows=list.map(function(p){
     var st=projStage(p.stage);
-    var amt=(p.amount!=null&&p.amount!=='')?(p.currency||'USD')+' '+fmtN(p.amount):'\u2014';
+    var _f=_projFin(p);
+    var _amtStr=(p.amount!=null&&String(p.amount).trim()!=='')?((p.currency||'USD')+' '+fmtN(_projNum(p.amount))):'\u2014';
+    var _sStr=_f.sTot>0?(_f.sCur+' '+fmtN(_f.sTot)):'\u2014';
+    var _pStr=_f.pTot>0?(_f.pCur+' '+fmtN(_f.pTot)):'\u2014';
+    var _mStr='\u2014', _mCol='var(--text-3)', _pctStr='\u2014', _pctCol='var(--text-3)';
+    if(_f.margin!=null && (_f.sTot>0||_f.pTot>0)){ _mStr=(_f.conv?'\u21c4 ':'')+_f.mCur+' '+fmtN(Math.round(_f.margin)); _mCol=(_f.margin>=0?'#15803d':'var(--danger)'); if(_f.marginPct!=null){ _pctStr=(Math.round(_f.marginPct*10)/10)+'%'; _pctCol=(_f.marginPct>=0?'#15803d':'var(--danger)'); } }
+    else if(_f.conv){ _mStr='<span style="color:#b45309" title="환율 미입력 · set FX rate">환율?</span>'; }
     var tag='<span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:'+st.color+';padding:3px 9px;border-radius:10px;white-space:nowrap">'+st.label+'</span>';
     var td='padding:9px 10px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
     return '<tr style="cursor:pointer" onclick="editProject('+p.id+')" onmouseover="this.style.background=\'var(--surface-2)\'" onmouseout="this.style.background=\'\'">'
       +'<td style="'+td+'">'+tag+'</td>'
       +'<td style="'+td+';font-weight:700">'+(p.client||'\u2014')+'</td>'
-      +'<td style="'+td+';color:var(--text-2)">'+(p.type||'\u2014')+'</td>'
-      +'<td style="'+td+';color:var(--text-2);white-space:nowrap">'+(p.region||'')+(p.location?' \u00b7 '+p.location:'')+'</td>'
-      +'<td style="'+td+';color:var(--text-2);white-space:nowrap">'+projOwnerName(p.ownerId)+'</td>'
       +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(p.regDate||'\u2014')+'</td>'
-      +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(p.targetDate||'\u2014')+'</td>'
-      +'<td style="'+td+';text-align:right;font-weight:600;white-space:nowrap">'+amt+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;color:var(--text-2)">'+_amtStr+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700">'+_sStr+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;color:#b45309">'+_pStr+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700;color:'+_mCol+'">'+_mStr+'</td>'
+      +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:600;color:'+_pctCol+'">'+_pctStr+'</td>'
       +'</tr>';
   }).join('');
-  el.innerHTML='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:780px">'
-    +'<thead><tr>'+H('stage','단계')+H('client','고객사')+H('type','유형')+H('region','지역\u00b7위치')+H('owner','담당자')+H('regDate','등록일')+H('targetDate','목표일')+H('amount','금액',';text-align:right')+'</tr></thead>'
+  var _fx=_projFxRates();
+  var _fxi='width:78px;text-align:right;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)';
+  var _fxPanel='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);font-size:11px">'
+    +'<span style="font-weight:700;color:var(--text-2)">다통화 환율 · FX (1 USD =)</span>'
+    +'<label style="display:inline-flex;align-items:center;gap:4px">VND <input type="text" inputmode="decimal" value="'+Number(_fx.VND||0).toLocaleString('en-US')+'" onchange="setProjFx(&#39;VND&#39;,this.value)" style="'+_fxi+'"></label>'
+    +'<label style="display:inline-flex;align-items:center;gap:4px">MXN <input type="text" inputmode="decimal" value="'+Number(_fx.MXN||0).toLocaleString('en-US')+'" onchange="setProjFx(&#39;MXN&#39;,this.value)" style="'+_fxi+'"></label>'
+    +'<label style="display:inline-flex;align-items:center;gap:4px">KRW <input type="text" inputmode="decimal" value="'+Number(_fx.KRW||0).toLocaleString('en-US')+'" onchange="setProjFx(&#39;KRW&#39;,this.value)" style="'+_fxi+'"></label>'
+    +'<span style="color:var(--text-3)">통화 다르면 마진·이윤%를 USD로 환산 표시</span>'
+    +'</div>';
+  el.innerHTML=_fxPanel+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:900px">'
+    +'<thead><tr>'+H('stage','단계')+H('client','고객사')+H('regDate','등록일')+H('amount','예상금액',';text-align:right')+H('salesTotal','확정매출',';text-align:right')+H('purchaseTotal','매입액',';text-align:right')+H('margin','마진금액',';text-align:right')+H('marginPct','이윤%',';text-align:right')+'</tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 function allProjRegions(){ var base=PROJ_REGIONS.slice(); (state.projRegionsX||[]).forEach(function(r){ if(r&&base.indexOf(r)<0)base.push(r); }); return base; }
@@ -6650,14 +6685,7 @@ function _openProjectForm(id){
     document.getElementById('salesSubtotal').value=_fa(s.subtotal);
     document.getElementById('salesVatAmt').value=_fa(s.vatAmt);
     document.getElementById('salesTotal').value=_fa(s.total);
-    document.getElementById('salesDepositPct').value=(s.depositPct!=null&&s.depositPct!=='')?s.depositPct:'';
-    document.getElementById('salesBalancePct').value=(s.balancePct!=null&&s.balancePct!=='')?s.balancePct:'';
-    document.getElementById('salesDeposit').value=_fa(s.deposit);
-    document.getElementById('salesDepositPaid').checked=!!s.depositPaid;
-    document.getElementById('salesDepositDate').value=s.depositDate||'';
-    document.getElementById('salesBalance').value=_fa(s.balance);
-    document.getElementById('salesBalancePaid').checked=!!s.balancePaid;
-    document.getElementById('salesBalanceDate').value=s.balanceDate||'';
+    _salesTerms=_migrateSalesTerms(s); if(typeof renderSalesTerms==='function') renderSalesTerms();
     document.getElementById('salesInvoiceIssued').checked=!!s.invoiceIssued;
     document.getElementById('salesInvoiceNo').value=s.invoiceNo||'';
     document.getElementById('salesInvoiceAmount').value=_fa(s.invoiceAmount);
@@ -6668,8 +6696,8 @@ function _openProjectForm(id){
     document.getElementById('purchaseSubtotal').value=_fa(p.subtotal);
     document.getElementById('purchaseVatAmt').value=_fa(p.vatAmt);
     document.getElementById('purchaseTotal').value=_fa(p.total!=null&&p.total!==''?p.total:p.deposit);
-    document.getElementById('purchaseDepositPaid').checked=!!p.depositPaid;
-    document.getElementById('purchaseDepositDate').value=p.depositDate||'';
+    var _ppd=document.getElementById('purchaseDepositPaid'); if(_ppd) _ppd.checked=!!p.depositPaid;
+    var _ppdd=document.getElementById('purchaseDepositDate'); if(_ppdd) _ppdd.value=p.depositDate||'';
     if(typeof recalcProjFinance==='function') recalcProjFinance('');
   }
   if(id){
@@ -6829,6 +6857,97 @@ function fmtAmtInput(el){ if(!el)return; var v=String(el.value||'').replace(/[^\
 function _pfEl(id){ return document.getElementById(id); }
 function _pfV(id){ var e=document.getElementById(id); return e?qNum(e.value):0; }
 function _pfSet(id,n){ var e=document.getElementById(id); if(e) e.value=fmtN(Math.round(n)); }
+/* ═══════════ 매출 대금 지급 차수 (Sales Payment Installments) ═══════════ */
+var _salesTerms = { count:1, rows:[{pct:100,amt:0,at:'po',net:0,paid:false,paidDate:''}] };
+function _termAtDefault(i){ return i===0?'po':'delivery'; }
+function _termNorm(t){
+  t=t||{}; var count=Math.max(1,Math.min(3, parseInt(t.count,10)|| (t.rows&&t.rows.length) ||1));
+  var src=(t.rows||[]).slice(); var rows=[];
+  for(var i=0;i<count;i++){ var r=src[i]||{};
+    rows.push({ pct:(parseFloat(r.pct)||0), amt:(parseFloat(r.amt)||0), at:(r.at||_termAtDefault(i)), net:(parseInt(r.net,10)||0), paid:!!r.paid, paidDate:r.paidDate||'' });
+  }
+  return { count:count, rows:rows };
+}
+function _migrateSalesTerms(s){
+  s=s||{};
+  if(s.terms && s.terms.rows && s.terms.rows.length) return _termNorm(s.terms);
+  var dep=parseFloat(String(s.depositPct==null?'':s.depositPct).replace(/,/g,''));
+  var bal=parseFloat(String(s.balancePct==null?'':s.balancePct).replace(/,/g,''));
+  if(isFinite(dep) && dep>0 && dep<100){
+    return _termNorm({ count:2, rows:[
+      { pct:dep, at:'po', net:0, paid:!!s.depositPaid, paidDate:s.depositDate||'' },
+      { pct:(isFinite(bal)&&bal>0?bal:(100-dep)), at:'delivery', net:0, paid:!!s.balancePaid, paidDate:s.balanceDate||'' }
+    ]});
+  }
+  return _termNorm({ count:1, rows:[{ pct:100, at:'po', net:0, paid:!!s.depositPaid, paidDate:s.depositDate||'' }] });
+}
+function _termTotal(){ return _pfV('salesTotal'); }
+function _termRecalcAmts(){
+  var tot=_termTotal(); var t=_salesTerms; var n=t.count; var acc=0;
+  for(var i=0;i<n-1;i++){ var a=Math.round(tot*(t.rows[i].pct||0)/100); t.rows[i].amt=a; acc+=a; }
+  var last=t.rows[n-1];
+  last.amt=Math.max(0, tot-acc);
+  var othPct=0; for(var j=0;j<n-1;j++){ othPct+=(t.rows[j].pct||0); }
+  last.pct = tot>0 ? Math.round((last.amt/tot*100)*100)/100 : Math.max(0, Math.round((100-othPct)*100)/100);
+}
+function _termPctSum(){ return Math.round(_salesTerms.rows.reduce(function(s,r){return s+(parseFloat(r.pct)||0);},0)*100)/100; }
+function _termAmtSum(){ return _salesTerms.rows.reduce(function(s,r){return s+(parseFloat(r.amt)||0);},0); }
+function setTermCount(v){
+  var n=Math.max(1,Math.min(3,parseInt(v,10)||1)); var t=_salesTerms;
+  if(n>t.count){ while(t.rows.length<n) t.rows.push({pct:0,amt:0,at:_termAtDefault(t.rows.length),net:0,paid:false,paidDate:''}); }
+  else { t.rows=t.rows.slice(0,n); }
+  t.count=n; renderSalesTerms(); projMarginRefresh();
+}
+function setTermField(i,f,v){
+  var r=_salesTerms.rows[i]; if(!r) return;
+  if(f==='pct'){ r.pct=Math.max(0,Math.min(100, parseFloat(String(v).replace(/,/g,''))||0)); }
+  else if(f==='amt'){ r.amt=Math.max(0, parseFloat(String(v).replace(/,/g,''))||0); var tot=_termTotal(); r.pct= tot>0?Math.round((r.amt/tot*100)*100)/100:0; }
+  else if(f==='at'){ r.at=v; if(v!=='delivery') r.net=0; }
+  else if(f==='net'){ r.net=parseInt(v,10)||0; }
+  else if(f==='paid'){ r.paid=!!v; r.paidDate=v?projTodayISO():''; }
+  renderSalesTerms(); projMarginRefresh();
+}
+function _termFindBankMatch(amt, cur, dir){
+  amt=Math.round(parseFloat(amt)||0); if(amt<=0) return null;
+  var txns=state.bankTxns||[];
+  for(var i=0;i<txns.length;i++){ var t=txns[i];
+    if((t.currency||'')!==(cur||'')) continue;
+    var val=(dir==='out')?Math.round(t.debit||0):Math.round(t.credit||0);
+    if(val===amt) return t;
+  }
+  return null;
+}
+function renderSalesTerms(){
+  var box=document.getElementById('salesTermRows'); if(!box) return;
+  var cntEl=document.getElementById('salesTermCount'); if(cntEl) cntEl.value=String(_salesTerms.count);
+  _termRecalcAmts();
+  var t=_salesTerms, cur=(document.getElementById('salesCurrency')||{}).value||'VND';
+  var atOpts=function(sel){ return [['po','PO 발행'],['ship','출고시'],['delivery','납기후']].map(function(o){return '<option value="'+o[0]+'"'+(sel===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join(''); };
+  var netOpts=function(sel){ return [0,7,14].map(function(nn){return '<option value="'+nn+'"'+((parseInt(sel,10)||0)===nn?' selected':'')+'>'+(nn===0?'즉시':('+'+nn+'일'))+'</option>';}).join(''); };
+  var inp='font-size:12px;padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)';
+  box.innerHTML=t.rows.map(function(r,i){
+    var isLast=(i===t.count-1);
+    var bm=_termFindBankMatch(r.amt,cur,'in');
+    var pctInp = isLast
+      ? '<input type="text" value="'+(r.pct||0)+'" readonly title="자동 보정 · auto" style="'+inp+';width:52px;text-align:right;background:var(--surface-2);color:var(--text-2)">'
+      : '<input type="text" inputmode="decimal" value="'+(r.pct||0)+'" oninput="setTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:52px;text-align:right">';
+    var amtInp = isLast
+      ? '<input type="text" value="'+fmtN(r.amt)+'" readonly title="자동 보정 · auto" style="'+inp+';width:120px;text-align:right;background:var(--surface-2);color:var(--text-2)">'
+      : '<input type="text" inputmode="decimal" value="'+fmtN(r.amt)+'" oninput="fmtAmtInput(this);setTermField('+i+',&#39;amt&#39;,this.value)" style="'+inp+';width:120px;text-align:right">';
+    return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;flex-wrap:wrap">'
+      +'<span style="font-weight:700;font-size:12px;min-width:30px">'+(i+1)+'차</span>'
+      +pctInp+'<span style="font-size:11px;color:var(--text-3)">%</span>'
+      +amtInp+'<span style="font-size:11px;color:var(--text-3)">'+cur+'</span>'
+      +'<select onchange="setTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+'">'+atOpts(r.at)+'</select>'
+      +(r.at==='delivery'?('<select onchange="setTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+'">'+netOpts(r.net)+'</select>'):'')
+      +(bm
+        ? '<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#15803d;font-weight:700;white-space:nowrap" title="은행 자동매칭 · '+(bm.date||'')+' · '+cur+' '+fmtN(r.amt)+'"><i class="ti ti-building-bank"></i> 입금'+(bm.date?(' '+bm.date):'')+'</span>'
+        : '<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;'+(r.paid?'color:#15803d;font-weight:700':'color:var(--text-3)')+';cursor:pointer;white-space:nowrap" title="은행 미확인 — 수동 표시 · manual"><input type="checkbox" '+(r.paid?'checked':'')+' onchange="setTermField('+i+',&#39;paid&#39;,this.checked)" style="width:auto;margin:0">'+(r.paid?'입금(수동)':'미입금')+'</label>')
+      +'</div>';
+  }).join('')
+  +'<div style="font-size:11px;margin-top:3px;color:'+(_termPctSum()===100?'#15803d':'var(--danger)')+'">합계 '+_termPctSum()+'% · '+cur+' '+fmtN(_termAmtSum())+(_termPctSum()!==100?' · <b>100% 아님 · not 100%</b>':'')+'</div>';
+}
+
 function recalcProjFinance(source){
   source=source||'';
   // ── SALES: 공급가액 ↔ 매출합계 양방향, 부가세 자동 ──
@@ -6838,14 +6957,8 @@ function recalcProjFinance(source){
   else if(source==='salesSubtotal'){ sTot=sSub*(1+sR); _pfSet('salesTotal',sTot); _pfSet('salesVatAmt',sSub*sR); }
   else if(source==='salesVat'){ if(sSub>0){ sTot=sSub*(1+sR); _pfSet('salesTotal',sTot); _pfSet('salesVatAmt',sSub*sR); } else { sSub=sR>0?sTot/(1+sR):sTot; _pfSet('salesSubtotal',sSub); _pfSet('salesVatAmt',sTot-sSub); } }
   else { sTot=_pfV('salesTotal'); sSub=_pfV('salesSubtotal'); if(sSub>0 && sTot<=0){ sTot=sSub*(1+sR); _pfSet('salesTotal',sTot); _pfSet('salesVatAmt',sSub*sR); } }
-  // 선금%/잔금% → 금액
-  var sDpEl=_pfEl('salesDepositPct'), sBpEl=_pfEl('salesBalancePct');
-  if(source==='salesBalancePct'){ var sBp=Math.max(0,Math.min(100,_pfV('salesBalancePct'))); if(sDpEl) sDpEl.value=String(Math.round((100-sBp)*100)/100); }
-  else if(sDpEl && (sDpEl.value||'').trim()!==''){ var sDp0=Math.max(0,Math.min(100,_pfV('salesDepositPct'))); if(sBpEl) sBpEl.value=String(Math.round((100-sDp0)*100)/100); }
-  var sDp=_pfV('salesDepositPct');
-  if((source==='salesDepositPct'||source==='salesBalancePct'||source==='salesTotal'||source==='salesSubtotal'||source==='salesVat') && sDpEl && (sDpEl.value||'').trim()!==''){
-    _pfSet('salesDeposit', sTot*sDp/100); _pfSet('salesBalance', sTot*(100-sDp)/100);
-  }
+  // 대금 지급 차수 재계산 (선금/잔금 → 차수 스케줄로 대체)
+  if(typeof renderSalesTerms==='function') renderSalesTerms();
   // ── PURCHASE: 공급가액 ↔ 매입합계, 전액 선금 ──
   var pR=_pfV('purchaseVat')/100;
   var pSub=_pfV('purchaseSubtotal'), pTot=_pfV('purchaseTotal');
@@ -6874,8 +6987,9 @@ function saveProject(){
   if(!client){ showToast('고객사를 입력하세요 · Enter client'); return; }
   var gv=function(id){ return (document.getElementById(id).value||'').replace(/,/g,'').trim(); };
   var pTotalV=gv('purchaseTotal');
-  var sales={ currency:document.getElementById('salesCurrency').value, vat:document.getElementById('salesVat').value, subtotal:gv('salesSubtotal'), vatAmt:gv('salesVatAmt'), total:gv('salesTotal'), depositPct:(document.getElementById('salesDepositPct').value||'').trim(), balancePct:(document.getElementById('salesBalancePct').value||'').trim(), deposit:gv('salesDeposit'), depositPaid:document.getElementById('salesDepositPaid').checked, depositDate:document.getElementById('salesDepositDate').value, balance:gv('salesBalance'), balancePaid:document.getElementById('salesBalancePaid').checked, balanceDate:document.getElementById('salesBalanceDate').value, invoiceIssued:document.getElementById('salesInvoiceIssued').checked, invoiceNo:(document.getElementById('salesInvoiceNo').value||'').trim(), invoiceAmount:gv('salesInvoiceAmount'), invoiceDate:document.getElementById('salesInvoiceDate').value };
-  var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, vat:document.getElementById('purchaseVat').value, subtotal:gv('purchaseSubtotal'), vatAmt:gv('purchaseVatAmt'), total:pTotalV, deposit:pTotalV, depositPaid:document.getElementById('purchaseDepositPaid').checked, depositDate:document.getElementById('purchaseDepositDate').value, balance:'', balancePaid:false, balanceDate:'' };
+  var _st=(typeof _termNorm==='function')?_termNorm(_salesTerms):_salesTerms; var _r0=_st.rows[0]||{}; var _restAmt=0, _restPaid=(_st.count>1); for(var _i=1;_i<_st.rows.length;_i++){ _restAmt+=(_st.rows[_i].amt||0); if(!_st.rows[_i].paid) _restPaid=false; }
+  var sales={ currency:document.getElementById('salesCurrency').value, vat:document.getElementById('salesVat').value, subtotal:gv('salesSubtotal'), vatAmt:gv('salesVatAmt'), total:gv('salesTotal'), terms:_st, depositPct:String(_r0.pct||0), balancePct:(_st.count>1?String(Math.round((100-(_r0.pct||0))*100)/100):''), deposit:String(Math.round(_r0.amt||0)), depositPaid:!!_r0.paid, depositDate:_r0.paidDate||'', balance:String(Math.round(_restAmt)), balancePaid:_restPaid, balanceDate:'', invoiceIssued:document.getElementById('salesInvoiceIssued').checked, invoiceNo:(document.getElementById('salesInvoiceNo').value||'').trim(), invoiceAmount:gv('salesInvoiceAmount'), invoiceDate:document.getElementById('salesInvoiceDate').value };
+  var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, vat:document.getElementById('purchaseVat').value, subtotal:gv('purchaseSubtotal'), vatAmt:gv('purchaseVatAmt'), total:pTotalV, deposit:pTotalV, depositPaid:((document.getElementById('purchaseDepositPaid')||{}).checked)||false, depositDate:((document.getElementById('purchaseDepositDate')||{}).value)||'', balance:'', balancePaid:false, balanceDate:'' };
   var data={
     client:client,
     ownerId:_projFormOwnerId,
@@ -9137,6 +9251,15 @@ function toggleBankType() {
     if(_isEditable(e.target)) return;
     e.preventDefault();
     globalBack();
+  });
+  // ESC → 프로젝트 수정 창 닫기 (위에 자식 모달이 없을 때만) · Close project form on Esc
+  document.addEventListener('keydown', function(e){
+    if(e.key!=='Escape' && e.keyCode!==27) return;
+    var pm=document.getElementById('projectFormModal');
+    if(!pm || !pm.style.display || pm.style.display==='none') return;
+    var over=['contractModal','prModal','invoiceModal','projImportModal'];
+    for(var i=0;i<over.length;i++){ var t=document.getElementById(over[i]); if(t && t.style.display && t.style.display!=='none') return; }
+    if(typeof closeProjectForm==='function') closeProjectForm();
   });
 })();
 </script>
