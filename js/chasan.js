@@ -426,7 +426,7 @@
     var _final = !!(_snap && _snap.finalizedAt && _snap.byDept && _snap.totals);
     var _drift = _final ? Math.round(Math.abs((_live.totals.op || 0) - (_snap.totals.op || 0))) : 0;
     var r = _final
-      ? { byDept: _snap.byDept, totals: _snap.totals, allocated: !!_snap.allocated, laborFinalized: true, laborSource: "확정", laborRows: [], dq: { uncat: { count: 0, debit: 0, credit: 0 }, untagged: 0, unsplit: [], uncatList: [], untaggedList: [] } }
+      ? { byDept: _snap.byDept, totals: _snap.totals, allocated: !!_snap.allocated, laborFinalized: true, laborSource: "확정", laborRows: [], headByDept: (_snap.headByDept || _live.headByDept || {}), totHead: (_snap.totHead != null ? _snap.totHead : _live.totHead), dq: { uncat: { count: 0, debit: 0, credit: 0 }, untagged: 0, unsplit: [], uncatList: [], untaggedList: [] } }
       : _live;
     var money = function (v) { return _usd && _rate ? (v / _rate).toLocaleString("en-US", { maximumFractionDigits: 0 }) : F(v); };
     var unit = _usd && _rate ? "USD" : "VND";
@@ -610,7 +610,7 @@
     if (usdEl) usdEl.onchange = function () { _usd = usdEl.checked; if (_usd && !(+rateEl.value)) { alert("월 환율(VND/USD)을 입력하세요."); _usd = false; usdEl.checked = false; return; } renderChasan(ym, host, opts); };
     if (rateEl) rateEl.onchange = function () { _rate = +rateEl.value || 0; if (_usd) renderChasan(ym, host, opts); };
     if (allocEl) allocEl.onchange = function () { CHASAN_CFG.allocateCommon = allocEl.checked; renderChasan(ym, host, opts); };
-    var _payload = function () { return { byDept: _live.byDept, totals: _live.totals, fx: { usd: _usd, vndPerUsd: _rate }, laborFinalized: _live.laborFinalized, allocated: _live.allocated }; };
+    var _payload = function () { return { byDept: _live.byDept, totals: _live.totals, fx: { usd: _usd, vndPerUsd: _rate }, laborFinalized: _live.laborFinalized, allocated: _live.allocated, headByDept: _live.headByDept, totHead: _live.totHead }; };
     var _bind = function (id, fn) { var el = host.querySelector(id); if (el) el.onclick = fn; };
     var _csArchive = async function () { try { if (typeof XLSX === "undefined") return false; var all = await chasanLoadAll(); var bytes = chasanBuildWorkbook(ym, _live, _lw, _extra[ym], _live.laborRows, all); return await chasanArchiveXlsx(ym, chasanXlsxBlob(bytes)); } catch (e) { return false; } };
     _bind("#csXlsx", function () { chasanDownloadXlsx(ym); });
