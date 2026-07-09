@@ -8659,7 +8659,20 @@ function renderBankList(){
   el.innerHTML=bankVendorDatalist()+vendorBar+bankClosedBanner(acc.acctNo)+filterBar+bankBulkBar()+listHtml;
   bankUpdateSelBar();
 }
-function _bankTypeShort(ty){ ty=String(ty||''); if(/카드/.test(ty)) return '카드'; return ty; }
+function _bankTypeNorm(ty){
+  // 거래타입(거래구분) 정규화: 영어/한글/베트남어 표기를 표준 구분으로 통일
+  var s=String(ty||'').trim().toLowerCase();
+  if(!s) return '';
+  if(/체크카드|카드결제|debit\s*card|(^|[^a-z])card([^a-z]|$)/.test(s)) return '카드결제 · Card';
+  if(/당발|outward/.test(s)) return '당발송금 · Outward';
+  if(/타발|inward/.test(s)) return '타발송금 · Inward';
+  if(/인터넷\s*뱅킹|internet\s*banking|(^|[^a-z])ib([^a-z]|$)/.test(s)) return '인터넷뱅킹 · IB';
+  if(/예금\s*이자|이자|interest/.test(s)) return '예금이자 · Interest';
+  if(/수수료|(^|[^a-z])fee([^a-z]|$)|charge/.test(s)) return '수수료 · Fee';
+  if(/chuyen\s*tien|송금|remittance|transfer/.test(s)) return '이체 · Transfer';
+  return String(ty).trim();   // 미매핑은 원문 유지
+}
+function _bankTypeShort(ty){ return _bankTypeNorm(ty); }
 function applyBankVendorGuess(id){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; if(bankGuardLocked(t)){ return; } var g=_bankAutoVendorName(t.note||t.ref||''); if(g){ t.vendor=g; _stampEdit(t); saveState(); renderBankList(); } }
 function _bankInvoiceChecked(t){
   if(t.invoice===true) return true;
