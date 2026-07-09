@@ -340,6 +340,22 @@ select.icell{appearance:none;font-weight:600;min-width:110px}
 
 /* 등록/편집 폼 모달 */
 .fm-cat-sel{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed var(--line)}
+/* 폼 페이지 (뷰) */
+.fp-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.fp-head h2{font-size:19px;margin:0}
+.fp-head h2 .en{font-size:13px;color:var(--muted);margin-left:7px;font-weight:500}
+.fp-back{border:1px solid var(--line-strong);background:var(--card);color:var(--ink-soft);font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:9px}
+.fp-back:hover{border-color:var(--brass);color:var(--brass)}
+.fp-card{max-width:760px;border:1px solid var(--line);background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:22px}
+.fp-foot{max-width:760px;display:flex;gap:9px;margin-top:16px;position:sticky;bottom:14px;background:var(--surface);padding:12px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-sm)}
+.fp-foot .im-cancel{margin-left:auto}
+.fp-foot button{padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:700;border:none}
+.fp-card .fm-f textarea{border:1px solid var(--line-strong);border-radius:8px;padding:9px 10px;font-size:13px;font-family:inherit;resize:vertical;min-height:96px;line-height:1.5}
+.fp-card .fm-f textarea:focus{outline:none;border-color:var(--brass)}
+.cost-row{display:flex;gap:7px}
+.cost-row input{flex:1;border:1px solid var(--line-strong);border-radius:8px;padding:9px 10px;font-size:13px;font-family:var(--mono);color:var(--danger)}
+.cost-row input:focus{outline:none;border-color:var(--brass)}
+.cost-row select{width:78px;border:1px solid var(--line-strong);border-radius:8px;padding:0 8px;font-size:12.5px;font-weight:600;background:var(--card)}
 .fm-cat-sel>label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
 .fm-seg button{padding:8px 18px}
 .fmodal{width:560px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column}
@@ -534,7 +550,7 @@ S.cart ||= []; S.currency ||= "USD"; S.quote ||= {client:"",no:autoQuoteNo()};
 S.customCls ||= {furniture:[],consumable:[]}; S.customCls.furniture ||= []; S.customCls.consumable ||= [];
 function allCls(cat){ return [...new Set([...CLS[cat].filter(c=>c!=="전체"), ...((S.customCls&&S.customCls[cat])||[])])]; }
 function clsChips(cat){ return ["전체", ...allCls(cat)]; }
-function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys??=[];p.supplier??="";p.attachments??=[];p.specFiles??=[];if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
+function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys??=[];p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
 normalizeProducts();
 
 let unlocked=false, view="home", adminCat="furniture";
@@ -685,10 +701,12 @@ function render(){
   renderNav();renderLock();
   document.getElementById("curSel").value=S.currency;
   const app=document.getElementById("app");
+  if(view!=="form") leaveForm();
   if(view==="home") app.innerHTML=viewHome();
   else if(view==="furniture"||view==="consumable"){app.innerHTML=viewSearch(view);mountSearch(view);}
   else if(view==="cart") app.innerHTML=viewCart();
   else if(view==="admin") { app.innerHTML=viewAdmin(); updateBulkBar(); }
+  else if(view==="form"){ app.innerHTML=viewForm(); mountForm(); }
 }
 function renderNav(){
   const cc=cartCount();
@@ -987,39 +1005,127 @@ function openProduct(id){
   document.addEventListener("keydown",function esc2(ev){if(ev.key==="Escape"){close();document.removeEventListener("keydown",esc2);}});
 }
 
-/* ── 제품 등록/편집 팝업 폼 (관리자) ── */
+/* ── 제품 등록/편집 (팝업 대신 페이지 뷰) ── */
+let formCtx=null, _formPaste=null;
+function leaveForm(){ if(_formPaste){ document.removeEventListener("paste",_formPaste); _formPaste=null; } }
+const DEFAULT_FX = 25400;   // 기본 환율 1 USD = ? VND (편집 가능)
+
 function openProductForm(id, catArg){
   const editing = !!id;
   const src = editing ? byId(id) : null;
   const f = editing
     ? JSON.parse(JSON.stringify(src))
-    : {id:((catArg==="consumable")?"C":"F")+"_"+Date.now().toString(36), cat:(catArg||"furniture"), sku:"", name:"", nameEn:"", cls:"", spec:"", supplier:"", unit:"EA", cost:0, price:0, cbm:0, img:"", fursys:[], attachments:[]};
+    : {id:((catArg==="consumable")?"C":"F")+"_"+Date.now().toString(36), cat:(catArg||"furniture"), sku:"", name:"", nameEn:"", cls:"", spec:"", supplier:"", unit:"EA", cost:0, price:0, cbm:0, img:"", fursys:[], attachments:[], specFiles:[], costCcy:"USD", costRaw:0, fx:DEFAULT_FX};
   f.attachments = f.attachments || []; f.fursys = f.fursys || []; f.specFiles = f.specFiles || [];
+  f.costCcy = f.costCcy || "USD"; f.fx = f.fx || DEFAULT_FX; f.costRaw = (f.costRaw!=null && f.costRaw!==0) ? f.costRaw : f.cost;
   if(!f.cls || !allCls(f.cat).includes(f.cls)) f.cls = allCls(f.cat)[0] || "기타";
   f._margin = (f.cost>0) ? Math.round(((f.price-f.cost)/f.cost*100)*10)/10 : DEFAULT_MARGIN;
-  let rawImg=null;
+  formCtx = {editing, f, rawImg:null};
+  view="form"; render(); window.scrollTo({top:0,behavior:"smooth"});
+}
 
-  const bg=document.createElement("div");bg.className="modal-bg";
-  bg.innerHTML=`<div class="modal fmodal">
-    <div class="fm-head"><h3 id="fmTitle"></h3><button class="pm-close" data-x>${I.close}</button></div>
-    <div class="fm-body" id="fmBody"></div>
-    <div class="fm-foot">
-      ${editing?`<button class="im-del" id="fmDel">삭제 / Delete</button>`:""}
-      <button class="im-cancel" id="fmCancel">취소 / Cancel</button>
-      <button class="im-save" id="fmSave">${editing?"저장 / Save":"등록 / Register"}</button>
+function viewForm(){
+  const {editing,f}=formCtx;
+  const isFurn=f.cat==="furniture";
+  const clsOpts=allCls(f.cat).map(c=>`<option value="${esc(c)}" ${c===f.cls?"selected":""}>${esc(c)}${CLS_EN[c]?" / "+esc(CLS_EN[c]):""}</option>`).join("");
+  const isVND=f.costCcy==="VND";
+  return `
+  <div class="fp-head">
+    <button class="fp-back" data-formcancel>← 목록으로 / Back</button>
+    <h2>${editing?"제품 편집":(isFurn?"가구 대체품 등록":"소모품 등록")}<span class="en">/ ${editing?"Edit":"New"} ${isFurn?"furniture":"item"}</span></h2>
+  </div>
+  <div class="fp-card">
+    <div class="fm-cat-sel"><label>구분 / Type</label>
+      <div class="seg fm-seg"><button type="button" class="${isFurn?"on":""}" data-fmcat="furniture">가구 / Furniture</button><button type="button" class="${!isFurn?"on":""}" data-fmcat="consumable">소모품 / Consumable</button></div></div>
+    <div class="fm-photo">
+      <div class="pastezone ${f.img?"has-img":""}" id="fmPaste" tabindex="0"><div class="pz-inner" id="fmPzInner">${f.img?`<img src="${f.img}"/>`:`${I.paste}<b>사진 붙여넣기 / Paste</b><span>클릭 후 Ctrl+V · 드래그 · 업로드<br>자동 누끼 / auto cutout</span>`}</div></div>
+      <label class="toggle fm-rmbg"><input type="checkbox" id="fmRmbg" checked><span class="tk"></span></label><span class="fm-rmbg-t">배경 제거<br>Remove bg</span>
     </div>
+    <div class="fm-grid">
+      <div class="fm-f"><label>SKU</label><input id="f_sku" value="${esc(f.sku)}" placeholder="IX-CH-100"/></div>
+      <div class="fm-f fm-wide"><label>분류 / Category <button class="fm-mini" id="f_addcls">+ 새 분류 / Add</button></label>
+        <select id="f_cls">${clsOpts}</select>
+        <div class="fm-clsadd" id="f_clsadd" style="display:none"><input id="f_clsnew" placeholder="새 분류 이름 / New category name"/><button class="mini-btn" id="f_clsok">추가 / Add</button><button class="mini-btn" id="f_clscancel">취소</button></div>
+      </div>
+      <div class="fm-f"><label>제품명 (한글) / Name KO</label><input id="f_name" value="${esc(f.name)}"/></div>
+      <div class="fm-f"><label>Name (English)</label><input id="f_nameEn" value="${esc(f.nameEn)}"/></div>
+      <div class="fm-f fm-wide"><label>공급업체 / Supplier</label><input id="f_supplier" value="${esc(f.supplier)}" placeholder="공급처 이름 / supplier name"/></div>
+      <div class="fm-f fm-wide"><label>스펙 / Spec <span class="fm-hint">여러 줄 입력 가능 / multi-line</span></label><textarea id="f_spec" rows="5" placeholder="치수·재질·색상·옵션 등">${esc(f.spec)}</textarea></div>
+      ${isFurn?`<div class="fm-f fm-wide"><label>퍼시스 대체 모델 / Fursys (쉼표 구분)</label><input id="f_fursys" value="${esc((f.fursys||[]).join(", "))}" placeholder="리플라이 CH4100, 플라이트 CH4800"/></div>`:``}
+      <div class="fm-f"><label>단위 / Unit</label><input id="f_unit" value="${esc(f.unit)}"/></div>
+      <div class="fm-f"><label>CBM (m³)</label><input id="f_cbm" class="num" value="${f.cbm}"/></div>
+      <div class="fm-f"><label>원가 / Cost</label><div class="cost-row"><input id="f_costraw" class="num" value="${f.costRaw}"/><select id="f_costccy"><option value="USD" ${!isVND?"selected":""}>USD</option><option value="VND" ${isVND?"selected":""}>VND</option></select></div></div>
+      <div class="fm-f" id="fxwrap" style="display:${isVND?"block":"none"}"><label>환율 / FX <span class="fm-hint">1 USD = ? VND</span></label><input id="f_fx" class="num" value="${f.fx}"/></div>
+      <div class="fm-f"><label>원가 (USD) / Cost USD <span class="fm-hint">자동 환산</span></label><input id="f_costusd" class="num" value="${f.cost}" readonly style="color:var(--danger);background:#FBFAF6"/></div>
+      <div class="fm-f"><label>마진율 / Margin (%)</label><input id="f_margin" class="num" value="${f._margin}"/></div>
+      <div class="fm-f fm-wide"><label>판가 (USD · ${PRICE_TERM}) / Price <span class="fm-hint">원가(USD)×(1+마진) · 직접 수정 가능</span></label><input id="f_price" class="num" value="${f.price}" style="font-weight:700"/></div>
+    </div>
+    <div class="fm-att">
+      <div class="fm-att-head"><label>📘 SPEC 첨부 <span class="en">/ Spec files — 제품 클릭 시 누구나 다운로드</span></label><button class="mini-btn" id="fmSpecAdd">${I.plus} SPEC 추가 / Add</button></div>
+      <div id="fmSpecList" class="att-list"></div>
+    </div>
+    <div class="fm-att">
+      <div class="fm-att-head"><label>🔒 기타 첨부 <span class="en">/ Other files — 관리자만 열람 (견적서 등)</span></label><button class="mini-btn" id="fmAddFile">${I.plus} 파일 추가 / Add</button></div>
+      <div id="fmAttList" class="att-list"></div>
+    </div>
+  </div>
+  <div class="fp-foot">
+    ${editing?`<button class="im-del" data-formdel>삭제 / Delete</button>`:""}
+    <button class="im-cancel" data-formcancel>취소 / Cancel</button>
+    <button class="im-save" data-formsave>${editing?"저장 / Save":"등록 / Register"}</button>
   </div>`;
-  document.body.appendChild(bg);
-  const $=s=>bg.querySelector(s);
+}
 
-  // ── 사진 처리 (요소는 렌더마다 새로 조회) ──
+function mountForm(){
+  const f=formCtx.f;
+  const app=document.getElementById("app");
+  const $=s=>app.querySelector(s);
+  leaveForm();
+
+  // 사진 처리
   const setImg=u=>{f.img=u;const pz=$("#fmPaste");if(pz){pz.classList.add("has-img");$("#fmPzInner").innerHTML=`<img src="${u}"/>`;}};
   const busy=on=>{const pz=$("#fmPaste");if(!pz)return;if(on){if(!pz.querySelector(".pz-busy")){const b=document.createElement("div");b.className="pz-busy";b.textContent="누끼 처리 중… / Processing…";pz.appendChild(b);}}else pz.querySelector(".pz-busy")?.remove();};
-  const process=async blob=>{ try{ busy(true); const im=await loadImageFromBlob(blob); rawImg=im; await new Promise(r=>requestAnimationFrame(r)); const rm=$("#fmRmbg")?$("#fmRmbg").checked:true; const {dataUrl}=autoCutout(im,{removeBg:rm}); busy(false); setImg(dataUrl); }catch(e){ busy(false); toast("이미지 처리 실패 / Image failed"); } };
-  const onPaste=ev=>{ if(!bg.isConnected)return; const items=(ev.clipboardData||{}).items||[]; for(const it of items){ if(it.type&&it.type.startsWith("image")){ const fl=it.getAsFile(); if(fl){ ev.preventDefault(); process(fl); return; } } } };
-  document.addEventListener("paste",onPaste);
+  const process=async blob=>{ try{ busy(true); const im=await loadImageFromBlob(blob); formCtx.rawImg=im; await new Promise(r=>requestAnimationFrame(r)); const rm=$("#fmRmbg")?$("#fmRmbg").checked:true; const {dataUrl}=autoCutout(im,{removeBg:rm}); busy(false); setImg(dataUrl); }catch(e){ busy(false); toast("이미지 처리 실패 / Image failed"); } };
+  _formPaste=ev=>{ if(view!=="form")return; const items=(ev.clipboardData||{}).items||[]; for(const it of items){ if(it.type&&it.type.startsWith("image")){ const fl=it.getAsFile(); if(fl){ ev.preventDefault(); process(fl); return; } } } };
+  document.addEventListener("paste",_formPaste);
+  const pz=$("#fmPaste");
+  if(pz){
+    pz.addEventListener("dragover",ev=>{ev.preventDefault();pz.classList.add("drag");});
+    pz.addEventListener("dragleave",()=>pz.classList.remove("drag"));
+    pz.addEventListener("drop",ev=>{ev.preventDefault();pz.classList.remove("drag");const fl=[...(ev.dataTransfer.files||[])].find(x=>x.type.startsWith("image"));if(fl)process(fl);});
+    pz.addEventListener("click",()=>{const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=()=>{if(inp.files[0])process(inp.files[0]);};inp.click();});
+  }
+  const rmbg=$("#fmRmbg"); if(rmbg) rmbg.addEventListener("change",()=>{ if(formCtx.rawImg){ busy(true); requestAnimationFrame(()=>{ const {dataUrl}=autoCutout(formCtx.rawImg,{removeBg:rmbg.checked}); busy(false); setImg(dataUrl); }); } });
 
-  // ── 첨부 (spec = 공개 다운로드, other = 관리자 전용) ──
+  // 텍스트/숫자 필드
+  const bindVal=(sel,key,num)=>{const el=$(sel);if(!el)return;el.addEventListener("input",()=>{ f[key]= num? Math.max(0,parseFloat(el.value)||0) : el.value; });};
+  bindVal("#f_sku","sku");bindVal("#f_name","name");bindVal("#f_nameEn","nameEn");bindVal("#f_supplier","supplier");bindVal("#f_spec","spec");bindVal("#f_unit","unit");bindVal("#f_cbm","cbm",true);
+  $("#f_cls").addEventListener("change",e=>f.cls=e.target.value);
+  const fu=$("#f_fursys"); if(fu) fu.addEventListener("input",()=>f.fursys=fu.value.split(",").map(s=>s.trim()).filter(Boolean));
+
+  // 원가 통화(VND/USD)·환율 → 원가(USD) → 판가(USD)
+  const numv=v=>Math.max(0,parseFloat(v)||0);
+  const costUSD=()=> f.costCcy==="VND" ? (f.fx>0 ? f.costRaw/f.fx : 0) : f.costRaw;
+  const syncCost=()=>{ f.cost=Math.round(costUSD()*100)/100; const cu=$("#f_costusd"); if(cu)cu.value=f.cost; };
+  const recalcPrice=()=>{ f.price=Math.round(f.cost*(1+numv(f._margin)/100)*100)/100; const pr=$("#f_price"); if(pr)pr.value=f.price; };
+  const rawEl=$("#f_costraw"), ccyEl=$("#f_costccy"), fxEl=$("#f_fx"), mgEl=$("#f_margin"), prEl=$("#f_price");
+  rawEl.addEventListener("input",()=>{ f.costRaw=numv(rawEl.value); syncCost(); recalcPrice(); });
+  ccyEl.addEventListener("change",()=>{ f.costCcy=ccyEl.value; $("#fxwrap").style.display=f.costCcy==="VND"?"block":"none"; syncCost(); recalcPrice(); });
+  if(fxEl) fxEl.addEventListener("input",()=>{ f.fx=numv(fxEl.value); syncCost(); recalcPrice(); });
+  mgEl.addEventListener("input",()=>{ f._margin=numv(mgEl.value); recalcPrice(); });
+  prEl.addEventListener("input",()=>{ f.price=numv(prEl.value); f._margin=f.cost>0?Math.round(((f.price-f.cost)/f.cost*100)*10)/10:0; if(mgEl)mgEl.value=f._margin; });
+
+  // 새 분류 인라인
+  $("#f_addcls").addEventListener("click",ev=>{ ev.preventDefault(); const box=$("#f_clsadd"); box.style.display="flex"; const inp=$("#f_clsnew"); inp.value=""; setTimeout(()=>inp.focus(),10); });
+  $("#f_clscancel").addEventListener("click",ev=>{ ev.preventDefault(); $("#f_clsadd").style.display="none"; });
+  const addCls=()=>{ const name=($("#f_clsnew").value||"").trim(); if(!name){ $("#f_clsnew").focus(); return; } S.customCls[f.cat]=S.customCls[f.cat]||[]; if(!allCls(f.cat).includes(name)) S.customCls[f.cat].push(name); f.cls=name; pushCategories(); render(); toast("분류 추가됨 / Category added"); };
+  $("#f_clsok").addEventListener("click",ev=>{ ev.preventDefault(); addCls(); });
+  $("#f_clsnew").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addCls(); } });
+
+  // 구분 토글
+  app.querySelectorAll("[data-fmcat]").forEach(b=>b.addEventListener("click",()=>{ const nc=b.dataset.fmcat; if(nc===f.cat)return; f.cat=nc; if(nc==="consumable") f.fursys=[]; if(!allCls(nc).includes(f.cls)) f.cls=allCls(nc)[0]||"기타"; render(); }));
+
+  // 첨부 (spec / other)
   const attArr=kind=> kind==="spec"?f.specFiles:f.attachments;
   const attSel=kind=> kind==="spec"?"#fmSpecList":"#fmAttList";
   const renderAttKind=kind=>{ const el=$(attSel(kind)); if(!el)return; const arr=attArr(kind);
@@ -1028,108 +1134,35 @@ function openProductForm(id, catArg){
       : `<div class="att-item"><span class="att-ic">${fileIcon(a)}</span><a class="att-name" href="${a.url}" target="_blank" rel="noopener" download>${esc(a.name)}</a><span class="att-size">${fmtSize(a.size)}</span><button class="att-rm" data-attrm="${i}" data-attkind="${kind}" title="제거 / remove">${I.close}</button></div>`
     ).join("") : `<div class="att-empty">첨부 없음 / No files</div>`;
   };
-  const renderAtt=()=>{ renderAttKind("spec"); renderAttKind("other"); };
   const addFiles=async (kind,files)=>{ const arr=attArr(kind), folder=kind==="spec"?"specs":"attachments";
     for(const file of files){ const item={name:file.name,size:file.size,type:file.type,uploading:true}; arr.push(item); renderAttKind(kind);
       try{ const meta=await uploadAttachment(f.id,file,folder); const idx=arr.indexOf(item); if(idx>=0)arr[idx]=meta; renderAttKind(kind); }
       catch(e){ const idx=arr.indexOf(item); if(idx>=0)arr.splice(idx,1); renderAttKind(kind); toast("업로드 실패: "+file.name+" / Upload failed"); } } };
+  renderAttKind("spec"); renderAttKind("other");
+  $("#fmSpecAdd").addEventListener("click",()=>{ if(!NET.on){ toast("오프라인 — 첨부는 온라인에서 / Attachments need online"); return; } const inp=document.createElement("input");inp.type="file";inp.multiple=true;inp.onchange=()=>{ if(inp.files.length) addFiles("spec",[...inp.files]); };inp.click(); });
+  $("#fmAddFile").addEventListener("click",()=>{ if(!NET.on){ toast("오프라인 — 첨부는 온라인에서 / Attachments need online"); return; } const inp=document.createElement("input");inp.type="file";inp.multiple=true;inp.onchange=()=>{ if(inp.files.length) addFiles("other",[...inp.files]); };inp.click(); });
+  const attClick=ev=>{ const rm=ev.target.closest("[data-attrm]"); if(rm){ attArr(rm.dataset.attkind).splice(+rm.dataset.attrm,1); renderAttKind(rm.dataset.attkind); } };
+  $("#fmSpecList").addEventListener("click",attClick);
+  $("#fmAttList").addEventListener("click",attClick);
 
-  // ── 본문 렌더 (구분·분류 변경 시 재렌더) ──
-  function renderBody(){
-    const isFurn=f.cat==="furniture";
-    if(!allCls(f.cat).includes(f.cls)) f.cls=allCls(f.cat)[0]||"기타";
-    const clsOpts=allCls(f.cat).map(c=>`<option ${c===f.cls?"selected":""}>${esc(c)}</option>`).join("");
-    $("#fmTitle").innerHTML=`${editing?"제품 편집":(isFurn?"가구 대체품 등록":"소모품 등록")} <span class="en">/ ${editing?"Edit":"New"} ${isFurn?"furniture":"item"}</span>`;
-    $("#fmBody").innerHTML=`
-      <div class="fm-cat-sel"><label>구분 / Type</label>
-        <div class="seg fm-seg"><button type="button" class="${isFurn?"on":""}" data-fmcat="furniture">가구 / Furniture</button><button type="button" class="${!isFurn?"on":""}" data-fmcat="consumable">소모품 / Consumable</button></div></div>
-      <div class="fm-photo">
-        <div class="pastezone ${f.img?"has-img":""}" id="fmPaste" tabindex="0"><div class="pz-inner" id="fmPzInner">${f.img?`<img src="${f.img}"/>`:`${I.paste}<b>사진 붙여넣기 / Paste</b><span>클릭 후 Ctrl+V · 드래그 · 업로드<br>자동 누끼 / auto cutout</span>`}</div></div>
-        <label class="toggle fm-rmbg"><input type="checkbox" id="fmRmbg" checked><span class="tk"></span></label><span class="fm-rmbg-t">배경 제거<br>Remove bg</span>
-      </div>
-      <div class="fm-grid">
-        <div class="fm-f"><label>SKU</label><input id="f_sku" value="${esc(f.sku)}" placeholder="IX-CH-100"/></div>
-        <div class="fm-f fm-wide"><label>분류 / Category <button class="fm-mini" id="f_addcls">+ 새 분류 / Add</button></label>
-          <select id="f_cls">${clsOpts}</select>
-          <div class="fm-clsadd" id="f_clsadd" style="display:none"><input id="f_clsnew" placeholder="새 분류 이름 / New category name"/><button class="mini-btn" id="f_clsok">추가 / Add</button><button class="mini-btn" id="f_clscancel">취소</button></div>
-        </div>
-        <div class="fm-f"><label>제품명 (한글) / Name KO</label><input id="f_name" value="${esc(f.name)}"/></div>
-        <div class="fm-f"><label>Name (English)</label><input id="f_nameEn" value="${esc(f.nameEn)}"/></div>
-        <div class="fm-f fm-wide"><label>공급업체 / Supplier</label><input id="f_supplier" value="${esc(f.supplier)}" placeholder="공급처 이름 / supplier name"/></div>
-        <div class="fm-f fm-wide"><label>스펙 / Spec</label><input id="f_spec" value="${esc(f.spec)}"/></div>
-        ${isFurn?`<div class="fm-f fm-wide"><label>퍼시스 대체 모델 / Fursys (쉼표 구분)</label><input id="f_fursys" value="${esc((f.fursys||[]).join(", "))}" placeholder="리플라이 CH4100, 플라이트 CH4800"/></div>`:``}
-        <div class="fm-f"><label>단위 / Unit</label><input id="f_unit" value="${esc(f.unit)}"/></div>
-        <div class="fm-f"><label>CBM (m³)</label><input id="f_cbm" class="num" value="${f.cbm}"/></div>
-        <div class="fm-f"><label>원가 / Cost</label><input id="f_cost" class="num" value="${f.cost}" style="color:var(--danger)"/></div>
-        <div class="fm-f"><label>마진율 / Margin (%)</label><input id="f_margin" class="num" value="${f._margin}"/></div>
-        <div class="fm-f fm-wide"><label>판가 / Price <span class="fm-hint">원가·마진 입력 시 자동 계산 · 직접 수정 가능 / auto from cost×margin</span></label><input id="f_price" class="num" value="${f.price}" style="font-weight:600"/></div>
-      </div>
-      <div class="fm-att">
-        <div class="fm-att-head"><label>📘 SPEC 첨부 <span class="en">/ Spec files — 제품 클릭 시 누구나 다운로드</span></label><button class="mini-btn" id="fmSpecAdd">${I.plus} SPEC 추가 / Add</button></div>
-        <div id="fmSpecList" class="att-list"></div>
-      </div>
-      <div class="fm-att">
-        <div class="fm-att-head"><label>🔒 기타 첨부 <span class="en">/ Other files — 관리자만 열람 (견적서 등)</span></label><button class="mini-btn" id="fmAddFile">${I.plus} 파일 추가 / Add</button></div>
-        <div id="fmAttList" class="att-list"></div>
-      </div>`;
-    bindBody(); renderAtt();
-  }
-
-  function bindBody(){
-    const pz=$("#fmPaste"), rmbg=$("#fmRmbg");
-    if(pz){
-      pz.addEventListener("dragover",ev=>{ev.preventDefault();pz.classList.add("drag");});
-      pz.addEventListener("dragleave",()=>pz.classList.remove("drag"));
-      pz.addEventListener("drop",ev=>{ev.preventDefault();pz.classList.remove("drag");const fl=[...(ev.dataTransfer.files||[])].find(x=>x.type.startsWith("image"));if(fl)process(fl);});
-      pz.addEventListener("click",()=>{const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=()=>{if(inp.files[0])process(inp.files[0]);};inp.click();});
-    }
-    if(rmbg) rmbg.addEventListener("change",()=>{ if(rawImg){ busy(true); requestAnimationFrame(()=>{ const {dataUrl}=autoCutout(rawImg,{removeBg:rmbg.checked}); busy(false); setImg(dataUrl); }); } });
-    const bindVal=(sel,key,num)=>{const el=$(sel);if(!el)return;el.addEventListener("input",()=>{ f[key]= num? Math.max(0,parseFloat(el.value)||0) : el.value; });};
-    bindVal("#f_sku","sku");bindVal("#f_name","name");bindVal("#f_nameEn","nameEn");bindVal("#f_supplier","supplier");bindVal("#f_spec","spec");bindVal("#f_unit","unit");bindVal("#f_cbm","cbm",true);
-    $("#f_cls").addEventListener("change",e=>f.cls=e.target.value);
-    const fu=$("#f_fursys"); if(fu) fu.addEventListener("input",()=>f.fursys=fu.value.split(",").map(s=>s.trim()).filter(Boolean));
-    // 원가·마진율 → 판가 자동 계산 (양방향)
-    const numv=v=>Math.max(0,parseFloat(v)||0);
-    const costEl=$("#f_cost"), mgEl=$("#f_margin"), prEl=$("#f_price");
-    const recalcPrice=()=>{ const pr=Math.round(numv(f.cost)*(1+numv(f._margin)/100)*100)/100; f.price=pr; if(prEl)prEl.value=pr; };
-    costEl.addEventListener("input",()=>{ f.cost=numv(costEl.value); recalcPrice(); });
-    mgEl.addEventListener("input",()=>{ f._margin=numv(mgEl.value); recalcPrice(); });
-    prEl.addEventListener("input",()=>{ f.price=numv(prEl.value); const c=numv(f.cost); f._margin=c>0?Math.round(((f.price-c)/c*100)*10)/10:0; if(mgEl)mgEl.value=f._margin; });
-    // 새 분류 인라인 추가 (native prompt 미사용)
-    $("#f_addcls").addEventListener("click",ev=>{ ev.preventDefault(); const box=$("#f_clsadd"); box.style.display="flex"; const inp=$("#f_clsnew"); inp.value=""; setTimeout(()=>inp.focus(),10); });
-    $("#f_clscancel").addEventListener("click",ev=>{ ev.preventDefault(); $("#f_clsadd").style.display="none"; });
-    const addCls=()=>{ const name=($("#f_clsnew").value||"").trim(); if(!name){ $("#f_clsnew").focus(); return; } S.customCls[f.cat]=S.customCls[f.cat]||[]; if(!allCls(f.cat).includes(name)) S.customCls[f.cat].push(name); f.cls=name; pushCategories(); renderBody(); toast("분류 추가됨 / Category added"); };
-    $("#f_clsok").addEventListener("click",ev=>{ ev.preventDefault(); addCls(); });
-    $("#f_clsnew").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addCls(); } });
-    bg.querySelectorAll("[data-fmcat]").forEach(b=>b.addEventListener("click",()=>{ const nc=b.dataset.fmcat; if(nc===f.cat)return; f.cat=nc; if(nc==="consumable") f.fursys=[]; if(!allCls(nc).includes(f.cls)) f.cls=allCls(nc)[0]||"기타"; renderBody(); }));
-    $("#fmSpecAdd").addEventListener("click",()=>{ if(!NET.on){ toast("오프라인 — 첨부는 온라인에서 / Attachments need online"); return; } const inp=document.createElement("input");inp.type="file";inp.multiple=true;inp.onchange=()=>{ if(inp.files.length) addFiles("spec",[...inp.files]); };inp.click(); });
-    $("#fmAddFile").addEventListener("click",()=>{ if(!NET.on){ toast("오프라인 — 첨부는 온라인에서 / Attachments need online"); return; } const inp=document.createElement("input");inp.type="file";inp.multiple=true;inp.onchange=()=>{ if(inp.files.length) addFiles("other",[...inp.files]); };inp.click(); });
-    const attClick=ev=>{ const rm=ev.target.closest("[data-attrm]"); if(rm){ attArr(rm.dataset.attkind).splice(+rm.dataset.attrm,1); renderAttKind(rm.dataset.attkind); } };
-    $("#fmSpecList").addEventListener("click",attClick);
-    $("#fmAttList").addEventListener("click",attClick);
-  }
-
-  renderBody();
-  setTimeout(()=>{const pz=$("#fmPaste");if(pz)pz.focus();},40);
-
-  // 저장/취소/삭제 (푸터는 재렌더와 무관)
-  const close=()=>{document.removeEventListener("paste",onPaste);bg.remove();};
-  $("#fmCancel").onclick=close;
-  if(editing) $("#fmDel").onclick=()=>{ confirmModal("이 품목을 삭제할까요? / Delete this item?",()=>{ S.products=S.products.filter(x=>x.id!==f.id); dropProduct(f.id); close(); render(); toast("삭제됨 / Deleted"); }); };
-  $("#fmSave").onclick=()=>{
+  // 저장/취소/삭제
+  const back=()=>{ leaveForm(); adminCat=f.cat; view="admin"; render(); };
+  app.querySelectorAll("[data-formcancel]").forEach(b=>b.addEventListener("click",back));
+  const del=app.querySelector("[data-formdel]");
+  if(del) del.addEventListener("click",()=>{ confirmModal("이 품목을 삭제할까요? / Delete this item?",()=>{ S.products=S.products.filter(x=>x.id!==f.id); dropProduct(f.id); back(); toast("삭제됨 / Deleted"); }); });
+  app.querySelector("[data-formsave]").addEventListener("click",()=>{
     if([...f.attachments,...f.specFiles].some(a=>a.uploading)){ toast("첨부 업로드 중… 잠시 후 저장 / Uploading…"); return; }
     if(f.cat==="consumable") f.fursys=[];
     delete f._margin;
     f.sku=(f.sku||"").trim(); f.name=(f.name||"").trim(); f.nameEn=(f.nameEn||"").trim();
     if(!f.sku && !f.name){ toast("SKU 또는 제품명을 입력하세요 / Enter SKU or name"); return; }
     f.sku=f.sku||"NEW-SKU"; f.name=f.name||f.nameEn||"신규 품목"; f.nameEn=f.nameEn||f.name;
-    if(editing){ const i=S.products.findIndex(x=>x.id===f.id); if(i>=0)S.products[i]=f; else S.products.push(f); }
+    if(formCtx.editing){ const i=S.products.findIndex(x=>x.id===f.id); if(i>=0)S.products[i]=f; else S.products.push(f); }
     else { S.products.unshift(f); }
-    if(f.cat) adminCat=f.cat;
-    saveProduct(f); close(); render(); toast(editing?"저장·동기화됨 / Saved":"등록·동기화됨 / Registered");
-  };
-  bg.addEventListener("click",ev=>{ if(ev.target===bg) close(); });
-  document.addEventListener("keydown",function esc3(ev){ if(ev.key==="Escape"){ close(); document.removeEventListener("keydown",esc3); } });
+    const wasEditing=formCtx.editing;
+    saveProduct(f); back(); toast(wasEditing?"저장·동기화됨 / Saved":"등록·동기화됨 / Registered");
+  });
+  setTimeout(()=>{const p=$("#fmPaste");if(p)p.focus();},40);
 }
 
 /* ── 이미지 붙여넣기 + 자동 누끼 다이얼로그 ── */
