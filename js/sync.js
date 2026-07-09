@@ -136,16 +136,22 @@
     for(var i=0;i<COLLECTIONS.length;i++){
       var c=COLLECTIONS[i];
       var perKeyFiles={};                                   // key별로 수집(변경분만 업로드하려고)
-      var cur={};
+      var cur={}, liveByKey={};
       if(Array.isArray(state[c])){
         for(var ii=0;ii<state[c].length;ii++){ var it=state[c][ii]; var kk=_keyOf(it); if(kk===null) continue; if(cur[kk]!==undefined) kk=kk+"~"+ii;
-          var fhere={}; cur[kk]=_canonItem(c, it, fhere); perKeyFiles[kk]=fhere; }
+          var fhere={}; cur[kk]=_canonItem(c, it, fhere); perKeyFiles[kk]=fhere; liveByKey[kk]=it; }
       }
       var old=prev.colls[c]||{}, patch={}, ch=false;
       for(var k in cur){ if(!_eq(cur[k],old[k])){
         // 변경된 레코드에 버전 각인: 어느 편집 경로(인플레이스 포함)든 read-side 병합이 보호하도록.
-        // non-EXT는 cur[k]가 live 객체라 여기서 올리면 화면 상태에도 반영됨.
-        if(cur[k] && typeof cur[k]==='object'){ var _b=(old[k]&&old[k]._rev)||0; if(!(cur[k]._rev>_b)) cur[k]._rev=_b+1; cur[k]._editedAt=Date.now(); }
+        // ★ EXT(docs/products)는 cur[k]가 _canonItem 복제본이라, 라이브 객체에도 반드시 같이 각인해야
+        //   원격 stale 푸시가 첨부 붙은 문서를 되돌리거나 삭제하지 못한다(첨부 유실 근본 수정).
+        var _cv=cur[k], _lv=liveByKey[k];
+        if(_cv && typeof _cv==='object'){
+          var _b=(old[k]&&old[k]._rev)||0; var _nr=(_cv._rev>_b)?_cv._rev:_b+1; var _now=Date.now();
+          _cv._rev=_nr; _cv._editedAt=_now;
+          if(_lv && _lv!==_cv && typeof _lv==='object'){ _lv._rev=_nr; _lv._editedAt=_now; }
+        }
         patch[k]=cur[k]; ch=true; if(perKeyFiles[k]) for(var fh in perKeyFiles[k]) fileUploads[fh]=perKeyFiles[k][fh]; } }
       for(var k2 in old){ if(!(k2 in cur)){ patch[k2]=null; ch=true; } }
       if(ch) writes.push({ url:V2URL("/"+c+".json"), body:patch });
