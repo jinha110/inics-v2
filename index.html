@@ -8047,7 +8047,8 @@ function _bankInvInfo(txn){
   return {linked:linked, remaining:remaining, candidates:cands, blocked:_txnInvBlocked(txn), full:(linked.length>0 && remaining<=0)};
 }
 function _linkInvBank(inv,txn,how){
-  if(typeof bankGuardLocked==='function' && bankGuardLocked(txn)) return;
+  // 인보이스 결제 매칭은 은행 거래의 금액/분류를 바꾸지 않는 '대사(reconciliation) 연결'이므로
+  // 마감(Closed) 기간이어도 허용한다. (bankGuardLocked 가드 제거)
   inv.matchTxnId=txn.id; inv.matchStatus=how; inv.paidAt=nowStr();
   inv.paidDate=txn.date||'';                                   // 실제 입금일 = 은행 거래일
   inv.paidAmount=qNum(inv.total)||0;                           // 이 인보이스에 충당된 금액
@@ -8060,7 +8061,6 @@ function _unlinkInv(inv){
   if(inv.matchTxnId){
     var t=(state.bankTxns||[]).find(function(x){return x.id===inv.matchTxnId;});
     if(t){
-      if(typeof bankGuardLocked==='function' && bankGuardLocked(t)) return;
       if(Array.isArray(t.matchInvIds)) t.matchInvIds=t.matchInvIds.filter(function(id){return String(id)!==String(inv.id);});
       if(t.matchInvId!=null && String(t.matchInvId)===String(inv.id)) t.matchInvId=null;
       if(!_txnInvLinked(t)){ t.matchInvStatus=null; t.matchInvAt=null; if(Array.isArray(t.matchInvIds)&&!t.matchInvIds.length) t.matchInvIds=null; }
@@ -8078,7 +8078,9 @@ function matchInvBank(invId,txnId,how){
   if(_txnInvBlocked(txn)){ showToast('카드·전자결재에 연결된 은행 거래 · Line used by card/approval'); return; }
   var _need=_invAmtCents(inv), _rem=_txnInvRemainingCents(txn), _TOL=100; // ±1 VND(=100 cents) 반올림 허용
   if(_need > _rem + _TOL){ showToast('은행 라인 잔여 초과 · 인보이스 '+fmtN(_need/100)+' > 잔여 '+fmtN(_rem/100)+' (라인 '+fmtN(_txnLineAmtCents(txn)/100)+' − 기매칭 '+fmtN(_txnInvSettledCents(txn)/100)+')'); return; }
-  _linkInvBank(inv,txn,how||'manual'); _invReconRefresh();
+  _linkInvBank(inv,txn,how||'manual');
+  if(!inv.matchTxnId){ showToast('매칭 실패 · 연결되지 않았습니다 · Link failed'); return; }
+  _invReconRefresh();
   var rem=_txnInvRemainingCents(txn);
   showToast(rem>0?('연결 완료 · 잔여 '+fmtN(rem/100)+' 남음 · '+fmtN(rem/100)+' remaining'):'결제 매칭 완료 · Fully settled');
 }
@@ -8413,7 +8415,7 @@ function _bankAutoDept(t){
   return '';
 }
 function _bankDept(t){ var a=_bankAutoDept(t); return a||t.dept||''; }
-function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; if(bankGuardLocked(t)){ renderBankList(); return; } t.dept=String(val||'').trim(); _stampEdit(t); saveState(); }
+function setBankTxnDept(id,val){ var t=(state.bankTxns||[]).find(function(x){return x.id===id;}); if(!t)return; if(bankGuardLocked(t)){ renderBankList(); return; } val=String(val||'').trim(); t.dept=val; t.chasanDept=val; _stampEdit(t); saveState(); renderBankList(); }
 function _bankDeptCell(t){
   if(typeof bankIsLocked==='function' && bankIsLocked(t)){ var _dl=_bankDept(t); return '<span style="font-size:11px;color:#6b7280">'+(_dl||'—')+'</span>'; }
   if(t.category==='Inter-account Transfer') return '<span style="color:var(--text-3);font-size:11px" title="부서 지정 불필요 · No dept needed">N/A</span>';
