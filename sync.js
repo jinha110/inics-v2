@@ -136,16 +136,22 @@
     for(var i=0;i<COLLECTIONS.length;i++){
       var c=COLLECTIONS[i];
       var perKeyFiles={};                                   // key별로 수집(변경분만 업로드하려고)
-      var cur={};
+      var cur={}, liveByKey={};
       if(Array.isArray(state[c])){
         for(var ii=0;ii<state[c].length;ii++){ var it=state[c][ii]; var kk=_keyOf(it); if(kk===null) continue; if(cur[kk]!==undefined) kk=kk+"~"+ii;
-          var fhere={}; cur[kk]=_canonItem(c, it, fhere); perKeyFiles[kk]=fhere; }
+          var fhere={}; cur[kk]=_canonItem(c, it, fhere); perKeyFiles[kk]=fhere; liveByKey[kk]=it; }
       }
       var old=prev.colls[c]||{}, patch={}, ch=false;
       for(var k in cur){ if(!_eq(cur[k],old[k])){
         // 변경된 레코드에 버전 각인: 어느 편집 경로(인플레이스 포함)든 read-side 병합이 보호하도록.
-        // non-EXT는 cur[k]가 live 객체라 여기서 올리면 화면 상태에도 반영됨.
-        if(cur[k] && typeof cur[k]==='object'){ var _b=(old[k]&&old[k]._rev)||0; if(!(cur[k]._rev>_b)) cur[k]._rev=_b+1; cur[k]._editedAt=Date.now(); }
+        // ★ EXT(docs/products)는 cur[k]가 _canonItem 복제본이라, 라이브 객체에도 반드시 같이 각인해야
+        //   원격 stale 푸시가 첨부 붙은 문서를 되돌리거나 삭제하지 못한다(첨부 유실 근본 수정).
+        var _cv=cur[k], _lv=liveByKey[k];
+        if(_cv && typeof _cv==='object'){
+          var _b=(old[k]&&old[k]._rev)||0; var _nr=(_cv._rev>_b)?_cv._rev:_b+1; var _now=Date.now();
+          _cv._rev=_nr; _cv._editedAt=_now;
+          if(_lv && _lv!==_cv && typeof _lv==='object'){ _lv._rev=_nr; _lv._editedAt=_now; }
+        }
         patch[k]=cur[k]; ch=true; if(perKeyFiles[k]) for(var fh in perKeyFiles[k]) fileUploads[fh]=perKeyFiles[k][fh]; } }
       for(var k2 in old){ if(!(k2 in cur)){ patch[k2]=null; ch=true; } }
       if(ch) writes.push({ url:V2URL("/"+c+".json"), body:patch });
@@ -305,22 +311,69 @@
   // ── PDF 보관: 생성된 PDF를 Storage(+선택적 Make→Drive)로 업로드 ──
   //   견적·계약 PDF를 만들 때 자동 호출됨. 다운로드는 그대로 진행.
   window.MAKE_PDF_WEBHOOK = "";   // Make.com 웹훅 주소 (Drive 미러링용) — 세팅 후 여기에 입력
-  window._archivePdf = async function(blob, folder, filename){
+  window._archivePdf = async function(blob, folder, filename, opts){
     try{
+      opts=opts||{};
       var BUCKET="inics-approval.firebasestorage.app";
       var safe=String(filename||"file").replace(/[\/\\:*?"<>|#\[\]]/g,"_").replace(/\s+/g,"_").slice(0,90);
       var ts=new Date().toISOString().slice(0,10);
-      var path="PDF/"+folder+"/"+safe+"_"+ts+".pdf";
+      var fname=opts.stable ? (safe+".pdf") : (safe+"_"+ts+".pdf");   // stable=true → 날짜 없는 고정 파일명(덮어쓰기)
+      var path="PDF/"+folder+"/"+fname;
       var url="https://firebasestorage.googleapis.com/v0/b/"+BUCKET+"/o?name="+encodeURIComponent(path);
       var r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/pdf"},body:blob});
       if(!r.ok) throw new Error("HTTP "+r.status);
       if(window.MAKE_PDF_WEBHOOK){                       // Drive 미러링 (Make 세팅 후 활성)
-        try{ var fd=new FormData(); fd.append("file",blob,safe+".pdf"); fd.append("folder",folder); fd.append("filename",safe+"_"+ts+".pdf");
+        try{ var fd=new FormData(); fd.append("file",blob,fname); fd.append("folder",folder); fd.append("filename",fname);
           await fetch(window.MAKE_PDF_WEBHOOK,{method:"POST",body:fd}); }catch(_){}
       }
-      if(typeof showToast==='function') showToast("PDF 보관됨 · Storage 저장 ("+folder+")");
+      if(typeof showToast==='function' && !opts.silent) showToast("PDF 보관됨 · Storage 저장 ("+folder+")");
       return true;
-    }catch(e){ console.warn("PDF 보관 실패:",e&&e.message); if(typeof showToast==='function') showToast("PDF Storage 저장 실패(다운로드는 정상)"); return false; }
+    }catch(e){ console.warn("PDF 보관 실패:",e&&e.message); if(typeof showToast==='function' && !opts.silent) showToast("PDF Storage 저장 실패(다운로드는 정상)"); return false; }
+  };
+
+  // ── 고아 파일 GC: 어떤 레코드도 참조하지 않는 /files/{hash} 삭제 ──
+  //   기본 dry-run(카운트만). 실삭제: inicsGCFiles({dryRun:false})
+  //   ⚠ 실행 전 반드시 inicsExportFiles()로 /files 안전 사본 확보 권장.
+  window.inicsGCFiles = async function(opts){
+    opts = opts||{};
+    var dryRun = opts.dryRun !== false;
+    try{
+      var referenced = {};
+      var extColls = Object.keys(EXT);
+      var esc = REF.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      var re  = new RegExp(esc+"([0-9a-z]+_[0-9]+)","g");
+      for(var i=0;i<extColls.length;i++){
+        var r=await fetch(V2URL("/"+extColls[i]+".json"),{cache:'no-cache'});
+        if(!r.ok) continue;
+        var s=JSON.stringify((await r.json())||{});
+        var m; while((m=re.exec(s))){ referenced[m[1]]=1; }
+      }
+      var allR=await fetch(BASE+FILES+".json?shallow=true",{cache:'no-cache'});
+      var all=allR.ok?(await allR.json()):null;
+      if(!all){ console.log("[GC] /files 비었거나 접근불가"); return []; }
+      var keys=Object.keys(all);
+      var orphans=keys.filter(function(k){ return !referenced[k]; });
+      console.log("[GC] /files 총 "+keys.length+" · 참조중 "+Object.keys(referenced).length+" · 고아 "+orphans.length);
+      if(dryRun){ console.log("[GC] DRY-RUN. 실삭제: inicsGCFiles({dryRun:false})"); console.log(orphans); return orphans; }
+      var del=0;
+      for(var j=0;j<orphans.length;j++){
+        try{ var dr=await fetch(FILEURL(orphans[j]),{method:"DELETE"}); if(dr.ok) del++; }catch(_){}
+      }
+      console.log("[GC] "+del+"/"+orphans.length+" 삭제 완료");
+      return orphans;
+    }catch(e){ console.error("[GC] 오류:",e); }
+  };
+
+  // GC 안전망: /files 전체를 로컬 JSON으로 내려받기
+  window.inicsExportFiles = async function(){
+    try{
+      var d=await (await fetch(BASE+FILES+".json",{cache:'no-cache'})).json();
+      var b=new Blob([JSON.stringify(d)],{type:'application/json'});
+      var u=URL.createObjectURL(b); var a=document.createElement('a');
+      a.href=u; a.download='inics_files_backup_'+Date.now()+'.json'; a.click();
+      setTimeout(function(){ URL.revokeObjectURL(u); },2000);
+      console.log("[Export] /files 사본 다운로드 완료");
+    }catch(e){ console.error("[Export] 오류:",e); }
   };
 
   window._firebaseReady = true;
