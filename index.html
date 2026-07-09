@@ -8003,7 +8003,7 @@ function _invBankCandidates(inv){
     if(_txnInvBlocked(t)) return false;
     if(_bankInvAmtCents(t,side)<=0) return false;             // 방향(입금/출금) 맞는 라인만
     if((t.currency||'')!==(inv.currency||'')) return false;
-    if(_txnInvRemainingCents(t) < cents) return false;        // 잔여 금액 안에 들어와야
+    if(_txnInvRemainingCents(t) < cents - 100) return false;  // 잔여 금액 안에 들어와야(±1 VND 허용)
     return true;
   }).sort(function(a,b){
     if(inv.dir==='issued'){ var as=(a.category==='Sales Revenue')?0:1, bs=(b.category==='Sales Revenue')?0:1; if(as!==bs) return as-bs; }
@@ -8032,7 +8032,7 @@ function _bankInvCandidates(txn){
     if(inv.dir!==wantDir) return false;
     if(inv.matchTxnId) return false;
     if((inv.currency||'')!==(txn.currency||'')) return false;
-    if(_invAmtCents(inv) > remaining) return false;           // 잔여 초과 인보이스 제외
+    if(_invAmtCents(inv) > remaining + 100) return false;     // 잔여 초과 인보이스 제외(±1 VND 허용)
     return true;
   }).sort(function(a,b){
     var ar=(_invAmtCents(a)===remaining)?0:1, br=(_invAmtCents(b)===remaining)?0:1; if(ar!==br) return ar-br; // 잔여 딱 채우는 것 우선
@@ -8049,6 +8049,8 @@ function _bankInvInfo(txn){
 function _linkInvBank(inv,txn,how){
   if(typeof bankGuardLocked==='function' && bankGuardLocked(txn)) return;
   inv.matchTxnId=txn.id; inv.matchStatus=how; inv.paidAt=nowStr();
+  inv.paidDate=txn.date||'';                                   // 실제 입금일 = 은행 거래일
+  inv.paidAmount=qNum(inv.total)||0;                           // 이 인보이스에 충당된 금액
   if(!Array.isArray(txn.matchInvIds)) txn.matchInvIds=(txn.matchInvId!=null)?[txn.matchInvId]:[];
   txn.matchInvId=null;   // 구버전 단일 필드 → 배열로 이관
   if(txn.matchInvIds.map(String).indexOf(String(inv.id))<0) txn.matchInvIds.push(inv.id);
@@ -8065,7 +8067,7 @@ function _unlinkInv(inv){
       _stampEdit(t);
     }
   }
-  inv.matchTxnId=null; inv.matchStatus=null; inv.paidAt=null; _stampEdit(inv);
+  inv.matchTxnId=null; inv.matchStatus=null; inv.paidAt=null; inv.paidDate=null; inv.paidAmount=null; _stampEdit(inv);
 }
 function _invReconRefresh(){ saveState(); if(typeof renderBankList==='function' && document.getElementById('bankList')) renderBankList(); if(typeof renderInvoiceApp==='function' && document.getElementById('invoiceList')) renderInvoiceApp(); }
 function matchInvBank(invId,txnId,how){
@@ -8074,7 +8076,8 @@ function matchInvBank(invId,txnId,how){
   if(!inv||!txn){ return; }
   if(inv.matchTxnId){ showToast('이미 결제 연결된 인보이스 · Invoice already linked'); return; }
   if(_txnInvBlocked(txn)){ showToast('카드·전자결재에 연결된 은행 거래 · Line used by card/approval'); return; }
-  if(_invAmtCents(inv) > _txnInvRemainingCents(txn)){ showToast('은행 라인 잔여 금액 초과 · Exceeds line remaining'); return; }
+  var _need=_invAmtCents(inv), _rem=_txnInvRemainingCents(txn), _TOL=100; // ±1 VND(=100 cents) 반올림 허용
+  if(_need > _rem + _TOL){ showToast('은행 라인 잔여 초과 · 인보이스 '+fmtN(_need/100)+' > 잔여 '+fmtN(_rem/100)+' (라인 '+fmtN(_txnLineAmtCents(txn)/100)+' − 기매칭 '+fmtN(_txnInvSettledCents(txn)/100)+')'); return; }
   _linkInvBank(inv,txn,how||'manual'); _invReconRefresh();
   var rem=_txnInvRemainingCents(txn);
   showToast(rem>0?('연결 완료 · 잔여 '+fmtN(rem/100)+' 남음 · '+fmtN(rem/100)+' remaining'):'결제 매칭 완료 · Fully settled');
@@ -8146,7 +8149,14 @@ function _invPayCell(v){
     var tip=t?_reconBankLineInv(t,side).replace(/"/g,'&quot;'):'';
     var shared=t?_txnInvIds(t).length:1;
     var sharedTag=(shared>1)?(' <span style="font-size:9px;color:#6b7280" title="이 '+(side==='debit'?'출금':'입금')+'은 인보이스 '+shared+'건을 함께 결제 · Split payment">분할 '+shared+'건</span>'):'';
-    return '<div style="white-space:nowrap"><span class="badge b-done" style="font-size:10px" title="'+tip+'"><i class="ti ti-check"></i> '+lbl+(v.matchStatus==='auto'?' (자동)':'')+'</span>'+sharedTag+' <a href="javascript:void(0)" onclick="unmatchInv(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">해제 · Unlink</a></div>';
+    var payDate=t?(t.date||''):(v.paidDate||'');                                    // 입금일 = 은행 거래일
+    var payAmt=t?(side==='debit'?(t.debit||0):(t.credit||0)):(v.paidAmount||0);     // 금액 = 은행명세서 라인
+    var payCur=(t&&t.currency)||v.currency||'';
+    var payLine=(payDate||payAmt)?('<div style="font-size:10px;color:var(--text-3);margin-top:2px;white-space:nowrap">'
+        +(payDate?('<i class="ti ti-calendar-event" style="font-size:10px"></i> '+payDate):'')
+        +(payAmt?(' · '+fmtN(payAmt)+(payCur?' '+payCur:'')+(shared>1?' <span style="color:#9ca3af" title="라인 총액(여러 인보이스 공동)">(라인총액)</span>':'')):'')
+        +'</div>'):'';
+    return '<div style="white-space:nowrap"><span class="badge b-done" style="font-size:10px" title="'+tip+'"><i class="ti ti-check"></i> '+lbl+(v.matchStatus==='auto'?' (자동)':'')+'</span>'+sharedTag+' <a href="javascript:void(0)" onclick="unmatchInv(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">해제 · Unlink</a>'+payLine+'</div>';
   }
   var info=_invMatchInfo(v);
   if(info.status==='confident'){ var tc=info.txn; var partial=(_txnInvRemainingCents(tc)!==_invAmtCents(tc)||_txnInvLinked(tc))?' (분할)':''; return '<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchInvBank(\''+v.id+'\','+tc.id+',\'manual\')" title="'+_reconBankLineInv(tc,side).replace(/"/g,'&quot;')+'"><i class="ti ti-link"></i> 매칭 · Match'+partial+'</button>'; }
