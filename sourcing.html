@@ -206,6 +206,59 @@ tbody tr.clickable:hover{background:#FBFAF6}
 .db-table .cell-att{min-width:150px;max-width:260px}
 .db-table .cell-att .att-chips{gap:5px}
 .db-table .cell-att .att-chip{font-size:11px;padding:3px 7px}
+
+/* 컴팩트 관리자 표 (가로 스크롤 없음) */
+.db-table2{table-layout:fixed;width:100%;border-collapse:collapse}
+.db-table2 th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);padding:10px 8px;background:#FBFAF6;border-bottom:1px solid var(--line);white-space:nowrap}
+.db-table2 td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top;font-size:12px}
+.db-table2 tbody tr:hover{background:#FBFAF6}
+.db-table2 tbody tr.selrow{background:var(--brass-soft)}
+.db-table2 .c-sel{width:30px;text-align:center;vertical-align:middle}
+.db-table2 .c-sel input{width:15px;height:15px;accent-color:var(--brass);cursor:pointer}
+.db-table2 col, .db-table2 .c-dim{width:58px}
+.db-table2 th.c-dim,.db-table2 td.c-dim{width:56px;text-align:center;color:var(--muted);font-size:10.5px;line-height:1.5}
+.db-table2 th.c-price,.db-table2 td.c-price{width:104px}
+.db-table2 th.c-files,.db-table2 td.c-files{width:112px}
+.db-table2 th.c-act,.db-table2 td.c-act{width:96px;text-align:right;white-space:nowrap}
+/* 제품 셀 */
+.c-prod{width:23%}
+.c-prod .prow{gap:9px;align-items:flex-start}
+.c-prod .thumb{width:42px;height:42px;flex:none}
+.pmini{min-width:0;flex:1}
+.pmini .pname{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.pmini .en{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmini .sku{font-family:var(--mono);font-size:10.5px;color:var(--brass);font-weight:600;margin-top:1px}
+.pmini .cls-tag{display:inline-block;margin-top:4px;font-size:9.5px;padding:2px 6px}
+/* 정보 셀 */
+.c-info{width:30%}
+.c-info .ci-sup{font-size:11.5px;color:var(--ink-soft);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-info .ci-spec{font-size:11px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px}
+.c-info .ci-fursys{display:flex;flex-wrap:wrap;gap:4px}
+.c-info .fursys-pill{font-size:10px;padding:2px 6px}
+/* 가격 셀 */
+.c-price .pr-cost{font-family:var(--mono);font-size:10.5px;color:var(--danger)}
+.c-price .pr-mg{font-family:var(--mono);font-size:10.5px;color:var(--furn)}
+.c-price .pr-sell{font-family:var(--mono);font-weight:700;font-size:13.5px;color:var(--ink);margin-top:1px}
+/* 첨부 셀 */
+.c-files .fl-row{display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-bottom:3px}
+.c-files .fl-t{font-size:11px}
+.c-files .att-chip{padding:3px 6px;font-size:11px;gap:0}
+.att-chip.sp{background:var(--furn-soft);border-color:#bfe0d3;color:var(--furn)}
+.att-chip.ot{background:var(--danger-soft);border-color:#e6c9c2;color:var(--danger)}
+/* 관리 셀 */
+.c-act .mini-btn{padding:5px 9px;font-size:11px;margin-right:3px}
+.c-act .rm{padding:5px}
+/* 다중선택 바 */
+.bulk-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--ink);color:#fff;border-radius:11px;font-size:13px;font-weight:600;animation:pop .15s ease}
+.bulk-bar .bulk-sp{flex:1}
+.bulk-bar .mini-btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
+.bulk-bar .mini-btn:hover{background:rgba(255,255,255,.26);color:#fff}
+.bulk-bar .bulk-del{background:var(--danger);color:#fff;display:inline-flex;align-items:center;gap:6px}
+.bulk-bar .bulk-del:hover{background:#b8483a;color:#fff}
+@media(max-width:760px){
+  .db-table2 td.c-files,.db-table2 th.c-files{display:none}
+  .db-table2 td.c-dim,.db-table2 th.c-dim{display:none}
+}
 .icell{width:100%;min-width:80px;border:1px solid transparent;background:transparent;padding:6px 8px;border-radius:6px;font-size:12.5px;font-family:inherit}
 .icell:hover{border-color:var(--line)}
 .icell:focus{outline:none;border-color:var(--brass);background:#fff}
@@ -485,6 +538,14 @@ function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;
 normalizeProducts();
 
 let unlocked=false, view="home", adminCat="furniture";
+let adminSel=new Set();
+function updateBulkBar(){
+  const bar=document.getElementById("bulkBar"); if(!bar)return;
+  const n=adminSel.size; bar.style.display=n>0?"flex":"none";
+  const c=document.getElementById("bulkCount"); if(c)c.textContent=`${n}개 선택 / ${n} selected`;
+  const sa=document.getElementById("selAll");
+  if(sa){ const total=document.querySelectorAll(".rowsel").length; sa.checked=n>0&&n>=total; sa.indeterminate=n>0&&n<total; }
+}
 let filter={furniture:{q:"",cls:"전체"},consumable:{q:"",cls:"전체"}};
 
 function persist(){ const ok=store.save(S); if(!ok) toast("⚠ 로컬 저장 용량 초과 / Local storage full"); return ok; }
@@ -627,7 +688,7 @@ function render(){
   if(view==="home") app.innerHTML=viewHome();
   else if(view==="furniture"||view==="consumable"){app.innerHTML=viewSearch(view);mountSearch(view);}
   else if(view==="cart") app.innerHTML=viewCart();
-  else if(view==="admin") app.innerHTML=viewAdmin();
+  else if(view==="admin") { app.innerHTML=viewAdmin(); updateBulkBar(); }
 }
 function renderNav(){
   const cc=cartCount();
@@ -762,46 +823,42 @@ function viewCart(){
   </div>`;
 }
 
-/* 관리자 패널 · 제품 DB (목록 + 팝업 등록/편집) */
+/* 관리자 패널 · 제품 DB (컴팩트 · 다중선택 삭제) */
 function viewAdmin(){
   if(!unlocked){view="home";render();return"";}
   const cat=adminCat, list=S.products.filter(p=>p.cat===cat), isFurn=cat==="furniture";
+  const ids=new Set(list.map(p=>p.id)); [...adminSel].forEach(id=>{if(!ids.has(id))adminSel.delete(id);});
+  const chips=(arr,cls)=>arr.map(a=>`<a class="att-chip ${cls}" href="${a.url}" target="_blank" rel="noopener" download title="${esc(a.name)}">${fileIcon(a)}</a>`).join("");
   const rows=list.map(p=>{
-    const fursys=`<div class="fursys-list">${(p.fursys||[]).map(m=>{const a=m.split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")||'<span class="pspec">—</span>'}</div>`;
-    const chips=arr=>arr.length?`<div class="att-chips">${arr.map(a=>`<a class="att-chip" href="${a.url}" target="_blank" rel="noopener" download title="${esc(a.name)}">${fileIcon(a)} ${esc(a.name.length>16?a.name.slice(0,14)+"…":a.name)}</a>`).join("")}</div>`:'<span class="pspec">—</span>';
-    const specCell=chips(p.specFiles||[]);
-    const attCell=chips(p.attachments||[]);
-    return `<tr>
-      <td><span class="thumb db-img" data-img="${p.id}" title="사진 붙여넣기 / paste photo"><span class="fb">${initials(p)}</span>${p.img?`<img src="${p.img}" onerror="this.remove()"/>`:""}</span></td>
-      <td class="sku">${esc(p.sku)}</td>
-      <td><div class="pname">${esc(p.name)}<span class="en">${esc(p.nameEn)}</span></div></td>
-      <td><span class="cls-tag ${isFurn?"":"cons"}">${esc(p.cls)}</span></td>
-      <td>${esc(p.supplier)||'<span class="pspec">—</span>'}</td>
-      <td class="cell-spec">${esc(p.spec)||'<span class="pspec">—</span>'}</td>
-      ${isFurn?`<td>${fursys}</td>`:""}
-      <td class="num">${esc(p.unit)}</td>
-      <td class="num">${(p.cbm||0).toFixed(3)}</td>
-      <td class="num" style="color:var(--danger);font-weight:600">${fmt(p.cost)}</td>
-      <td class="num" style="font-weight:600">${fmt(p.price)}</td>
-      <td class="cell-att">${specCell}</td>
-      <td class="cell-att">${attCell}</td>
-      <td style="white-space:nowrap;text-align:right"><button class="mini-btn" data-edit="${p.id}" style="padding:5px 11px;margin-right:4px">편집 / Edit</button><button class="rm" data-del="${p.id}" title="삭제 / delete">${I.trash}</button></td>
+    const fursys=(p.fursys||[]).map(m=>{const a=m.split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("");
+    const mg=p.cost>0?((p.price-p.cost)/p.cost*100):0;
+    const sf=p.specFiles||[], of=p.attachments||[];
+    return `<tr class="${adminSel.has(p.id)?"selrow":""}">
+      <td class="c-sel"><input type="checkbox" class="rowsel" data-sel="${p.id}" ${adminSel.has(p.id)?"checked":""}></td>
+      <td class="c-prod"><div class="prow"><span class="thumb db-img" data-img="${p.id}" title="사진 붙여넣기 / paste photo"><span class="fb">${initials(p)}</span>${p.img?`<img src="${p.img}" onerror="this.remove()"/>`:""}</span>
+        <div class="pmini"><div class="pname">${esc(p.name)}</div><div class="en">${esc(p.nameEn)}</div><div class="sku">${esc(p.sku)}</div><span class="cls-tag ${isFurn?"":"cons"}">${esc(p.cls)}</span></div></div></td>
+      <td class="c-info">${p.supplier?`<div class="ci-sup">🏭 ${esc(p.supplier)}</div>`:""}<div class="ci-spec" title="${esc(p.spec)}">${esc(p.spec)||"—"}</div>${isFurn&&fursys?`<div class="ci-fursys">${fursys}</div>`:""}</td>
+      <td class="c-dim"><b class="num">${esc(p.unit)}</b><br><span class="num">${(p.cbm||0).toFixed(3)}</span><br>m³</td>
+      <td class="c-price"><div class="pr-cost">원가 ${fmt(p.cost)}</div><div class="pr-mg">마진 ${mg.toFixed(0)}%</div><div class="pr-sell">${fmt(p.price)}</div></td>
+      <td class="c-files">${sf.length?`<div class="fl-row"><span class="fl-t">📘</span>${chips(sf,"sp")}</div>`:""}${of.length?`<div class="fl-row"><span class="fl-t">🔒</span>${chips(of,"ot")}</div>`:""}${(!sf.length&&!of.length)?'<span class="pspec">—</span>':""}</td>
+      <td class="c-act"><button class="mini-btn" data-edit="${p.id}">편집</button><button class="rm" data-del="${p.id}" title="삭제 / delete">${I.trash}</button></td>
     </tr>`;
   }).join("");
-  const colspan=isFurn?14:13;
+  const nsel=adminSel.size;
   return `
   <div class="view-head"><span class="ico" style="background:var(--danger)">${I.lock}</span>
-    <div><h2>관리자 패널<span class="en">Admin Panel · DB</span></h2><p>원가 열람 · 제품 DB 등록·수정·삭제 (가구 대체품·공급업체·첨부) · 나·빙 전용 / Cost &amp; database — admin only</p></div></div>
-  <div class="admin-note">${I.lock}<span>일반 사용자는 검색만 가능. <b>등록/편집은 팝업</b>에서, 첨부파일(견적서 등)은 Firebase에 저장됩니다. 사진은 셀 클릭 → Ctrl+V. / General users search only. Add/edit via popup; attachments saved to Firebase.</span></div>
+    <div><h2>관리자 패널<span class="en">Admin Panel · DB</span></h2><p>원가 열람 · 등록·수정·삭제 · 체크박스로 다중 선택 삭제 / Cost &amp; DB — admin only</p></div></div>
+  <div class="admin-note">${I.lock}<span>일반 사용자는 검색만 가능. 등록/편집은 팝업, 첨부는 Firebase 저장. 사진 칸 클릭 → Ctrl+V. 가격 ${PRICE_TERM} 기준. / Add·edit via popup; files on Firebase.</span></div>
   <div class="admin-bar">
     <div class="seg"><button class="${isFurn?"on":""}" data-acat="furniture">가구 대체품 / Furniture</button><button class="${!isFurn?"on":""}" data-acat="consumable">소모품 / Consumables</button></div>
     <button class="mini-btn" data-applymg="1">판가 = 원가 +${DEFAULT_MARGIN}% 일괄 / Apply ${DEFAULT_MARGIN}%</button>
     <button class="mini-btn mini-add" data-newp="${cat}">${I.plus} ${isFurn?"가구 대체품 등록 / Add furniture":"소모품 등록 / Add item"}</button>
   </div>
-  <div class="tablewrap scroll-x"><table class="db-table"><thead><tr>
-    <th>사진<br><span class="en">Photo</span></th><th>SKU</th><th>제품명 / Name</th><th>분류 / Cat.</th><th>공급업체 / Supplier</th><th>스펙 / Spec</th>
-    ${isFurn?"<th>퍼시스 대체 / Fursys</th>":""}<th>단위 / Unit</th><th>CBM</th><th>원가 / Cost</th><th>판가 (${PRICE_TERM}) / Price</th><th>📘 SPEC</th><th>🔒 기타 / Other</th><th style="text-align:right">관리 / Manage</th>
-  </tr></thead><tbody>${rows||`<tr><td colspan="${colspan}" class="empty" style="padding:34px">등록된 품목이 없습니다. 위 <b>등록</b> 버튼으로 추가하세요. / No items — click Add.</td></tr>`}</tbody></table></div>`;
+  <div class="bulk-bar" id="bulkBar" style="display:${nsel?"flex":"none"}"><span id="bulkCount">${nsel}개 선택 / ${nsel} selected</span><div class="bulk-sp"></div><button class="mini-btn bulk-del" data-bulkdel>${I.trash} 선택 삭제 / Delete selected</button><button class="mini-btn" data-bulkclear>해제 / Clear</button></div>
+  <div class="tablewrap"><table class="db-table2"><thead><tr>
+    <th class="c-sel"><input type="checkbox" id="selAll"></th>
+    <th>제품 / Product</th><th>공급·스펙·대체 / Info</th><th class="c-dim">단위·CBM</th><th class="c-price">가격 (${PRICE_TERM})</th><th class="c-files">첨부</th><th class="c-act">관리</th>
+  </tr></thead><tbody>${rows||`<tr><td colspan="7" class="empty" style="padding:34px">등록된 품목이 없습니다. 위 <b>등록</b> 버튼으로 추가하세요. / No items — click Add.</td></tr>`}</tbody></table></div>`;
 }
 
 /* 견적서 인쇄 */
@@ -843,7 +900,7 @@ function buildQuoteSheet(){
 
 /* ══════════ 이벤트 ══════════ */
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-nav],[data-add],[data-cls],[data-qty],[data-rm],[data-del],[data-acat],[data-newp],[data-edit],[data-applymg],[data-open],[data-img]");
+  const el=e.target.closest("[data-nav],[data-add],[data-cls],[data-qty],[data-rm],[data-del],[data-acat],[data-newp],[data-edit],[data-applymg],[data-open],[data-img],[data-bulkdel],[data-bulkclear]");
   if(!el)return;
   if(el.dataset.add!==undefined){e.stopPropagation();const id=el.dataset.add,ex=S.cart.find(l=>l.id===id);if(ex)ex.qty++;else S.cart.push({id,qty:1,price:null});persist();toast(`${byId(id).name} 담김 / added`);renderNav();if(view==="furniture"||view==="consumable")renderResults(view);return;}
   if(el.dataset.img!==undefined){openImageDialog(el.dataset.img);return;}
@@ -853,13 +910,17 @@ document.addEventListener("click",e=>{
   if(el.dataset.qty){const l=S.cart.find(x=>x.id===el.dataset.qty);if(l){l.qty=Math.max(1,l.qty+Number(el.dataset.d));persist();render();}return;}
   if(el.dataset.rm){S.cart=S.cart.filter(x=>x.id!==el.dataset.rm);persist();render();return;}
   if(el.dataset.del){const did=el.dataset.del;confirmModal("이 품목을 삭제할까요? / Delete this item?",()=>{S.products=S.products.filter(p=>p.id!==did);dropProduct(did);render();});return;}
-  if(el.dataset.acat){adminCat=el.dataset.acat;render();return;}
+  if(el.dataset.acat){adminCat=el.dataset.acat;adminSel.clear();render();return;}
+  if(el.dataset.bulkdel!==undefined){const n=adminSel.size;if(!n)return;confirmModal(`선택한 ${n}개 품목을 삭제할까요? / Delete ${n} items?`,()=>{[...adminSel].forEach(id=>{S.products=S.products.filter(p=>p.id!==id);dropProduct(id);});adminSel.clear();render();toast(`${n}개 삭제됨 / Deleted`);});return;}
+  if(el.dataset.bulkclear!==undefined){adminSel.clear();render();return;}
   if(el.dataset.applymg){const cc=adminCat;confirmModal(`${cc==="furniture"?"가구":"소모품"} 판가를 원가+${DEFAULT_MARGIN}%로 일괄 재계산할까요? / Recalculate prices?`,()=>{S.products.filter(p=>p.cat===cc).forEach(p=>p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100);saveProducts();render();toast("판가 일괄 적용됨 / Prices applied");});return;}
   if(el.dataset.newp){openProductForm(null, el.dataset.newp);return;}
   if(el.dataset.edit){openProductForm(el.dataset.edit);return;}
 });
 document.addEventListener("change",e=>{
   const el=e.target;
+  if(el.classList&&el.classList.contains("rowsel")){ const id=el.dataset.sel; if(el.checked)adminSel.add(id);else adminSel.delete(id); el.closest("tr")?.classList.toggle("selrow",el.checked); updateBulkBar(); return; }
+  if(el.id==="selAll"){ const on=el.checked; document.querySelectorAll(".rowsel").forEach(cb=>{cb.checked=on;const id=cb.dataset.sel; if(on)adminSel.add(id);else adminSel.delete(id); cb.closest("tr")?.classList.toggle("selrow",on);}); updateBulkBar(); return; }
   if(el.dataset.f&&el.dataset.id){const p=byId(el.dataset.id);if(!p)return;const f=el.dataset.f;
     if(f==="cost"||f==="price"||f==="cbm")p[f]=Math.max(0,parseFloat(el.value)||0);
     else if(f==="fursys")p.fursys=el.value.split(",").map(s=>s.trim()).filter(Boolean);
