@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>INICS Sourcing · México</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+/* ════════ 디자인 토큰 · "원장 + 청사진" ════════ */
+:root{
+  --ink:#16233B;--ink-soft:#2A3958;--surface:#F4F2EC;--card:#FFFFFF;
+  --line:#E6E2D7;--line-strong:#D2CCBC;--muted:#6B7180;
+  --brass:#A9791F;--brass-hi:#C79437;--brass-soft:#F1E6CC;
+  --furn:#2E6B58;--furn-soft:#E1EEE8;--cons:#385A8C;--cons-soft:#E1E9F4;
+  --danger:#9E3A2E;--danger-soft:#F3E2DE;
+  --radius:14px;--radius-sm:9px;
+  --shadow:0 1px 2px rgba(22,35,59,.05),0 10px 28px rgba(22,35,59,.07);
+  --shadow-sm:0 1px 2px rgba(22,35,59,.06),0 3px 10px rgba(22,35,59,.05);
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ui:"Pretendard Variable","Pretendard",-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ui);background:radial-gradient(1200px 500px at 100% -10%,rgba(169,121,31,.05),transparent 60%),var(--surface);color:var(--ink);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.en{color:var(--muted);font-weight:500}
+
+/* 앱바 */
+.appbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:14px 26px;background:rgba(255,255,255,.82);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px;user-select:none}
+.brand .mark{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.14em;color:var(--card);background:var(--ink);padding:6px 10px;border-radius:8px}
+.brand .sub{font-size:12.5px;color:var(--muted)}
+.brand .sub b{color:var(--brass);font-weight:600}
+.spacer{flex:1}
+.cur-sel{appearance:none;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font-size:12.5px;font-weight:600;padding:8px 30px 8px 11px;border-radius:8px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'><path d='M1 1l4 4 4-4' stroke='%236B7180' stroke-width='1.5'/></svg>");background-repeat:no-repeat;background-position:right 11px center}
+.lockbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);background:var(--card);padding:8px 13px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink-soft);transition:.15s}
+.lockbtn:hover{border-color:var(--brass);color:var(--brass)}
+.lockbtn.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.lockbtn.on:hover{color:#fff;filter:brightness(1.06)}
+.lockbtn .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.lockbtn.on .dot{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+
+/* 레이아웃 */
+.wrap{max-width:1160px;margin:0 auto;padding:28px 26px 90px}
+.nav{display:flex;gap:4px;margin:0 auto 26px;max-width:1160px;padding:0 26px;flex-wrap:wrap}
+.tab{border:none;background:transparent;color:var(--muted);padding:9px 15px;border-radius:9px;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+.tab small{font-weight:500;font-size:11px;opacity:.7}
+.tab:hover{color:var(--ink);background:rgba(22,35,59,.045)}
+.tab.active{background:var(--ink);color:#fff}
+.tab .badge{font-family:var(--mono);font-size:11px;font-weight:600;background:var(--brass);color:#fff;border-radius:20px;padding:1px 7px;min-width:20px;text-align:center}
+.tab.active .badge{background:rgba(255,255,255,.22)}
+.tab.admin{color:var(--danger)}
+.tab.admin.active{background:var(--danger);color:#fff}
+
+/* 홈 */
+.hero-line{font-size:13px;color:var(--muted);margin:0 0 6px;letter-spacing:.04em;font-weight:600;text-transform:uppercase}
+.hero-h{font-size:27px;font-weight:700;margin:0 0 4px;letter-spacing:-.02em}
+.hero-h .en{font-size:19px;margin-left:8px}
+.hero-p{color:var(--muted);font-size:13.5px;margin:0 0 30px;max-width:640px;line-height:1.6}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cat-card{position:relative;overflow:hidden;border:1px solid var(--line);background:var(--card);border-radius:var(--radius);padding:26px 24px;box-shadow:var(--shadow-sm);transition:transform .18s,box-shadow .18s,border-color .18s;text-align:left}
+.cat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--line-strong)}
+.cat-card .rail{position:absolute;left:0;top:0;bottom:0;width:5px}
+.cat-card.furn .rail{background:var(--furn)}
+.cat-card.cons .rail{background:var(--cons)}
+.cat-card .tagchip{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;letter-spacing:.03em}
+.cat-card.furn .tagchip{background:var(--furn-soft);color:var(--furn)}
+.cat-card.cons .tagchip{background:var(--cons-soft);color:var(--cons)}
+.cat-card h3{font-size:20px;margin:14px 0 2px;letter-spacing:-.02em}
+.cat-card h3 .en{font-size:14px;margin-left:7px}
+.cat-card .desc{color:var(--muted);font-size:13px;line-height:1.5;margin:6px 0 20px;min-height:38px}
+.cat-card .stat{display:flex;align-items:baseline;gap:8px}
+.cat-card .stat b{font-family:var(--mono);font-size:30px;font-weight:600}
+.cat-card.furn .stat b{color:var(--furn)}
+.cat-card.cons .stat b{color:var(--cons)}
+.cat-card .stat span{color:var(--muted);font-size:12px}
+.cat-card .go{position:absolute;right:22px;bottom:22px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;transition:.18s}
+.cat-card.furn .go{background:var(--furn)}
+.cat-card.cons .go{background:var(--cons)}
+.cat-card:hover .go{transform:translateX(3px)}
+.home-note{margin-top:22px;display:flex;align-items:center;gap:11px;font-size:12.5px;color:var(--muted);background:var(--brass-soft);border:1px solid #e6d4a8;border-radius:10px;padding:11px 15px;line-height:1.5}
+.home-note b{color:var(--brass)}
+
+/* 뷰헤더 */
+.view-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.view-head .ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff}
+.view-head.furn .ico{background:var(--furn)}
+.view-head.cons .ico{background:var(--cons)}
+.view-head h2{font-size:19px;margin:0}
+.view-head h2 .en{font-size:14px;margin-left:7px}
+.view-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+
+/* 검색 */
+.searchbar{position:relative;margin-bottom:14px}
+.searchbar input{width:100%;border:1.5px solid var(--line-strong);background:var(--card);border-radius:11px;padding:14px 16px 14px 44px;font-size:15px;color:var(--ink);transition:.15s;box-shadow:var(--shadow-sm)}
+.searchbar input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(169,121,31,.13)}
+.searchbar .si{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.searchbar .hint{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.chip{border:1px solid var(--line-strong);background:var(--card);color:var(--muted);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;transition:.13s}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip .en{font-size:10.5px;opacity:.75}
+.chip.on .en{color:rgba(255,255,255,.75)}
+
+/* 테이블 */
+.res-meta{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.res-meta b{color:var(--ink);font-family:var(--mono)}
+.tablewrap{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow-sm)}
+.scroll-x{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:11px 14px;background:#FBFAF6;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:#FBFAF6}
+.sku{font-family:var(--mono);font-size:11.5px;color:var(--brass);font-weight:600}
+.pname{font-weight:600;color:var(--ink)}
+.pname .en{display:block;font-size:11.5px;font-weight:500;margin-top:1px}
+.pspec{color:var(--muted);font-size:11.5px;margin-top:2px}
+.cls-tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;background:var(--furn-soft);color:var(--furn);white-space:nowrap}
+.cls-tag.cons{background:var(--cons-soft);color:var(--cons)}
+.cls-tag .en{font-weight:500;opacity:.8}
+.fursys-list{display:flex;gap:5px;flex-wrap:wrap;max-width:260px}
+.fursys-pill{font-size:11px;font-family:var(--mono);font-weight:500;background:#F1EFE8;border:1px solid var(--line);color:var(--ink-soft);padding:2px 8px;border-radius:6px}
+.fursys-pill em{font-style:normal;color:var(--brass);font-weight:600}
+.price{font-family:var(--mono);font-weight:600;color:var(--ink);white-space:nowrap}
+.cost{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.cost.hidden{display:inline-block;color:transparent;user-select:none;position:relative;background:repeating-linear-gradient(90deg,var(--ink) 0 8px,#33415f 8px 16px);border-radius:4px;min-width:58px;height:15px;vertical-align:middle}
+.cost.hidden::after{content:"기밀";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-family:var(--ui);font-size:9px;font-weight:700;letter-spacing:.1em}
+.cost.shown{color:var(--danger)}
+
+/* 썸네일 (누끼 이미지 = contain, 밝은 카드) */
+.thumb{position:relative;width:48px;height:48px;border-radius:9px;overflow:hidden;background:linear-gradient(160deg,#FBFAF7,#F1EFE8);border:1px solid var(--line);flex:none;display:grid;place-items:center}
+.thumb.lg{width:100%;height:230px;border-radius:0}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:5px}
+.thumb.lg img{padding:22px}
+.thumb .fb{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted)}
+.thumb.lg .fb{font-size:15px}
+.prow{display:flex;align-items:center;gap:12px}
+
+.addbtn{border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:8px;white-space:nowrap;transition:.13s;display:inline-flex;align-items:center;gap:6px}
+.addbtn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.addbtn.added{background:var(--furn);border-color:var(--furn);color:#fff}
+.empty{text-align:center;padding:52px 20px;color:var(--muted)}
+.empty svg{opacity:.4;margin-bottom:12px}
+.empty p{margin:0;font-size:14px}
+.empty small{display:block;margin-top:6px;font-size:12px}
+
+/* 장바구니 */
+.quote-grid{display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start}
+@media(max-width:900px){.quote-grid{grid-template-columns:1fr}}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.qty button{border:none;background:var(--card);width:28px;height:30px;font-size:15px;color:var(--ink);line-height:1}
+.qty button:hover{background:var(--brass-soft)}
+.qty input{width:40px;height:30px;border:none;text-align:center;font-family:var(--mono);font-size:13px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.qty input:focus{outline:none;background:#FBFAF6}
+.pr-input{width:92px;font-family:var(--mono);font-size:13px;text-align:right;padding:6px 9px;border:1px solid var(--line-strong);border-radius:7px;font-weight:600}
+.pr-input:focus{outline:none;border-color:var(--brass)}
+.mgpct{font-family:var(--mono);font-size:12px;font-weight:600}
+.mgpct.pos{color:var(--furn)}.mgpct.neg{color:var(--danger)}
+.rm{border:none;background:transparent;color:var(--muted);padding:5px;border-radius:6px;line-height:0}
+.rm:hover{color:var(--danger);background:var(--danger-soft)}
+
+.sumcard{border:1px solid var(--line);background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-sm);position:sticky;top:82px;overflow:hidden}
+.sc-head{padding:16px 18px;border-bottom:1px solid var(--line);background:#FBFAF6}
+.sc-head h3{margin:0;font-size:14px}.sc-head h3 .en{font-size:12px}
+.sc-head p{margin:3px 0 0;font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.sc-body{padding:16px 18px}
+.sc-field{margin-bottom:12px}
+.sc-field label{display:block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.sc-field input{width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;font-size:13px}
+.sc-field input:focus{outline:none;border-color:var(--brass)}
+.sc-line{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:13px}
+.sc-line span{color:var(--muted)}
+.sc-line b{font-family:var(--mono);font-weight:600}
+.sc-cbm b{color:var(--cons)}
+.sc-total{border-top:1.5px solid var(--ink);margin-top:6px;padding-top:12px}
+.sc-total span{font-weight:700;color:var(--ink);font-size:14px}
+.sc-total b{font-size:19px;color:var(--brass)}
+.sc-locked{padding:13px 18px;background:var(--danger-soft);border-top:1px solid #e6c9c2;font-size:11.5px;color:var(--danger);display:flex;gap:9px;align-items:flex-start;line-height:1.5}
+.btn-primary{width:100%;margin-top:14px;border:none;background:var(--ink);color:#fff;padding:12px;border-radius:10px;font-size:13.5px;font-weight:700;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary:hover{background:var(--brass);box-shadow:0 6px 18px rgba(169,121,31,.28)}
+.btn-ghost{width:100%;margin-top:8px;border:1px solid var(--line-strong);background:transparent;color:var(--muted);padding:10px;border-radius:10px;font-size:12.5px;font-weight:600}
+.btn-ghost:hover{color:var(--danger);border-color:var(--danger)}
+
+/* 관리자 DB */
+.admin-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden;background:var(--card)}
+.seg button{border:none;background:transparent;padding:8px 15px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--ink);color:#fff}
+.mini-btn{border:1px solid var(--line-strong);background:var(--card);color:var(--ink-soft);font-weight:600;font-size:12.5px;padding:8px 13px;border-radius:9px;display:inline-flex;gap:7px;align-items:center}
+.mini-btn:hover{border-color:var(--brass);color:var(--brass)}
+.mini-add{margin-left:auto;border:1px solid var(--brass);background:var(--brass-soft);color:var(--brass);font-weight:700}
+.mini-add:hover{background:var(--brass);color:#fff}
+.admin-note{font-size:12px;color:var(--danger);background:var(--danger-soft);border:1px solid #e6c9c2;border-radius:9px;padding:9px 13px;margin-bottom:14px;display:flex;gap:8px;align-items:center}
+.db-table td{padding:8px 10px}
+.icell{width:100%;min-width:80px;border:1px solid transparent;background:transparent;padding:6px 8px;border-radius:6px;font-size:12.5px;font-family:inherit}
+.icell:hover{border-color:var(--line)}
+.icell:focus{outline:none;border-color:var(--brass);background:#fff}
+.icell.num{font-family:var(--mono);text-align:right}
+.icell.sm{width:70px}
+select.icell{appearance:none;font-weight:600;min-width:110px}
+.db-img{cursor:pointer}
+.db-img:hover{outline:2px solid var(--brass);outline-offset:1px}
+
+/* 모달 공통 */
+.modal-bg{position:fixed;inset:0;background:rgba(22,35,59,.44);backdrop-filter:blur(3px);z-index:100;display:grid;place-items:center;padding:20px}
+.modal{background:var(--card);border-radius:16px;box-shadow:0 30px 70px rgba(22,35,59,.35);width:340px;max-width:100%;overflow:hidden;animation:pop .18s ease}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.modal .m-head{padding:22px 22px 8px}
+.modal .m-lock{width:44px;height:44px;border-radius:12px;background:var(--danger-soft);color:var(--danger);display:grid;place-items:center;margin-bottom:12px}
+.modal h3{margin:0 0 4px;font-size:16px}
+.modal p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.pin-in{margin:16px 22px 4px;width:calc(100% - 44px);border:1.5px solid var(--line-strong);border-radius:10px;padding:13px;font-family:var(--mono);font-size:20px;text-align:center;letter-spacing:.3em}
+.pin-in:focus{outline:none;border-color:var(--brass)}
+.pin-err{color:var(--danger);font-size:12px;margin:8px 22px 0;min-height:16px;text-align:center;font-weight:600}
+.m-actions{display:flex;gap:9px;padding:14px 22px 20px}
+.m-actions button{flex:1;padding:11px;border-radius:10px;font-size:13px;font-weight:700;border:none}
+.m-cancel{background:#F1EFE8;color:var(--ink-soft)}
+.m-ok{background:var(--ink);color:#fff}
+.m-ok:hover{background:var(--brass)}
+
+/* 제품 팝업 */
+.pmodal{width:460px}
+.pm-close{position:absolute;top:12px;right:12px;z-index:3;width:32px;height:32px;border-radius:8px;border:none;background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;box-shadow:var(--shadow-sm)}
+.pm-close:hover{background:#fff}
+.pm-imgwrap{position:relative;background:linear-gradient(160deg,#FBFAF7,#EEEBE1)}
+.pm-body{padding:18px 22px 22px}
+.pm-cat{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;margin-bottom:9px}
+.pm-name{font-size:19px;font-weight:700;margin:0;letter-spacing:-.02em}
+.pm-name .en{display:block;font-size:13px;font-weight:500;margin-top:2px}
+.pm-sku{font-family:var(--mono);font-size:12px;color:var(--brass);font-weight:600;margin-top:4px}
+.pm-spec{font-size:12.5px;color:var(--muted);margin:10px 0 4px;line-height:1.5}
+.pm-fursys{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.fact{background:#FBFAF6;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.fact label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:3px}
+.fact b{font-family:var(--mono);font-size:15px;font-weight:600}
+.fact.price b{color:var(--ink)}
+.fact.cost b{color:var(--danger)}
+.pm-foot{display:flex;align-items:center;gap:12px;margin-top:18px}
+.pm-foot .qty{flex:none}
+.pm-add{flex:1;border:none;background:var(--ink);color:#fff;padding:12px;border-radius:10px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.pm-add:hover{background:var(--brass)}
+
+/* 이미지 붙여넣기 다이얼로그 */
+.imodal{width:440px}
+.im-head{padding:18px 20px 6px}
+.im-head h3{margin:0;font-size:16px}.im-head h3 .en{font-size:12.5px}
+.im-head p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.pastezone{margin:14px 20px;border:2px dashed var(--line-strong);border-radius:14px;min-height:170px;display:grid;place-items:center;text-align:center;color:var(--muted);cursor:pointer;transition:.15s;position:relative;background:linear-gradient(160deg,#FBFAF7,#F1EFE8);outline:none}
+.pastezone:focus,.pastezone.drag{border-color:var(--brass);background:var(--brass-soft);color:var(--brass)}
+.pastezone .pz-inner{padding:20px}
+.pastezone svg{opacity:.5;margin-bottom:8px}
+.pastezone b{display:block;font-size:14px;color:var(--ink);margin-bottom:3px}
+.pastezone.has-img{border-style:solid;border-color:var(--line);padding:0}
+.pastezone.has-img img{max-width:100%;max-height:220px;object-fit:contain;padding:14px}
+.pz-busy{position:absolute;inset:0;background:rgba(255,255,255,.86);display:grid;place-items:center;font-weight:600;color:var(--brass);font-size:13px}
+.im-opts{display:flex;align-items:center;gap:10px;padding:2px 20px 4px;font-size:12.5px}
+.toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.toggle input{display:none}
+.toggle .tk{width:38px;height:22px;border-radius:20px;background:var(--line-strong);position:relative;transition:.15s}
+.toggle .tk::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.tk{background:var(--furn)}
+.toggle input:checked+.tk::after{transform:translateX(16px)}
+.im-msg{padding:2px 20px;font-size:11.5px;color:var(--muted);min-height:16px}
+.im-msg.warn{color:var(--danger)}
+.im-actions{display:flex;gap:9px;padding:12px 20px 18px}
+.im-actions button{padding:11px;border-radius:10px;font-size:13px;font-weight:700;border:none}
+.im-del{background:var(--danger-soft);color:var(--danger);padding:11px 14px}
+.im-cancel{background:#F1EFE8;color:var(--ink-soft);margin-left:auto;padding:11px 16px}
+.im-save{background:var(--ink);color:#fff;padding:11px 20px}
+.im-save:hover{background:var(--brass)}
+.im-save:disabled{background:var(--line-strong);color:var(--muted);cursor:not-allowed}
+
+/* 토스트 */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:#fff;padding:12px 20px;border-radius:11px;font-size:13px;font-weight:600;box-shadow:0 12px 30px rgba(22,35,59,.3);z-index:120;transition:.25s;display:flex;gap:9px;align-items:center;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .tk{color:var(--brass-hi)}
+
+/* 견적서 인쇄 */
+.quote-sheet{display:none}
+@media print{
+  .no-print{display:none !important}
+  body{background:#fff}
+  .quote-sheet{display:block !important}
+  @page{margin:14mm}
+}
+.qs-head{display:flex;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:18px}
+.qs-co{font-family:var(--mono);font-weight:600;letter-spacing:.12em;font-size:16px}
+.qs-t{font-size:24px;font-weight:700;letter-spacing:.05em;text-align:right}
+.qs-meta{font-size:12px;color:#666;text-align:right;line-height:1.7;margin-top:4px}
+.qs-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.qs-table th{background:#F4F2EC;text-align:left;padding:8px 9px;border-bottom:1.5px solid var(--ink);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+.qs-table td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+.qs-table .r{text-align:right;font-family:var(--mono)}
+.qs-img{width:44px;height:44px;border:1px solid var(--line);border-radius:6px;background:#FBFAF7;display:grid;place-items:center;overflow:hidden}
+.qs-img img{width:100%;height:100%;object-fit:contain;padding:3px}
+.qs-tot{display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.qs-cbm{font-size:11px;color:#666;line-height:1.6}
+.qs-cbm b{font-family:var(--mono);color:var(--ink)}
+.qs-tot table{border-collapse:collapse;font-size:13px;min-width:260px}
+.qs-tot td{padding:6px 12px}
+.qs-tot .g td{border-top:2px solid var(--ink);font-weight:700;font-size:16px;padding-top:10px}
+.qs-tot .r{text-align:right;font-family:var(--mono)}
+.qs-foot{margin-top:22px;font-size:10.5px;color:#666;border-top:1px solid var(--line);padding-top:12px;line-height:1.6}
+
+@media(max-width:640px){
+  .cards{grid-template-columns:1fr}
+  .wrap{padding:20px 16px 80px}
+  .nav{padding:0 16px}
+  .appbar{padding:12px 16px;gap:10px;flex-wrap:wrap}
+  .brand .sub{display:none}
+  .pmodal,.imodal{width:100%}
+}
+</style>
+</head>
+<body>
+
+<header class="appbar no-print">
+  <div class="brand"><span class="mark">INICS</span><span class="sub">Sourcing · <b>México</b></span></div>
+  <div class="spacer"></div>
+  <select class="cur-sel" id="curSel" aria-label="통화 / Currency">
+    <option value="USD">USD $</option><option value="MXN">MXN $</option><option value="KRW">KRW ₩</option>
+  </select>
+  <button class="lockbtn" id="lockBtn"><span class="dot"></span><span id="lockLabel">원가 보기 / Cost</span></button>
+</header>
+
+<nav class="nav no-print" id="nav"></nav>
+<main class="wrap no-print" id="app"></main>
+<div class="quote-sheet" id="quoteSheet"></div>
+<div class="toast" id="toast"><span class="tk">✓</span><span id="toastMsg"></span></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   INICS 소싱 & 견적 시스템 (Sourcing & Quote)
+   ▸ 영어 병기 / 제품 팝업+사진 / 판가·원가 분리 / CBM / 견적 사진
+   ▸ 사진: 클립보드 붙여넣기(Ctrl+V) → 자동 누끼(배경제거) → 카드 배치
+   ▸ 전자결재(INICS v2)와 분리 · 로그인 없음 · localStorage 저장
+   ══════════════════════════════════════════════════════════════ */
+
+const ADMIN_PIN = "1101";          // ← 원가 열람 PIN (나·빙 공유) · 여기서 변경
+const DEFAULT_MARGIN = 15;          // ← 기본 이윤율(%) · 판가 일괄계산 기준
+
+const CUR = {USD:{sym:"$",dp:2},MXN:{sym:"MX$",dp:2},KRW:{sym:"₩",dp:0}};
+
+const CLS = {
+  furniture:["전체","사무용의자","중역의자","회의용의자","스툴","책상/데스크","모션데스크","수납/캐비닛","파티션","회의테이블","소파/라운지","기타"],
+  consumable:["전체","부품","캐스터","액세서리","소모품","기타"],
+};
+const CLS_EN = {
+  "전체":"All","사무용의자":"Task Chair","중역의자":"Executive Chair","회의용의자":"Meeting Chair","스툴":"Stool",
+  "책상/데스크":"Desk","모션데스크":"Motion Desk","수납/캐비닛":"Storage","파티션":"Partition","회의테이블":"Conf. Table",
+  "소파/라운지":"Lounge","부품":"Parts","캐스터":"Caster","액세서리":"Accessory","소모품":"Supplies","기타":"Others",
+};
+const clsEn = k => CLS_EN[k] || k;
+
+/* 저장소 */
+const store = (()=>{
+  const KEY="inics_sourcing_v2"; let mem=null; let ok=true;
+  try{const t="__t";localStorage.setItem(t,"1");localStorage.removeItem(t);}catch(e){ok=false;}
+  return{
+    load(){try{return ok?JSON.parse(localStorage.getItem(KEY)||"null"):mem;}catch(e){return mem;}},
+    save(v){mem=v;if(ok){try{localStorage.setItem(KEY,JSON.stringify(v));return true;}catch(e){return false;}}return true;},
+  };
+})();
+
+/* 시드 (price = cost×(1+기본이윤율)) */
+function withPrice(a){a.forEach(p=>{if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});return a;}
+const SEED={products:withPrice([
+  {id:"F01",cat:"furniture",sku:"IX-CH-100",name:"태스크 체어 프로",nameEn:"Task Chair Pro",cls:"사무용의자",spec:"메쉬 등판 · 럼버서포트 · 고정팔 / Mesh back · lumbar",unit:"EA",cost:78,cbm:0.12,img:"",fursys:["리플라이 CH4100","플라이트 CH4800"]},
+  {id:"F02",cat:"furniture",sku:"IX-CH-200",name:"임원용 체어",nameEn:"Executive Chair",cls:"중역의자",spec:"천연가죽 · 하이백 · 크롬베이스 / Leather · high-back",unit:"EA",cost:190,cbm:0.20,img:"",fursys:["베스토 CH5200","지엘 CH4700","마르쿠스 CH3600"]},
+  {id:"F03",cat:"furniture",sku:"IX-CH-050",name:"회의용 체어",nameEn:"Meeting Chair",cls:"회의용의자",spec:"리프트업 · 캐스터 · 스태커블 / Stackable",unit:"EA",cost:45,cbm:0.08,img:"",fursys:["버튼 CH0020","에가 CH0029"]},
+  {id:"F04",cat:"furniture",sku:"IX-DK-1400",name:"엔워크 데스크 1400",nameEn:"enWork Desk 1400",cls:"책상/데스크",spec:"1400×700 · 멜라민 상판 · 케이블홀",unit:"EA",cost:130,cbm:0.18,img:"",fursys:["인에이블 FDD014","FX-1 FAD014"]},
+  {id:"F05",cat:"furniture",sku:"IX-DK-1600",name:"엔워크 데스크 1600",nameEn:"enWork Desk 1600",cls:"책상/데스크",spec:"1600×800 · 스틸 O각 · 스크린 옵션",unit:"EA",cost:150,cbm:0.22,img:"",fursys:["인에이블 FDD016","엑스페이스 GDN016"]},
+  {id:"F06",cat:"furniture",sku:"IX-MT-1600",name:"모션 데스크 1600",nameEn:"Motion Desk 1600",cls:"모션데스크",spec:"전동 높이조절 650~1250 · 메모리 3단",unit:"EA",cost:320,cbm:0.25,img:"",fursys:["인에이블 모션 FDD016JN"]},
+  {id:"F07",cat:"furniture",sku:"IX-CB-3D",name:"3단 캐비닛",nameEn:"3-Drawer Cabinet",cls:"수납/캐비닛",spec:"3단 서랍 · 중앙 잠금 · 캐스터",unit:"EA",cost:95,cbm:0.15,img:"",fursys:["퍼시스 캐비닛 CAC386"]},
+  {id:"F08",cat:"furniture",sku:"IX-PT-1200",name:"스크린 파티션 1200",nameEn:"Screen Partition 1200",cls:"파티션",spec:"1200H · 패브릭 · 데스크 상부형",unit:"EA",cost:60,cbm:0.10,img:"",fursys:["딜라이트 스크린","수퍼테크 스크린"]},
+  {id:"F09",cat:"furniture",sku:"IX-SF-2S",name:"라운지 소파 2인",nameEn:"Lounge Sofa 2-seat",cls:"소파/라운지",spec:"2인 · PU 레더 · 스틸 프레임",unit:"EA",cost:240,cbm:0.55,img:"",fursys:["퍼시스 라운지 소파"]},
+  {id:"F10",cat:"furniture",sku:"IX-TB-2400",name:"회의 테이블 2400",nameEn:"Conference Table 2400",cls:"회의테이블",spec:"2400×1200 · 배선박스 내장",unit:"EA",cost:210,cbm:0.40,img:"",fursys:["퍼시스 회의용테이블"]},
+  {id:"C01",cat:"consumable",sku:"CS-CASTER-60",name:"캐스터 60mm",nameEn:"Caster 60mm",cls:"캐스터",spec:"우레탄 · 2EA/SET",unit:"SET",cost:4,cbm:0.001,img:"",fursys:[]},
+  {id:"C02",cat:"consumable",sku:"CS-DUCT-COVER",name:"수직 덕트 커버",nameEn:"Vertical Duct Cover",cls:"액세서리",spec:"DA0201 호환 · 2EA",unit:"SET",cost:6,cbm:0.002,img:"",fursys:[]},
+  {id:"C03",cat:"consumable",sku:"CS-GAS-LIFT",name:"가스실린더",nameEn:"Gas Lift Cylinder",cls:"부품",spec:"KGS 인증 · 표준형",unit:"EA",cost:9,cbm:0.003,img:"",fursys:[]},
+  {id:"C04",cat:"consumable",sku:"CS-ARMPAD",name:"팔걸이 패드",nameEn:"Armrest Pad",cls:"부품",spec:"PU · 좌우 1SET",unit:"SET",cost:3,cbm:0.001,img:"",fursys:[]},
+  {id:"C05",cat:"consumable",sku:"CS-LEVEL-FOOT",name:"레벨 풋",nameEn:"Leveling Foot",cls:"부품",spec:"수평 조절 · 4EA",unit:"SET",cost:2,cbm:0.001,img:"",fursys:[]},
+  {id:"C06",cat:"consumable",sku:"CS-SCREW-KIT",name:"조립 볼트 키트",nameEn:"Assembly Bolt Kit",cls:"소모품",spec:"M6 육각 · 조립용",unit:"KIT",cost:1.5,cbm:0.001,img:"",fursys:[]},
+  {id:"C07",cat:"consumable",sku:"CS-FELT-PAD",name:"펠트 패드",nameEn:"Felt Pad",cls:"소모품",spec:"바닥보호 · 24EA",unit:"SET",cost:2.5,cbm:0.001,img:"",fursys:[]},
+  {id:"C08",cat:"consumable",sku:"CS-CABLE-TRAY",name:"케이블 트레이",nameEn:"Cable Tray",cls:"액세서리",spec:"데스크 하부 · 400mm",unit:"EA",cost:14,cbm:0.004,img:"",fursys:[]},
+])};
+
+/* 상태 */
+let S = store.load() || {products:SEED.products,cart:[],currency:"USD",quote:{client:"",no:autoQuoteNo()}};
+S.products = S.products?.length ? S.products : SEED.products;
+S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});
+S.cart ||= []; S.currency ||= "USD"; S.quote ||= {client:"",no:autoQuoteNo()};
+
+let unlocked=false, view="home", adminCat="furniture";
+let filter={furniture:{q:"",cls:"전체"},consumable:{q:"",cls:"전체"}};
+
+function persist(){ const ok=store.save(S); if(!ok) toast("⚠ 저장 용량 초과 — 이미지 크기를 줄여주세요 / Storage full"); return ok; }
+function autoQuoteNo(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `QT-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;}
+
+/* 유틸 */
+function fmt(n){const c=CUR[S.currency],v=isFinite(n)?n:0;return c.sym+v.toLocaleString("en-US",{minimumFractionDigits:c.dp,maximumFractionDigits:c.dp});}
+function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+function byId(id){return S.products.find(p=>p.id===id);}
+function counts(){return{furniture:S.products.filter(p=>p.cat==="furniture").length,consumable:S.products.filter(p=>p.cat==="consumable").length};}
+function cartCount(){return S.cart.reduce((s,l)=>s+l.qty,0);}
+function linePrice(l){const p=byId(l.id);return l.price==null?(p?p.price:0):l.price;}
+function cartTotals(){let cost=0,sell=0,cbm=0;S.cart.forEach(l=>{const p=byId(l.id);if(!p)return;cost+=p.cost*l.qty;sell+=linePrice(l)*l.qty;cbm+=(p.cbm||0)*l.qty;});return{cost,sell,cbm,profit:sell-cost};}
+function toast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2100);}
+function initials(p){return (p.sku||p.name||"?").replace(/[^A-Za-z0-9]/g,"").slice(0,3).toUpperCase()||"IMG";}
+
+/* 썸네일 */
+function thumb(p,cls=""){
+  const img = p.img ? `<img src="${p.img}" alt="${esc(p.nameEn)}" onerror="this.remove()"/>` : "";
+  return `<span class="thumb ${cls}"><span class="fb">${initials(p)}</span>${img}</span>`;
+}
+
+/* 아이콘 */
+const I={
+  arrow:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  search:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  chair:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 4v8m12-8v8M6 12h12M7 12l-1 8m11-8l1 8M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  box:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  cart:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M3 4h2l2.5 12h10L20 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.4" fill="currentColor"/><circle cx="17" cy="20" r="1.4" fill="currentColor"/></svg>',
+  lock:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="2"/></svg>',
+  trash:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0l-1 13a1 1 0 01-1 1H8a1 1 0 01-1-1L6 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  plus:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  print:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6M6 18H4v-6a2 2 0 012-2h12a2 2 0 012 2v6h-2M8 14h8v7H8v-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  close:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  paste:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="7" y="4" width="10" height="4" rx="1" stroke="currentColor" stroke-width="1.6"/><path d="M9 6H6a2 2 0 00-2 2v11a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-3" stroke="currentColor" stroke-width="1.6"/><path d="M9 13h6M9 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+};
+
+/* ══════════ 렌더 ══════════ */
+function render(){
+  renderNav();renderLock();
+  document.getElementById("curSel").value=S.currency;
+  const app=document.getElementById("app");
+  if(view==="home") app.innerHTML=viewHome();
+  else if(view==="furniture"||view==="consumable"){app.innerHTML=viewSearch(view);mountSearch(view);}
+  else if(view==="cart") app.innerHTML=viewCart();
+  else if(view==="admin") app.innerHTML=viewAdmin();
+}
+function renderNav(){
+  const cc=cartCount();
+  const tab=(id,ko,en,extra="")=>`<button class="tab ${view===id?"active":""} ${extra}" data-nav="${id}">${ko} <small class="en">${en}</small></button>`;
+  let h=tab("home","홈","Home")+tab("furniture","가구","Furniture")+tab("consumable","소모품","Consumables");
+  h+=`<button class="tab ${view==="cart"?"active":""}" data-nav="cart">${I.cart} 견적 <small class="en">Quote</small>${cc?`<span class="badge">${cc}</span>`:""}</button>`;
+  if(unlocked) h+=tab("admin","제품 DB","Database","admin");
+  document.getElementById("nav").innerHTML=h;
+}
+function renderLock(){
+  const b=document.getElementById("lockBtn"),l=document.getElementById("lockLabel");
+  if(unlocked){b.classList.add("on");l.textContent="원가 표시 · 잠그기 / Lock";}
+  else{b.classList.remove("on");l.textContent="원가 보기 / Cost";}
+}
+
+/* 홈 */
+function viewHome(){
+  const c=counts();
+  return `
+  <p class="hero-line">INICS México · Sourcing Desk</p>
+  <h1 class="hero-h">소싱 모듈<span class="en">Sourcing Module</span></h1>
+  <p class="hero-p">퍼시스(Fursys) 모델을 검색해 INICS México 대체품을 찾고, 장바구니에 담아 견적서를 생성합니다. 판가는 공개, 원가·이익은 관리자(나·빙)만 열람합니다.<br><span class="en">Search a Fursys model → find the INICS substitute, add to cart, generate a quote. Prices are public; cost &amp; margin are admin-only.</span></p>
+  <div class="cards">
+    <button class="cat-card furn" data-nav="furniture">
+      <span class="rail"></span><span class="tagchip">${I.chair} FURNITURE · 가구</span>
+      <h3>가구<span class="en">Furniture</span></h3>
+      <p class="desc">퍼시스 모델 검색 → 대체품 자동 매칭<br><span class="en">Search Fursys model → auto-match substitutes</span></p>
+      <div class="stat"><b class="num">${c.furniture}</b><span>등록 품목 / items</span></div>
+      <span class="go">${I.arrow}</span>
+    </button>
+    <button class="cat-card cons" data-nav="consumable">
+      <span class="rail"></span><span class="tagchip">${I.box} CONSUMABLES · 소모품</span>
+      <h3>소모품<span class="en">Consumables</span></h3>
+      <p class="desc">부품·캐스터·액세서리 검색<br><span class="en">Parts · casters · accessories</span></p>
+      <div class="stat"><b class="num">${c.consumable}</b><span>등록 품목 / items</span></div>
+      <span class="go">${I.arrow}</span>
+    </button>
+  </div>
+  <div class="home-note">${I.lock}<span><b>판가 / Price</b>는 누구나 · <b>원가 / Cost</b>와 사진 등록은 상단 <b>원가 보기</b>(PIN) 해제 후 제품 DB에서.</span></div>`;
+}
+
+/* 검색 */
+function viewSearch(cat){
+  const meta = cat==="furniture"
+    ? {cls:"furn",ico:I.chair,title:"가구 검색",en:"Furniture Search",sub:"퍼시스 모델명·코드(예: CH4100, 리플라이) 또는 제품명 / Search by Fursys model or product name",ph:"퍼시스 모델·제품명 검색 / Search…  (CH4100 · 인에이블 · 중역)"}
+    : {cls:"cons",ico:I.box,title:"소모품 검색",en:"Consumables Search",sub:"제품명·분류로 검색 / Search by name or category",ph:"소모품 검색 / Search…  (캐스터 · 가스실린더)"};
+  const chips=CLS[cat].map(c=>`<button class="chip ${filter[cat].cls===c?"on":""}" data-cls="${c}">${c}${c!=="전체"?` <span class="en">${clsEn(c)}</span>`:""}</button>`).join("");
+  return `
+  <div class="view-head ${meta.cls}"><span class="ico">${meta.ico}</span>
+    <div><h2>${meta.title}<span class="en">${meta.en}</span></h2><p>${meta.sub}</p></div></div>
+  <div class="searchbar"><span class="si">${I.search}</span>
+    <input id="searchInput" type="text" placeholder="${meta.ph}" value="${esc(filter[cat].q)}" autocomplete="off"/>
+    ${cat==="furniture"?'<span class="hint">Fursys → INICS</span>':''}</div>
+  <div class="chips">${chips}</div>
+  <div id="results"></div>`;
+}
+function mountSearch(cat){const inp=document.getElementById("searchInput");renderResults(cat);inp.addEventListener("input",()=>{filter[cat].q=inp.value;renderResults(cat);});}
+function matchProduct(p,f){
+  if(f.cls!=="전체"&&p.cls!==f.cls)return false;
+  const q=f.q.trim().toLowerCase();if(!q)return true;
+  return [p.name,p.nameEn,p.sku,p.cls,clsEn(p.cls),p.spec,...(p.fursys||[])].join(" ").toLowerCase().includes(q);
+}
+function renderResults(cat){
+  const f=filter[cat];
+  const list=S.products.filter(p=>p.cat===cat&&matchProduct(p,f));
+  const box=document.getElementById("results");
+  if(!list.length){box.innerHTML=`<div class="tablewrap"><div class="empty">${I.search}<p>일치하는 품목이 없습니다. / No matching items.</p><small>검색어·필터를 바꿔보세요. / Adjust search or filter.</small></div></div>`;return;}
+  const isFurn=cat==="furniture";
+  const rows=list.map(p=>{
+    const inCart=S.cart.some(l=>l.id===p.id);
+    const fursys=isFurn?`<div class="fursys-list">${(p.fursys||[]).map(m=>{const a=m.split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")||'<span class="pspec">— 매핑 없음 / none</span>'}</div>`:`<span class="pspec">${esc(p.unit)}</span>`;
+    return `<tr class="clickable" data-open="${p.id}">
+      <td><div class="prow">${thumb(p)}<div><div class="pname">${esc(p.name)}<span class="en">${esc(p.nameEn)}</span></div><div class="sku">${esc(p.sku)}</div></div></div></td>
+      <td><span class="cls-tag ${isFurn?"":"cons"}">${esc(p.cls)} <span class="en">${clsEn(p.cls)}</span></span></td>
+      <td>${fursys}</td>
+      <td><span class="price">${fmt(p.price)}</span></td>
+      <td style="text-align:right"><button class="addbtn ${inCart?"added":""}" data-add="${p.id}">${inCart?"✓ 담김":`${I.plus} 견적`}</button></td>
+    </tr>`;
+  }).join("");
+  box.innerHTML=`
+    <div class="res-meta"><b>${list.length}</b>건 · 행 클릭 시 상세 팝업 / Click a row for details</div>
+    <div class="tablewrap scroll-x"><table><thead><tr>
+      <th>제품 / Product</th><th>분류 / Category</th><th>${isFurn?"퍼시스 대체 모델 / Fursys Equiv.":"단위 / Unit"}</th><th>판가 / Price</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+/* 장바구니/견적 */
+function viewCart(){
+  if(!S.cart.length){
+    return `<div class="view-head"><div><h2>견적 담기<span class="en">Quote</span></h2><p>담긴 품목이 없습니다. / Cart is empty.</p></div></div>
+    <div class="tablewrap"><div class="empty">${I.cart}<p>장바구니가 비어 있습니다. / Your cart is empty.</p><small>검색에서 <b>+ 견적</b>으로 담아주세요. / Add items from search.</small></div></div>`;
+  }
+  const t=cartTotals();
+  const rows=S.cart.map(l=>{
+    const p=byId(l.id);if(!p)return"";
+    const up=linePrice(l),mg=p.cost>0?((up-p.cost)/p.cost*100):0;
+    const costCell=unlocked?`<td class="num"><span class="cost shown">${fmt(p.cost)}</span></td><td class="num"><span class="mgpct ${mg>=0?"pos":"neg"}">${mg.toFixed(0)}%</span></td>`:"";
+    return `<tr>
+      <td><div class="prow">${thumb(p)}<div><div class="pname">${esc(p.name)}<span class="en">${esc(p.nameEn)}</span></div><div class="sku">${esc(p.sku)}</div></div></div></td>
+      <td><div class="qty"><button data-qty="${l.id}" data-d="-1">−</button><input class="num" data-qtyin="${l.id}" value="${l.qty}"/><button data-qty="${l.id}" data-d="1">+</button></div></td>
+      <td><input class="pr-input" data-price="${l.id}" value="${up}"/></td>
+      ${costCell}
+      <td class="num" style="color:var(--cons)">${(p.cbm*l.qty).toFixed(3)}</td>
+      <td class="num" style="color:var(--brass);font-weight:600">${fmt(up*l.qty)}</td>
+      <td><button class="rm" data-rm="${l.id}" title="삭제 / remove">${I.trash}</button></td>
+    </tr>`;
+  }).join("");
+  const costHead=unlocked?`<th>원가 / Cost</th><th>마진 / Mgn</th>`:"";
+  const totals = unlocked ? `
+    <div class="sc-line"><span>원가 합계 / Cost</span><b class="cost shown">${fmt(t.cost)}</b></div>
+    <div class="sc-line"><span>예상 이익 / Profit</span><b style="color:var(--furn)">${fmt(t.profit)}</b></div>` : "";
+  return `
+  <div class="view-head"><div><h2>견적 담기 · 판가 조정<span class="en">Quote · Edit Prices</span></h2><p>기본 이윤율 ${DEFAULT_MARGIN}% · 판가 직접 수정 가능 / Prices editable</p></div></div>
+  <div class="quote-grid">
+    <div class="tablewrap scroll-x no-print"><table><thead><tr>
+      <th>제품 / Product</th><th>수량 / Qty</th><th>판가 / Price</th>${costHead}<th>CBM</th><th>금액 / Amount</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="sumcard">
+      <div class="sc-head"><h3>견적 요약<span class="en">Summary</span></h3><p>${esc(S.quote.no)}</p></div>
+      <div class="sc-body">
+        <div class="sc-field"><label>고객 / 프로젝트 · Client</label><input id="qClient" placeholder="예: Cliente México S.A." value="${esc(S.quote.client)}"/></div>
+        <div class="sc-line"><span>품목 / Items</span><b>${S.cart.length}</b></div>
+        <div class="sc-line sc-cbm"><span>총 CBM / Total CBM</span><b>${t.cbm.toFixed(3)} m³</b></div>
+        ${totals}
+        <div class="sc-line sc-total"><span>견적 합계 / Total</span><b>${fmt(t.sell)}</b></div>
+      </div>
+      <div style="padding:0 18px 18px">
+        <button class="btn-primary" id="printBtn">${I.print} 견적서 인쇄·PDF / Print</button>
+        <button class="btn-ghost" id="clearBtn">장바구니 비우기 / Clear</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* 제품 DB (관리자) */
+function viewAdmin(){
+  if(!unlocked){view="home";render();return"";}
+  const cat=adminCat, list=S.products.filter(p=>p.cat===cat);
+  const clsOpts=sel=>CLS[cat].filter(c=>c!=="전체").map(c=>`<option ${c===sel?"selected":""}>${c}</option>`).join("");
+  const rows=list.map(p=>`
+    <tr>
+      <td><span class="thumb db-img" data-img="${p.id}" title="클릭하여 사진 붙여넣기 / Click to paste photo"><span class="fb">${initials(p)}</span>${p.img?`<img src="${p.img}" onerror="this.remove()"/>`:""}</span></td>
+      <td><input class="icell sku sm" data-f="sku" data-id="${p.id}" value="${esc(p.sku)}"/></td>
+      <td><input class="icell" data-f="name" data-id="${p.id}" value="${esc(p.name)}" placeholder="한글명"/><input class="icell en" data-f="nameEn" data-id="${p.id}" value="${esc(p.nameEn)}" placeholder="English name" style="font-size:11.5px;color:var(--muted)"/></td>
+      <td><select class="icell" data-f="cls" data-id="${p.id}">${clsOpts(p.cls)}</select></td>
+      <td><input class="icell" data-f="spec" data-id="${p.id}" value="${esc(p.spec)}" style="min-width:150px"/></td>
+      ${cat==="furniture"?`<td><input class="icell" data-f="fursys" data-id="${p.id}" value="${esc((p.fursys||[]).join(", "))}" placeholder="리플라이 CH4100, ..." style="min-width:170px"/></td>`:`<td><input class="icell sm" data-f="unit" data-id="${p.id}" value="${esc(p.unit)}" style="width:60px"/></td>`}
+      <td><input class="icell num sm" data-f="cbm" data-id="${p.id}" value="${p.cbm}" style="width:66px"/></td>
+      <td><input class="icell num sm" data-f="cost" data-id="${p.id}" value="${p.cost}" style="width:78px;color:var(--danger);font-weight:600"/></td>
+      <td><input class="icell num sm" data-f="price" data-id="${p.id}" value="${p.price}" style="width:82px;font-weight:600"/></td>
+      <td><button class="rm" data-del="${p.id}" title="삭제 / delete">${I.trash}</button></td>
+    </tr>`).join("");
+  return `
+  <div class="view-head"><span class="ico" style="background:var(--danger)">${I.lock}</span>
+    <div><h2>제품 DB<span class="en">Product Database</span></h2><p>원가·판가·CBM·사진 관리 · 나·빙 전용 / Admin only</p></div></div>
+  <div class="admin-note">${I.lock}<span>원가는 검색에 노출되지 않습니다. 사진 셀 클릭 → Ctrl+V 붙여넣기(자동 누끼). 셀 수정은 즉시 저장. / Cost is hidden from search. Click the photo cell → Ctrl+V to paste (auto cutout).</span></div>
+  <div class="admin-bar">
+    <div class="seg"><button class="${cat==="furniture"?"on":""}" data-acat="furniture">가구 / Furniture</button><button class="${cat==="consumable"?"on":""}" data-acat="consumable">소모품 / Consumables</button></div>
+    <button class="mini-btn" data-applymg="1">판가 = 원가 +${DEFAULT_MARGIN}% 일괄 / Apply ${DEFAULT_MARGIN}%</button>
+    <button class="mini-btn mini-add" data-newp="${cat}">${I.plus} 품목 추가 / Add</button>
+  </div>
+  <div class="tablewrap scroll-x"><table class="db-table"><thead><tr>
+    <th>사진<br><span class="en">Photo</span></th><th>SKU</th><th>제품명 / Name</th><th>분류 / Cat.</th><th>스펙 / Spec</th>
+    <th>${cat==="furniture"?"퍼시스 대체 / Fursys":"단위 / Unit"}</th><th>CBM</th><th>원가 / Cost</th><th>판가 / Price</th><th></th>
+  </tr></thead><tbody>${rows||`<tr><td colspan="10" class="empty" style="padding:34px">품목이 없습니다. / No items.</td></tr>`}</tbody></table></div>`;
+}
+
+/* 견적서 인쇄 */
+function buildQuoteSheet(){
+  const t=cartTotals();
+  const rows=S.cart.map((l,i)=>{
+    const p=byId(l.id);if(!p)return"";
+    const up=linePrice(l);
+    const im=p.img?`<img src="${p.img}"/>`:`<span style="font-family:var(--mono);font-size:9px;color:#aaa">${initials(p)}</span>`;
+    return `<tr>
+      <td><div class="qs-img">${im}</div></td>
+      <td>${esc(p.name)} / ${esc(p.nameEn)}<br><span style="color:#999;font-size:10px">${esc(p.sku)} · ${esc(p.spec)}</span></td>
+      <td>${esc(p.cls)} / ${clsEn(p.cls)}</td>
+      <td class="r">${l.qty} ${esc(p.unit)}</td>
+      <td class="r">${(p.cbm*l.qty).toFixed(3)}</td>
+      <td class="r">${fmt(up)}</td>
+      <td class="r">${fmt(up*l.qty)}</td>
+    </tr>`;
+  }).join("");
+  const d=new Date().toLocaleDateString("es-MX",{year:"numeric",month:"2-digit",day:"2-digit"});
+  document.getElementById("quoteSheet").innerHTML=`
+    <div class="qs-head">
+      <div><div class="qs-co">INICS · MÉXICO</div><div style="font-size:12px;color:#888;margin-top:3px">Furniture Sourcing · Fursys Dealer</div></div>
+      <div><div class="qs-t">COTIZACIÓN / QUOTE</div><div class="qs-meta">No. ${esc(S.quote.no)}<br>Fecha / Date: ${d}<br>Cliente / Client: ${esc(S.quote.client||"—")}</div></div>
+    </div>
+    <table class="qs-table"><thead><tr>
+      <th>Foto</th><th>Producto / Product</th><th>Categoría / Cat.</th><th class="r">Cant. / Qty</th><th class="r">CBM</th><th class="r">P. Unit</th><th class="r">Importe / Amount</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <div class="qs-tot">
+      <div class="qs-cbm">Volumen total / Total CBM: <b>${t.cbm.toFixed(3)} m³</b><br>Moneda / Currency: <b>${S.currency}</b> · Margen base ${DEFAULT_MARGIN}%</div>
+      <table>
+        <tr><td>Subtotal</td><td class="r">${fmt(t.sell)}</td></tr>
+        <tr><td>IVA (16%)</td><td class="r">${fmt(t.sell*0.16)}</td></tr>
+        <tr class="g"><td>TOTAL</td><td class="r">${fmt(t.sell*1.16)}</td></tr>
+      </table>
+    </div>
+    <div class="qs-foot">Precios sujetos a confirmación de inventario y tipo de cambio. Válido 15 días. / Prices subject to stock &amp; FX confirmation. Valid 15 days.<br>INICS México · Furniture Sourcing</div>`;
+}
+
+/* ══════════ 이벤트 ══════════ */
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-nav],[data-add],[data-cls],[data-qty],[data-rm],[data-del],[data-acat],[data-newp],[data-applymg],[data-open],[data-img]");
+  if(!el)return;
+  if(el.dataset.add!==undefined){e.stopPropagation();const id=el.dataset.add,ex=S.cart.find(l=>l.id===id);if(ex)ex.qty++;else S.cart.push({id,qty:1,price:null});persist();toast(`${byId(id).name} 담김 / added`);renderNav();if(view==="furniture"||view==="consumable")renderResults(view);return;}
+  if(el.dataset.img!==undefined){openImageDialog(el.dataset.img);return;}
+  if(el.dataset.open!==undefined){openProduct(el.dataset.open);return;}
+  if(el.dataset.nav){const t=el.dataset.nav;if(t==="admin"&&!unlocked){openPin(()=>{unlocked=true;view="admin";render();});return;}view=t;render();window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(el.dataset.cls!==undefined){filter[view].cls=el.dataset.cls;render();return;}
+  if(el.dataset.qty){const l=S.cart.find(x=>x.id===el.dataset.qty);if(l){l.qty=Math.max(1,l.qty+Number(el.dataset.d));persist();render();}return;}
+  if(el.dataset.rm){S.cart=S.cart.filter(x=>x.id!==el.dataset.rm);persist();render();return;}
+  if(el.dataset.del){if(confirm("이 품목을 삭제할까요? / Delete this item?")){S.products=S.products.filter(p=>p.id!==el.dataset.del);persist();render();}return;}
+  if(el.dataset.acat){adminCat=el.dataset.acat;render();return;}
+  if(el.dataset.applymg){if(confirm(`${adminCat==="furniture"?"가구":"소모품"} 판가를 원가+${DEFAULT_MARGIN}%로 일괄 재계산할까요? / Recalculate prices?`)){S.products.filter(p=>p.cat===adminCat).forEach(p=>p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100);persist();render();toast("판가 일괄 적용됨 / Prices applied");}return;}
+  if(el.dataset.newp){const cat=el.dataset.newp,id=(cat==="furniture"?"F":"C")+"_"+Date.now().toString(36);S.products.unshift({id,cat,sku:"NEW-SKU",name:"신규 품목",nameEn:"New item",cls:CLS[cat][1],spec:"",unit:"EA",cost:0,price:0,cbm:0,img:"",fursys:[]});persist();render();toast("품목 추가됨 · 셀 편집 / Item added");return;}
+});
+document.addEventListener("change",e=>{
+  const el=e.target;
+  if(el.dataset.f&&el.dataset.id){const p=byId(el.dataset.id);if(!p)return;const f=el.dataset.f;
+    if(f==="cost"||f==="price"||f==="cbm")p[f]=Math.max(0,parseFloat(el.value)||0);
+    else if(f==="fursys")p.fursys=el.value.split(",").map(s=>s.trim()).filter(Boolean);
+    else p[f]=el.value;
+    persist();if(f==="sku"||f==="cost")renderNav();return;}
+  if(el.dataset.price){const l=S.cart.find(x=>x.id===el.dataset.price);if(l){const v=parseFloat(el.value);l.price=isNaN(v)?null:Math.max(0,v);persist();render();}return;}
+  if(el.dataset.qtyin){const l=S.cart.find(x=>x.id===el.dataset.qtyin);if(l){l.qty=Math.max(1,parseInt(el.value)||1);persist();render();}return;}
+  if(el.id==="qClient"){S.quote.client=el.value;persist();return;}
+  if(el.id==="curSel"){S.currency=el.value;persist();render();return;}
+});
+document.addEventListener("click",e=>{
+  if(e.target.closest("#printBtn")){buildQuoteSheet();window.print();}
+  if(e.target.closest("#clearBtn")){if(confirm("장바구니를 비울까요? / Clear cart?")){S.cart=[];persist();render();}}
+});
+document.getElementById("lockBtn").addEventListener("click",()=>{
+  if(unlocked){unlocked=false;if(view==="admin")view="home";render();toast("원가 잠금 / Locked");}
+  else openPin(()=>{unlocked=true;render();toast("원가 표시 중 / Unlocked");});
+});
+
+/* ── 제품 상세 팝업 ── */
+function openProduct(id){
+  const p=byId(id);if(!p)return;
+  const isFurn=p.cat==="furniture";
+  const catStyle=isFurn?"background:var(--furn-soft);color:var(--furn)":"background:var(--cons-soft);color:var(--cons)";
+  const inCart=S.cart.some(l=>l.id===id);
+  const img=p.img?`<img src="${p.img}" onerror="this.remove()"/>`:"";
+  const fursys=isFurn&&(p.fursys||[]).length?`<div class="pm-fursys">${p.fursys.map(m=>{const a=m.split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")}</div>`:"";
+  const costFacts=unlocked?`
+    <div class="fact cost"><label>원가 / Cost</label><b>${fmt(p.cost)}</b></div>
+    <div class="fact"><label>마진 / Margin</label><b style="color:${p.price>=p.cost?"var(--furn)":"var(--danger)"}">${p.cost>0?((p.price-p.cost)/p.cost*100).toFixed(0):0}%</b></div>`:"";
+  const bg=document.createElement("div");bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal pmodal">
+    <button class="pm-close" data-x>${I.close}</button>
+    <div class="pm-imgwrap"><span class="thumb lg"><span class="fb">${initials(p)}</span>${img}</span></div>
+    <div class="pm-body">
+      <span class="pm-cat" style="${catStyle}">${esc(p.cls)} · ${clsEn(p.cls)}</span>
+      <h3 class="pm-name">${esc(p.name)}<span class="en">${esc(p.nameEn)}</span></h3>
+      <div class="pm-sku">${esc(p.sku)}</div>
+      <p class="pm-spec">${esc(p.spec)||"—"}</p>
+      ${fursys}
+      <div class="fact-grid">
+        <div class="fact price"><label>판가 / Price</label><b>${fmt(p.price)}</b></div>
+        <div class="fact"><label>단위 / Unit</label><b>${esc(p.unit)}</b></div>
+        <div class="fact"><label>CBM (m³)</label><b>${(p.cbm||0).toFixed(3)}</b></div>
+        <div class="fact"><label>분류 / Category</label><b style="font-size:12px">${clsEn(p.cls)}</b></div>
+        ${costFacts}
+      </div>
+      <div class="pm-foot">
+        <div class="qty"><button data-pq="-1">−</button><input class="num" id="pmQty" value="1"/><button data-pq="1">+</button></div>
+        <button class="pm-add" data-padd="${id}">${I.cart} ${inCart?"수량 추가 / Add more":"견적 담기 / Add to Quote"}</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(bg);
+  const close=()=>bg.remove();
+  const qtyIn=bg.querySelector("#pmQty");
+  bg.addEventListener("click",ev=>{
+    if(ev.target===bg||ev.target.closest("[data-x]"))return close();
+    const pq=ev.target.closest("[data-pq]");if(pq){qtyIn.value=Math.max(1,(parseInt(qtyIn.value)||1)+Number(pq.dataset.pq));return;}
+    const add=ev.target.closest("[data-padd]");if(add){const q=Math.max(1,parseInt(qtyIn.value)||1);const ex=S.cart.find(l=>l.id===id);if(ex)ex.qty+=q;else S.cart.push({id,qty:q,price:null});persist();toast(`${p.name} ${q}개 담김 / added`);close();render();}
+  });
+  document.addEventListener("keydown",function esc2(ev){if(ev.key==="Escape"){close();document.removeEventListener("keydown",esc2);}});
+}
+
+/* ── 이미지 붙여넣기 + 자동 누끼 다이얼로그 ── */
+let imgState=null; // {id, raw:Image, pending:dataURL, removeBg}
+function openImageDialog(id){
+  const p=byId(id);if(!p)return;
+  imgState={id,raw:null,pending:p.img||"",removeBg:true};
+  const bg=document.createElement("div");bg.className="modal-bg";bg.id="imgBg";
+  bg.innerHTML=`<div class="modal imodal">
+    <div class="im-head"><h3>제품 이미지 <span class="en">/ Product Image</span></h3>
+      <p>${esc(p.name)} · ${esc(p.sku)}</p></div>
+    <div class="pastezone ${p.img?"has-img":""}" id="pasteZone" tabindex="0">
+      <div class="pz-inner" id="pzInner">${p.img?`<img src="${p.img}"/>`:`${I.paste}<b>이미지 붙여넣기 / Paste image</b><span>클릭 후 <b>Ctrl+V</b> · 또는 드래그 · 클릭 업로드<br>Click, then Ctrl+V · drag · or click to upload</span>`}</div>
+    </div>
+    <div class="im-opts"><label class="toggle"><input type="checkbox" id="rmbg" checked><span class="tk"></span></label>
+      <span>배경 자동 제거(누끼) / Auto remove background</span></div>
+    <div class="im-msg" id="imMsg">밝은 배경 사진에 최적 · 복잡한 배경은 토글 OFF / Best on light backgrounds</div>
+    <div class="im-actions">
+      <button class="im-del" id="imDel">삭제 / Remove</button>
+      <button class="im-cancel" id="imCancel">취소 / Cancel</button>
+      <button class="im-save" id="imSave">저장 / Save</button>
+    </div>
+  </div>`;
+  document.body.appendChild(bg);
+  const zone=bg.querySelector("#pasteZone"),inner=bg.querySelector("#pzInner"),msg=bg.querySelector("#imMsg"),rmbg=bg.querySelector("#rmbg");
+  setTimeout(()=>zone.focus(),40);
+
+  const setBusy=on=>{if(on){if(!zone.querySelector(".pz-busy")){const b=document.createElement("div");b.className="pz-busy";b.textContent="누끼 처리 중… / Removing background…";zone.appendChild(b);}}else{zone.querySelector(".pz-busy")?.remove();}};
+  const showPreview=(dataUrl,note,warn)=>{imgState.pending=dataUrl;zone.classList.add("has-img");inner.innerHTML=`<img src="${dataUrl}"/>`;msg.textContent=note||"";msg.classList.toggle("warn",!!warn);};
+
+  const process=async(blob)=>{
+    try{
+      setBusy(true);
+      const img=await loadImageFromBlob(blob);imgState.raw=img;
+      await new Promise(r=>requestAnimationFrame(r));
+      const {dataUrl,removed}=autoCutout(img,{removeBg:rmbg.checked});
+      setBusy(false);
+      showPreview(dataUrl, removed?"배경 제거 완료 · 저장을 누르세요 / Background removed":"원본 유지(배경 제거 불가 또는 OFF) / Original kept");
+    }catch(err){setBusy(false);msg.textContent="이미지를 불러오지 못했습니다 / Could not load image";msg.classList.add("warn");}
+  };
+  const reprocess=async()=>{ if(imgState.raw){setBusy(true);await new Promise(r=>requestAnimationFrame(r));const {dataUrl,removed}=autoCutout(imgState.raw,{removeBg:rmbg.checked});setBusy(false);showPreview(dataUrl,removed?"배경 제거 완료 / Removed":"원본 유지 / Original");} };
+
+  rmbg.addEventListener("change",reprocess);
+  // 붙여넣기
+  const onPaste=ev=>{const items=(ev.clipboardData||{}).items||[];for(const it of items){if(it.type&&it.type.startsWith("image")){const f=it.getAsFile();if(f){ev.preventDefault();process(f);return;}}}};
+  document.addEventListener("paste",onPaste);
+  // 드래그&드롭
+  zone.addEventListener("dragover",ev=>{ev.preventDefault();zone.classList.add("drag");});
+  zone.addEventListener("dragleave",()=>zone.classList.remove("drag"));
+  zone.addEventListener("drop",ev=>{ev.preventDefault();zone.classList.remove("drag");const f=[...(ev.dataTransfer.files||[])].find(f=>f.type.startsWith("image"));if(f)process(f);});
+  // 클릭 업로드
+  zone.addEventListener("click",()=>{const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=()=>{if(inp.files[0])process(inp.files[0]);};inp.click();});
+
+  const close=()=>{document.removeEventListener("paste",onPaste);bg.remove();imgState=null;};
+  bg.querySelector("#imCancel").onclick=close;
+  bg.querySelector("#imDel").onclick=()=>{p.img="";persist();close();render();toast("이미지 삭제됨 / Removed");};
+  bg.querySelector("#imSave").onclick=()=>{p.img=imgState.pending||"";const ok=persist();close();render();if(ok)toast("이미지 저장됨 / Saved");};
+  bg.addEventListener("click",ev=>{if(ev.target===bg)close();});
+}
+
+/* 클립보드 → Image */
+function loadImageFromBlob(blob){return new Promise((res,rej)=>{const url=URL.createObjectURL(blob);const img=new Image();img.onload=()=>{URL.revokeObjectURL(url);res(img);};img.onerror=e=>{URL.revokeObjectURL(url);rej(e);};img.src=url;});}
+
+/* 자동 누끼: 테두리 시드 flood-fill 배경제거 → 크롭·패딩 */
+function autoCutout(img,{removeBg=true,maxSize=640}={}){
+  let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+  const sc=Math.min(1,maxSize/Math.max(w,h));w=Math.max(1,Math.round(w*sc));h=Math.max(1,Math.round(h*sc));
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+  const ctx=cv.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,w,h);
+  if(!removeBg)return {dataUrl:cv.toDataURL("image/jpeg",0.85),removed:false};
+  const id=ctx.getImageData(0,0,w,h),d=id.data;
+  // 배경색 = 테두리 평균
+  let br=0,bg=0,bb=0,n=0;const samp=(x,y)=>{const i=(y*w+x)*4;br+=d[i];bg+=d[i+1];bb+=d[i+2];n++;};
+  const sx=Math.max(1,(w/40)|0),sy=Math.max(1,(h/40)|0);
+  for(let x=0;x<w;x+=sx){samp(x,0);samp(x,h-1);}for(let y=0;y<h;y+=sy){samp(0,y);samp(w-1,y);}
+  br/=n;bg/=n;bb/=n;
+  const dist=i=>{const a=d[i]-br,b=d[i+1]-bg,c=d[i+2]-bb;return Math.sqrt(a*a+b*b+c*c);};
+  const TOL=52, T0=22, T1=58;
+  const visited=new Uint8Array(w*h),stack=[];
+  const tryPush=(x,y)=>{if(x<0||y<0||x>=w||y>=h)return;const p=y*w+x;if(visited[p])return;if(dist(p*4)<=TOL){visited[p]=1;stack.push(p);}};
+  for(let x=0;x<w;x++){tryPush(x,0);tryPush(x,h-1);}for(let y=0;y<h;y++){tryPush(0,y);tryPush(w-1,y);}
+  while(stack.length){const p=stack.pop(),x=p%w,y=(p/w)|0;tryPush(x+1,y);tryPush(x-1,y);tryPush(x,y+1);tryPush(x,y-1);}
+  const isVis=(x,y)=>(x<0||y<0||x>=w||y>=h)?true:!!visited[y*w+x];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x,i=p*4;
+    if(visited[p]){d[i+3]=0;continue;}
+    // 가장자리 부드럽게(배경 인접 픽셀만)
+    if(isVis(x+1,y)||isVis(x-1,y)||isVis(x,y+1)||isVis(x,y-1)){const dd=dist(i);if(dd<T1){const a=Math.max(0,Math.min(1,(dd-T0)/(T1-T0)));d[i+3]=Math.round(d[i+3]*a);}}
+  }
+  ctx.putImageData(id,0,0);
+  // 크롭+패딩
+  let minX=w,minY=h,maxX=0,maxY=0,cnt=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(d[(y*w+x)*4+3]>18){cnt++;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}}
+  if(cnt<w*h*0.012){ // 제거 실패 → 원본
+    const o=document.createElement("canvas");o.width=w;o.height=h;o.getContext("2d").drawImage(img,0,0,w,h);
+    return {dataUrl:o.toDataURL("image/jpeg",0.85),removed:false};
+  }
+  const cw=maxX-minX+1,ch=maxY-minY+1,pad=Math.round(Math.max(cw,ch)*0.08);
+  const out=document.createElement("canvas");out.width=cw+pad*2;out.height=ch+pad*2;
+  out.getContext("2d").drawImage(cv,minX,minY,cw,ch,pad,pad,cw,ch);
+  return {dataUrl:out.toDataURL("image/png"),removed:true};
+}
+
+/* PIN 모달 */
+function openPin(onOk){
+  const bg=document.createElement("div");bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal">
+    <div class="m-head"><div class="m-lock">${I.lock}</div><h3>원가 열람 인증 <span class="en">/ Cost Access</span></h3><p>원가·이익·사진 등록은 관리자(나·빙)만. PIN을 입력하세요. / Admin only. Enter PIN.</p></div>
+    <input class="pin-in" id="pinIn" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+    <div class="pin-err" id="pinErr"></div>
+    <div class="m-actions"><button class="m-cancel" id="pinCancel">취소 / Cancel</button><button class="m-ok" id="pinOk">열람 / Unlock</button></div>
+  </div>`;
+  document.body.appendChild(bg);
+  const inp=bg.querySelector("#pinIn"),err=bg.querySelector("#pinErr");setTimeout(()=>inp.focus(),40);
+  const close=()=>bg.remove();
+  const submit=()=>{if(inp.value===ADMIN_PIN){close();onOk&&onOk();}else{err.textContent="PIN이 올바르지 않습니다. / Incorrect PIN.";inp.value="";inp.focus();}};
+  bg.querySelector("#pinOk").onclick=submit;bg.querySelector("#pinCancel").onclick=close;
+  bg.onclick=ev=>{if(ev.target===bg)close();};
+  inp.addEventListener("keydown",ev=>{if(ev.key==="Enter")submit();if(ev.key==="Escape")close();});
+}
+
+render();
+</script>
+</body>
+</html>
