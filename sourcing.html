@@ -336,6 +336,28 @@ select.icell{appearance:none;font-weight:600;min-width:110px}
 .sw-mini{width:18px;height:18px;border-radius:50%;overflow:hidden;border:1px solid var(--line);background:#ddd;display:inline-block}
 .sw-mini img{width:100%;height:100%;object-fit:cover}
 .pm-fursys{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+/* 퍼시스 편집기 (모델 + 가격) */
+.fursys-editor{display:flex;flex-direction:column;gap:7px}
+.fe-row{display:flex;gap:7px;align-items:center}
+.fe-row .fe-model{flex:1;border:1px solid var(--line-strong);border-radius:8px;padding:9px 10px;font-size:13px}
+.fe-row .fe-model:focus{outline:none;border-color:var(--brass)}
+.fe-price{display:flex;align-items:center;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;width:130px}
+.fe-price input{width:100%;border:none;padding:9px 8px;font-family:var(--mono);font-size:13px;text-align:right}
+.fe-price input:focus{outline:none;background:#FBFAF6}
+.fe-price .fe-cur{font-size:10.5px;font-weight:700;color:var(--muted);padding:0 8px;border-left:1px solid var(--line);background:#FBFAF6}
+.fe-rm{border:none;background:transparent;color:var(--muted);padding:5px;border-radius:6px;line-height:0}
+.fe-rm:hover{color:var(--danger);background:var(--danger-soft)}
+.fursys-pill .fp-price{color:var(--brass);font-family:var(--mono);font-weight:700}
+/* 가격 비교표 */
+.pm-cmp{margin:14px 0 4px}
+.pm-cmp>label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--brass);margin-bottom:7px}
+.cmp-tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.cmp-tbl th{background:#FBFAF6;text-align:left;padding:7px 9px;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:1px solid var(--line)}
+.cmp-tbl td{padding:7px 9px;border-bottom:1px solid var(--line)}
+.cmp-tbl tr:last-child td{border-bottom:none}
+.cmp-tbl .r{text-align:right;font-family:var(--mono)}
+.cmp-tbl .save-pos{color:var(--furn);font-weight:700}
+.cmp-tbl .save-neg{color:var(--danger);font-weight:700}
 .fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
 .fact{background:#FBFAF6;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
 .fact label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:3px}
@@ -560,7 +582,7 @@ const store = (()=>{
 })();
 
 /* 시드 (price = cost×(1+기본이윤율)) */
-function withPrice(a){a.forEach(p=>{if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});return a;}
+function withPrice(a){a.forEach(p=>{if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100; if(Array.isArray(p.fursys)) p.fursys=p.fursys.map(x=> typeof x==="string"?{model:x,price:Math.round(p.price*1.4)}:x);});return a;}
 const SEED={products:withPrice([
   {id:"F01",cat:"furniture",sku:"IX-CH-100",name:"태스크 체어 프로",nameEn:"Task Chair Pro",cls:"사무용의자",spec:"메쉬 등판 · 럼버서포트 · 고정팔 / Mesh back · lumbar",unit:"EA",cost:78,cbm:0.12,img:"",fursys:["리플라이 CH4100","플라이트 CH4800"]},
   {id:"F02",cat:"furniture",sku:"IX-CH-200",name:"임원용 체어",nameEn:"Executive Chair",cls:"중역의자",spec:"천연가죽 · 하이백 · 크롬베이스 / Leather · high-back",unit:"EA",cost:190,cbm:0.20,img:"",fursys:["베스토 CH5200","지엘 CH4700","마르쿠스 CH3600"]},
@@ -590,7 +612,7 @@ S.customCls ||= {furniture:[],consumable:[]}; S.customCls.furniture ||= []; S.cu
 S.colorLib ||= [];
 function allCls(cat){ return [...new Set([...CLS[cat].filter(c=>c!=="전체"), ...((S.customCls&&S.customCls[cat])||[])])]; }
 function clsChips(cat){ return ["전체", ...allCls(cat)]; }
-function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys??=[];p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;p.url??="";p.colors??=[];if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
+function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys=(p.fursys||[]).map(x=> typeof x==="string"?{model:x,price:0}:{model:(x&&x.model)||"",price:(x&&+x.price)||0});p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;p.url??="";p.colors??=[];if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
 normalizeProducts();
 
 let unlocked=false, view="home", adminCat="furniture";
@@ -810,7 +832,7 @@ function mountSearch(cat){const inp=document.getElementById("searchInput");rende
 function matchProduct(p,f){
   if(f.cls!=="전체"&&p.cls!==f.cls)return false;
   const q=f.q.trim().toLowerCase();if(!q)return true;
-  return [p.name,p.nameEn,p.sku,p.cls,clsEn(p.cls),p.spec,...(p.fursys||[])].join(" ").toLowerCase().includes(q);
+  return [p.name,p.nameEn,p.sku,p.cls,clsEn(p.cls),p.spec,...((p.fursys||[]).map(x=>x.model||""))].join(" ").toLowerCase().includes(q);
 }
 function renderResults(cat){
   const f=filter[cat];
@@ -820,7 +842,7 @@ function renderResults(cat){
   const isFurn=cat==="furniture";
   const rows=list.map(p=>{
     const inCart=S.cart.some(l=>l.id===p.id);
-    const fursys=isFurn?`<div class="fursys-list">${(p.fursys||[]).map(m=>{const a=m.split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")||'<span class="pspec">— 매핑 없음 / none</span>'}</div>`:`<span class="pspec">${esc(p.unit)}</span>`;
+    const fursys=isFurn?`<div class="fursys-list">${(p.fursys||[]).map(x=>{const a=(x.model||"").split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")||'<span class="pspec">— 매핑 없음 / none</span>'}</div>`:`<span class="pspec">${esc(p.unit)}</span>`;
     return `<tr class="clickable" data-open="${p.id}">
       <td><div class="prow">${thumb(p)}<div><div class="pname">${esc(p.name)}<span class="en">${esc(p.nameEn)}</span></div><div class="sku">${esc(p.sku)}</div></div></div></td>
       <td><span class="cls-tag ${isFurn?"":"cons"}">${esc(p.cls)} <span class="en">${clsEn(p.cls)}</span></span></td>
@@ -891,7 +913,7 @@ function viewAdmin(){
   const ids=new Set(list.map(p=>p.id)); [...adminSel].forEach(id=>{if(!ids.has(id))adminSel.delete(id);});
   const chips=(arr,cls)=>arr.map(a=>`<a class="att-chip ${cls}" href="${a.url}" target="_blank" rel="noopener" download title="${esc(a.name)}">${fileIcon(a)}</a>`).join("");
   const rows=list.map(p=>{
-    const fursys=(p.fursys||[]).map(m=>{const a=m.split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("");
+    const fursys=(p.fursys||[]).map(x=>{const a=(x.model||"").split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em>${x.price>0?` <b class="fp-price">${fmt(x.price)}</b>`:""}</span>`;}).join("");
     const mg=p.cost>0?((p.price-p.cost)/p.cost*100):0;
     const sf=p.specFiles||[], of=p.attachments||[];
     return `<tr class="${adminSel.has(p.id)?"selrow":""}">
@@ -1008,7 +1030,9 @@ function openProduct(id){
   const catStyle=isFurn?"background:var(--furn-soft);color:var(--furn)":"background:var(--cons-soft);color:var(--cons)";
   const inCart=S.cart.some(l=>l.id===id);
   const img=p.img?`<img src="${p.img}" onerror="this.remove()"/>`:"";
-  const fursys=isFurn&&(p.fursys||[]).length?`<div class="pm-fursys">${p.fursys.map(m=>{const a=m.split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")}</div>`:"";
+  const fursys=isFurn&&(p.fursys||[]).length?`<div class="pm-fursys">${p.fursys.map(x=>{const a=(x.model||"").split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")}</div>`:"";
+  const cmpList=(p.fursys||[]).filter(x=>x.price>0);
+  const cmp = cmpList.length ? `<div class="pm-cmp"><label>💰 가격 비교 / Price vs Fursys</label><table class="cmp-tbl"><thead><tr><th>Fursys 모델 / Model</th><th class="r">Fursys</th><th class="r">INICS (${PRICE_TERM})</th><th class="r">절감 / Save</th></tr></thead><tbody>${cmpList.map(x=>{const save=(x.price-p.price)/x.price*100; const pos=save>=0; return `<tr><td>${esc(x.model)}</td><td class="r">${fmt(x.price)}</td><td class="r"><b>${fmt(p.price)}</b></td><td class="r ${pos?"save-pos":"save-neg"}">${pos?"▼ "+save.toFixed(0)+"% 저렴":"▲ "+Math.abs(save).toFixed(0)+"% 비쌈"}</td></tr>`;}).join("")}</tbody></table></div>` : "";
   const costFacts=unlocked?`
     <div class="fact cost"><label>원가 / Cost</label><b>${fmt(p.cost)}</b></div>
     <div class="fact"><label>마진 / Margin</label><b style="color:${p.price>=p.cost?"var(--furn)":"var(--danger)"}">${p.cost>0?((p.price-p.cost)/p.cost*100).toFixed(0):0}%</b></div>`:"";
@@ -1023,6 +1047,7 @@ function openProduct(id){
       <p class="pm-spec">${esc(p.spec)||"—"}</p>
       ${fursys}
       ${(p.colors||[]).length?`<div class="pm-colors"><label>🎨 컬러 / Colors</label><div class="sw-row">${p.colors.map(c=>`<span class="swatch view" title="${esc(c.name)}"><span class="sw-img">${c.img?`<img src="${c.img}"/>`:""}</span><span class="sw-name">${esc(c.name)}</span></span>`).join("")}</div></div>`:""}
+      ${cmp}
       <div class="fact-grid">
         <div class="fact price"><label>판가 (${PRICE_TERM}) / Price</label><b>${fmt(p.price)}</b></div>
         <div class="fact"><label>단위 / Unit</label><b>${esc(p.unit)}</b></div>
@@ -1096,7 +1121,7 @@ function viewForm(){
       <div class="fm-f fm-wide"><label>공급업체 / Supplier</label><input id="f_supplier" value="${esc(f.supplier)}" placeholder="공급처 이름 / supplier name"/></div>
       <div class="fm-f fm-wide"><label>🔒 제품 정보 URL / Info URL <span class="fm-hint">관리자만 표시 / admin only</span></label><input id="f_url" value="${esc(f.url)}" placeholder="https:// 제품 페이지·카탈로그 링크"/></div>
       <div class="fm-f fm-wide"><label>스펙 / Spec <span class="fm-hint">여러 줄 입력 가능 / multi-line</span></label><textarea id="f_spec" rows="5" placeholder="치수·재질·색상·옵션 등">${esc(f.spec)}</textarea></div>
-      ${isFurn?`<div class="fm-f fm-wide"><label>퍼시스 대체 모델 / Fursys (쉼표 구분)</label><input id="f_fursys" value="${esc((f.fursys||[]).join(", "))}" placeholder="리플라이 CH4100, 플라이트 CH4800"/></div>`:``}
+      ${isFurn?`<div class="fm-f fm-wide fm-fursys"><label>퍼시스 대체 모델 / Fursys Equivalent <span class="fm-hint">모델명 + 퍼시스 가격(USD) / model + Fursys price</span> <button class="fm-mini" id="f_fursysadd">+ 추가 / Add</button></label><div id="fmFursysList" class="fursys-editor"></div></div>`:``}
       <div class="fm-f"><label>단위 / Unit</label><input id="f_unit" value="${esc(f.unit)}"/></div>
       <div class="fm-f"><label>CBM (m³)</label><input id="f_cbm" class="num" value="${f.cbm}"/></div>
       <div class="fm-f"><label>원가 / Cost</label><div class="cost-row"><input id="f_costraw" class="num" value="${f.costRaw}"/><select id="f_costccy"><option value="USD" ${!isVND?"selected":""}>USD</option><option value="VND" ${isVND?"selected":""}>VND</option></select></div></div>
@@ -1163,7 +1188,16 @@ function mountForm(){
   const bindVal=(sel,key,num)=>{const el=$(sel);if(!el)return;el.addEventListener("input",()=>{ f[key]= num? Math.max(0,parseFloat(el.value)||0) : el.value; });};
   bindVal("#f_sku","sku");bindVal("#f_name","name");bindVal("#f_nameEn","nameEn");bindVal("#f_supplier","supplier");bindVal("#f_url","url");bindVal("#f_spec","spec");bindVal("#f_unit","unit");bindVal("#f_cbm","cbm",true);
   $("#f_cls").addEventListener("change",e=>f.cls=e.target.value);
-  const fu=$("#f_fursys"); if(fu) fu.addEventListener("input",()=>f.fursys=fu.value.split(",").map(s=>s.trim()).filter(Boolean));
+  // 퍼시스 대체 모델 편집기 (모델명 + 가격)
+  const renderFursys=()=>{ const el=$("#fmFursysList"); if(!el)return;
+    el.innerHTML = (f.fursys&&f.fursys.length) ? f.fursys.map((x,i)=>`<div class="fe-row"><input class="fe-model" data-fi="${i}" data-fk="model" value="${esc(x.model)}" placeholder="리플라이 CH4100"/><div class="fe-price"><input class="num" data-fi="${i}" data-fk="price" value="${x.price||0}" placeholder="0"/><span class="fe-cur">USD</span></div><button class="fe-rm" data-fursysrm="${i}" title="제거">${I.close}</button></div>`).join("") : `<div class="pspec" style="padding:3px 0">대체 모델 없음 · <b>추가</b> 클릭 / none — click Add</div>`;
+  };
+  if($("#fmFursysList")){
+    renderFursys();
+    $("#f_fursysadd").addEventListener("click",ev=>{ ev.preventDefault(); f.fursys.push({model:"",price:0}); renderFursys(); const rows=$("#fmFursysList").querySelectorAll(".fe-model"); rows[rows.length-1]?.focus(); });
+    $("#fmFursysList").addEventListener("input",e=>{ const el=e.target; if(el.dataset.fi!=null){ const i=+el.dataset.fi, k=el.dataset.fk; if(!f.fursys[i])return; if(k==="price") f.fursys[i].price=Math.max(0,parseFloat(el.value)||0); else f.fursys[i][k]=el.value; } });
+    $("#fmFursysList").addEventListener("click",e=>{ const rm=e.target.closest("[data-fursysrm]"); if(rm){ f.fursys.splice(+rm.dataset.fursysrm,1); renderFursys(); } });
+  }
 
   // 원가 통화(VND/USD)·환율 → 원가(USD) → 판가(USD)
   const numv=v=>Math.max(0,parseFloat(v)||0);
