@@ -7809,6 +7809,9 @@ function handleBankExcel(file){
       var existing={};
       (state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;}).forEach(function(t){ existing[bankTxnKey(t)]=true; });
       var added=0, skipped=0, lockedSkip=0;
+      // ★ id 전역 고유 보장: bankSeq가 실제 최대 id보다 낮으면(멀티탭/복원 등으로 어긋남) 보정 → 계좌 간 id 충돌 방지
+      var _maxBankId=(state.bankTxns||[]).reduce(function(m,t){return Math.max(m,+t.id||0);},0);
+      if((+state.bankSeq||0) < _maxBankId) state.bankSeq=_maxBankId;
       for(var i=start;i<rows.length;i++){
         var r=rows[i]||[];
         var date=String(r[0]||'').trim();
