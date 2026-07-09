@@ -5407,18 +5407,18 @@ function renderInvoiceApp(){
   var list=(state.invoices||[]).slice();
   if(_invTab!=='all') list=list.filter(function(v){ return v.dir===_invTab; });
   var payF=((document.getElementById('invoicePayFilter')||{}).value||'');
-  if(payF==='open') list=list.filter(function(v){ return !v.matchTxnId; });
-  else if(payF==='paid') list=list.filter(function(v){ return !!v.matchTxnId; });
+  if(payF==='open') list=list.filter(function(v){ return _invPending(v); });
+  else if(payF==='paid') list=list.filter(function(v){ return !_invPending(v); });
   if(q){ var ts=q.split(/\s+/); list=list.filter(function(v){ var hay=[v.invoiceNo,v.vendor,v.note,v.category,v.date].join(' ').toLowerCase(); return ts.every(function(t){return hay.indexOf(t)>=0;}); }); }
   list.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')) || (b.id-a.id); });
   // summary by currency
   var all=(state.invoices||[]);
-  function sumBy(dir,onlyOpen){ var m={}; all.filter(function(v){return v.dir===dir && (!onlyOpen || !v.matchTxnId);}).forEach(function(v){ var c=v.currency||'VND'; m[c]=(m[c]||0)+qNum(v.total); }); return m; }
+  function sumBy(dir,onlyOpen){ var m={}; all.filter(function(v){return v.dir===dir && (!onlyOpen || _invPending(v));}).forEach(function(v){ var c=v.currency||'VND'; m[c]=(m[c]||0)+(onlyOpen?(_invRemainingDueCents(v)/100):qNum(v.total)); }); return m; }
   var iss=sumBy('issued',false), rec=sumBy('received',false);
   var ar=sumBy('issued',true), ap=sumBy('received',true);
   function chips(m){ var ks=Object.keys(m).filter(function(c){return m[c];}); return ks.length?ks.map(function(c){return _invFmt(m[c],c);}).join(' · '):'—'; }
-  var openAR=all.filter(function(v){return v.dir==='issued' && !v.matchTxnId;}).length;
-  var openAP=all.filter(function(v){return v.dir==='received' && !v.matchTxnId;}).length;
+  var openAR=all.filter(function(v){return v.dir==='issued' && _invPending(v);}).length;
+  var openAP=all.filter(function(v){return v.dir==='received' && _invPending(v);}).length;
   var sEl=document.getElementById('invoiceSummary');
   if(sEl){ sEl.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap">'
     +_reconKpi('발행 · Issued ('+all.filter(function(v){return v.dir==='issued';}).length+')',chips(iss),'#15803d')
@@ -7986,60 +7986,82 @@ function _docShort(d){ return d?((d.docNo?('['+d.docNo+'] '):'')+(d.title||'결�
 function _invAmtCents(inv){ return Math.round((qNum(inv&&inv.total)||0)*100); }
 function _invBankSide(inv){ return (inv&&inv.dir==='received') ? 'debit' : 'credit'; }
 function _bankInvAmtCents(t,side){ return Math.round((side==='debit'?(t.debit||0):(t.credit||0))*100); }
-function _invPending(inv){ return !!(inv && _invAmtCents(inv)>0 && !inv.matchTxnId); }
 function _isInvCreditTxn(t){ return Math.round(t.credit||0)>0; }   // 입금 라인 (매출채권 회수)
 function _isInvDebitTxn(t){ return Math.round(t.debit||0)>0; }     // 출금 라인 (매입채무 지급)
 // ── N:1 지원: 은행 라인 1건이 인보이스 여러 건을 함께 결제할 수 있음 (분할 충당) ──
 // 은행 라인의 인보이스 링크는 txn.matchInvIds 배열에 저장 (구버전 txn.matchInvId 자동 이관)
 function _txnLineAmtCents(t){ if(_isInvCreditTxn(t)) return Math.round((t.credit||0)*100); if(_isInvDebitTxn(t)) return Math.round((t.debit||0)*100); return 0; }
-function _txnInvIds(t){ if(Array.isArray(t.matchInvIds)&&t.matchInvIds.length) return t.matchInvIds.slice(); if(t.matchInvId!=null) return [t.matchInvId]; return []; }
 function _txnInvInvoices(t){ return _txnInvIds(t).map(function(id){ return (state.invoices||[]).find(function(x){return String(x.id)===String(id);}); }).filter(Boolean); }
-function _txnInvSettledCents(t){ return _txnInvInvoices(t).reduce(function(s,inv){ return s+_invAmtCents(inv); },0); }
-function _txnInvRemainingCents(t){ return _txnLineAmtCents(t)-_txnInvSettledCents(t); }
+// ══════════ 인보이스 ↔ 은행 대사: 라인별 충당금액(allocation) 모델 ══════════
+// 단일 진실원천 = 은행라인 t.invAllocs = [{invId, cents, date, how}]
+//  · 인보이스 1건 ← 은행 N건(분납) + 은행 1건 → 인보이스 N건 + 부분충당 모두 지원
+//  · 구버전(t.matchInvIds / t.matchInvId = 전액충당)에서 자동 이관
+function _invAllocMigrateOnce(){
+  if(window._invAllocMigrated) return;
+  (state.bankTxns||[]).forEach(function(t){
+    if(Array.isArray(t.invAllocs)) return;
+    var ids = Array.isArray(t.matchInvIds)?t.matchInvIds.slice():(t.matchInvId!=null?[t.matchInvId]:[]);
+    if(!ids.length) return;
+    t.invAllocs = ids.map(function(id){ var inv=(state.invoices||[]).find(function(x){return String(x.id)===String(id);}); return {invId:String(id), cents: inv?_invAmtCents(inv):0, date:t.date||'', how:(t.matchInvStatus||'manual')}; });
+  });
+  window._invAllocMigrated=1;
+}
+function _txnAllocCents(t){ return ((t&&t.invAllocs)||[]).reduce(function(s,a){return s+(+a.cents||0);},0); }
+function _txnLineAllocOf(t,inv){ var id=String(inv&&inv.id); var e=((t&&t.invAllocs)||[]).filter(function(a){return String(a.invId)===id;})[0]; return e?(+e.cents||0):0; }
+function _txnInvIds(t){ _invAllocMigrateOnce(); return ((t&&t.invAllocs)||[]).map(function(a){return a.invId;}); }
+function _txnInvSettledCents(t){ return _txnAllocCents(t); }
+function _txnInvRemainingCents(t){ return _txnLineAmtCents(t)-_txnAllocCents(t); }
 function _txnInvLinked(t){ return _txnInvIds(t).length>0; }
 function _txnInvBlocked(t){ return !!(t.matchCardId || t.matchDocId); }  // 카드·전자결재가 점유한 라인
-// invoice → bank 후보 (통화·방향 일치 & 잔여 금액 안에 들어오는 라인 — 분할 허용)
+// 인보이스 기준 충당/잔여 (모든 라인의 이 인보이스 몫 합산)
+function _invSettledCents(inv){ _invAllocMigrateOnce(); var id=String(inv&&inv.id), s=0; (state.bankTxns||[]).forEach(function(t){ (t.invAllocs||[]).forEach(function(a){ if(String(a.invId)===id) s+=(+a.cents||0); }); }); return s; }
+function _invRemainingDueCents(inv){ return _invAmtCents(inv)-_invSettledCents(inv); }
+function _invIsPaid(inv){ return _invAmtCents(inv)>0 && _invRemainingDueCents(inv)<=100; }   // 완납(±1 VND)
+function _invPending(inv){ return !!(inv && _invAmtCents(inv)>0 && _invRemainingDueCents(inv)>100); }
+function _invTxns(inv){ _invAllocMigrateOnce(); var id=String(inv&&inv.id); return (state.bankTxns||[]).filter(function(t){ return (t.invAllocs||[]).some(function(a){return String(a.invId)===id;}); }); }
+// invoice → bank 후보 (방향·통화 일치 & 잔여 있는 라인 — 부분충당 허용, 금액 딱 맞을 필요 없음)
 function _invBankCandidates(inv){
-  var cents=_invAmtCents(inv); if(cents<=0) return [];
+  _invAllocMigrateOnce();
+  var due=_invRemainingDueCents(inv); if(due<=100) return [];
   var side=_invBankSide(inv);
   return (state.bankTxns||[]).filter(function(t){
     if(_txnInvBlocked(t)) return false;
     if(_bankInvAmtCents(t,side)<=0) return false;             // 방향(입금/출금) 맞는 라인만
     if((t.currency||'')!==(inv.currency||'')) return false;
-    if(_txnInvRemainingCents(t) < cents - 100) return false;  // 잔여 금액 안에 들어와야(±1 VND 허용)
+    if(_txnInvRemainingCents(t) <= 0) return false;           // 잔여 있는 라인이면 후보(부분 허용)
     return true;
   }).sort(function(a,b){
     if(inv.dir==='issued'){ var as=(a.category==='Sales Revenue')?0:1, bs=(b.category==='Sales Revenue')?0:1; if(as!==bs) return as-bs; }
-    var ar=(_txnInvRemainingCents(a)===cents)?0:1, br=(_txnInvRemainingCents(b)===cents)?0:1; if(ar!==br) return ar-br; // 딱 떨어지는 라인 우선
+    var ar=(_txnInvRemainingCents(a)===due)?0:1, br=(_txnInvRemainingCents(b)===due)?0:1; if(ar!==br) return ar-br; // 딱 떨어지는 라인 우선
     return String(a.date||'').localeCompare(String(b.date||''));
   });
 }
 function _invMatchInfo(inv){
-  if(inv.matchTxnId){
-    var t=(state.bankTxns||[]).find(function(x){return x.id===inv.matchTxnId;});
-    return {status:(inv.matchStatus==='auto'?'auto':'manual'), txn:t||null, candidates:[]};
-  }
+  _invAllocMigrateOnce();
+  var due=_invRemainingDueCents(inv), linkedTxns=_invTxns(inv);
+  if(due<=100){ return {status:'paid', txn:(linkedTxns[0]||null), txns:linkedTxns, candidates:[], due:0}; }
   var cands=_invBankCandidates(inv);
-  if(cands.length===1) return {status:'confident', txn:cands[0], candidates:cands};
-  if(cands.length>=2) return {status:'review', txn:null, candidates:cands};
-  return {status:'none', txn:null, candidates:[]};
+  var st = linkedTxns.length ? 'partial' : (cands.length===1?'confident':(cands.length>=2?'review':'none'));
+  return {status:st, txn:(cands[0]||null), txns:linkedTxns, candidates:cands, due:due};
 }
-// bank → invoice 후보 (이 라인의 잔여 금액 안에 들어오는 미결제 인보이스)
+// bank → invoice 후보 (잔여 있는 라인 → 미수/미지급 남은 인보이스, 부분충당 허용)
 function _bankInvCandidates(txn){
+  _invAllocMigrateOnce();
   if(_txnInvBlocked(txn)) return [];
   var isCredit=_isInvCreditTxn(txn), isDebit=_isInvDebitTxn(txn);
   if(!isCredit && !isDebit) return [];
   var wantDir = isCredit ? 'issued' : 'received';    // 입금→발행(AR) / 출금→수취(AP)
   var remaining=_txnInvRemainingCents(txn); if(remaining<=0) return [];
+  var already={}; ((txn.invAllocs)||[]).forEach(function(a){already[String(a.invId)]=1;});
   return (state.invoices||[]).filter(function(inv){
     if(inv.dir!==wantDir) return false;
-    if(inv.matchTxnId) return false;
+    if(_invRemainingDueCents(inv)<=100) return false;         // 아직 남은 인보이스만
     if((inv.currency||'')!==(txn.currency||'')) return false;
-    if(_invAmtCents(inv) > remaining + 100) return false;     // 잔여 초과 인보이스 제외(±1 VND 허용)
+    if(already[String(inv.id)]) return false;                 // 이미 이 라인에 붙은 건 제외
     return true;
   }).sort(function(a,b){
-    var ar=(_invAmtCents(a)===remaining)?0:1, br=(_invAmtCents(b)===remaining)?0:1; if(ar!==br) return ar-br; // 잔여 딱 채우는 것 우선
-    var d=_invAmtCents(b)-_invAmtCents(a); if(d!==0) return d; // 큰 금액 우선 (빨리 채움)
+    var ar=(_invRemainingDueCents(a)===remaining)?0:1, br=(_invRemainingDueCents(b)===remaining)?0:1; if(ar!==br) return ar-br;
+    var d=_invRemainingDueCents(b)-_invRemainingDueCents(a); if(d!==0) return d;
     return String(b.date||'').localeCompare(String(a.date||''));
   });
 }
@@ -8050,52 +8072,63 @@ function _bankInvInfo(txn){
   return {linked:linked, remaining:remaining, candidates:cands, blocked:_txnInvBlocked(txn), full:(linked.length>0 && remaining<=0)};
 }
 function _linkInvBank(inv,txn,how){
-  // 인보이스 결제 매칭은 은행 거래의 금액/분류를 바꾸지 않는 '대사(reconciliation) 연결'이므로
-  // 마감(Closed) 기간이어도 허용한다. (bankGuardLocked 가드 제거)
-  inv.matchTxnId=txn.id; inv.matchStatus=how; inv.paidAt=nowStr();
-  inv.paidDate=txn.date||'';                                   // 실제 입금일 = 은행 거래일
-  inv.paidAmount=qNum(inv.total)||0;                           // 이 인보이스에 충당된 금액
-  if(!Array.isArray(txn.matchInvIds)) txn.matchInvIds=(txn.matchInvId!=null)?[txn.matchInvId]:[];
-  txn.matchInvId=null;   // 구버전 단일 필드 → 배열로 이관
-  if(txn.matchInvIds.map(String).indexOf(String(inv.id))<0) txn.matchInvIds.push(inv.id);
-  txn.matchInvStatus=how; txn.matchInvAt=nowStr(); _stampEdit(txn); _stampEdit(inv);
+  // 대사 연결(메타데이터) → 마감 기간도 허용. 충당액 = min(라인 잔여, 인보이스 미수/미지급 잔여)
+  _invAllocMigrateOnce();
+  var alloc=Math.min(_txnInvRemainingCents(txn), _invRemainingDueCents(inv));
+  if(alloc<=0) return;
+  if(!Array.isArray(txn.invAllocs)) txn.invAllocs=[];
+  var ex=txn.invAllocs.filter(function(a){return String(a.invId)===String(inv.id);})[0];
+  if(ex) ex.cents=(+ex.cents||0)+alloc; else txn.invAllocs.push({invId:String(inv.id), cents:alloc, date:txn.date||'', how:(how||'manual')});
+  txn.matchInvIds=_txnInvIds(txn); txn.matchInvId=null; txn.matchInvStatus=(how||'manual'); txn.matchInvAt=nowStr();
+  if(!inv.matchTxnId) inv.matchTxnId=txn.id;                  // 대표(첫) 라인
+  inv.matchStatus=(how||'manual'); inv.paidAt=nowStr(); inv.paidDate=(txn.date||inv.paidDate||'');
+  inv.paidAmount=_invSettledCents(inv)/100; inv.paidFull=_invIsPaid(inv);
+  _stampEdit(txn); _stampEdit(inv);
 }
-function _unlinkInv(inv){
-  if(inv.matchTxnId){
-    var t=(state.bankTxns||[]).find(function(x){return x.id===inv.matchTxnId;});
-    if(t){
-      if(Array.isArray(t.matchInvIds)) t.matchInvIds=t.matchInvIds.filter(function(id){return String(id)!==String(inv.id);});
-      if(t.matchInvId!=null && String(t.matchInvId)===String(inv.id)) t.matchInvId=null;
-      if(!_txnInvLinked(t)){ t.matchInvStatus=null; t.matchInvAt=null; if(Array.isArray(t.matchInvIds)&&!t.matchInvIds.length) t.matchInvIds=null; }
-      _stampEdit(t);
-    }
-  }
-  inv.matchTxnId=null; inv.matchStatus=null; inv.paidAt=null; inv.paidDate=null; inv.paidAmount=null; _stampEdit(inv);
+function _unlinkInvLine(inv,txn){   // 특정 라인에서만 이 인보이스 충당 제거
+  if(!txn||!Array.isArray(txn.invAllocs)) return;
+  txn.invAllocs=txn.invAllocs.filter(function(a){return String(a.invId)!==String(inv.id);});
+  txn.matchInvIds=_txnInvIds(txn);
+  if(!txn.invAllocs.length){ txn.invAllocs=null; txn.matchInvIds=null; txn.matchInvStatus=null; txn.matchInvAt=null; }
+  _stampEdit(txn);
+}
+function _unlinkInv(inv){   // 이 인보이스의 모든 충당 해제 (전체 라인)
+  _invAllocMigrateOnce();
+  (state.bankTxns||[]).forEach(function(t){ if((t.invAllocs||[]).some(function(a){return String(a.invId)===String(inv.id);})) _unlinkInvLine(inv,t); });
+  inv.matchTxnId=null; inv.matchStatus=null; inv.paidAt=null; inv.paidDate=null; inv.paidAmount=null; inv.paidFull=null; _stampEdit(inv);
 }
 function _invReconRefresh(){ saveState(); if(typeof renderBankList==='function' && document.getElementById('bankList')) renderBankList(); if(typeof renderInvoiceApp==='function' && document.getElementById('invoiceList')) renderInvoiceApp(); }
 function matchInvBank(invId,txnId,how){
   var inv=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);});
-  var txn=(state.bankTxns||[]).find(function(x){return x.id===txnId;});
+  var txn=(state.bankTxns||[]).find(function(x){return String(x.id)===String(txnId);});
   if(!inv||!txn){ return; }
-  if(inv.matchTxnId){ showToast('이미 결제 연결된 인보이스 · Invoice already linked'); return; }
   if(_txnInvBlocked(txn)){ showToast('카드·전자결재에 연결된 은행 거래 · Line used by card/approval'); return; }
-  var _need=_invAmtCents(inv), _rem=_txnInvRemainingCents(txn), _TOL=100; // ±1 VND(=100 cents) 반올림 허용
-  if(_need > _rem + _TOL){ showToast('은행 라인 잔여 초과 · 인보이스 '+fmtN(_need/100)+' > 잔여 '+fmtN(_rem/100)+' (라인 '+fmtN(_txnLineAmtCents(txn)/100)+' − 기매칭 '+fmtN(_txnInvSettledCents(txn)/100)+')'); return; }
+  if(_invRemainingDueCents(inv)<=100){ showToast('이미 완납된 인보이스 · Already fully settled'); return; }
+  if(_txnInvRemainingCents(txn)<=0){ showToast('은행 라인 잔여 없음 · Line fully allocated'); return; }
   _linkInvBank(inv,txn,how||'manual');
-  if(!inv.matchTxnId){ showToast('매칭 실패 · 연결되지 않았습니다 · Link failed'); return; }
   _invReconRefresh();
-  var rem=_txnInvRemainingCents(txn);
-  showToast(rem>0?('연결 완료 · 잔여 '+fmtN(rem/100)+' 남음 · '+fmtN(rem/100)+' remaining'):'결제 매칭 완료 · Fully settled');
+  var due=_invRemainingDueCents(inv);
+  showToast(due>100?('부분입금 연결 · 인보이스 잔여 '+fmtN(due/100)+' 남음 · Partial'):'완납 매칭 완료 · Fully settled');
 }
 function unmatchInv(invId){ var inv=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);}); if(!inv) return; _unlinkInv(inv); _invReconRefresh(); showToast('매칭 해제 · Unmatched'); }
+function unmatchInvLine(invId,txnId){
+  var inv=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);});
+  var txn=(state.bankTxns||[]).find(function(x){return String(x.id)===String(txnId);});
+  if(!inv||!txn) return;
+  _unlinkInvLine(inv,txn);
+  // 인보이스에 남은 충당이 없으면 대표 필드도 정리
+  if(_invSettledCents(inv)<=0){ inv.matchTxnId=null; inv.matchStatus=null; inv.paidAt=null; inv.paidDate=null; inv.paidAmount=null; inv.paidFull=null; }
+  else { inv.paidAmount=_invSettledCents(inv)/100; inv.paidFull=_invIsPaid(inv); if(String(inv.matchTxnId)===String(txn.id)){ var others=_invTxns(inv); inv.matchTxnId=others.length?others[0].id:null; } }
+  _stampEdit(inv); _invReconRefresh(); showToast('입금 1건 연결 해제 · Line unlinked');
+}
 function runInvoiceAutoMatch(){
   var invs=(state.invoices||[]).filter(_invPending).slice().sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')); });
   var n=0;
   invs.forEach(function(inv){
     var info=_invMatchInfo(inv);
     if(info.status!=='confident' || !info.txn || _txnInvBlocked(info.txn)) return;
-    // 자동은 "라인을 딱 떨어지게 채우는" 경우만 (분할 자동생성 금지 — 오매칭 방지)
-    if(_txnInvRemainingCents(info.txn)!==_invAmtCents(inv)) return;
+    // 자동은 "라인이 인보이스 잔여를 딱 떨어지게 채우는" 경우만 (부분충당 자동생성 금지 — 오매칭 방지)
+    if(_txnInvRemainingCents(info.txn)!==_invRemainingDueCents(inv)) return;
     // 발행(A/R·입금)은 은행 category가 'Sales Revenue'일 때만 자동확정 (요청사항)
     if(inv.dir==='issued' && (info.txn.category||'')!=='Sales Revenue') return;
     // 역방향도 이 인보이스가 유일 후보일 때만
@@ -8148,23 +8181,35 @@ function _bankInvoiceCell(t){
 // 인보이스 화면 결제 상태 셀
 function _invPayCell(v){
   var side=_invBankSide(v);
-  if(v.matchTxnId){
-    var t=(state.bankTxns||[]).find(function(x){return x.id===v.matchTxnId;});
-    var lbl=v.dir==='issued'?'입금완료·Collected':'지급완료·Paid';
-    var tip=t?_reconBankLineInv(t,side).replace(/"/g,'&quot;'):'';
-    var shared=t?_txnInvIds(t).length:1;
-    var sharedTag=(shared>1)?(' <span style="font-size:9px;color:#6b7280" title="이 '+(side==='debit'?'출금':'입금')+'은 인보이스 '+shared+'건을 함께 결제 · Split payment">분할 '+shared+'건</span>'):'';
-    var payDate=t?(t.date||''):(v.paidDate||'');                                    // 입금일 = 은행 거래일
-    var payAmt=t?(side==='debit'?(t.debit||0):(t.credit||0)):(v.paidAmount||0);     // 금액 = 은행명세서 라인
-    var payCur=(t&&t.currency)||v.currency||'';
-    var payLine=(payDate||payAmt)?('<div style="font-size:10px;color:var(--text-3);margin-top:2px;white-space:nowrap">'
-        +(payDate?('<i class="ti ti-calendar-event" style="font-size:10px"></i> '+payDate):'')
-        +(payAmt?(' · '+fmtN(payAmt)+(payCur?' '+payCur:'')+(shared>1?' <span style="color:#9ca3af" title="라인 총액(여러 인보이스 공동)">(라인총액)</span>':'')):'')
-        +'</div>'):'';
-    return '<div style="white-space:nowrap"><span class="badge b-done" style="font-size:10px" title="'+tip+'"><i class="ti ti-check"></i> '+lbl+(v.matchStatus==='auto'?' (자동)':'')+'</span>'+sharedTag+' <a href="javascript:void(0)" onclick="unmatchInv(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">해제 · Unlink</a>'+payLine+'</div>';
-  }
   var info=_invMatchInfo(v);
-  if(info.status==='confident'){ var tc=info.txn; var partial=(_txnInvRemainingCents(tc)!==_invAmtCents(tc)||_txnInvLinked(tc))?' (분할)':''; return '<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchInvBank(\''+v.id+'\','+tc.id+',\'manual\')" title="'+_reconBankLineInv(tc,side).replace(/"/g,'&quot;')+'"><i class="ti ti-link"></i> 매칭 · Match'+partial+'</button>'; }
+  var linked=info.txns||[];
+  var settled=_invSettledCents(v), total=_invAmtCents(v), due=_invRemainingDueCents(v);
+  function lineChips(){
+    return linked.map(function(t){
+      var alloc=_txnLineAllocOf(t,v);
+      var tip=_reconBankLineInv(t,side).replace(/"/g,'&quot;');
+      return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-3);margin-top:2px;white-space:nowrap" title="'+tip+'">'
+        +'<i class="ti ti-calendar-event" style="font-size:10px"></i>'+(t.date||'')
+        +' · <span style="font-family:var(--mono)">'+fmtN(alloc/100)+'</span>'
+        +' <a href="javascript:void(0)" onclick="unmatchInvLine(\''+v.id+'\','+t.id+')" title="이 입금 연결 해제" style="color:var(--danger);text-decoration:none">✕</a></div>';
+    }).join('');
+  }
+  function addPicker(){
+    if(!(info.candidates&&info.candidates.length)) return '';
+    return '<select onchange="if(this.value)matchInvBank(\''+v.id+'\',parseInt(this.value),\'manual\')" style="font-size:10px;padding:2px 5px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:160px;margin-top:3px"><option value="">＋ 입금 추가 · Add ('+info.candidates.length+')…</option>'
+      +info.candidates.map(function(t){ return '<option value="'+t.id+'">'+(t.date||'')+' · '+fmtN(side==='debit'?t.debit:t.credit)+' (잔여 '+fmtN(_txnInvRemainingCents(t)/100)+')</option>'; }).join('')+'</select>';
+  }
+  if(linked.length && due<=100){   // 완납
+    var lbl=v.dir==='issued'?'입금완료·Collected':'지급완료·Paid';
+    return '<div style="white-space:nowrap"><span class="badge b-done" style="font-size:10px"><i class="ti ti-check"></i> '+lbl+(linked.length>1?(' · '+linked.length+'회 분납'):'')+(v.matchStatus==='auto'?' (자동)':'')+'</span>'
+      +' <a href="javascript:void(0)" onclick="unmatchInv(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">전체해제</a>'+lineChips()+'</div>';
+  }
+  if(linked.length && due>100){    // 부분입금(분납 진행중)
+    return '<div style="white-space:nowrap"><span class="badge" style="font-size:10px;background:#fef3c7;color:#92400e"><i class="ti ti-progress-check"></i> 부분입금 '+fmtN(settled/100)+' / '+fmtN(total/100)+'</span>'
+      +' <span style="font-size:10px;color:#b45309;font-weight:600">잔여 '+fmtN(due/100)+'</span>'
+      +' <a href="javascript:void(0)" onclick="unmatchInv(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">해제</a>'+lineChips()+addPicker()+'</div>';
+  }
+  if(info.status==='confident'){ var tc=info.txn; var exact=(_txnInvRemainingCents(tc)===due); return '<button class="btn btn-dark" style="font-size:10px;padding:3px 8px" onclick="matchInvBank(\''+v.id+'\','+tc.id+',\'manual\')" title="'+_reconBankLineInv(tc,side).replace(/"/g,'&quot;')+'"><i class="ti ti-link"></i> 매칭 · Match'+(exact?'':' (부분)')+'</button>'; }
   if(info.status==='review'){ return '<select onchange="if(this.value)matchInvBank(\''+v.id+'\',parseInt(this.value),\'manual\')" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);max-width:170px"><option value="">검토 '+info.candidates.length+'건…</option>'+info.candidates.map(function(t){ var rem=_txnInvRemainingCents(t); return '<option value="'+t.id+'">'+(t.date||'')+' · '+fmtN(side==='debit'?t.debit:t.credit)+(_txnInvLinked(t)?(' (잔여 '+fmtN(rem/100)+')'):'')+'</option>'; }).join('')+'</select>'; }
   return '<span class="badge" style="font-size:10px;background:'+(v.dir==='issued'?'#fef3c7':'#fee2e2')+';color:'+(v.dir==='issued'?'#92400e':'#991b1b')+'">'+(v.dir==='issued'?'미수 · Open A/R':'미지급 · Open A/P')+'</span>';
 }
