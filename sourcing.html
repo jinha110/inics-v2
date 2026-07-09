@@ -232,6 +232,9 @@ tbody tr.clickable:hover{background:#FBFAF6}
 /* 정보 셀 */
 .c-info{width:30%}
 .c-info .ci-sup{font-size:11.5px;color:var(--ink-soft);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-info .ci-url{font-size:11px;margin-bottom:3px}
+.c-info .ci-url a{color:var(--cons);font-weight:600;text-decoration:none}
+.c-info .ci-url a:hover{text-decoration:underline}
 .c-info .ci-spec{font-size:11px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px}
 .c-info .ci-fursys{display:flex;flex-wrap:wrap;gap:4px}
 .c-info .fursys-pill{font-size:10px;padding:2px 6px}
@@ -295,7 +298,43 @@ select.icell{appearance:none;font-weight:600;min-width:110px}
 .pm-name{font-size:19px;font-weight:700;margin:0;letter-spacing:-.02em}
 .pm-name .en{display:block;font-size:13px;font-weight:500;margin-top:2px}
 .pm-sku{font-family:var(--mono);font-size:12px;color:var(--brass);font-weight:600;margin-top:4px}
-.pm-spec{font-size:12.5px;color:var(--muted);margin:10px 0 4px;line-height:1.5}
+.pm-spec{font-size:12.5px;color:var(--muted);margin:10px 0 4px;line-height:1.5;white-space:pre-wrap}
+
+/* 컬러 옵션 */
+.fm-colors .color-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.swatch{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 3px;background:#FBFAF6;font-size:12px;font-weight:600}
+.swatch .sw-img{width:26px;height:26px;border-radius:50%;overflow:hidden;background:linear-gradient(160deg,#eee,#ddd);flex:none;display:block}
+.swatch .sw-img img{width:100%;height:100%;object-fit:cover}
+.swatch .sw-name{color:var(--ink)}
+.swatch .sw-rm{border:none;background:transparent;color:var(--muted);padding:2px;border-radius:50%;line-height:0}
+.swatch .sw-rm:hover{color:var(--danger);background:var(--danger-soft)}
+.swatch.view{padding:3px 12px 3px 3px}
+.color-picker{margin-top:8px;border:1px solid var(--line);border-radius:12px;padding:12px;background:#FBFAF6}
+.cp-sec{margin-bottom:12px}
+.cp-sec:last-child{margin-bottom:0}
+.cp-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:7px}
+.cp-lib{display:flex;flex-wrap:wrap;gap:7px}
+.lib-color{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--card);border-radius:20px;padding:3px 11px 3px 3px;font-size:12px;font-weight:600;color:var(--ink)}
+.lib-color:hover{border-color:var(--brass);background:var(--brass-soft)}
+.lib-color .sw-img{width:24px;height:24px;border-radius:50%;overflow:hidden;flex:none;background:#ddd}
+.lib-color .sw-img img{width:100%;height:100%;object-fit:cover}
+.cp-new-row{display:flex;gap:12px;align-items:stretch}
+.cp-paste{margin:0;min-width:120px;min-height:96px;flex:none}
+.cp-paste .pz-inner{padding:10px}
+.cp-paste .pz-inner b{font-size:12px}
+.cp-paste.has-img{padding:0}
+.cp-paste.has-img img{max-width:100%;max-height:92px;object-fit:contain;padding:6px}
+.cp-new-fields{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.cp-new-fields input{border:1px solid var(--line-strong);border-radius:8px;padding:9px 10px;font-size:13px}
+.cp-new-fields input:focus{outline:none;border-color:var(--brass)}
+/* 팝업 컬러 */
+.pm-colors{margin:12px 0 4px}
+.pm-colors>label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+.pm-colors .sw-row{display:flex;flex-wrap:wrap;gap:8px}
+/* 관리자 표 미니 스와치 */
+.ci-colors{display:flex;gap:3px;flex-wrap:wrap;margin:3px 0}
+.sw-mini{width:18px;height:18px;border-radius:50%;overflow:hidden;border:1px solid var(--line);background:#ddd;display:inline-block}
+.sw-mini img{width:100%;height:100%;object-fit:cover}
 .pm-fursys{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
 .fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
 .fact{background:#FBFAF6;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
@@ -548,9 +587,10 @@ let S = store.load() || {products:SEED.products,cart:[],currency:"USD",quote:{cl
 S.products = S.products?.length ? S.products : SEED.products;
 S.cart ||= []; S.currency ||= "USD"; S.quote ||= {client:"",no:autoQuoteNo()};
 S.customCls ||= {furniture:[],consumable:[]}; S.customCls.furniture ||= []; S.customCls.consumable ||= [];
+S.colorLib ||= [];
 function allCls(cat){ return [...new Set([...CLS[cat].filter(c=>c!=="전체"), ...((S.customCls&&S.customCls[cat])||[])])]; }
 function clsChips(cat){ return ["전체", ...allCls(cat)]; }
-function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys??=[];p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
+function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys??=[];p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;p.url??="";p.colors??=[];if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
 normalizeProducts();
 
 let unlocked=false, view="home", adminCat="furniture";
@@ -652,6 +692,8 @@ function saveProducts(){ persist(); if(NET.on) pushAllProducts().catch(e=>consol
 function dropProduct(id){ persist(); if(NET.on) removeProductRemote(id); }
 function pushCategories(){ persist(); if(NET.on) fetch(dbURL("/categories"),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(S.customCls)}).catch(e=>console.warn("cat push 실패",e)); }
 async function pullCategories(){ try{ const r=await fetch(dbURL("/categories"),{cache:"no-cache"}); if(r.ok){ const v=await r.json(); if(v){ S.customCls={furniture:v.furniture||[],consumable:v.consumable||[]}; persist(); } } }catch(e){} }
+function pushColors(){ persist(); if(NET.on){ const m={}; S.colorLib.forEach(c=>m[c.id]=c); fetch(dbURL("/colors"),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(m)}).catch(e=>console.warn("color push 실패",e)); } }
+async function pullColors(){ try{ const r=await fetch(dbURL("/colors"),{cache:"no-cache"}); if(r.ok){ const v=await r.json(); if(v){ S.colorLib=Object.values(v); persist(); } } }catch(e){} }
 
 async function boot(){
   setSync("connecting");
@@ -659,6 +701,7 @@ async function boot(){
     const had=await pullProducts();
     if(!had) await pushAllProducts();     // 최초 실행 → 시드 업로드
     await pullCategories();
+    await pullColors();
     NET.on=true; subscribeProducts(); setSync("online");
   }catch(e){ console.warn("RTDB 연결 실패 → 로컬 모드",e); NET.on=false; setSync("local"); }
   render();
@@ -855,7 +898,7 @@ function viewAdmin(){
       <td class="c-sel"><input type="checkbox" class="rowsel" data-sel="${p.id}" ${adminSel.has(p.id)?"checked":""}></td>
       <td class="c-prod"><div class="prow"><span class="thumb db-img" data-img="${p.id}" title="사진 붙여넣기 / paste photo"><span class="fb">${initials(p)}</span>${p.img?`<img src="${p.img}" onerror="this.remove()"/>`:""}</span>
         <div class="pmini"><div class="pname">${esc(p.name)}</div><div class="en">${esc(p.nameEn)}</div><div class="sku">${esc(p.sku)}</div><span class="cls-tag ${isFurn?"":"cons"}">${esc(p.cls)}</span></div></div></td>
-      <td class="c-info">${p.supplier?`<div class="ci-sup">🏭 ${esc(p.supplier)}</div>`:""}<div class="ci-spec" title="${esc(p.spec)}">${esc(p.spec)||"—"}</div>${isFurn&&fursys?`<div class="ci-fursys">${fursys}</div>`:""}</td>
+      <td class="c-info">${p.supplier?`<div class="ci-sup">🏭 ${esc(p.supplier)}</div>`:""}${p.url?`<div class="ci-url"><a href="${esc(p.url)}" target="_blank" rel="noopener" title="${esc(p.url)}">🔗 제품 정보 / Info</a></div>`:""}<div class="ci-spec" title="${esc(p.spec)}">${esc(p.spec)||"—"}</div>${(p.colors||[]).length?`<div class="ci-colors">${p.colors.map(c=>`<span class="sw-mini" title="${esc(c.name)}">${c.img?`<img src="${c.img}"/>`:""}</span>`).join("")}</div>`:""}${isFurn&&fursys?`<div class="ci-fursys">${fursys}</div>`:""}</td>
       <td class="c-dim"><b class="num">${esc(p.unit)}</b><br><span class="num">${(p.cbm||0).toFixed(3)}</span><br>m³</td>
       <td class="c-price"><div class="pr-cost">원가 ${fmt(p.cost)}</div><div class="pr-mg">마진 ${mg.toFixed(0)}%</div><div class="pr-sell">${fmt(p.price)}</div></td>
       <td class="c-files">${sf.length?`<div class="fl-row"><span class="fl-t">📘</span>${chips(sf,"sp")}</div>`:""}${of.length?`<div class="fl-row"><span class="fl-t">🔒</span>${chips(of,"ot")}</div>`:""}${(!sf.length&&!of.length)?'<span class="pspec">—</span>':""}</td>
@@ -979,6 +1022,7 @@ function openProduct(id){
       <div class="pm-sku">${esc(p.sku)}</div>
       <p class="pm-spec">${esc(p.spec)||"—"}</p>
       ${fursys}
+      ${(p.colors||[]).length?`<div class="pm-colors"><label>🎨 컬러 / Colors</label><div class="sw-row">${p.colors.map(c=>`<span class="swatch view" title="${esc(c.name)}"><span class="sw-img">${c.img?`<img src="${c.img}"/>`:""}</span><span class="sw-name">${esc(c.name)}</span></span>`).join("")}</div></div>`:""}
       <div class="fact-grid">
         <div class="fact price"><label>판가 (${PRICE_TERM}) / Price</label><b>${fmt(p.price)}</b></div>
         <div class="fact"><label>단위 / Unit</label><b>${esc(p.unit)}</b></div>
@@ -987,7 +1031,7 @@ function openProduct(id){
         ${costFacts}
       </div>
       ${(p.specFiles||[]).length?`<div class="pm-spec-dl"><label>📘 SPEC 다운로드 / Download</label><div class="att-chips">${p.specFiles.map(a=>`<a class="att-chip" href="${a.url}" target="_blank" rel="noopener" download>${fileIcon(a)} ${esc(a.name)}</a>`).join("")}</div></div>`:""}
-      ${unlocked?`<div class="pm-sup">${p.supplier?`<div class="pm-suprow"><label>공급업체 / Supplier</label><b>${esc(p.supplier)}</b></div>`:""}${(p.attachments||[]).length?`<div class="pm-attrow"><label>🔒 기타 첨부 / Other (admin)</label><div class="att-chips">${p.attachments.map(a=>`<a class="att-chip" href="${a.url}" target="_blank" rel="noopener" download>${fileIcon(a)} ${esc(a.name)}</a>`).join("")}</div></div>`:""}</div>`:""}
+      ${unlocked?`<div class="pm-sup">${p.supplier?`<div class="pm-suprow"><label>공급업체 / Supplier</label><b>${esc(p.supplier)}</b></div>`:""}${p.url?`<div class="pm-suprow"><label>🔒 제품 정보 / Info URL</label><a class="att-chip" href="${esc(p.url)}" target="_blank" rel="noopener">🔗 ${esc(p.url.replace(/^https?:\/\//,"").slice(0,40))}</a></div>`:""}${(p.attachments||[]).length?`<div class="pm-attrow"><label>🔒 기타 첨부 / Other (admin)</label><div class="att-chips">${p.attachments.map(a=>`<a class="att-chip" href="${a.url}" target="_blank" rel="noopener" download>${fileIcon(a)} ${esc(a.name)}</a>`).join("")}</div></div>`:""}</div>`:""}
       <div class="pm-foot">
         <div class="qty"><button data-pq="-1">−</button><input class="num" id="pmQty" value="1"/><button data-pq="1">+</button></div>
         <button class="pm-add" data-padd="${id}">${I.cart} ${inCart?"수량 추가 / Add more":"견적 담기 / Add to Quote"}</button>
@@ -1015,8 +1059,8 @@ function openProductForm(id, catArg){
   const src = editing ? byId(id) : null;
   const f = editing
     ? JSON.parse(JSON.stringify(src))
-    : {id:((catArg==="consumable")?"C":"F")+"_"+Date.now().toString(36), cat:(catArg||"furniture"), sku:"", name:"", nameEn:"", cls:"", spec:"", supplier:"", unit:"EA", cost:0, price:0, cbm:0, img:"", fursys:[], attachments:[], specFiles:[], costCcy:"USD", costRaw:0, fx:DEFAULT_FX};
-  f.attachments = f.attachments || []; f.fursys = f.fursys || []; f.specFiles = f.specFiles || [];
+    : {id:((catArg==="consumable")?"C":"F")+"_"+Date.now().toString(36), cat:(catArg||"furniture"), sku:"", name:"", nameEn:"", cls:"", spec:"", supplier:"", url:"", unit:"EA", cost:0, price:0, cbm:0, img:"", fursys:[], attachments:[], specFiles:[], colors:[], costCcy:"USD", costRaw:0, fx:DEFAULT_FX};
+  f.attachments = f.attachments || []; f.fursys = f.fursys || []; f.specFiles = f.specFiles || []; f.url = f.url || ""; f.colors = f.colors || [];
   f.costCcy = f.costCcy || "USD"; f.fx = f.fx || DEFAULT_FX; f.costRaw = (f.costRaw!=null && f.costRaw!==0) ? f.costRaw : f.cost;
   if(!f.cls || !allCls(f.cat).includes(f.cls)) f.cls = allCls(f.cat)[0] || "기타";
   f._margin = (f.cost>0) ? Math.round(((f.price-f.cost)/f.cost*100)*10)/10 : DEFAULT_MARGIN;
@@ -1050,6 +1094,7 @@ function viewForm(){
       <div class="fm-f"><label>제품명 (한글) / Name KO</label><input id="f_name" value="${esc(f.name)}"/></div>
       <div class="fm-f"><label>Name (English)</label><input id="f_nameEn" value="${esc(f.nameEn)}"/></div>
       <div class="fm-f fm-wide"><label>공급업체 / Supplier</label><input id="f_supplier" value="${esc(f.supplier)}" placeholder="공급처 이름 / supplier name"/></div>
+      <div class="fm-f fm-wide"><label>🔒 제품 정보 URL / Info URL <span class="fm-hint">관리자만 표시 / admin only</span></label><input id="f_url" value="${esc(f.url)}" placeholder="https:// 제품 페이지·카탈로그 링크"/></div>
       <div class="fm-f fm-wide"><label>스펙 / Spec <span class="fm-hint">여러 줄 입력 가능 / multi-line</span></label><textarea id="f_spec" rows="5" placeholder="치수·재질·색상·옵션 등">${esc(f.spec)}</textarea></div>
       ${isFurn?`<div class="fm-f fm-wide"><label>퍼시스 대체 모델 / Fursys (쉼표 구분)</label><input id="f_fursys" value="${esc((f.fursys||[]).join(", "))}" placeholder="리플라이 CH4100, 플라이트 CH4800"/></div>`:``}
       <div class="fm-f"><label>단위 / Unit</label><input id="f_unit" value="${esc(f.unit)}"/></div>
@@ -1067,6 +1112,19 @@ function viewForm(){
     <div class="fm-att">
       <div class="fm-att-head"><label>🔒 기타 첨부 <span class="en">/ Other files — 관리자만 열람 (견적서 등)</span></label><button class="mini-btn" id="fmAddFile">${I.plus} 파일 추가 / Add</button></div>
       <div id="fmAttList" class="att-list"></div>
+    </div>
+    <div class="fm-att fm-colors">
+      <div class="fm-att-head"><label>🎨 컬러 옵션 <span class="en">/ Color options — 사진으로 저장·재사용</span></label><button class="mini-btn" id="fmColorAdd">${I.plus} 컬러 추가 / Add color</button></div>
+      <div id="fmColorList" class="color-list"></div>
+      <div id="fmColorPicker" class="color-picker" style="display:none">
+        <div class="cp-sec"><div class="cp-title">저장된 컬러 (클릭하면 사진째 추가) / Saved colors — click to reuse</div><div id="cpLib" class="cp-lib"></div></div>
+        <div class="cp-sec cp-new"><div class="cp-title">새 컬러 만들기 / New color</div>
+          <div class="cp-new-row">
+            <div class="pastezone cp-paste" id="cpPaste" tabindex="0"><div class="pz-inner" id="cpPzInner">${I.paste}<b>컬러 사진 / Swatch</b><span>클릭·드래그·Ctrl+V</span></div></div>
+            <div class="cp-new-fields"><input id="cpName" placeholder="컬러 이름 / color name (예: 그레이 / Gray)"/><button class="mini-btn mini-add" id="cpSave">${I.plus} 저장·추가 / Save</button></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="fp-foot">
@@ -1086,7 +1144,10 @@ function mountForm(){
   const setImg=u=>{f.img=u;const pz=$("#fmPaste");if(pz){pz.classList.add("has-img");$("#fmPzInner").innerHTML=`<img src="${u}"/>`;}};
   const busy=on=>{const pz=$("#fmPaste");if(!pz)return;if(on){if(!pz.querySelector(".pz-busy")){const b=document.createElement("div");b.className="pz-busy";b.textContent="누끼 처리 중… / Processing…";pz.appendChild(b);}}else pz.querySelector(".pz-busy")?.remove();};
   const process=async blob=>{ try{ busy(true); const im=await loadImageFromBlob(blob); formCtx.rawImg=im; await new Promise(r=>requestAnimationFrame(r)); const rm=$("#fmRmbg")?$("#fmRmbg").checked:true; const {dataUrl}=autoCutout(im,{removeBg:rm}); busy(false); setImg(dataUrl); }catch(e){ busy(false); toast("이미지 처리 실패 / Image failed"); } };
-  _formPaste=ev=>{ if(view!=="form")return; const items=(ev.clipboardData||{}).items||[]; for(const it of items){ if(it.type&&it.type.startsWith("image")){ const fl=it.getAsFile(); if(fl){ ev.preventDefault(); process(fl); return; } } } };
+  let pasteTarget="product", newColorImg="";
+  const makeSwatch=(img,size=140,q=0.7)=>{ const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height, s=Math.min(w,h), sx=(w-s)/2, sy=(h-s)/2; const cv=document.createElement("canvas"); cv.width=size; cv.height=size; cv.getContext("2d").drawImage(img,sx,sy,s,s,0,0,size,size); return cv.toDataURL("image/jpeg",q); };
+  const processColor=async blob=>{ try{ const im=await loadImageFromBlob(blob); newColorImg=makeSwatch(im); const inr=$("#cpPzInner"); if(inr)inr.innerHTML=`<img src="${newColorImg}"/>`; $("#cpPaste")?.classList.add("has-img"); }catch(e){ toast("컬러 사진 처리 실패 / Failed"); } };
+  _formPaste=ev=>{ if(view!=="form")return; const items=(ev.clipboardData||{}).items||[]; for(const it of items){ if(it.type&&it.type.startsWith("image")){ const fl=it.getAsFile(); if(fl){ ev.preventDefault(); (pasteTarget==="color"?processColor:process)(fl); return; } } } };
   document.addEventListener("paste",_formPaste);
   const pz=$("#fmPaste");
   if(pz){
@@ -1094,12 +1155,13 @@ function mountForm(){
     pz.addEventListener("dragleave",()=>pz.classList.remove("drag"));
     pz.addEventListener("drop",ev=>{ev.preventDefault();pz.classList.remove("drag");const fl=[...(ev.dataTransfer.files||[])].find(x=>x.type.startsWith("image"));if(fl)process(fl);});
     pz.addEventListener("click",()=>{const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=()=>{if(inp.files[0])process(inp.files[0]);};inp.click();});
+    pz.addEventListener("focus",()=>{pasteTarget="product";});
   }
   const rmbg=$("#fmRmbg"); if(rmbg) rmbg.addEventListener("change",()=>{ if(formCtx.rawImg){ busy(true); requestAnimationFrame(()=>{ const {dataUrl}=autoCutout(formCtx.rawImg,{removeBg:rmbg.checked}); busy(false); setImg(dataUrl); }); } });
 
   // 텍스트/숫자 필드
   const bindVal=(sel,key,num)=>{const el=$(sel);if(!el)return;el.addEventListener("input",()=>{ f[key]= num? Math.max(0,parseFloat(el.value)||0) : el.value; });};
-  bindVal("#f_sku","sku");bindVal("#f_name","name");bindVal("#f_nameEn","nameEn");bindVal("#f_supplier","supplier");bindVal("#f_spec","spec");bindVal("#f_unit","unit");bindVal("#f_cbm","cbm",true);
+  bindVal("#f_sku","sku");bindVal("#f_name","name");bindVal("#f_nameEn","nameEn");bindVal("#f_supplier","supplier");bindVal("#f_url","url");bindVal("#f_spec","spec");bindVal("#f_unit","unit");bindVal("#f_cbm","cbm",true);
   $("#f_cls").addEventListener("change",e=>f.cls=e.target.value);
   const fu=$("#f_fursys"); if(fu) fu.addEventListener("input",()=>f.fursys=fu.value.split(",").map(s=>s.trim()).filter(Boolean));
 
@@ -1144,6 +1206,36 @@ function mountForm(){
   const attClick=ev=>{ const rm=ev.target.closest("[data-attrm]"); if(rm){ attArr(rm.dataset.attkind).splice(+rm.dataset.attrm,1); renderAttKind(rm.dataset.attkind); } };
   $("#fmSpecList").addEventListener("click",attClick);
   $("#fmAttList").addEventListener("click",attClick);
+
+  // ── 컬러 옵션 ──
+  const renderColorList=()=>{ const el=$("#fmColorList"); if(!el)return;
+    el.innerHTML = (f.colors&&f.colors.length) ? f.colors.map((c,i)=>`<span class="swatch"><span class="sw-img">${c.img?`<img src="${c.img}"/>`:""}</span><span class="sw-name">${esc(c.name)}</span><button class="sw-rm" data-colrm="${i}" title="제거">${I.close}</button></span>`).join("") : `<span class="pspec">컬러 없음 · 아래 <b>컬러 추가</b> / No colors yet</span>`;
+  };
+  const renderColorLib=()=>{ const el=$("#cpLib"); if(!el)return;
+    el.innerHTML = S.colorLib.length ? S.colorLib.map(c=>`<button type="button" class="lib-color" data-libcol="${c.id}" title="${esc(c.name)}"><span class="sw-img">${c.img?`<img src="${c.img}"/>`:""}</span><span class="lc-name">${esc(c.name)}</span></button>`).join("") : `<span class="pspec">저장된 컬러 없음 / No saved colors</span>`;
+  };
+  renderColorList();
+  $("#fmColorAdd").addEventListener("click",ev=>{ ev.preventDefault(); const pk=$("#fmColorPicker"); const open=pk.style.display!=="block"; pk.style.display=open?"block":"none"; pasteTarget=open?"color":"product"; if(open) renderColorLib(); });
+  $("#fmColorList").addEventListener("click",e=>{ const rm=e.target.closest("[data-colrm]"); if(rm){ f.colors.splice(+rm.dataset.colrm,1); renderColorList(); } });
+  $("#cpLib").addEventListener("click",e=>{ const b=e.target.closest("[data-libcol]"); if(b){ const c=S.colorLib.find(x=>x.id===b.dataset.libcol); if(c){ if(f.colors.some(x=>x.id===c.id)){ toast("이미 추가됨 / Already added"); return; } f.colors.push({id:c.id,name:c.name,img:c.img}); renderColorList(); toast(`${c.name} 추가됨 / added`); } } });
+  const cpPaste=$("#cpPaste");
+  if(cpPaste){
+    cpPaste.addEventListener("click",()=>{const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=()=>{if(inp.files[0])processColor(inp.files[0]);};inp.click();});
+    cpPaste.addEventListener("dragover",ev=>{ev.preventDefault();cpPaste.classList.add("drag");});
+    cpPaste.addEventListener("dragleave",()=>cpPaste.classList.remove("drag"));
+    cpPaste.addEventListener("drop",ev=>{ev.preventDefault();cpPaste.classList.remove("drag");const fl=[...(ev.dataTransfer.files||[])].find(x=>x.type.startsWith("image"));if(fl)processColor(fl);});
+    cpPaste.addEventListener("focus",()=>{pasteTarget="color";});
+  }
+  $("#cpSave").addEventListener("click",ev=>{ ev.preventDefault();
+    const name=($("#cpName").value||"").trim();
+    if(!name){ $("#cpName").focus(); toast("컬러 이름을 입력하세요 / Enter color name"); return; }
+    if(!newColorImg){ toast("컬러 사진을 넣어주세요 / Add a swatch photo"); return; }
+    const col={id:"col_"+Date.now().toString(36), name, img:newColorImg};
+    S.colorLib.unshift(col); pushColors();
+    f.colors.push({id:col.id,name:col.name,img:col.img});
+    newColorImg=""; $("#cpName").value=""; const inr=$("#cpPzInner"); if(inr)inr.innerHTML=`${I.paste}<b>컬러 사진 / Swatch</b><span>클릭·드래그·Ctrl+V</span>`; $("#cpPaste")?.classList.remove("has-img");
+    renderColorList(); renderColorLib(); toast("컬러 저장·추가됨 / Color saved");
+  });
 
   // 저장/취소/삭제
   const back=()=>{ leaveForm(); adminCat=f.cat; view="admin"; render(); };
