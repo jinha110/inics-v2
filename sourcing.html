@@ -313,12 +313,27 @@ select.icell{appearance:none;font-weight:600;min-width:110px}
 .qs-tot .r{text-align:right;font-family:var(--mono)}
 .qs-foot{margin-top:22px;font-size:10.5px;color:#666;border-top:1px solid var(--line);padding-top:12px;line-height:1.6}
 
+/* 동기화 상태 칩 */
+.syncchip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:7px 11px;border-radius:8px;border:1px solid var(--line-strong);background:var(--card);color:var(--muted);white-space:nowrap}
+.syncchip .sd{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.syncchip.online{color:var(--furn);border-color:#bfe0d3;background:var(--furn-soft)}
+.syncchip.online .sd{background:var(--furn)}
+.syncchip.connecting{color:var(--brass);border-color:#e6d4a8;background:var(--brass-soft)}
+.syncchip.connecting .sd{background:var(--brass);animation:pulse 1s infinite}
+.syncchip.local{color:var(--danger);border-color:#e6c9c2;background:var(--danger-soft)}
+.syncchip.local .sd{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.fb-banner{max-width:1160px;margin:14px auto -8px;padding:11px 16px;border:1px solid #e6d4a8;background:var(--brass-soft);color:var(--brass);border-radius:10px;font-size:12.5px;line-height:1.5}
+.fb-banner b{color:var(--danger)}
+#fbBanner{padding:0 26px}
 @media(max-width:640px){
   .cards{grid-template-columns:1fr}
   .wrap{padding:20px 16px 80px}
   .nav{padding:0 16px}
+  #fbBanner{padding:0 16px}
   .appbar{padding:12px 16px;gap:10px;flex-wrap:wrap}
   .brand .sub{display:none}
+  .syncchip{font-size:10.5px;padding:6px 8px}
   .pmodal,.imodal{width:100%}
 }
 </style>
@@ -331,9 +346,11 @@ select.icell{appearance:none;font-weight:600;min-width:110px}
   <select class="cur-sel" id="curSel" aria-label="통화 / Currency">
     <option value="USD">USD $</option><option value="MXN">MXN $</option><option value="KRW">KRW ₩</option>
   </select>
+  <span class="syncchip local" id="syncChip"><span class="sd"></span>로컬 / Local</span>
   <button class="lockbtn" id="lockBtn"><span class="dot"></span><span id="lockLabel">원가 보기 / Cost</span></button>
 </header>
 
+<div id="fbBanner" class="no-print"></div>
 <nav class="nav no-print" id="nav"></nav>
 <main class="wrap no-print" id="app"></main>
 <div class="quote-sheet" id="quoteSheet"></div>
@@ -399,14 +416,89 @@ const SEED={products:withPrice([
 /* 상태 */
 let S = store.load() || {products:SEED.products,cart:[],currency:"USD",quote:{client:"",no:autoQuoteNo()}};
 S.products = S.products?.length ? S.products : SEED.products;
-S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});
 S.cart ||= []; S.currency ||= "USD"; S.quote ||= {client:"",no:autoQuoteNo()};
+function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys??=[];if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
+normalizeProducts();
 
 let unlocked=false, view="home", adminCat="furniture";
 let filter={furniture:{q:"",cls:"전체"},consumable:{q:"",cls:"전체"}};
 
-function persist(){ const ok=store.save(S); if(!ok) toast("⚠ 저장 용량 초과 — 이미지 크기를 줄여주세요 / Storage full"); return ok; }
+function persist(){ const ok=store.save(S); if(!ok) toast("⚠ 로컬 저장 용량 초과 / Local storage full"); return ok; }
 function autoQuoteNo(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `QT-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;}
+
+/* ══════════ 저장 · 동기화 (전자결재 시스템과 동일 방식) ══════════
+   Firebase SDK 없이 Realtime Database REST(.json)로 저장 — 기존 INICS v2와
+   같은 프로젝트/규칙 사용(apiKey·인증 불필요). 소싱 데이터는 /inics_sourcing
+   네임스페이스로 분리해 전자결재(/inics_approval)와 안 겹침. 사진은 제품에
+   base64로 인라인 저장(기존 제품 DB와 동일). 실시간 반영은 REST 스트리밍(SSE).
+   오프라인이면 자동 로컬 폴백 → 데이터 유실 방지.                          */
+const DB_BASE = "https://inics-approval-default-rtdb.asia-southeast1.firebasedatabase.app";
+const DB_ROOT = "/inics_sourcing";
+function dbURL(path){ return DB_BASE + DB_ROOT + path + ".json"; }
+const NET = {on:false, es:null};
+
+function setSync(state){
+  const chip=document.getElementById("syncChip");
+  const map={connecting:["connecting","동기화 중… / Syncing"],online:["online","☁ 동기화됨 / Synced"],local:["local","⚠ 오프라인 / Offline"]};
+  const [cls,txt]=map[state]||map.local;
+  if(chip){chip.className="syncchip "+cls;chip.innerHTML=`<span class="sd"></span>${txt}`;}
+  const b=document.getElementById("fbBanner");
+  if(b) b.innerHTML = state==="local"
+    ? `<div class="fb-banner">⚠ 서버에 연결하지 못했습니다 — <b>기기 로컬에만 저장</b> 중입니다. 네트워크 복구 후 새로고침하면 클라우드 데이터로 동기화됩니다. / Offline — saving locally.</div>` : "";
+}
+async function pullProducts(){
+  const r=await fetch(dbURL("/products"),{cache:"no-cache"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const val=await r.json();
+  if(val && Object.keys(val).length){ S.products=Object.values(val); normalizeProducts(); persist(); return true; }
+  return false;
+}
+async function pushAllProducts(){ const m={}; S.products.forEach(p=>m[p.id]=p);
+  await fetch(dbURL("/products"),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(m)}); }
+function pushProduct(p){ if(!NET.on)return;
+  fetch(dbURL("/products/"+p.id),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).catch(e=>console.warn("push 실패",e)); }
+function removeProductRemote(id){ if(!NET.on)return;
+  fetch(dbURL("/products/"+id),{method:"DELETE"}).catch(()=>{}); }
+
+/* 실시간 동기화 (Firebase REST 스트리밍 · EventSource) */
+function subscribeProducts(){
+  try{
+    const es=new EventSource(dbURL("/products"));
+    const apply=ev=>{
+      let msg; try{ msg=JSON.parse(ev.data); }catch(e){ return; }
+      if(!msg) return;
+      if(document.querySelector(".modal-bg")) return;                 // 편집 중 스킵
+      const ae=document.activeElement;
+      if(ae && ["INPUT","SELECT","TEXTAREA"].includes(ae.tagName)) return;
+      const path=msg.path, data=msg.data;
+      if(path==="/"){ S.products = data ? Object.values(data) : []; }
+      else {
+        const parts=String(path).replace(/^\//,"").split("/"), id=parts[0];
+        if(parts.length===1){
+          if(data==null){ S.products=S.products.filter(p=>p.id!==id); }
+          else { const i=S.products.findIndex(p=>p.id===id); if(i>=0)S.products[i]=data; else S.products.push(data); }
+        } else { const p=byId(id); if(p && data!==undefined) p[parts[1]]=data; }
+      }
+      normalizeProducts(); persist(); render();
+    };
+    es.addEventListener("put",apply);
+    es.addEventListener("patch",apply);
+    NET.es=es;
+  }catch(e){ /* EventSource 미지원 브라우저는 스트리밍 없이 동작 */ }
+}
+function saveProduct(p){ persist(); if(NET.on) pushProduct(p); }
+function saveProducts(){ persist(); if(NET.on) pushAllProducts().catch(e=>console.warn(e)); }
+function dropProduct(id){ persist(); if(NET.on) removeProductRemote(id); }
+
+async function boot(){
+  setSync("connecting");
+  try{
+    const had=await pullProducts();
+    if(!had) await pushAllProducts();     // 최초 실행 → 시드 업로드
+    NET.on=true; subscribeProducts(); setSync("online");
+  }catch(e){ console.warn("RTDB 연결 실패 → 로컬 모드",e); NET.on=false; setSync("local"); }
+  render();
+}
 
 /* 유틸 */
 function fmt(n){const c=CUR[S.currency],v=isFinite(n)?n:0;return c.sym+v.toLocaleString("en-US",{minimumFractionDigits:c.dp,maximumFractionDigits:c.dp});}
@@ -455,13 +547,13 @@ function renderNav(){
   const tab=(id,ko,en,extra="")=>`<button class="tab ${view===id?"active":""} ${extra}" data-nav="${id}">${ko} <small class="en">${en}</small></button>`;
   let h=tab("home","홈","Home")+tab("furniture","가구","Furniture")+tab("consumable","소모품","Consumables");
   h+=`<button class="tab ${view==="cart"?"active":""}" data-nav="cart">${I.cart} 견적 <small class="en">Quote</small>${cc?`<span class="badge">${cc}</span>`:""}</button>`;
-  if(unlocked) h+=tab("admin","제품 DB","Database","admin");
+  if(unlocked) h+=tab("admin","관리자 DB","Admin","admin");
   document.getElementById("nav").innerHTML=h;
 }
 function renderLock(){
   const b=document.getElementById("lockBtn"),l=document.getElementById("lockLabel");
-  if(unlocked){b.classList.add("on");l.textContent="원가 표시 · 잠그기 / Lock";}
-  else{b.classList.remove("on");l.textContent="원가 보기 / Cost";}
+  if(unlocked){b.classList.add("on");l.textContent="관리자 모드 · 잠그기 / Lock";}
+  else{b.classList.remove("on");l.textContent="원가 보기 · 관리자 / Cost";}
 }
 
 /* 홈 */
@@ -487,7 +579,7 @@ function viewHome(){
       <span class="go">${I.arrow}</span>
     </button>
   </div>
-  <div class="home-note">${I.lock}<span><b>판가 / Price</b>는 누구나 · <b>원가 / Cost</b>와 사진 등록은 상단 <b>원가 보기</b>(PIN) 해제 후 제품 DB에서.</span></div>`;
+  <div class="home-note">${I.lock}<span><b>일반 사용자는 검색만</b> · <b>판가/Price</b>는 누구나 표시 · <b>원가/Cost 열람과 DB 관리(가구 대체품 등록·삭제)</b>는 상단 <b>원가 보기·관리자</b>(PIN)로 관리자 패널에서.</span></div>`;
 }
 
 /* 검색 */
@@ -603,17 +695,17 @@ function viewAdmin(){
     </tr>`).join("");
   return `
   <div class="view-head"><span class="ico" style="background:var(--danger)">${I.lock}</span>
-    <div><h2>제품 DB<span class="en">Product Database</span></h2><p>원가·판가·CBM·사진 관리 · 나·빙 전용 / Admin only</p></div></div>
-  <div class="admin-note">${I.lock}<span>원가는 검색에 노출되지 않습니다. 사진 셀 클릭 → Ctrl+V 붙여넣기(자동 누끼). 셀 수정은 즉시 저장. / Cost is hidden from search. Click the photo cell → Ctrl+V to paste (auto cutout).</span></div>
+    <div><h2>관리자 패널<span class="en">Admin Panel · DB</span></h2><p>원가 열람 · 제품 DB 등록·수정·삭제 (가구 대체품 포함) · 나·빙 전용 / Cost &amp; database — admin only</p></div></div>
+  <div class="admin-note">${I.lock}<span>일반 사용자는 검색만 가능합니다. 이 패널에서만 원가 열람·대체품 등록·삭제가 됩니다. 사진 셀 클릭 → Ctrl+V 붙여넣기(자동 누끼). 셀 수정은 즉시 저장·동기화. / General users can only search. Cost, registration &amp; delete live here only.</span></div>
   <div class="admin-bar">
-    <div class="seg"><button class="${cat==="furniture"?"on":""}" data-acat="furniture">가구 / Furniture</button><button class="${cat==="consumable"?"on":""}" data-acat="consumable">소모품 / Consumables</button></div>
+    <div class="seg"><button class="${cat==="furniture"?"on":""}" data-acat="furniture">가구 대체품 / Furniture</button><button class="${cat==="consumable"?"on":""}" data-acat="consumable">소모품 / Consumables</button></div>
     <button class="mini-btn" data-applymg="1">판가 = 원가 +${DEFAULT_MARGIN}% 일괄 / Apply ${DEFAULT_MARGIN}%</button>
-    <button class="mini-btn mini-add" data-newp="${cat}">${I.plus} 품목 추가 / Add</button>
+    <button class="mini-btn mini-add" data-newp="${cat}">${I.plus} ${cat==="furniture"?"가구 대체품 등록 / Add furniture":"소모품 등록 / Add item"}</button>
   </div>
   <div class="tablewrap scroll-x"><table class="db-table"><thead><tr>
     <th>사진<br><span class="en">Photo</span></th><th>SKU</th><th>제품명 / Name</th><th>분류 / Cat.</th><th>스펙 / Spec</th>
-    <th>${cat==="furniture"?"퍼시스 대체 / Fursys":"단위 / Unit"}</th><th>CBM</th><th>원가 / Cost</th><th>판가 / Price</th><th></th>
-  </tr></thead><tbody>${rows||`<tr><td colspan="10" class="empty" style="padding:34px">품목이 없습니다. / No items.</td></tr>`}</tbody></table></div>`;
+    <th>${cat==="furniture"?"퍼시스 대체 모델 / Fursys (대체 대상)":"단위 / Unit"}</th><th>CBM</th><th>원가 / Cost</th><th>판가 / Price</th><th>삭제<br><span class="en">Del</span></th>
+  </tr></thead><tbody>${rows||`<tr><td colspan="10" class="empty" style="padding:34px">등록된 품목이 없습니다. 위 <b>등록</b> 버튼으로 추가하세요. / No items — click Add.</td></tr>`}</tbody></table></div>`;
 }
 
 /* 견적서 인쇄 */
@@ -664,10 +756,10 @@ document.addEventListener("click",e=>{
   if(el.dataset.cls!==undefined){filter[view].cls=el.dataset.cls;render();return;}
   if(el.dataset.qty){const l=S.cart.find(x=>x.id===el.dataset.qty);if(l){l.qty=Math.max(1,l.qty+Number(el.dataset.d));persist();render();}return;}
   if(el.dataset.rm){S.cart=S.cart.filter(x=>x.id!==el.dataset.rm);persist();render();return;}
-  if(el.dataset.del){if(confirm("이 품목을 삭제할까요? / Delete this item?")){S.products=S.products.filter(p=>p.id!==el.dataset.del);persist();render();}return;}
+  if(el.dataset.del){const did=el.dataset.del;if(confirm("이 품목을 삭제할까요? / Delete this item?")){S.products=S.products.filter(p=>p.id!==did);dropProduct(did);render();}return;}
   if(el.dataset.acat){adminCat=el.dataset.acat;render();return;}
-  if(el.dataset.applymg){if(confirm(`${adminCat==="furniture"?"가구":"소모품"} 판가를 원가+${DEFAULT_MARGIN}%로 일괄 재계산할까요? / Recalculate prices?`)){S.products.filter(p=>p.cat===adminCat).forEach(p=>p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100);persist();render();toast("판가 일괄 적용됨 / Prices applied");}return;}
-  if(el.dataset.newp){const cat=el.dataset.newp,id=(cat==="furniture"?"F":"C")+"_"+Date.now().toString(36);S.products.unshift({id,cat,sku:"NEW-SKU",name:"신규 품목",nameEn:"New item",cls:CLS[cat][1],spec:"",unit:"EA",cost:0,price:0,cbm:0,img:"",fursys:[]});persist();render();toast("품목 추가됨 · 셀 편집 / Item added");return;}
+  if(el.dataset.applymg){if(confirm(`${adminCat==="furniture"?"가구":"소모품"} 판가를 원가+${DEFAULT_MARGIN}%로 일괄 재계산할까요? / Recalculate prices?`)){S.products.filter(p=>p.cat===adminCat).forEach(p=>p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100);saveProducts();render();toast("판가 일괄 적용됨 / Prices applied");}return;}
+  if(el.dataset.newp){const cat=el.dataset.newp,id=(cat==="furniture"?"F":"C")+"_"+Date.now().toString(36);const np={id,cat,sku:"NEW-SKU",name:"신규 품목",nameEn:"New item",cls:CLS[cat][1],spec:"",unit:"EA",cost:0,price:0,cbm:0,img:"",fursys:[]};S.products.unshift(np);saveProduct(np);render();toast("품목 추가됨 · 셀 편집 / Item added");return;}
 });
 document.addEventListener("change",e=>{
   const el=e.target;
@@ -675,7 +767,7 @@ document.addEventListener("change",e=>{
     if(f==="cost"||f==="price"||f==="cbm")p[f]=Math.max(0,parseFloat(el.value)||0);
     else if(f==="fursys")p.fursys=el.value.split(",").map(s=>s.trim()).filter(Boolean);
     else p[f]=el.value;
-    persist();if(f==="sku"||f==="cost")renderNav();return;}
+    saveProduct(p);if(f==="sku"||f==="cost")renderNav();return;}
   if(el.dataset.price){const l=S.cart.find(x=>x.id===el.dataset.price);if(l){const v=parseFloat(el.value);l.price=isNaN(v)?null:Math.max(0,v);persist();render();}return;}
   if(el.dataset.qtyin){const l=S.cart.find(x=>x.id===el.dataset.qtyin);if(l){l.qty=Math.max(1,parseInt(el.value)||1);persist();render();}return;}
   if(el.id==="qClient"){S.quote.client=el.value;persist();return;}
@@ -788,8 +880,8 @@ function openImageDialog(id){
 
   const close=()=>{document.removeEventListener("paste",onPaste);bg.remove();imgState=null;};
   bg.querySelector("#imCancel").onclick=close;
-  bg.querySelector("#imDel").onclick=()=>{p.img="";persist();close();render();toast("이미지 삭제됨 / Removed");};
-  bg.querySelector("#imSave").onclick=()=>{p.img=imgState.pending||"";const ok=persist();close();render();if(ok)toast("이미지 저장됨 / Saved");};
+  bg.querySelector("#imDel").onclick=()=>{p.img="";saveProduct(p);close();render();toast("이미지 삭제됨 / Removed");};
+  bg.querySelector("#imSave").onclick=()=>{p.img=imgState.pending||"";saveProduct(p);close();render();toast(NET.on?"이미지 저장·동기화됨 / Saved":"이미지 저장됨(로컬) / Saved");};
   bg.addEventListener("click",ev=>{if(ev.target===bg)close();});
 }
 
@@ -853,7 +945,7 @@ function openPin(onOk){
   inp.addEventListener("keydown",ev=>{if(ev.key==="Enter")submit();if(ev.key==="Escape")close();});
 }
 
-render();
+boot();
 </script>
 </body>
 </html>
