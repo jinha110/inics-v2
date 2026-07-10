@@ -48,7 +48,10 @@ function _normalizeContractNo(p,saved){
   return saved;
 }
 
-function _ctDefaults(p){ var qs=_projQuotesC(p); return { contractNo:_ctNoFor(p), date:projTodayISO(), vatRate:8, warrantyYears:10, depositPct:50, balancePct:50, paymentDays:3, deliveryDate:p.targetDate||'', buyerGender:'female', quoteId:(qs[0]?qs[0].id:null) }; }
+function _ctDefaults(p){ var qs=_projQuotesC(p); var _sv=(p&&p.sales&&p.sales.vat!=null&&p.sales.vat!=='')?qNum(p.sales.vat):8; return { contractNo:_ctNoFor(p), date:projTodayISO(), vatRate:_sv, paymentDays:3, deliveryDate:p.targetDate||'', buyerGender:'female', showWarranty:true, quoteId:(qs[0]?qs[0].id:null) }; }
+// 계약서 모달 상단 결제 회차 요약 (매출 정산 terms 단일 소스)
+function _ctTerms(p){ return (p&&p.sales&&p.sales.terms&&p.sales.terms.rows&&p.sales.terms.rows.length)?p.sales.terms:((typeof _migrateSalesTerms==='function')?_migrateSalesTerms((p&&p.sales)||{}):{count:1,rows:[{pct:100,at:'po',net:0}]}); }
+function _ctRenderTermsSummary(p){ var el=document.getElementById('ctTermsSummary'); if(!el) return; var t=_ctTerms(p); var n=Math.max(1,Math.min(3,parseInt(t.count,10)||(t.rows?t.rows.length:1)||1)); var lbl=(typeof termAtLabel==='function')?termAtLabel:function(a){return a;}; var ord=(typeof termOrdinal==='function')?termOrdinal:function(i){return (i+1)+'차';}; el.innerHTML=t.rows.slice(0,n).map(function(r,i){ return '<span style="display:inline-block;margin-right:10px"><b>'+ord(i,'en')+' · '+ord(i,'ko')+'</b> '+(parseFloat(r.pct)||0)+'% · '+lbl(r.at,r.net,'ko')+'</span>'; }).join('')+'<div style="font-size:10px;color:var(--text-3);margin-top:3px">차수·% 수정은 프로젝트 → 매출 정산에서. 계약서·대금지급요청서에 자동 반영됩니다.</div>'; }
 
 function openContractModal(projId){
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);});
@@ -60,9 +63,8 @@ function openContractModal(projId){
   document.getElementById('ctNo').value=o.contractNo||'';
   document.getElementById('ctDate').value=o.date||projTodayISO();
   document.getElementById('ctVat').value=(o.vatRate==null?8:o.vatRate);
-  document.getElementById('ctWarranty').value=o.warrantyYears||10;
-  document.getElementById('ctDeposit').value=(o.depositPct==null?50:o.depositPct);
-  document.getElementById('ctBalance').value=(o.balancePct==null?(o.depositPct==null?50:Math.max(0,100-qNum(o.depositPct))):o.balancePct);
+  { var _sw=document.getElementById('ctShowWarranty'); if(_sw) _sw.checked=(o.showWarranty!==false); }
+  _ctRenderTermsSummary(p);
   document.getElementById('ctPayDays').value=o.paymentDays||3;
   document.getElementById('ctDeliveryDate').value=o.deliveryDate||p.targetDate||'';
   var qs=_projQuotesC(p);
@@ -213,14 +215,14 @@ function renderContractApp(){
         +'<td style="'+td+';font-weight:600">'+(p.clientFull||p.client||'—')+(p.title?'<div style="font-size:10px;color:var(--text-3);font-weight:400">'+p.title+'</div>':'')+'</td>'
         +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(o.date||'')+'</td>'
         +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+tt.cur+' '+fmtN(Math.round(tt.total))+'</td>'
-        +'<td style="'+td+';white-space:nowrap;color:var(--text-2);font-size:11px">선금 '+(o.depositPct==null?'-':o.depositPct)+'% / 잔금 '+(o.balancePct==null?'-':o.balancePct)+'%</td>'
+        +'<td style="'+td+';white-space:nowrap;color:var(--text-2);font-size:11px">'+(function(){var _t=_ctTerms(p);var _n=Math.max(1,Math.min(3,parseInt(_t.count,10)||(_t.rows?_t.rows.length:1)||1));return _t.rows.slice(0,_n).map(function(r,i){return 'P'+(i+1)+'·'+(i+1)+'차 '+(parseFloat(r.pct)||0)+'%';}).join(' / ');})()+'</td>'
         +'<td style="'+td+';white-space:nowrap">'+scanCell+'</td>'
         +'<td style="'+td+';text-align:center;white-space:nowrap" title="대금 입금 / 발행 · Payment / Issue">'+prCell+'</td>'
         +'<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openContractFromApp('+p.id+')"><i class="ti ti-edit"></i> 열기 · Open</button> <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="_contractProjId='+p.id+';document.getElementById(\'contractScanInput\').click()"><i class="ti ti-paperclip"></i> 스캔 · Scan</button></td>'
       +'</tr>';
     }).join('');
     html+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px"><table style="width:100%;border-collapse:collapse;min-width:980px">'
-      +'<thead><tr><th style="'+th+'">상태 · Status</th><th style="'+th+'">계약번호 · No.</th><th style="'+th+'">고객 · Client</th><th style="'+th+'">계약일 · Date</th><th style="'+th+';text-align:right">금액 · Amount</th><th style="'+th+'">선금/잔금 · Deposit/Balance</th><th style="'+th+'">스캔본 · Scan</th><th style="'+th+';text-align:center">입금·PR</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
+      +'<thead><tr><th style="'+th+'">상태 · Status</th><th style="'+th+'">계약번호 · No.</th><th style="'+th+'">고객 · Client</th><th style="'+th+'">계약일 · Date</th><th style="'+th+';text-align:right">금액 · Amount</th><th style="'+th+'">결제 회차 · Installments</th><th style="'+th+'">스캔본 · Scan</th><th style="'+th+';text-align:center">입금·PR</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
       +'<tbody>'+prows+'</tbody></table></div>';
   }
   // 2) 전자결재 계약체결 문서 — 테이블
@@ -260,9 +262,7 @@ function _readContractOpts(){
     contractNo:(document.getElementById('ctNo').value||'').trim(),
     date:document.getElementById('ctDate').value||projTodayISO(),
     vatRate:qNum(document.getElementById('ctVat').value)||0,
-    depositPct:qNum(document.getElementById('ctDeposit').value),
-    balancePct:qNum(document.getElementById('ctBalance').value),
-    warrantyYears:(document.getElementById('ctWarranty').value||'').trim(),
+    showWarranty:!!((document.getElementById('ctShowWarranty')||{}).checked),
     paymentDays:(document.getElementById('ctPayDays').value||'').trim(),
     deliveryDate:document.getElementById('ctDeliveryDate').value||'',
     quoteId:qNum(document.getElementById('ctQuote').value)||null,
@@ -508,20 +508,18 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   var H=review?function(v){return '<mark style="background:#fff59d;padding:0 2px;border-radius:1px">'+v+'</mark>';}:function(v){return v;};
   var KO=review?function(t){return '<div style="font-size:10.8px;color:#1d4ed8;margin-top:3px">🇰🇷 '+t+'</div>';}:function(){return '';};
   var tpl=tplOverride||getContractTpl();
-  var dep=(o.depositPct==null?100:qNum(o.depositPct));
-  var bal=(o.balancePct==null||o.balancePct===''?(100-dep):qNum(o.balancePct));
   var payDays=o.paymentDays||'';
-  var payVi, payEn, payKo;
-  if(dep>=100 && bal<=0){
-    payVi='Bên Mua thanh toán 100% giá trị hợp đồng ('+H(M(total))+') trong vòng '+H(payDays)+' ngày làm việc kể từ ngày ký Hợp đồng (thanh toán trước khi giao hàng).';
-    payEn='The Buyer shall pay 100% of the contract value ('+H(M(total))+') within '+H(payDays)+' working days after signing the Contract (advance payment).';
-    payKo='구매자는 계약서 서명 후 '+H(payDays)+' 영업일 이내에 계약 총액('+H(M(total))+')의 100%를 선금으로 지급한다 (인도 전 선납).';
-  } else {
-    var _d=total*dep/100, _b=total*bal/100;
-    payVi='Đợt 1 – Tạm ứng '+H(dep+'%')+' ('+H(M(_d))+') trong vòng '+H(payDays)+' ngày làm việc kể từ ngày ký Hợp đồng. Thời gian sản xuất và giao hàng (Lead Time) của sản phẩm được tính kể từ ngày khoản tạm ứng này được ghi có đầy đủ vào tài khoản chỉ định của Nhà Cung Cấp. Đợt 2 – '+H(bal+'%')+' ('+H(M(_b))+') trong vòng '+H(payDays)+' ngày làm việc sau khi nghiệm thu / bàn giao.';
-    payEn='Phase 1 – Advance '+H(dep+'%')+' ('+H(M(_d))+') within '+H(payDays)+' working days of signing. The production and delivery lead time of the products shall be counted from the date on which this advance payment is fully credited to the Supplier\u2019s designated account. Phase 2 – '+H(bal+'%')+' ('+H(M(_b))+') within '+H(payDays)+' working days after acceptance / handover.';
-    payKo='1차 — 계약서 서명 후 '+H(payDays)+' 영업일 이내에 계약 총액의 '+H(dep+'%')+' 선금('+H(M(_d))+')을 지급한다. 제품의 생산 및 인도 리드타임(Lead Time)은 공급자의 지정 계좌로 본 선금이 완전히 입금된 날로부터 기산한다. 2차 — 검수 / 인도 후 '+H(payDays)+' 영업일 이내에 '+H(bal+'%')+' 잔금('+H(M(_b))+')을 지급한다.';
-  }
+  // ── 결제 회차(1~3차): 매출 정산 terms 를 단일 소스로. 금액은 계약 총액 기준 재계산(마지막 차수 자동보정) ──
+  var _tsrc=(p.sales&&p.sales.terms&&p.sales.terms.rows&&p.sales.terms.rows.length)?p.sales.terms
+           :((typeof _migrateSalesTerms==='function')?_migrateSalesTerms(p.sales||{}):{count:1,rows:[{pct:100,at:'po',net:0}]});
+  var _tcnt=Math.max(1,Math.min(3,parseInt(_tsrc.count,10)||(_tsrc.rows?_tsrc.rows.length:1)||1));
+  var trows=[]; for(var _ti=0;_ti<_tcnt;_ti++){ var _tr=(_tsrc.rows&&_tsrc.rows[_ti])||{}; trows.push({pct:(parseFloat(_tr.pct)||0),at:(_tr.at||'po'),net:(parseInt(_tr.net,10)||0),amt:0}); }
+  var _accT=0; for(var _tj=0;_tj<_tcnt;_tj++){ if(_tj<_tcnt-1){ trows[_tj].amt=Math.round(total*trows[_tj].pct/100); _accT+=trows[_tj].amt; } else { trows[_tj].amt=Math.max(0,Math.round(total)-_accT); if(total>0) trows[_tj].pct=Math.round((trows[_tj].amt/total*100)*100)/100; } }
+  var _atL=function(at,net,lang){ return (typeof termAtLabel==='function')?termAtLabel(at,net,lang):at; };
+  var _ordL=function(i,lang){ return (typeof termOrdinal==='function')?termOrdinal(i,lang):((i+1)+'차'); };
+  function _whenTxt(r,lang){ var w=H(_atL(r.at,r.net,lang)); if((r.at==='po'||r.at==='ship')&&payDays){ if(lang==='vi')return w+' (trong vòng '+H(payDays)+' ngày làm việc)'; if(lang==='en')return w+' (within '+H(payDays)+' working days)'; return w+' ('+H(payDays)+' 영업일 이내)'; } return w; }
+  function _payLine(lang){ return trows.map(function(r,i){ var seg=_ordL(i,lang)+' — '+H(r.pct+'%')+' ('+H(M(r.amt))+'), '+_whenTxt(r,lang); if(i===0&&_tcnt>1){ if(lang==='vi')seg+='. Thời gian sản xuất và giao hàng (Lead Time) được tính từ ngày khoản này được ghi có đầy đủ vào tài khoản của Nhà Cung Cấp'; else if(lang==='en')seg+='. The production and delivery lead time shall be counted from the date this payment is fully credited to the Supplier\u2019s account'; else seg+='. 생산·인도 리드타임은 본 회차가 공급자 계좌에 완전히 입금된 날로부터 기산한다'; } return seg+'.'; }).join(' '); }
+  var payVi=_payLine('vi'), payEn=_payLine('en'), payKo=_payLine('ko');
   var baseVars={ no:o.contractNo||'', date:o.date||'', deliveryDate:o.deliveryDate||(review?'(미정)':'………'), deliveryPlace:p.deliveryPlace||(review?'(미입력)':'………'), total:M(total), paymentDays:payDays, warrantyYears:o.warrantyYears||'', cureDays:'' };
   var varsVi=Object.assign({},baseVars,{paymentClause:payVi});
   var varsEn=Object.assign({},baseVars,{paymentClause:payEn});
@@ -572,7 +570,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
     : '<div style="font-size:11.4px;margin-top:20px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
 
   // Bên A 공급자 / Bên B 구매자
-  +'<div class="ct-blk" style="display:flex;gap:12px;margin-top:8px;font-size:'+(isKo?'10px':'9px')+';line-height:1.5">'
+  +'<div class="ct-blk" style="display:flex;gap:12px;margin-top:8px;font-size:'+(isKo?'13.2px':'11.4px')+';line-height:1.5">'
     +'<div style="flex:1;border:1px solid #888;padding:7px 9px">'
       +'<div style="font-weight:700">'+(isKo?'갑 — 공급자 / Supplier':'Bên A – Nhà cung cấp / Supplier'+(review?'<span style="color:#1d4ed8"> · 공급자</span>':''))+'</div>'
       +'<div><b>'+INICS_INFO.nameVi+' / '+INICS_INFO.nameEn+'</b></div>'
@@ -593,10 +591,10 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   +art('Điều 1','MỤC ĐÍCH','Purpose','art1Vi','art1En','계약 목적')
   +art('Điều 2','SẢN PHẨM VÀ SỐ LƯỢNG','Product & Quantity','art2Vi','art2En','제품·수량 (부록1 견적 명세)')
   +art('Điều 3','GIAO HÀNG','Delivery','art3Vi','art3En','납품: 납기 '+(o.deliveryDate||'미정')+', 장소 '+(p.deliveryPlace||'미입력'))
-  +art('Điều 4','ĐIỀU KHOẢN THANH TOÁN','Payment','art4Vi','art4En','결제: 선금 '+dep+'%'+(dep>=100?' (계약 후 '+(o.paymentDays||'')+'일 내 전액 선금)':' / 잔금 '+(100-dep)+'% 검수 후')+', 총액 '+M(total))
+  +art('Điều 4','ĐIỀU KHOẢN THANH TOÁN','Payment','art4Vi','art4En','결제: '+trows.map(function(r,i){return _ordL(i,'ko')+' '+r.pct+'% ('+_atL(r.at,r.net,'ko')+')';}).join(' / ')+', 총액 '+M(total))
   +art('Điều 5','CHẤM DỨT HỢP ĐỒNG','Termination','art5Vi','art5En','해지 조건')
   +art('Điều 6','QUYỀN & NGHĨA VỤ BÊN MUA','Buyer','art6Vi','art6En','구매자 권리·의무')
-  +art('Điều 7','QUYỀN & NGHĨA VỤ NHÀ CUNG CẤP','Supplier','art7Vi','art7En','공급자 의무 · 보증 '+(o.warrantyYears||'')+'년')
+  +art('Điều 7','QUYỀN & NGHĨA VỤ NHÀ CUNG CẤP','Supplier','art7Vi','art7En','공급자 권리·의무')
   +art('Điều 8','ĐIỀU KHOẢN CHUNG','General','art8Vi','art8En','일반 · VIAC 중재 · 2부')
 
   // 서명란 (상단: 도장 공간 → 가운데: 줄+이름 → 하단: SUPPLIER/BUYER)
@@ -629,7 +627,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
       +'</tfoot></table>'
   +'</div>'
 
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:15.6px;font-weight:800;margin-bottom:3px">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH \u00b7 APPENDIX 2 \u2013 WARRANTY LETTER</div>'
+  +((true)?('<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:15.6px;font-weight:800;margin-bottom:3px">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH \u00b7 APPENDIX 2 \u2013 WARRANTY LETTER</div>'
     +'<div style="text-align:center;font-size:10.8px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(o.date):'') + '</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:10.8px;line-height:1.55">'
       +'<tr style="background:#f1f5f9;vertical-align:top"><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">TIẾNG VIỆT</th><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">ENGLISH</th></tr>'
@@ -660,7 +658,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
         +'<td style="border:1px solid #ccc;padding:5px 8px">In no event shall INICS VINA be liable in either tort or contract for any loss or direct, special, incidental, consequential or exemplary damages. This warranty is the customer\u2019s sole remedy for product defect. INICS VINA makes no warranties, including the implied warranties of merchantability and fitness for a particular purpose, other than the express warranties contained herein.</td>'
       +'</tr>'
     +'</table>'
-  +'</div>'
+  +'</div>'):'')
   +(review?'<div style="margin-top:14px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;font-size:10.8px;color:#92400e;line-height:1.5">🟡 노란색은 프로젝트·견적에서 자동으로 채워진 값입니다. 출력(PDF/인쇄)에는 형광펜·한국어가 빠지고 베트남어·영문만 인쇄됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정할 수 있습니다. 실제 사용 전 현지 법무 검토를 권장합니다.</div>':'')
   +'</div>';
 }
