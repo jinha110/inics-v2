@@ -178,7 +178,7 @@
       if (d === "_FUR_UNSPLIT") { unsplit.push(t); d = CHASAN_CFG.furnitureDefault; }
       if (!t.dept && !t.chasanDept) { untagged++; untaggedList.push(t); }
       var into = buckets[d] || buckets.COMMON;
-      if (kind === "opex") into.opex += debit - credit;
+      if (kind === "opex") { if (_isFixedCat(t.category)) return; into.opex += debit - credit; }
       else { uncat.count++; uncat.debit += debit; uncat.credit += credit; uncatList.push(t); }
     });
     return { ym: ym, byDept: buckets, uncat: uncat, untagged: untagged, excludedOpexSkipped: excludedSum, unsplit: unsplit, uncatList: uncatList, untaggedList: untaggedList };
@@ -215,11 +215,43 @@
     return { byDept: out, head: head, source: lr.source, finalized: lr.finalized, rows: lr.rows };
   };
 
+  /* ── 채산 고정비(수기): 직원별 인건비 + 항목별 판관비 · 전월 공통 고정값 ── */
+  var _fixed = null;
+  window.chasanFixedReady = function () { return _fixed !== null; };
+  window.chasanGetFixed = function () { return _fixed || { labor: [], opex: [] }; };
+  async function chasanFixedLoad() {
+    try { var r = await fetch(csUrl("/chasan_fixed_costs"), { cache: "no-cache" }); var v = (r.ok && await r.json()) || {}; _fixed = { labor: Array.isArray(v.labor) ? v.labor : [], opex: Array.isArray(v.opex) ? v.opex : [] }; }
+    catch (e) { _fixed = { labor: [], opex: [] }; }
+    return _fixed;
+  }
+  window.chasanFixedLoad = chasanFixedLoad;
+  async function chasanFixedSave() {
+    var r = await fetch(csUrl("/chasan_fixed_costs"), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(_fixed || { labor: [], opex: [] }) });
+    if (!r.ok) throw new Error("고정비 저장 HTTP " + r.status);
+  }
+  window.chasanFixedSave = chasanFixedSave;
+  window.chasanFixAddLabor = function () { if (!_fixed) _fixed = { labor: [], opex: [] }; _fixed.labor.push({ id: "L" + Date.now(), name: "", amount: 0, dept: "COMMON", category: "" }); renderChasanPage(); };
+  window.chasanFixDelLabor = function (i) { if (_fixed && _fixed.labor) { _fixed.labor.splice(i, 1); renderChasanPage(); } };
+  window.chasanFixSetLabor = function (i, field, val) { if (_fixed && _fixed.labor && _fixed.labor[i]) { _fixed.labor[i][field] = (field === "amount") ? (parseFloat(String(val).replace(/,/g, "")) || 0) : val; } };
+  window.chasanFixAddOpex = function () { if (!_fixed) _fixed = { labor: [], opex: [] }; _fixed.opex.push({ id: "O" + Date.now(), label: "", amount: 0, dept: "COMMON", category: "" }); renderChasanPage(); };
+  window.chasanFixDelOpex = function (i) { if (_fixed && _fixed.opex) { _fixed.opex.splice(i, 1); renderChasanPage(); } };
+  window.chasanFixSetOpex = function (i, field, val) { if (_fixed && _fixed.opex && _fixed.opex[i]) { _fixed.opex[i][field] = (field === "amount") ? (parseFloat(String(val).replace(/,/g, "")) || 0) : val; } };
+  window.chasanFixSaveBtn = async function () { try { await chasanFixedSave(); if (typeof showToast === "function") showToast("고정비 저장 · Saved"); renderChasanPage(); } catch (e) { alert("저장 실패: " + (e && e.message)); } };
+  function _fixDept(e) { return (e && e.dept && DEPTS.indexOf(e.dept) >= 0) ? e.dept : "COMMON"; }
+  function _fixedLaborByDept() { var o = {}; DEPTS.forEach(function (d) { o[d] = 0; }); ((_fixed && _fixed.labor) || []).forEach(function (e) { o[_fixDept(e)] += (+e.amount || 0); }); return o; }
+  function _fixedOpexByDept() { var o = {}; DEPTS.forEach(function (d) { o[d] = 0; }); ((_fixed && _fixed.opex) || []).forEach(function (e) { o[_fixDept(e)] += (+e.amount || 0); }); return o; }
+  function _fixedHeadByDept() { var o = {}; DEPTS.forEach(function (d) { o[d] = 0; }); ((_fixed && _fixed.labor) || []).forEach(function (e) { o[_fixDept(e)] += 1; }); return o; }
+  function _fixedCatSet() { var st = {}; if (_fixed) { (((_fixed.labor) || []).concat((_fixed.opex) || [])).forEach(function (e) { var c = String((e && e.category) || "").trim(); if (c) st[c] = 1; }); } return st; }
+  function _isFixedCat(cat) { return !!_fixedCatSet()[String(cat == null ? "" : cat).trim()]; }
+  window.chasanFixedCats = function () { return Object.keys(_fixedCatSet()); };
+
   /* ── 채산 계산 ─────────────────────────────────────────────── */
   window.chasanCompute = async function (ym, opts) {
     opts = opts || {};
     if (_catMap === null) await chasanCatMapLoad();
     if (_cogsVendors === null) await chasanCogsVendorsLoad();
+    if (_fixed === null) await chasanFixedLoad();
+    var _fLab = _fixedLaborByDept(), _fOpex = _fixedOpexByDept(), _fHead = _fixedHeadByDept();
     var bank = chasanBankAgg(ym);
     var inv = chasanInvoiceAgg(ym);
     var lab = await chasanLabor(ym, opts);
@@ -227,11 +259,11 @@
     var byDept = {};
     DEPTS.forEach(function (t) {
       var b = bank.byDept[t], iv = inv.byDept[t];
-      var revenue = Math.round(iv.revenue), cogs = Math.round(iv.cogs), labor = Math.round(lab.byDept[t] || 0), opex = Math.round(b.opex), extra = Math.round(ex[t] || 0);
+      var revenue = Math.round(iv.revenue), cogs = Math.round(iv.cogs), labor = Math.round(_fLab[t] || 0), opex = Math.round((_fOpex[t] || 0) + (b.opex || 0)), extra = Math.round(ex[t] || 0);
       var op = revenue - cogs - labor - opex - extra;
       byDept[t] = { revenue: revenue, cogs: cogs, labor: labor, opex: opex, extra: extra, op: op, margin: revenue ? op / revenue : 0 };
     });
-    var headByDept = {}; DEPTS.forEach(function (t) { headByDept[t] = lab.head ? (lab.head[t] || 0) : 0; });
+    var headByDept = {}; DEPTS.forEach(function (t) { headByDept[t] = _fHead[t] || 0; });
     if (CHASAN_CFG.allocateCommon) {
       var com = byDept.COMMON;
       var _keys = ["revenue", "cogs", "labor", "opex", "extra"];   // 매출 포함 전항목 재분배 → 총계 불변
@@ -377,6 +409,7 @@
     var fxRaw = {}, fxItems = {}; DEPTS.forEach(function (t) { fxRaw[t] = 0; fxItems[t] = []; });
     txns.forEach(function (t) {
       if (!t || _ym(t.date) !== ym) return;
+      if (_isFixedCat(t.category)) return;   // 고정비 패널 카테고리는 은행에서 제외(이중계상 방지)
       if (classify(t.category || "Uncategorized") !== "opex") return;
       var cat = t.category || "(미분류)";
       var d = csDept(t); if (d === "_FUR_UNSPLIT") d = CHASAN_CFG.furnitureDefault;
@@ -388,6 +421,7 @@
       cats[cat].sumAll += amt; if (inc) { cats[cat].sumIncl += amt; fxRaw[d] += amt; (fxItems[d] || (fxItems[d] = [])).push({ kind: "txn", cat: cat, date: t.date || "", note: (t.note || t.ref || "").trim(), amt: amt }); }
     });
     manual.forEach(function (m) { var d = DEPTS.indexOf(m.dept) >= 0 ? m.dept : "COMMON"; var a = +m.amount || 0; fxRaw[d] += a; (fxItems[d] || (fxItems[d] = [])).push({ kind: "manual", label: m.label, amt: a }); });
+    (( _fixed && _fixed.opex) || []).forEach(function (e) { var d = DEPTS.indexOf(e.dept) >= 0 ? e.dept : "COMMON"; var a = +e.amount || 0; fxRaw[d] += a; (fxItems[d] || (fxItems[d] = [])).push({ kind: "fixed", label: (e.label || e.category || "고정비") + " (고정비 패널)", amt: a }); });
     var fxDirect = {}; DEPTS.forEach(function (t) { fxDirect[t] = fxRaw[t]; });
     var fx = {}; DEPTS.forEach(function (t) { fx[t] = fxRaw[t]; });
     var allocInfo = { on: !!CHASAN_CFG.allocateCommon, factor: 1, weights: CHASAN_CFG.commonWeights || {}, commonDirect: fxDirect.COMMON || 0 };
@@ -530,7 +564,7 @@
     var _drillable = { revenue: 1, cogs: 1, opex: 1 };
     var line = function (label, key, opt) {
       opt = opt || {};
-      var dz = _drillable[key] && !_final;   // 확정(동결) 시엔 드릴다운 비활성(원천 스냅샷 아님)
+      var dz = _drillable[key];   // 확정 후에도 원천 디테일 조회 허용(스냅샷과 차이는 상단 drift 경고)
       var main = '<tr' + (opt.top ? ' style="border-top:2px solid var(--text);font-weight:700"' : "") + '>'
         + '<td style="padding:8px 12px;text-align:left">' + label + (dz ? ' <span style="font-size:9px;color:var(--text-3)">▸ 클릭</span>' : '') + '</td>'
         + T.map(function (t) { var v = r.byDept[t][key];
@@ -636,6 +670,30 @@
       }).join("")
       + '</tbody></table></div>'
       + '<div style="padding:8px 0;display:flex;gap:10px;align-items:center"><button onclick="chasanLwSaveBtn()" style="border:1px solid var(--text);background:none;cursor:pointer;font-size:11px;padding:6px 12px;border-radius:7px">가중치 저장 · Save & Recalc</button><span style="font-size:10px;color:var(--text-3)">빈칸 = 부서 기본값(placeholder). 합이 100이 아니면 비율대로 정규화.</span></div></details>';
+    var _fx = _fixed || { labor: [], opex: [] };
+    var _fxDept = function (cur, cb) { return '<select onchange="' + cb + '" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px">' + DEPTS.map(function (d) { return '<option' + (d === cur ? ' selected' : '') + '>' + E(d) + '</option>'; }).join('') + '</select>'; };
+    var _fxCat = function (cur, cb) { var o = (typeof bankCategoryOptions === 'function') ? bankCategoryOptions(cur || '') : ('<option>' + E(cur || '') + '</option>'); return '<select onchange="' + cb + '" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px;max-width:160px">' + o + '</select>'; };
+    var _fxRow = function (e, i, kind) {
+      var nf = kind === 'labor' ? 'name' : 'label';
+      var setfn = kind === 'labor' ? 'chasanFixSetLabor' : 'chasanFixSetOpex';
+      var delfn = kind === 'labor' ? 'chasanFixDelLabor' : 'chasanFixDelOpex';
+      return '<tr>'
+        + '<td style="padding:3px 6px"><input value="' + E(e[nf] || '') + '" onchange="' + setfn + '(' + i + ',\'' + nf + '\',this.value)" style="width:100%;min-width:90px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px"></td>'
+        + '<td style="padding:3px 6px;text-align:right"><input value="' + F(e.amount || 0) + '" onchange="' + setfn + '(' + i + ',\'amount\',this.value)" style="width:104px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;text-align:right;font-family:var(--mono)"></td>'
+        + '<td style="padding:3px 6px">' + _fxDept(e.dept, setfn + '(' + i + ',\'dept\',this.value)') + '</td>'
+        + '<td style="padding:3px 6px">' + _fxCat(e.category, setfn + '(' + i + ',\'category\',this.value)') + '</td>'
+        + '<td style="padding:3px 6px;text-align:right"><button onclick="' + delfn + '(' + i + ')" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:10px;padding:2px 7px;border-radius:5px;color:var(--danger)">삭제</button></td></tr>';
+    };
+    var _fxHead = '<thead><tr style="background:var(--surface-2)"><th style="padding:4px 6px;text-align:left;font-size:10px">이름/항목</th><th style="padding:4px 6px;text-align:right;font-size:10px">월 금액</th><th style="padding:4px 6px;text-align:left;font-size:10px">부서</th><th style="padding:4px 6px;text-align:left;font-size:10px">은행 카테고리(변동비 제외용)</th><th></th></tr></thead>';
+    var fixedPanel = '<details open style="margin:0 16px 12px;border:1px solid var(--border);border-radius:10px;padding:0 12px">'
+      + '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--text-2);padding:10px 0">💼 채산 고정비 패널 · Fixed Costs (인건비 ' + _fx.labor.length + '명 · 판관비 ' + _fx.opex.length + '건) — 매달 고정 · 카테고리는 은행 변동비에서 자동 제외</summary>'
+      + '<div style="font-size:11px;font-weight:700;color:#1d4ed8;margin:4px 0">인건비 · Labor (직원별)</div>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">' + _fxHead + '<tbody>' + _fx.labor.map(function (e, i) { return _fxRow(e, i, 'labor'); }).join('') + '</tbody></table></div>'
+      + '<div style="padding:5px 0"><button onclick="chasanFixAddLabor()" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:4px 11px;border-radius:6px">＋ 직원 추가</button></div>'
+      + '<div style="font-size:11px;font-weight:700;color:#b45309;margin:8px 0 4px">고정판관비 · Fixed OpEx (항목별)</div>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">' + _fxHead + '<tbody>' + _fx.opex.map(function (e, i) { return _fxRow(e, i, 'opex'); }).join('') + '</tbody></table></div>'
+      + '<div style="padding:5px 0 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button onclick="chasanFixAddOpex()" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:4px 11px;border-radius:6px">＋ 항목 추가</button><button onclick="chasanFixSaveBtn()" style="border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer;font-size:11px;padding:5px 14px;border-radius:7px">저장 · Save & Recalc</button><span style="font-size:10px;color:var(--text-3)">한 번 입력 → 모든 달 고정. 카테고리 지정 시 그 은행 거래는 변동비에서 빠져 이중계상 방지.</span></div>'
+      + '</details>';
 
     // EXTRA 비용 에디터
     var extra = _extra[ym] || [];
@@ -710,7 +768,7 @@
       + '<div class="form-card" style="padding:0;overflow:hidden">'
       + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
       + '<div><div style="font-size:14px;font-weight:700">부서 채산 · Departmental P&L — ' + E(ym) + '</div>'
-      + '<div style="font-size:11px;color:var(--text-3)">매출·매입원가=인보이스 발생주의(매출 ' + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + ') · 기본부서 FUR VN · 판관비=현금주의 · 인건비=' + (r.laborFinalized ? "확정대장" : "라이브(" + r.laborSource + ")") + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
+      + '<div style="font-size:11px;color:var(--text-3)">매출·매입원가=인보이스 발생주의(매출 ' + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + ') · 기본부서 FUR VN · 인건비·고정판관비=고정비 패널 · 변동판관비=은행(고정카테고리 제외)' + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
       + '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csAlloc"' + (CHASAN_CFG.allocateCommon ? " checked" : "") + '> COMMON 배분 · Allocate</label>'
       + '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csUsd"' + (_usd ? " checked" : "") + '> USD</label>'
@@ -735,7 +793,7 @@
       + pcline()
       + phline()
       + '</tbody></table></div>'
-      + retag + uncatPanel + untagPanel + invDqPanel + cogsVendorEditor + lwEditor + extraEditor
+      + retag + uncatPanel + untagPanel + invDqPanel + cogsVendorEditor + fixedPanel + extraEditor
       + '<p style="font-size:11px;color:var(--text-3);padding:8px 16px;line-height:1.6">매출·매입원가=인보이스 발생주의(매출=발행 인보이스 / 매입원가=지정 업체 수취 인보이스, 모두 공급가액·VAT 제외) · 판관비=현금주의(뱅크) · 인건비=확정대장 tc 인원별 가중치 4부서 분배. <b>부서 기본값=FUR VN</b> — 매출/매입원가 셀을 클릭하면 인보이스별 드롭다운으로 FUR MX·SOURCING 등으로 변경, 또는 <b>「자산·Asset(제외)」</b>로 지정하면 매출원가에서 빠집니다(자본적 지출·자산 취득분). COMMON은 배분 ON 시 FUR VN/FUR MX/SOURCING에 3:3:1 완전분배.</p></div>';
 
     var usdEl = host.querySelector("#csUsd"), rateEl = host.querySelector("#csRate"), allocEl = host.querySelector("#csAlloc");
@@ -770,6 +828,7 @@
     if (typeof saveState === "function") saveState();
     if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
   };
+  function _csProjName(pid){ if(pid==null||pid==="") return ""; var ps=(typeof state!=="undefined"&&state&&state.projects)||[]; var p=ps.find(function(x){return String(x.id)===String(pid);}); return p ? (p.clientFull||p.client||p.name||("#"+pid)) : ""; }
   window.chasanLineDetail = function (ym, dept, key) {
     // 매출·매입원가 → 인보이스 발생기준 (자산 분류는 합계 제외, 행은 표시)
     if (key === "revenue" || key === "cogs") {
@@ -783,7 +842,8 @@
         var isAsset = inv.chasanClass === "asset";
         var conv = invVnd(inv, invNet(inv));
         irows.push({ id: inv.id, date: inv.date || "", vendor: (inv.vendor || "").trim() || "(미지정)", invoiceNo: inv.invoiceNo || "",
-          currency: inv.currency || "VND", fxOk: conv.ok, dir: inv.dir, asset: isAsset, note: (inv.note || inv.category || "").trim(), amt: conv.v });
+          currency: inv.currency || "VND", fxOk: conv.ok, dir: inv.dir, asset: isAsset, note: (inv.note || inv.category || "").trim(), amt: conv.v,
+          projectName: _csProjName(inv.projectId) });
       });
       var igroups = {};
       irows.forEach(function (r) { var g = r.vendor || "(미지정)"; (igroups[g] = igroups[g] || { sum: 0, items: [] }); igroups[g].sum += r.asset ? 0 : r.amt; igroups[g].items.push(r); });
@@ -835,7 +895,7 @@
               + '<div style="display:flex;gap:8px;font-size:11px;align-items:center">'
               + '<span style="color:var(--text-3);flex-shrink:0">' + E(it.date) + '</span>'
               + '<span style="font-family:var(--mono);color:var(--text-3);flex-shrink:0;font-size:10px">' + E(it.invoiceNo || "—") + '</span>'
-              + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E(it.note).replace(/"/g, "&quot;") + '">' + (it.asset ? '<span style="color:#7c3aed;font-weight:600">[자산] </span>' : '') + E(it.note || "—") + '</span>'
+              + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E((it.projectName?("["+it.projectName+"] "):"")+(it.note||"")).replace(/"/g, "&quot;") + '">' + (it.asset ? '<span style="color:#7c3aed;font-weight:600">[자산] </span>' : '') + (it.projectName ? '<span style="font-weight:600">'+E(it.projectName)+'</span>' : E(it.note || "—")) + '</span>'
               + '<span style="font-family:var(--mono);flex-shrink:0;' + (it.asset ? "text-decoration:line-through;color:var(--text-3)" : (it.amt < 0 ? "color:var(--danger)" : "")) + '">' + F(it.amt) + _cur + '</span></div>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">' + _depSelI + _clsSelI + '</div></div>';
           }
@@ -856,6 +916,8 @@
   var _csView = "month", _csHistYear = null;
   window.chasanSwitchView = function (v) { _csView = v; renderChasanPage(); };
   window.chasanHistYear = function (y) { _csHistYear = String(y); renderChasanPage(); };
+  window.chasanHistUsd = function (on) { _usd = !!on; if (_usd && !_rate) { alert("월 환율(VND/USD)을 입력하세요."); _usd = false; } renderChasanPage(); };
+  window.chasanHistRate = function (v) { _rate = +v || 0; renderChasanPage(); };
   function _csTabs(active) {
     var tab = function (v, label) { return '<button onclick="chasanSwitchView(\'' + v + '\')" style="border:none;background:none;cursor:pointer;font-size:13px;font-weight:' + (active === v ? "700" : "400") + ';color:' + (active === v ? "var(--text)" : "var(--text-3)") + ';padding:8px 2px;margin-right:18px;border-bottom:2px solid ' + (active === v ? "var(--text)" : "transparent") + '">' + label + "</button>"; };
     return '<div style="border-bottom:1px solid var(--border);margin-bottom:14px">' + tab("month", "월별 채산 · Monthly") + tab("forecast", "예상채산 · Forecast") + tab("history", "History · 이력") + "</div>";
@@ -888,25 +950,30 @@
     var months = []; for (var mo = 1; mo <= 12; mo++) months.push(year + "-" + String(mo).padStart(2, "0"));
     var COLORS = { "FUR VN": "#2563eb", "FUR MX": "#16a34a", "SOURCING": "#d97706", "COMMON": "#6b7280" };
     var snaps = months.map(function (mm) { return { ym: mm, snap: all[mm] || null }; });
-    var money = function (v) { return F(v); };
+    var money = function (v) { return (_usd && _rate) ? (v / _rate).toLocaleString("en-US", { maximumFractionDigits: 0 }) : F(v); };
+    var _unit = (_usd && _rate) ? "USD" : "VND";
     var rowsHtml = snaps.map(function (o) {
       var s = o.snap, fin = !!(s && s.finalizedAt);
       var opCell = function (d) { var v = s && s.byDept && s.byDept[d] ? s.byDept[d].op : null; return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);' + (v < 0 ? "color:var(--danger)" : "") + '">' + (v == null ? "—" : money(v)) + "</td>"; };
       var tot = s && s.totals ? s.totals.op : null;
-      return '<tr style="' + (s ? "" : "opacity:.45") + '"><td style="padding:6px 10px">' + E(o.ym.slice(5)) + "월</td>" + DEPTS.map(opCell).join("") + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700;' + (tot < 0 ? "color:var(--danger)" : "") + '">' + (tot == null ? "—" : money(tot)) + "</td><td style=\"padding:6px 10px;text-align:center\">" + (fin ? '<span style="color:var(--success);font-weight:700">✓ ' + E((s.finalizedAt || "").slice(0, 10)) + "</span>" : (s ? '<span style="color:var(--text-3)">임시 · Draft</span>' : '<span style="color:var(--text-3)">—</span>')) + "</td></tr>";
+      var totPct = (s && s.totals && s.totals.revenue) ? ' <span style="color:var(--text-3);font-weight:400;font-size:10px">(' + (((s.totals.margin!=null?s.totals.margin:(s.totals.op/s.totals.revenue))||0)*100).toFixed(1) + '%)</span>' : "";
+      return '<tr style="' + (s ? "" : "opacity:.45") + '"><td style="padding:6px 10px">' + E(o.ym.slice(5)) + "월</td>" + DEPTS.map(opCell).join("") + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700;' + (tot < 0 ? "color:var(--danger)" : "") + '">' + (tot == null ? "—" : money(tot) + totPct) + "</td><td style=\"padding:6px 10px;text-align:center\">" + (fin ? '<span style="color:var(--success);font-weight:700">✓ ' + E((s.finalizedAt || "").slice(0, 10)) + "</span>" : (s ? '<span style="color:var(--text-3)">임시 · Draft</span>' : '<span style="color:var(--text-3)">—</span>')) + "</td></tr>";
     }).join("");
     var ytd = {}; DEPTS.forEach(function (d) { ytd[d] = { revenue: 0, cogs: 0, labor: 0, opex: 0, extra: 0, op: 0 }; });
     var ytdTot = { revenue: 0, cogs: 0, labor: 0, opex: 0, extra: 0, op: 0 }, finCount = 0;
     snaps.forEach(function (o) { var s = o.snap; if (!(s && s.finalizedAt && s.byDept)) return; finCount++; DEPTS.forEach(function (d) { var b = s.byDept[d] || {}; ["revenue", "cogs", "labor", "opex", "extra", "op"].forEach(function (k) { ytd[d][k] += (+b[k] || 0); ytdTot[k] += (+b[k] || 0); }); }); });
     var ytdLine = function (label, key) { return '<tr><td style="padding:6px 10px">' + label + "</td>" + DEPTS.map(function (d) { var v = ytd[d][key]; return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);' + (v < 0 ? "color:var(--danger)" : "") + '">' + money(v) + "</td>"; }).join("") + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700;' + (ytdTot[key] < 0 ? "color:var(--danger)" : "") + '">' + money(ytdTot[key]) + "</td></tr>"; };
-    var series = DEPTS.map(function (d) { return { name: d, color: COLORS[d], values: snaps.map(function (o) { return o.snap && o.snap.byDept && o.snap.byDept[d] ? (+o.snap.byDept[d].op || 0) : 0; }) }; });
-    series.push({ name: "합계", color: "#111827", values: snaps.map(function (o) { return o.snap && o.snap.totals ? (+o.snap.totals.op || 0) : 0; }) });
+    var _cw = (CHASAN_CFG.commonWeights || {}), _cwsum = REVENUE_DEPTS.reduce(function (a, t) { return a + (+_cw[t] || 0); }, 0), _cwf = ((CHASAN_CFG.commonAllocNormalize !== false) && _cwsum > 0) ? 1 / _cwsum : 1;
+    var ytdAlloc = {}; REVENUE_DEPTS.forEach(function (d) { ytdAlloc[d] = {}; ["revenue", "cogs", "labor", "opex", "extra", "op"].forEach(function (k) { ytdAlloc[d][k] = (+ytd[d][k] || 0) + (+(((ytd.COMMON || {})[k]) || 0)) * ((+_cw[d] || 0) * _cwf); }); });
+    var _ytdCell = function (obj, key, bold) { var v = +obj[key] || 0; return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);' + (bold ? "font-weight:700;" : "") + (v < 0 ? "color:var(--danger)" : "") + '">' + money(v) + "</td>"; };
+    var _ytdLine = function (label, key) { return '<tr><td style="padding:6px 10px">' + label + "</td>" + _ytdCell(ytdTot, key, true) + REVENUE_DEPTS.map(function (d) { return _ytdCell(ytdAlloc[d], key); }).join("") + "</tr>"; };
+    var series = [{ name: "전체 영업이익 · Total OP", color: "#111827", values: snaps.map(function (o) { return o.snap && o.snap.totals ? (+o.snap.totals.op || 0) : 0; }) }];
     var yearSel = '<select onchange="chasanHistYear(this.value)" style="border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:13px">' + yList.map(function (yy) { return '<option value="' + yy + '"' + (yy === year ? " selected" : "") + ">" + yy + "년</option>"; }).join("") + "</select>";
     host.innerHTML = _csTabs("history")
-      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:12px;color:var(--text-3)">연도 · Year</span>' + yearSel + '<button onclick="chasanDownloadHistoryXlsx(&#39;' + year + '&#39;)" style="border:1px solid var(--border);background:none;color:var(--text-2);font-size:11px;cursor:pointer;padding:6px 11px;border-radius:7px;margin-left:8px">⬇ Excel</button><span style="flex:1"></span><span style="font-size:11px;color:var(--text-3)">Finalized ' + finCount + '개월/months · 임시·미저장 월 제외 · Draft/none excluded</span></div>'
-      + '<div class="form-card" style="padding:14px 16px;margin-bottom:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">부서별 영업이익 추이 · Operating Profit Trend (' + year + ')</div>' + _csLineChart(series, months) + "</div>"
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:12px;color:var(--text-3)">연도 · Year</span>' + yearSel + '<button onclick="chasanDownloadHistoryXlsx(&#39;' + year + '&#39;)" style="border:1px solid var(--border);background:none;color:var(--text-2);font-size:11px;cursor:pointer;padding:6px 11px;border-radius:7px;margin-left:8px">⬇ Excel</button><label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px;margin-left:6px"><input type="checkbox" id="csHistUsd"' + (_usd ? " checked" : "") + ' onchange="chasanHistUsd(this.checked)"> USD</label><input id="csHistRate" type="number" placeholder="VND/USD" value="' + (_rate || "") + '" onchange="chasanHistRate(this.value)" style="width:92px;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px"><span style="flex:1"></span><span style="font-size:11px;color:var(--text-3)">Finalized ' + finCount + '개월/months · 임시·미저장 월 제외 · Draft/none excluded</span></div>'
+      + '<div class="form-card" style="padding:14px 16px;margin-bottom:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">영업이익 추이 · Operating Profit Trend (' + year + ')</div>' + _csLineChart(series, months) + "</div>"
       + '<div class="form-card" style="padding:0;overflow:hidden;margin-bottom:14px"><div style="padding:10px 16px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border)">월별 영업이익 · Monthly OP</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--text-3)">월 · Month</th>' + DEPTS.map(function (d) { return '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">' + E(d) + "</th>"; }).join("") + '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">합계 · Total</th><th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--text-3)">확정 · Fin.</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div></div>"
-      + '<div class="form-card" style="padding:0;overflow:hidden"><div style="padding:10px 16px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border)">YTD 누적 · Year-to-Date (' + year + ', 확정 ' + finCount + '개월)</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--text-3)">항목 · Item</th>' + DEPTS.map(function (d) { return '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">' + E(d) + "</th>"; }).join("") + '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">합계 · Total</th></tr></thead><tbody>' + ytdLine("매출 / Revenue", "revenue") + ytdLine("(−) COGS", "cogs") + ytdLine("(−) 인건비", "labor") + ytdLine("(−) 판관비", "opex") + ytdLine("(−) EXTRA", "extra") + '<tr style="border-top:2px solid var(--text);font-weight:700"><td style="padding:6px 10px">영업이익 / OP</td>' + DEPTS.map(function (d) { var v = ytd[d].op; return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);' + (v < 0 ? "color:var(--danger)" : "") + '">' + money(v) + "</td>"; }).join("") + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);' + (ytdTot.op < 0 ? "color:var(--danger)" : "") + '">' + money(ytdTot.op) + "</td></tr></tbody></table></div></div>";
+      + '<div class="form-card" style="padding:0;overflow:hidden"><div style="padding:10px 16px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border)">YTD 누적 · Year-to-Date (' + year + ', 확정 ' + finCount + '개월 · COMMON 배분 · ' + _unit + ')</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--text-3)">항목 · Item</th><th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3);font-weight:700">전체 · Total</th>' + REVENUE_DEPTS.map(function (d) { return '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">' + E(d) + "</th>"; }).join("") + '</tr></thead><tbody>' + _ytdLine("매출 / Revenue", "revenue") + _ytdLine("(\u2212) COGS", "cogs") + _ytdLine("(\u2212) 인건비", "labor") + _ytdLine("(\u2212) 판관비", "opex") + _ytdLine("(\u2212) EXTRA", "extra") + '<tr style="border-top:2px solid var(--text);font-weight:700"><td style="padding:6px 10px">영업이익 / OP</td>' + _ytdCell(ytdTot, "op", true) + REVENUE_DEPTS.map(function (d) { return _ytdCell(ytdAlloc[d], "op", true); }).join("") + '</tr></tbody></table></div></div>';
   };
   function _fmtPct(m) { return Math.round((m || 0) * 1000) / 10; }
   window.chasanBuildWorkbook = function (ym, r, lw, extra, laborRows, allSnaps) {
