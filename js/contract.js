@@ -53,6 +53,61 @@ function _ctDefaults(p){ var qs=_projQuotesC(p); var _sv=(p&&p.sales&&p.sales.va
 function _ctTerms(p){ return (p&&p.sales&&p.sales.terms&&p.sales.terms.rows&&p.sales.terms.rows.length)?p.sales.terms:((typeof _migrateSalesTerms==='function')?_migrateSalesTerms((p&&p.sales)||{}):{count:1,rows:[{pct:100,at:'po',net:0}]}); }
 function _ctRenderTermsSummary(p){ var el=document.getElementById('ctTermsSummary'); if(!el) return; var t=_ctTerms(p); var n=Math.max(1,Math.min(3,parseInt(t.count,10)||(t.rows?t.rows.length:1)||1)); var lbl=(typeof termAtLabel==='function')?termAtLabel:function(a){return a;}; var ord=(typeof termOrdinal==='function')?termOrdinal:function(i){return (i+1)+'차';}; el.innerHTML=t.rows.slice(0,n).map(function(r,i){ return '<span style="display:inline-block;margin-right:10px"><b>'+ord(i,'en')+' · '+ord(i,'ko')+'</b> '+(parseFloat(r.pct)||0)+'% · '+lbl(r.at,r.net,'ko')+'</span>'; }).join('')+'<div style="font-size:10px;color:var(--text-3);margin-top:3px">차수·% 수정은 프로젝트 → 매출 정산에서. 계약서·대금지급요청서에 자동 반영됩니다.</div>'; }
 
+// ── 계약서 인라인 회차 편집기 (단일 소스: p.sales.terms) ──
+function _ctCurProj(){ return (state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); }
+function _ctTermsEnsure(p){
+  if(!p) return {count:1,rows:[{pct:100,amt:0,at:'po',net:0,paid:false,paidDate:''}]};
+  if(!p.sales) p.sales={};
+  var t=p.sales.terms;
+  if(!(t&&t.rows&&t.rows.length)){ t=(typeof _migrateSalesTerms==='function')?_migrateSalesTerms(p.sales):{count:1,rows:[{pct:100,amt:0,at:'po',net:0,paid:false,paidDate:''}]}; p.sales.terms=t; }
+  t.count=Math.max(1,Math.min(3,parseInt(t.count,10)||t.rows.length||1));
+  while(t.rows.length<t.count) t.rows.push({pct:0,amt:0,at:'delivery',net:0,paid:false,paidDate:''});
+  if(t.rows.length>t.count) t.rows=t.rows.slice(0,t.count);
+  return t;
+}
+function _ctLinkedTotal(p){
+  var o=(typeof _readContractOpts==='function' && document.getElementById('ctVat'))?_readContractOpts():(p.contractOpts||{});
+  var qs=_projQuotesC(p); var q=o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0];
+  var sub=(q?(q.lines||[]):[]).reduce(function(s,l){return s+qNum(l.amount);},0);
+  return sub*(1+(qNum(o.vatRate)||0)/100);
+}
+function _ctTermAmts(t,total){
+  var n=t.count, acc=0, out=[];
+  for(var i=0;i<n;i++){ var r=t.rows[i]||{}; var pct=parseFloat(r.pct)||0; var amt;
+    if(i<n-1){ amt=Math.round(total*pct/100); acc+=amt; }
+    else { amt=Math.max(0,Math.round(total)-acc); if(total>0) pct=Math.round((amt/total*100)*100)/100; }
+    r.amt=amt; if(i===n-1) r.pct=pct;
+    out.push({pct:pct,amt:amt,at:r.at||'po',net:parseInt(r.net,10)||0}); }
+  return out;
+}
+function ctRenderTermsEditor(){
+  var box=document.getElementById('ctTermsEditor'); if(!box) return;
+  var p=_ctCurProj(); if(!p){ box.innerHTML=''; return; }
+  var t=_ctTermsEnsure(p); var total=_ctLinkedTotal(p); var amts=_ctTermAmts(t,total);
+  var pctSum=0; for(var s=0;s<t.count;s++) pctSum+=amts[s].pct; pctSum=Math.round(pctSum*100)/100;
+  var inp='font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)';
+  var atOpts=function(sel){ return [['po','PO 발행 시'],['ship','출고 시'],['delivery','납품 후']].map(function(o){return '<option value="'+o[0]+'"'+(sel===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join(''); };
+  var netOpts=function(sel){ return [0,7,14].map(function(nn){return '<option value="'+nn+'"'+(((parseInt(sel,10)||0)===nn)?' selected':'')+'>'+(nn===0?'즉시':('+'+nn+'일'))+'</option>';}).join(''); };
+  var html='<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">'
+    +'<select onchange="ctTermCount(this.value)" style="'+inp+'">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>'
+    +'<span style="font-size:10px;color:var(--text-3)">연결 견적 총액 기준 · 마지막 차수 자동보정</span></div>';
+  for(var i=0;i<t.count;i++){ var r=t.rows[i]; var a=amts[i]; var last=(i===t.count-1);
+    html+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">'
+      +'<span style="font-weight:700;font-size:12px;min-width:26px">'+(i+1)+'차</span>'
+      +(last?'<input type="text" value="'+a.pct+'" readonly title="자동 보정" style="'+inp+';width:48px;text-align:right;background:var(--surface-2);color:var(--text-2)">':'<input type="text" inputmode="decimal" value="'+a.pct+'" onchange="ctTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:48px;text-align:right">')
+      +'<span style="font-size:10px;color:var(--text-3)">%</span>'
+      +'<span style="font-size:11px;min-width:96px;text-align:right;color:var(--text-2)">'+fmtN(a.amt)+'</span>'
+      +'<select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+'">'+atOpts(r.at)+'</select>'
+      +(r.at==='delivery'?('<select onchange="ctTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+'">'+netOpts(r.net)+'</select>'):'')
+      +'</div>';
+  }
+  html+='<div style="font-size:10px;margin-top:2px;color:'+(pctSum===100?'#15803d':'var(--danger)')+'">합계 '+pctSum+'%'+(pctSum!==100?' · <b>100% 아님</b>':'')+' · 입금추적은 프로젝트 → 매출 정산</div>';
+  box.innerHTML=html;
+}
+function _ctTermsSave(){ if(typeof saveState==='function') saveState(); ctRenderTermsEditor(); if(typeof renderContractPreview==='function') renderContractPreview(); }
+function ctTermCount(v){ var p=_ctCurProj(); if(!p) return; var t=_ctTermsEnsure(p); var n=Math.max(1,Math.min(3,parseInt(v,10)||1)); if(n>t.count){ while(t.rows.length<n) t.rows.push({pct:0,amt:0,at:'delivery',net:0,paid:false,paidDate:''}); } else { t.rows=t.rows.slice(0,n); } t.count=n; _ctTermsSave(); }
+function ctTermField(i,f,v){ var p=_ctCurProj(); if(!p) return; var t=_ctTermsEnsure(p); var r=t.rows[i]; if(!r) return; if(f==='pct'){ r.pct=Math.max(0,Math.min(100,parseFloat(String(v).replace(/,/g,''))||0)); } else if(f==='at'){ r.at=v; if(v!=='delivery') r.net=0; } else if(f==='net'){ r.net=parseInt(v,10)||0; } _ctTermsSave(); }
+
 function openContractModal(projId){
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(projId);});
   if(!p){ showToast('프로젝트를 먼저 저장한 뒤 생성하세요 · Save the project first, then create'); return; }
@@ -64,7 +119,7 @@ function openContractModal(projId){
   document.getElementById('ctDate').value=o.date||projTodayISO();
   document.getElementById('ctVat').value=(o.vatRate==null?8:o.vatRate);
   { var _sw=document.getElementById('ctShowWarranty'); if(_sw) _sw.checked=(o.showWarranty!==false); }
-  _ctRenderTermsSummary(p);
+  ctRenderTermsEditor();
   document.getElementById('ctPayDays').value=o.paymentDays||3;
   document.getElementById('ctDeliveryDate').value=o.deliveryDate||p.targetDate||'';
   var qs=_projQuotesC(p);
@@ -382,12 +437,13 @@ async function downloadContractPDF(){
   var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff';
   wrap.innerHTML=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); document.body.appendChild(wrap);
   showToast('PDF 생성 중...');
+  try{ if(document.fonts&&document.fonts.load){ await Promise.all([document.fonts.load('400 12px "Be Vietnam Pro"'),document.fonts.load('700 16px "Be Vietnam Pro"')]); await document.fonts.ready; } }catch(_){}
   html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
     var pdf=new window.jspdf.jsPDF('p','mm','a4');
     var W=wrap.offsetWidth||794;
     var scale=canvas.width/W;                  // css px -> canvas px
     var mmPerCss=210/W;                         // 이미지 폭 = 210mm
-    var marginMm=6, usableMm=297-marginMm*2;    // 페이지당 본문 영역(mm)
+    var topMm=12, botMm=10, usableMm=297-topMm-botMm;    // 페이지당 본문 영역(mm) — 헤더 상단 여백 확대
     var usableCss=usableMm/mmPerCss;
     var Hcss=canvas.height/scale;               // 전체 높이(css px)
     // 안전 절단 지점: 각 블록(.ct-blk)의 상단 = 블록 사이 여백 → 글자가 안 끊김
@@ -400,6 +456,12 @@ async function downloadContractPDF(){
     Array.prototype.forEach.call(wrap.querySelectorAll('.ct-soft'),function(el){
       var t=el.getBoundingClientRect().top-wrapTop; if(t>0.5) softs.push(t);
     });
+    // 조항 박스(.ct-arts) 위치 측정 — 페이지마다 박스를 닫고 새로 그리기 위함
+    var _wrc=wrap.getBoundingClientRect();
+    var _artEl=wrap.querySelector('.ct-arts'), _artT=null,_artB=null,_artL=0,_artW=0;
+    if(_artEl){ var _ar=_artEl.getBoundingClientRect(); _artT=_ar.top-_wrc.top; _artB=_artT+_ar.height; _artL=_ar.left-_wrc.left; _artW=_ar.width; }
+    // 조항: 각 행의 실제 텍스트 줄 경계에 soft 컷 지점 생성 → 연속 흐름 + 줄 잘림 없이 페이지 채움
+    if(_artEl){ var _rows=_artEl.querySelectorAll('tr'); for(var _ri=0;_ri<_rows.length;_ri++){ var _tr=_rows[_ri]; var _txt=_tr.querySelector('td>div:last-child')||_tr.querySelector('td'); if(!_txt) continue; var _tt=_txt.getBoundingClientRect().top-_wrc.top; var _rr=_tr.getBoundingClientRect(); var _rbot=(_rr.top-_wrc.top)+_rr.height; var _lh=parseFloat(getComputedStyle(_txt).lineHeight)||19.2; for(var _ly=_tt+_lh; _ly<_rbot-2; _ly+=_lh){ softs.push(_ly); } softs.push(_rbot); } }
     bnds.push(Hcss);
     bnds=bnds.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return a-b;});
     softs=softs.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return a-b;});
@@ -420,16 +482,22 @@ async function downloadContractPDF(){
       sc.width=canvas.width; sc.height=Math.max(1,Math.round(sliceCss*scale));
       sc.getContext('2d').drawImage(canvas,0,Math.round(start*scale),canvas.width,sc.height,0,0,canvas.width,sc.height);
       if(!first) pdf.addPage();
-      pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',0,marginMm,210,sliceCss*mmPerCss);
+      pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',0,topMm,210,sliceCss*mmPerCss);
+      if(_artEl){ var _oT=Math.max(start,_artT), _oB=Math.min(cut,_artB);
+        if(_oB>_oT+1){ var _yT=topMm+(_oT-start)*mmPerCss, _yB=topMm+(_oB-start)*mmPerCss;
+          var _xL=_artL*mmPerCss, _wM=_artW*mmPerCss, _xC=(_artL+_artW/2)*mmPerCss;
+          pdf.setDrawColor(51,51,51); pdf.setLineWidth(0.3);
+          pdf.rect(_xL,_yT,_wM,_yB-_yT); pdf.line(_xC,_yT,_xC,_yB); } }
       first=false; start=cut;
     }
+    try{ var _tp=pdf.getNumberOfPages(); for(var _pg=1;_pg<=_tp;_pg++){ pdf.setPage(_pg); pdf.setFontSize(9); pdf.setTextColor(120,120,120); pdf.text(String(_pg)+' / '+_tp,105,297-4,{align:'center'}); } pdf.setTextColor(0,0,0); }catch(_){}
     var _cf='Contract_'+((o.contractNo||p.client||'contract').replace(/[^a-zA-Z0-9_-]/g,'_'));
     if(window._archivePdf){ try{ window._archivePdf(pdf.output('blob'), '계약서', _cf); }catch(_){ } }
     pdf.save(_cf+'.pdf'); document.body.removeChild(wrap);
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
 }
 
-async function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); try{ var _qs=_projQuotesC(p); var _q=o.quoteId?_qs.find(function(x){return x.id===o.quoteId;}):_qs[0]; if(typeof _quoteResolveImgs==='function') await _quoteResolveImgs(_q); }catch(_){} var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
+async function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); try{ var _qs=_projQuotesC(p); var _q=o.quoteId?_qs.find(function(x){return x.id===o.quoteId;}):_qs[0]; if(typeof _quoteResolveImgs==='function') await _quoteResolveImgs(_q); }catch(_){} var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700&display=swap" rel="stylesheet"><style>@page{margin:16mm 8mm 12mm}body{font-family:\'Be Vietnam Pro\',\'Noto Sans\',Arial,sans-serif}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },700); }
 
 function openContractTpl(){
   var t=getContractTpl();
@@ -496,7 +564,7 @@ function ctTplZoom(d){ _ctTplZoom=Math.max(50,Math.min(220,_ctTplZoom+d)); rende
 
 function closeCtTplPreview(){ document.getElementById('ctTplPreviewModal').style.display='none'; }
 
-var INICS_LOGO_CT='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAVQAAABmCAMAAACjiZmVAAAAwFBMVEX+/v74ABzzAyH+ydL+6u/aFi/th5XjOk7aN0vaDCbqdobyl6X3p7PgESz+2uPWJTv7ucX+1NznZnjXK0LlV2vaRFjaVWnkRlrxkZ73srzYTWLkS2LdCB7sboLjK0XwjqDqJDzZaHjbcoTabIHdcH3/r8EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJqO4MAAAAMHRSTlP//////////////////////////////////////////////////wAAAAAAAAAAAACjyeTfAAALG0lEQVR42u2dC3erqhKA4wBGxPg2j6bd3efce///X7yCLwRUTNQkazmr3W3XFoXPgYFhhhwOu+yyyy677LLLLrvssssuu+yyyy677LLLVoJxggJ2dblcWXCLURJi68IhioOgKsxLBzFCYYjxA9WIGZfrtfxmLEimrk8CJq688hKMIYvb86td95exGFvV5lqLRW16EsbMPxeeF5FKosjziuKcukGcTD05RIGbisL90l/n1HdZiTecwRa7HpHlHI9fH5+j3vUeG31Y6GfyxS6eVZvojGYoh3v2CAVJHCEAhGRnF02WJVWRtnRTnpY1yYrzvwxZcsUso+3Dgd/ha1Q7kjMVz2uFRmwUUtTcXpQh41RFbeq7iwLUlmrC0kwQbak4NZS6mmT4TmFQlv0WlzpQ/+jeSdNWSqcUqLvhuWp092qjYOz6IJKqKv79LkbanXzVTOvG0mL0lYV5V5uqcaOvTEKaN0QbEt1v9R2H3icO0og6uoAjQxU/aRbYvWEPQC7pOOPKdCXa04k/XAAdoX+xN6p52uVlbWw6fhqBY5LeKHAOjY/0PQrm0lIHrn+jvpWqIk9jNAYVuzpU53gboaS8+xWgYnYkRh2Vhkf+u3Fci3MCoJUbxGt+MUOaag9Vf600Da2g2mjqrFdctcCPhjVNsllGqOhctwemiQptT6yhgiNVawLqCfpNEOaHjage9O4+EypMaipKiTQMG/VV/AUmIIIpyF28V0QbYyG3gspb3a/ENFRNF+igrRJQZVM6F+rJnWTqqEzVOVUNRO+6YUoBBtQcDKoKM6HO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';
+var INICS_LOGO_CT='data:image/png;base64,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';
 function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   var isKo=(lang==='ko');
   var qs=_projQuotesC(p);
@@ -529,17 +597,17 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   function fill(t,vars){ return esc(t||'').replace(/\{(\w+)\}/g,function(_,k){ var v=vars[k]; if(v==null)return '{'+k+'}'; return k==='paymentClause'?v:H(v); }).replace(/\n/g,'<br>'); }
   var KO_TITLES=['목적 · Purpose','제품 및 수량 · Product & Quantity','납품 · Delivery','결제 조건 · Payment','계약의 해지 · Termination','구매자의 권리·의무 · Buyer','공급자의 권리·의무 · Supplier','일반 조항 · General'];
   function art(no,titleVi,titleEn,viKey,enKey,ko){
+    var num=parseInt(String(no).replace(/\D/g,''))||0;
     if(isKo){
-      var idx=parseInt(String(viKey).replace(/\D/g,''))||0;
       var koKey=String(viKey).replace('Vi','Ko');
-      return '<div class="ct-blk" style="margin-top:14px"><div style="font-weight:700;font-size:15px;margin-bottom:5px">제'+idx+'조 '+(KO_TITLES[idx-1]||'')+'</div>'
-        +'<div style="padding:7px 10px;border:1px solid #ccc;font-size:13.8px;line-height:1.75">'+fill(tpl[koKey]||tpl[viKey],varsKo)+'</div></div>';
+      return '<tr style="vertical-align:top"><td style="padding:8px 11px">'
+        +'<div style="font-weight:700;font-size:13px;margin-bottom:4px">제'+num+'조 '+(KO_TITLES[num-1]||'')+'</div>'
+        +'<div style="font-size:12px;line-height:1.7">'+fill(tpl[koKey]||tpl[viKey],varsKo)+'</div></td></tr>';
     }
-    return '<div class="ct-blk" style="margin-top:12px"><div style="font-weight:700;font-size:13.2px;margin-bottom:4px">'+no+'. '+titleVi+' · '+titleEn+'</div>'
-      +'<table style="width:100%;border-collapse:collapse;font-size:11.4px;line-height:1.5"><tr style="vertical-align:top">'
-      +'<td style="width:50%;padding:5px 8px;border:1px solid #ccc">'+fill(tpl[viKey],varsVi)+'</td>'
-      +'<td style="width:50%;padding:5px 8px;border:1px solid #ccc">'+fill(tpl[enKey],varsEn)+'</td>'
-      +'</tr></table>'+(ko?KO(ko):'')+'</div>';
+    return '<tr style="vertical-align:top">'
+      +'<td style="width:50%;border-right:1px solid #555;padding:8px 11px"><div style="font-weight:700;font-size:12.5px;margin-bottom:4px">'+no+'. '+titleVi+'</div><div style="font-size:12px;line-height:1.6">'+fill(tpl[viKey],varsVi)+'</div></td>'
+      +'<td style="width:50%;padding:8px 11px"><div style="font-weight:700;font-size:12.5px;margin-bottom:4px">Article '+num+'. '+String(titleEn).toUpperCase()+'</div><div style="font-size:12px;line-height:1.6">'+fill(tpl[enKey],varsEn)+'</div>'+(ko?KO(ko):'')+'</td>'
+    +'</tr>';
   }
   var rows=lines.length?lines.map(function(l,i){
     var img=l.image?(window._img?window._img(l.image,'style="max-width:54px;max-height:44px;object-fit:contain"'):'<img src="'+l.image+'" style="max-width:54px;max-height:44px;object-fit:contain">'):'';
@@ -559,27 +627,26 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   }).join(''):'<tr><td colspan="11" style="border:1px solid #999;padding:10px;text-align:center;color:#b91c1c">'+(review?'연결된 견적이 없습니다 — 견적서를 먼저 작성/연결하세요':'')+'</td></tr>';
 
   return ''
-  +'<div style="width:754px;margin:0 auto;padding:22px 20px 30px;background:#fff;color:#111;font-family:Arial,sans-serif;box-sizing:border-box">'
-  +'<div style="position:relative;min-height:48px">'
-  +'<img src="'+INICS_LOGO_CT+'" alt="INICS" style="position:absolute;left:0;top:0;height:42px;width:auto;object-fit:contain">'
+  +'<div style="width:754px;margin:0 auto;padding:56px 24px 34px;background:#fff;color:#111;font-family:\'Be Vietnam Pro\',\'Noto Sans\',Arial,sans-serif;box-sizing:border-box">'
+  +'<div style="padding:4px 0 12px"><img src="'+INICS_LOGO_CT+'" alt="INICS" style="height:52px;width:auto;object-fit:contain;display:block"></div>'
+  +'<hr style="border:none;border-top:2px solid #111;margin:0 0 18px">'
   +(isKo
-    ? '<div style="text-align:center"><div style="font-size:20.4px;font-weight:800">가구 공급 계약서 · Furniture Supply Contract</div><div style="font-size:14.4px;font-weight:700;color:#333">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:12px;margin-top:3px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
-    : '<div style="text-align:center"><div style="font-size:19.2px;font-weight:800">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:15.6px;font-weight:700;color:#333">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:12px;color:#1d4ed8">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:12px;margin-top:3px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
-  +'</div>'
+    ? '<div style="text-align:center"><div style="font-size:16px;font-weight:800">가구 공급 계약서 · Furniture Supply Contract</div><div style="font-size:13px;font-weight:700;color:#333;margin-top:2px">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:11px;margin-top:4px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
+    : '<div style="text-align:center"><div style="font-size:16px;font-weight:800;letter-spacing:.3px">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:13px;font-weight:700;color:#333;margin-top:2px">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:11px;color:#1d4ed8;margin-top:1px">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:11px;margin-top:4px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
   +(isKo
-    ? '<div style="font-size:13.2px;margin-top:20px">본 계약은 '+H(o.date||'')+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
-    : '<div style="font-size:11.4px;margin-top:20px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
+    ? '<div style="font-size:12px;margin-top:22px">본 계약은 '+H(o.date||'')+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
+    : '<div style="font-size:12px;margin-top:22px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
 
   // Bên A 공급자 / Bên B 구매자
-  +'<div class="ct-blk" style="display:flex;gap:12px;margin-top:8px;font-size:'+(isKo?'13.2px':'11.4px')+';line-height:1.5">'
-    +'<div style="flex:1;border:1px solid #888;padding:7px 9px">'
+  +'<div style="display:flex;gap:12px;margin-top:8px;font-size:12px;line-height:1.5">'
+    +'<div style="flex:1;padding:2px 6px">'
       +'<div style="font-weight:700">'+(isKo?'갑 — 공급자 / Supplier':'Bên A – Nhà cung cấp / Supplier'+(review?'<span style="color:#1d4ed8"> · 공급자</span>':''))+'</div>'
       +'<div><b>'+INICS_INFO.nameVi+' / '+INICS_INFO.nameEn+'</b></div>'
       +'<div>'+(isKo?'주소':'Địa chỉ')+': '+INICS_INFO.addr+'</div>'
       +'<div>'+(isKo?'대표':'Đại diện')+': '+INICS_INFO.rep+' – '+INICS_INFO.repTitleVi+' / '+INICS_INFO.repTitleEn+'</div>'
       +'<div>'+(isKo?'세금코드':'MST')+': '+INICS_INFO.mst+'</div>'
     +'</div>'
-    +'<div style="flex:1;border:1px solid #888;padding:7px 9px">'
+    +'<div style="flex:1;padding:2px 6px">'
       +'<div style="font-weight:700">'+(isKo?'을 — 구매자 / Buyer':'Bên B – Bên mua / Buyer'+(review?'<span style="color:#1d4ed8"> · 구매자</span>':''))+'</div>'
       +'<div><b>'+H(p.clientFull||p.client||'')+'</b></div>'
       +'<div>'+(isKo?'주소':'Địa chỉ')+': '+H(o.buyerAddr||p.location||(review?'(미입력)':'………'))+'</div>'
@@ -589,6 +656,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   +'</div>'
   +(review?KO('공급자(Bên A)=INICS 고정, 구매자(Bên B) 정보는 옵션에서 입력 → 저장 시 거래처 DB 반영'):'')
 
+  +'<table class="ct-arts" style="width:100%;border-collapse:collapse;border:1.2px solid #333;font-size:12px;line-height:1.55;margin-top:16px">'
   +art('Điều 1','MỤC ĐÍCH','Purpose','art1Vi','art1En','계약 목적')
   +art('Điều 2','SẢN PHẨM VÀ SỐ LƯỢNG','Product & Quantity','art2Vi','art2En','제품·수량 (부록1 견적 명세)')
   +art('Điều 3','GIAO HÀNG','Delivery','art3Vi','art3En','납품: 납기 '+(o.deliveryDate||'미정')+', 장소 '+(p.deliveryPlace||'미입력'))
@@ -597,25 +665,26 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   +art('Điều 6','QUYỀN & NGHĨA VỤ BÊN MUA','Buyer','art6Vi','art6En','구매자 권리·의무')
   +art('Điều 7','QUYỀN & NGHĨA VỤ NHÀ CUNG CẤP','Supplier','art7Vi','art7En','공급자 권리·의무')
   +art('Điều 8','ĐIỀU KHOẢN CHUNG','General','art8Vi','art8En','일반 · VIAC 중재 · 2부')
+  +'</table>'
 
   // 서명란 (상단: 도장 공간 → 가운데: 줄+이름 → 하단: SUPPLIER/BUYER)
   +'<div class="ct-blk" style="display:flex;gap:16px;margin-top:24px;font-size:11.4px;text-align:center">'
     +'<div style="flex:1">'
       +'<div style="font-size:9.6px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
-      +'<div style="position:relative;height:110px">'+(review?'<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%);width:104px;height:104px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
+      +'<div style="position:relative;height:220px">'+(review?'<div style="position:absolute;left:50%;top:10px;transform:translateX(-50%);width:200px;height:200px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
       +'<div style="font-size:10.8px;color:#222;border-top:1px solid #111;padding-top:4px">'+INICS_INFO.rep+' – '+INICS_INFO.repTitleEn+'</div>'
       +'<div style="font-weight:700;margin-top:5px">'+(isKo?'공급자 대표 / Supplier':'ĐẠI DIỆN NHÀ CUNG CẤP / Supplier')+'</div>'
     +'</div>'
     +'<div style="flex:1">'
       +'<div style="font-size:9.6px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
-      +'<div style="position:relative;height:110px">'+(review?'<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%);width:104px;height:104px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
+      +'<div style="position:relative;height:220px">'+(review?'<div style="position:absolute;left:50%;top:10px;transform:translateX(-50%);width:200px;height:200px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
       +'<div style="font-size:10.8px;color:#222;border-top:1px solid #111;padding-top:4px">'+H(o.buyerRep?((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'')+(o.buyerTitle?' – '+H(o.buyerTitle):'')+'</div>'
       +'<div style="font-weight:700;margin-top:5px">'+(isKo?'구매자 대표 / Buyer':'ĐẠI DIỆN BÊN MUA / Buyer')+'</div>'
     +'</div>'
   +'</div>'
 
   // APPENDIX 1 견적 품목표
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:15.6px;font-weight:800;margin-bottom:10px">APPENDIX 1 – DESCRIPTION OF ORDER INFORMATION</div>'
+  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:16px;font-weight:800">PHỤ LỤC 1 – MÔ TẢ THÔNG TIN ĐƠN HÀNG</div><div style="height:8px"></div><div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:10px">APPENDIX 1 – DESCRIPTION OF ORDER INFORMATION</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:10.2px">'
       +'<thead><tr style="background:#f1f5f9">'
         +['No','Category','Product Name','Image','Size (WxDxH)','Code','Color','Qty','Unit Price<br>(Excl.VAT)','Amount<br>(Excl.VAT)','Remark'].map(function(h){return '<th style="border:1px solid #999;padding:4px">'+h+'</th>';}).join('')
@@ -628,7 +697,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
       +'</tfoot></table>'
   +'</div>'
 
-  +((true)?('<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:15.6px;font-weight:800;margin-bottom:3px">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH \u00b7 APPENDIX 2 \u2013 WARRANTY LETTER</div>'
+  +((true)?('<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:16px;font-weight:800">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH</div><div style="height:8px"></div><div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:3px">APPENDIX 2 \u2013 WARRANTY LETTER</div>'
     +'<div style="text-align:center;font-size:10.8px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(o.date):'') + '</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:10.8px;line-height:1.55">'
       +'<tr style="background:#f1f5f9;vertical-align:top"><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">TIẾNG VIỆT</th><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">ENGLISH</th></tr>'
