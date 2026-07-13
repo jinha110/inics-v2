@@ -374,10 +374,11 @@ function ctSyncBalance(){ var dEl=document.getElementById('ctDeposit'), bEl=docu
 
 function saveContractOpts(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); p.contractOpts=o; saveBuyerToDB(p.client,_buyerOf(o)); saveState(); if(typeof updateContractConfirmBtn==='function')updateContractConfirmBtn(); if(typeof contractAppOpen!=='undefined'&&contractAppOpen&&typeof renderContractApp==='function')renderContractApp(); showToast('계약 설정 저장 · 미확정 상태로 계약서 모듈에 표시'); }
 
-function downloadContractPDF(){
+async function downloadContractPDF(){
   if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return;
   var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState();
+  try{ var _qs=_projQuotesC(p); var _q=o.quoteId?_qs.find(function(x){return x.id===o.quoteId;}):_qs[0]; if(typeof _quoteResolveImgs==='function') await _quoteResolveImgs(_q); }catch(_){}
   var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff';
   wrap.innerHTML=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); document.body.appendChild(wrap);
   showToast('PDF 생성 중...');
@@ -428,7 +429,7 @@ function downloadContractPDF(){
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
 }
 
-function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
+async function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); try{ var _qs=_projQuotesC(p); var _q=o.quoteId?_qs.find(function(x){return x.id===o.quoteId;}):_qs[0]; if(typeof _quoteResolveImgs==='function') await _quoteResolveImgs(_q); }catch(_){} var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><style>@page{margin:8mm}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },400); }
 
 function openContractTpl(){
   var t=getContractTpl();
@@ -541,7 +542,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
       +'</tr></table>'+(ko?KO(ko):'')+'</div>';
   }
   var rows=lines.length?lines.map(function(l,i){
-    var img=l.image?'<img src="'+l.image+'" style="max-width:54px;max-height:44px;object-fit:contain">':'';
+    var img=l.image?(window._img?window._img(l.image,'style="max-width:54px;max-height:44px;object-fit:contain"'):'<img src="'+l.image+'" style="max-width:54px;max-height:44px;object-fit:contain">'):'';
     return '<tr class="ct-soft">'
       +'<td style="border:1px solid #999;padding:3px 4px;text-align:center">'+(i+1)+'</td>'
       +'<td style="border:1px solid #999;padding:3px 4px;font-size:9.6px">'+(l.category||'')+'</td>'
