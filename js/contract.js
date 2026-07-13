@@ -91,17 +91,20 @@ function ctRenderTermsEditor(){
   var html='<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">'
     +'<select onchange="ctTermCount(this.value)" style="'+inp+'">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>'
     +'<span style="font-size:10px;color:var(--text-3)">연결 견적 총액 기준 · 마지막 차수 자동보정</span></div>';
+  html+='<div style="display:flex;gap:8px;align-items:stretch">';
   for(var i=0;i<t.count;i++){ var r=t.rows[i]; var a=amts[i]; var last=(i===t.count-1);
-    html+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">'
-      +'<span style="font-weight:700;font-size:12px;min-width:26px">'+(i+1)+'차</span>'
-      +(last?'<input type="text" value="'+a.pct+'" readonly title="자동 보정" style="'+inp+';width:48px;text-align:right;background:var(--surface-2);color:var(--text-2)">':'<input type="text" inputmode="decimal" value="'+a.pct+'" onchange="ctTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:48px;text-align:right">')
-      +'<span style="font-size:10px;color:var(--text-3)">%</span>'
-      +'<span style="font-size:11px;min-width:96px;text-align:right;color:var(--text-2)">'+fmtN(a.amt)+'</span>'
-      +'<select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+'">'+atOpts(r.at)+'</select>'
-      +(r.at==='delivery'?('<select onchange="ctTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+'">'+netOpts(r.net)+'</select>'):'')
+    html+='<div style="flex:1;min-width:0;border:1px solid var(--border);border-radius:var(--radius);padding:7px 8px;background:var(--surface-2)">'
+      +'<div style="font-weight:700;font-size:12px;margin-bottom:5px">'+(i+1)+'차</div>'
+      +'<div style="display:flex;align-items:center;gap:3px;margin-bottom:5px">'
+        +(last?'<input type="text" value="'+a.pct+'" readonly title="자동 보정" style="'+inp+';width:100%;text-align:right;background:var(--surface);color:var(--text-2)">':'<input type="text" inputmode="decimal" value="'+a.pct+'" onchange="ctTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:100%;text-align:right">')
+        +'<span style="font-size:11px;color:var(--text-3)">%</span></div>'
+      +'<div style="font-size:11px;color:var(--text-2);text-align:right;margin-bottom:5px">'+fmtN(a.amt)+'</div>'
+      +'<select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+';width:100%'+(r.at==='delivery'?';margin-bottom:4px':'')+'">'+atOpts(r.at)+'</select>'
+      +(r.at==='delivery'?('<select onchange="ctTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+';width:100%">'+netOpts(r.net)+'</select>'):'')
       +'</div>';
   }
-  html+='<div style="font-size:10px;margin-top:2px;color:'+(pctSum===100?'#15803d':'var(--danger)')+'">합계 '+pctSum+'%'+(pctSum!==100?' · <b>100% 아님</b>':'')+' · 입금추적은 프로젝트 → 매출 정산</div>';
+  html+='</div>';
+  html+='<div style="font-size:10px;margin-top:6px;color:'+(pctSum===100?'#15803d':'var(--danger)')+'">합계 '+pctSum+'%'+(pctSum!==100?' · <b>100% 아님</b>':'')+' · 입금추적은 프로젝트 → 매출 정산</div>';
   box.innerHTML=html;
 }
 function _ctTermsSave(){ if(typeof saveState==='function') saveState(); ctRenderTermsEditor(); if(typeof renderContractPreview==='function') renderContractPreview(); }
@@ -120,12 +123,13 @@ function openContractModal(projId){
   document.getElementById('ctVat').value=(o.vatRate==null?8:o.vatRate);
   { var _sw=document.getElementById('ctShowWarranty'); if(_sw) _sw.checked=(o.showWarranty!==false); }
   ctRenderTermsEditor();
-  document.getElementById('ctPayDays').value=o.paymentDays||3;
+  { var _wy=document.getElementById('ctWarranty'); if(_wy) _wy.value=(o.warrantyYears!=null?o.warrantyYears:''); }
   document.getElementById('ctDeliveryDate').value=o.deliveryDate||p.targetDate||'';
   var qs=_projQuotesC(p);
   document.getElementById('ctQuote').innerHTML = qs.length
     ? qs.map(function(q){ var tot=(q.lines||[]).reduce(function(s,l){return s+qNum(l.amount);},0); return '<option value="'+q.id+'"'+(String(o.quoteId)===String(q.id)?' selected':'')+'>'+(q.quoteNo||'견적')+' · '+fmtN(tot)+' · '+(q.lines||[]).length+'품목</option>'; }).join('')
     : '<option value="">연결된 견적 없음 — 견적서에서 먼저 작성</option>';
+  { var _cc=document.getElementById('ctCurrency'); if(_cc){ var _q0=o.quoteId?qs.find(function(x){return x.id===o.quoteId;}):qs[0]; _cc.value=o.currency||(_q0&&_q0.currency)||'VND'; } }
   var _b=getBuyerFromDB(p.client);
   document.getElementById('ctBuyerRep').value=o.buyerRep||_b.rep||'';
   document.getElementById('ctBuyerGender').value=o.buyerGender||_b.gender||'female';
@@ -318,7 +322,9 @@ function _readContractOpts(){
     date:document.getElementById('ctDate').value||projTodayISO(),
     vatRate:qNum(document.getElementById('ctVat').value)||0,
     showWarranty:!!((document.getElementById('ctShowWarranty')||{}).checked),
-    paymentDays:(document.getElementById('ctPayDays').value||'').trim(),
+    paymentDays:((document.getElementById('ctPayDays')||{}).value||'').trim(),
+    warrantyYears:((document.getElementById('ctWarranty')||{}).value||'').trim(),
+    currency:((document.getElementById('ctCurrency')||{}).value||'').trim(),
     deliveryDate:document.getElementById('ctDeliveryDate').value||'',
     quoteId:qNum(document.getElementById('ctQuote').value)||null,
     buyerRep:(document.getElementById('ctBuyerRep').value||'').trim(),
@@ -572,7 +578,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   var lines=q?(q.lines||[]):[];
   var sub=lines.reduce(function(s,l){return s+qNum(l.amount);},0);
   var vatAmt=sub*o.vatRate/100, total=sub+vatAmt;
-  var cur=q?(q.currency||'VND'):'VND';
+  var cur=(o.currency||(q&&q.currency)||'VND');
   var M=function(n){return _money(n,cur);};
   var H=review?function(v){return '<mark style="background:#fff59d;padding:0 2px;border-radius:1px">'+v+'</mark>';}:function(v){return v;};
   var KO=review?function(t){return '<div style="font-size:10.8px;color:#1d4ed8;margin-top:3px">🇰🇷 '+t+'</div>';}:function(){return '';};
@@ -586,7 +592,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   var _accT=0; for(var _tj=0;_tj<_tcnt;_tj++){ if(_tj<_tcnt-1){ trows[_tj].amt=Math.round(total*trows[_tj].pct/100); _accT+=trows[_tj].amt; } else { trows[_tj].amt=Math.max(0,Math.round(total)-_accT); if(total>0) trows[_tj].pct=Math.round((trows[_tj].amt/total*100)*100)/100; } }
   var _atL=function(at,net,lang){ return (typeof termAtLabel==='function')?termAtLabel(at,net,lang):at; };
   var _ordL=function(i,lang){ return (typeof termOrdinal==='function')?termOrdinal(i,lang):((i+1)+'차'); };
-  function _whenTxt(r,lang){ var w=H(_atL(r.at,r.net,lang)); if((r.at==='po'||r.at==='ship')&&payDays){ if(lang==='vi')return w+' (trong vòng '+H(payDays)+' ngày làm việc)'; if(lang==='en')return w+' (within '+H(payDays)+' working days)'; return w+' ('+H(payDays)+' 영업일 이내)'; } return w; }
+  function _whenTxt(r,lang){ return H(_atL(r.at,r.net,lang)); }
   function _payLine(lang){ return trows.map(function(r,i){ var seg=_ordL(i,lang)+' — '+H(r.pct+'%')+' ('+H(M(r.amt))+'), '+_whenTxt(r,lang); if(i===0&&_tcnt>1){ if(lang==='vi')seg+='. Thời gian sản xuất và giao hàng (Lead Time) được tính từ ngày khoản này được ghi có đầy đủ vào tài khoản của Nhà Cung Cấp'; else if(lang==='en')seg+='. The production and delivery lead time shall be counted from the date this payment is fully credited to the Supplier\u2019s account'; else seg+='. 생산·인도 리드타임은 본 회차가 공급자 계좌에 완전히 입금된 날로부터 기산한다'; } return seg+'.'; }).join(' '); }
   var payVi=_payLine('vi'), payEn=_payLine('en'), payKo=_payLine('ko');
   var baseVars={ no:o.contractNo||'', date:o.date||'', deliveryDate:o.deliveryDate||(review?'(미정)':'………'), deliveryPlace:p.deliveryPlace||(review?'(미입력)':'………'), total:M(total), paymentDays:payDays, warrantyYears:o.warrantyYears||'', cureDays:'' };
@@ -678,7 +684,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
     +'<div style="flex:1">'
       +'<div style="font-size:9.6px;color:#777;margin-bottom:2px">'+(isKo?'(서명 및 회사 직인)':'(Ký tên &amp; đóng dấu / Signature &amp; Company Seal)')+'</div>'
       +'<div style="position:relative;height:220px">'+(review?'<div style="position:absolute;left:50%;top:10px;transform:translateX(-50%);width:200px;height:200px;border:1px dashed #d4d4d4;border-radius:50%"></div>':'')+'</div>'
-      +'<div style="font-size:10.8px;color:#222;border-top:1px solid #111;padding-top:4px">'+H(o.buyerRep?((o.buyerGender==='male'?'Ông ':'Bà ')+o.buyerRep):'')+(o.buyerTitle?' – '+H(o.buyerTitle):'')+'</div>'
+      +'<div style="font-size:10.8px;color:#222;border-top:1px solid #111;padding-top:4px">'+H(o.buyerRep||'')+(o.buyerTitle?' – '+H(o.buyerTitle):'')+'</div>'
       +'<div style="font-weight:700;margin-top:5px">'+(isKo?'구매자 대표 / Buyer':'ĐẠI DIỆN BÊN MUA / Buyer')+'</div>'
     +'</div>'
   +'</div>'
