@@ -627,7 +627,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   }).join(''):'<tr><td colspan="11" style="border:1px solid #999;padding:10px;text-align:center;color:#b91c1c">'+(review?'연결된 견적이 없습니다 — 견적서를 먼저 작성/연결하세요':'')+'</td></tr>';
 
   return ''
-  +'<div style="width:754px;margin:0 auto;padding:56px 24px 34px;background:#fff;color:#111;font-family:\'Be Vietnam Pro\',\'Noto Sans\',Arial,sans-serif;box-sizing:border-box">'
+  +'<div style="width:754px;margin:0 auto;padding:24px 24px 34px;background:#fff;color:#111;font-family:\'Be Vietnam Pro\',\'Noto Sans\',Arial,sans-serif;box-sizing:border-box">'
   +'<div style="padding:4px 0 12px"><img src="'+INICS_LOGO_CT+'" alt="INICS" style="height:52px;width:auto;object-fit:contain;display:block"></div>'
   +'<hr style="border:none;border-top:2px solid #111;margin:0 0 18px">'
   +(isKo
