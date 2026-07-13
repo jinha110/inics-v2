@@ -178,7 +178,7 @@
       if (d === "_FUR_UNSPLIT") { unsplit.push(t); d = CHASAN_CFG.furnitureDefault; }
       if (!t.dept && !t.chasanDept) { untagged++; untaggedList.push(t); }
       var into = buckets[d] || buckets.COMMON;
-      if (kind === "opex") { if (_isFixedCat(t.category)) return; into.opex += debit - credit; }
+      if (kind === "opex") into.opex += debit - credit;
       else { uncat.count++; uncat.debit += debit; uncat.credit += credit; uncatList.push(t); }
     });
     return { ym: ym, byDept: buckets, uncat: uncat, untagged: untagged, excludedOpexSkipped: excludedSum, unsplit: unsplit, uncatList: uncatList, untaggedList: untaggedList };
@@ -237,6 +237,32 @@
   window.chasanFixDelOpex = function (i) { if (_fixed && _fixed.opex) { _fixed.opex.splice(i, 1); renderChasanPage(); } };
   window.chasanFixSetOpex = function (i, field, val) { if (_fixed && _fixed.opex && _fixed.opex[i]) { _fixed.opex[i][field] = (field === "amount") ? (parseFloat(String(val).replace(/,/g, "")) || 0) : val; } };
   window.chasanFixSaveBtn = async function () { try { await chasanFixedSave(); if (typeof showToast === "function") showToast("고정비 저장 · Saved"); renderChasanPage(); } catch (e) { alert("저장 실패: " + (e && e.message)); } };
+  window._chasanFixedPanelHTML = function () {
+    var _fx = _fixed || { labor: [], opex: [] };
+    var _fxDept = function (cur, cb) { return '<select onchange="' + cb + '" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px">' + DEPTS.map(function (d) { return '<option' + (d === cur ? ' selected' : '') + '>' + E(d) + '</option>'; }).join('') + '</select>'; };
+    var _fxCat = function (cur, cb) { var o = (typeof bankCategoryOptions === 'function') ? bankCategoryOptions(cur || '') : ('<option>' + E(cur || '') + '</option>'); return '<select onchange="' + cb + '" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px;max-width:160px">' + o + '</select>'; };
+    var _fxRow = function (e, i, kind) {
+      var nf = kind === 'labor' ? 'name' : 'label';
+      var setfn = kind === 'labor' ? 'chasanFixSetLabor' : 'chasanFixSetOpex';
+      var delfn = kind === 'labor' ? 'chasanFixDelLabor' : 'chasanFixDelOpex';
+      return '<tr>'
+        + '<td style="padding:3px 6px"><input value="' + E(e[nf] || '') + '" onchange="' + setfn + '(' + i + ',\'' + nf + '\',this.value)" style="width:100%;min-width:90px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px"></td>'
+        + '<td style="padding:3px 6px;text-align:right"><input value="' + F(e.amount || 0) + '" onchange="' + setfn + '(' + i + ',\'amount\',this.value)" style="width:104px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;text-align:right;font-family:var(--mono)"></td>'
+        + '<td style="padding:3px 6px">' + _fxDept(e.dept, setfn + '(' + i + ',\'dept\',this.value)') + '</td>'
+        + '<td style="padding:3px 6px">' + _fxCat(e.category, setfn + '(' + i + ',\'category\',this.value)') + '</td>'
+        + '<td style="padding:3px 6px;text-align:right"><button onclick="' + delfn + '(' + i + ')" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:10px;padding:2px 7px;border-radius:5px;color:var(--danger)">삭제</button></td></tr>';
+    };
+    var _fxHead = '<thead><tr style="background:var(--surface-2)"><th style="padding:4px 6px;text-align:left;font-size:10px">이름/항목</th><th style="padding:4px 6px;text-align:right;font-size:10px">월 금액</th><th style="padding:4px 6px;text-align:left;font-size:10px">부서</th><th style="padding:4px 6px;text-align:left;font-size:10px">은행 카테고리(변동비 제외용)</th><th></th></tr></thead>';
+    return '<details open style="margin:0 16px 12px;border:1px solid var(--border);border-radius:10px;padding:0 12px">'
+      + '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--text-2);padding:10px 0">💼 채산 고정비 패널 · Fixed Costs (인건비 ' + _fx.labor.length + '명 · 판관비 ' + _fx.opex.length + '건) — 매달 고정 · 카테고리는 은행 변동비에서 자동 제외</summary>'
+      + '<div style="font-size:11px;font-weight:700;color:#1d4ed8;margin:4px 0">인건비 · Labor (직원별)</div>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">' + _fxHead + '<tbody>' + _fx.labor.map(function (e, i) { return _fxRow(e, i, 'labor'); }).join('') + '</tbody></table></div>'
+      + '<div style="padding:5px 0"><button onclick="chasanFixAddLabor()" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:4px 11px;border-radius:6px">＋ 직원 추가</button></div>'
+      + '<div style="font-size:11px;font-weight:700;color:#b45309;margin:8px 0 4px">고정판관비 · Fixed OpEx (항목별)</div>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">' + _fxHead + '<tbody>' + _fx.opex.map(function (e, i) { return _fxRow(e, i, 'opex'); }).join('') + '</tbody></table></div>'
+      + '<div style="padding:5px 0 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button onclick="chasanFixAddOpex()" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:4px 11px;border-radius:6px">＋ 항목 추가</button><button onclick="chasanFixSaveBtn()" style="border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer;font-size:11px;padding:5px 14px;border-radius:7px">저장 · Save & Recalc</button><span style="font-size:10px;color:var(--text-3)">한 번 입력 → 모든 달 고정. 카테고리 지정 시 그 은행 거래는 변동비에서 빠져 이중계상 방지.</span></div>'
+      + '</details>';
+  };
   function _fixDept(e) { return (e && e.dept && DEPTS.indexOf(e.dept) >= 0) ? e.dept : "COMMON"; }
   function _fixedLaborByDept() { var o = {}; DEPTS.forEach(function (d) { o[d] = 0; }); ((_fixed && _fixed.labor) || []).forEach(function (e) { o[_fixDept(e)] += (+e.amount || 0); }); return o; }
   function _fixedOpexByDept() { var o = {}; DEPTS.forEach(function (d) { o[d] = 0; }); ((_fixed && _fixed.opex) || []).forEach(function (e) { o[_fixDept(e)] += (+e.amount || 0); }); return o; }
@@ -251,7 +277,6 @@
     if (_catMap === null) await chasanCatMapLoad();
     if (_cogsVendors === null) await chasanCogsVendorsLoad();
     if (_fixed === null) await chasanFixedLoad();
-    var _fLab = _fixedLaborByDept(), _fOpex = _fixedOpexByDept(), _fHead = _fixedHeadByDept();
     var bank = chasanBankAgg(ym);
     var inv = chasanInvoiceAgg(ym);
     var lab = await chasanLabor(ym, opts);
@@ -259,11 +284,11 @@
     var byDept = {};
     DEPTS.forEach(function (t) {
       var b = bank.byDept[t], iv = inv.byDept[t];
-      var revenue = Math.round(iv.revenue), cogs = Math.round(iv.cogs), labor = Math.round(_fLab[t] || 0), opex = Math.round((_fOpex[t] || 0) + (b.opex || 0)), extra = Math.round(ex[t] || 0);
+      var revenue = Math.round(iv.revenue), cogs = Math.round(iv.cogs), labor = Math.round(lab.byDept[t] || 0), opex = Math.round(b.opex), extra = Math.round(ex[t] || 0);
       var op = revenue - cogs - labor - opex - extra;
       byDept[t] = { revenue: revenue, cogs: cogs, labor: labor, opex: opex, extra: extra, op: op, margin: revenue ? op / revenue : 0 };
     });
-    var headByDept = {}; DEPTS.forEach(function (t) { headByDept[t] = _fHead[t] || 0; });
+    var headByDept = {}; DEPTS.forEach(function (t) { headByDept[t] = lab.head ? (lab.head[t] || 0) : 0; });
     if (CHASAN_CFG.allocateCommon) {
       var com = byDept.COMMON;
       var _keys = ["revenue", "cogs", "labor", "opex", "extra"];   // 매출 포함 전항목 재분배 → 총계 불변
@@ -424,6 +449,7 @@
     (( _fixed && _fixed.opex) || []).forEach(function (e) { var d = DEPTS.indexOf(e.dept) >= 0 ? e.dept : "COMMON"; var a = +e.amount || 0; fxRaw[d] += a; (fxItems[d] || (fxItems[d] = [])).push({ kind: "fixed", label: (e.label || e.category || "고정비") + " (고정비 패널)", amt: a }); });
     var fxDirect = {}; DEPTS.forEach(function (t) { fxDirect[t] = fxRaw[t]; });
     var fx = {}; DEPTS.forEach(function (t) { fx[t] = fxRaw[t]; });
+    var _plab = _fixedLaborByDept(); var laborD = {}; DEPTS.forEach(function (t) { laborD[t] = _plab[t] || 0; });
     var allocInfo = { on: !!CHASAN_CFG.allocateCommon, factor: 1, weights: CHASAN_CFG.commonWeights || {}, commonDirect: fxDirect.COMMON || 0 };
     if (CHASAN_CFG.allocateCommon) {
       var wsum = REVENUE_DEPTS.reduce(function (a, t) { return a + (CHASAN_CFG.commonWeights[t] || 0); }, 0);
@@ -432,10 +458,13 @@
       var comfx = fx.COMMON;
       REVENUE_DEPTS.forEach(function (t) { fx[t] += comfx * ((CHASAN_CFG.commonWeights[t] || 0) * factor); });
       fx.COMMON = norm ? 0 : comfx * Math.max(0, 1 - wsum);
+      var comlab = laborD.COMMON;
+      REVENUE_DEPTS.forEach(function (t) { laborD[t] += comlab * ((CHASAN_CFG.commonWeights[t] || 0) * factor); });
+      laborD.COMMON = norm ? 0 : comlab * Math.max(0, 1 - wsum);
     }
     var out = {}, tot = { labor: 0, fixedOpex: 0, bepRev: 0, cogs: 0 };
     DEPTS.forEach(function (t) {
-      var labor = Math.round((r.byDept[t] && r.byDept[t].labor) || 0);
+      var labor = Math.round(laborD[t] || 0);
       var fo = Math.round(fx[t] || 0);
       var bep = cm > 0 ? Math.round((labor + fo) / cm) : 0;
       out[t] = { labor: labor, fixedOpex: fo, bepRev: bep, cogs: Math.round(bep * cogsRate) };
@@ -462,7 +491,7 @@
       var allocPct = (ai.on && isRev) ? Math.round((ai.weights[dept] || 0) * ai.factor * 100) : 0;
       var h = '<div style="background:var(--surface-2);border-radius:10px;padding:12px 14px;margin:8px 16px">';
       h += '<div style="font-size:12px;font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between"><span>' + E(dept) + ' · 예상채산 구성 · Forecast breakdown</span><a href="javascript:void(0)" onclick="chasanFcToggleDept(\'' + dept + '\')" style="color:var(--text-3);text-decoration:none;font-size:11px">닫기 ✕</a></div>';
-      h += _fcRowLine("인건비 · Labor (전월 확정)", b.labor);
+      h += _fcRowLine("인건비 · Labor (고정비 패널)", b.labor);
       h += '<div style="font-size:11px;color:var(--text-3);margin:6px 0 2px">고정판관비 · Fixed OpEx (직접귀속)</div>';
       if (items.length) items.forEach(function (it) {
         var lbl = it.kind === "manual" ? (E(it.label) + ' <span style="color:var(--text-3)">(수동)</span>') : ((it.date ? E(it.date) + " · " : "") + E(it.cat) + (it.note ? " · " + E(it.note) : ""));
@@ -484,8 +513,8 @@
         + T.map(function (t) { return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono)' + _cellClick(t) + '>' + F2(fc.byDept[t][key]) + '</td>'; }).join("")
         + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700">' + F2(fc.totals[key]) + '</td></tr>';
     };
-    var h = '<div style="margin:0 16px 12px"><div style="font-size:13px;font-weight:700;color:var(--text-2);padding:8px 0">📊 다음달 예상채산 (BEP) · Next-month Break-even Forecast</div>';
-    h += '<div style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.9">가정 · Assumptions: 매입원가 <input type="number" value="' + Math.round(fc.cogsRate * 100) + '" onchange="chasanFcSetCogs(this.value)" style="width:46px;text-align:right;border:1px solid var(--border);border-radius:5px;padding:2px 4px;font-size:11px">% (공헌이익률 ' + Math.round(fc.cm * 100) + '%) · 인건비=전월 확정 · 고정판관비=아래 선택분 · BEP=영업이익 0 최소매출</div>';
+    var h = ((typeof _chasanFixedPanelHTML === "function") ? _chasanFixedPanelHTML() : "") + '<div style="margin:0 16px 12px"><div style="font-size:13px;font-weight:700;color:var(--text-2);padding:8px 0">📊 다음달 예상채산 (BEP) · Next-month Break-even Forecast</div>';
+    h += '<div style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.9">가정 · Assumptions: 매입원가 <input type="number" value="' + Math.round(fc.cogsRate * 100) + '" onchange="chasanFcSetCogs(this.value)" style="width:46px;text-align:right;border:1px solid var(--border);border-radius:5px;padding:2px 4px;font-size:11px">% (공헌이익률 ' + Math.round(fc.cm * 100) + '%) · 인건비·고정판관비=고정비 패널(아래) · BEP=영업이익 0 최소매출</div>';
     h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--text-3)">항목 · Item</th>'
       + T.map(function (t) { return '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">' + E(t) + '</th>'; }).join("")
       + '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">합계 (' + _unit + ')</th></tr></thead><tbody>'
@@ -670,30 +699,7 @@
       }).join("")
       + '</tbody></table></div>'
       + '<div style="padding:8px 0;display:flex;gap:10px;align-items:center"><button onclick="chasanLwSaveBtn()" style="border:1px solid var(--text);background:none;cursor:pointer;font-size:11px;padding:6px 12px;border-radius:7px">가중치 저장 · Save & Recalc</button><span style="font-size:10px;color:var(--text-3)">빈칸 = 부서 기본값(placeholder). 합이 100이 아니면 비율대로 정규화.</span></div></details>';
-    var _fx = _fixed || { labor: [], opex: [] };
-    var _fxDept = function (cur, cb) { return '<select onchange="' + cb + '" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px">' + DEPTS.map(function (d) { return '<option' + (d === cur ? ' selected' : '') + '>' + E(d) + '</option>'; }).join('') + '</select>'; };
-    var _fxCat = function (cur, cb) { var o = (typeof bankCategoryOptions === 'function') ? bankCategoryOptions(cur || '') : ('<option>' + E(cur || '') + '</option>'); return '<select onchange="' + cb + '" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px;max-width:160px">' + o + '</select>'; };
-    var _fxRow = function (e, i, kind) {
-      var nf = kind === 'labor' ? 'name' : 'label';
-      var setfn = kind === 'labor' ? 'chasanFixSetLabor' : 'chasanFixSetOpex';
-      var delfn = kind === 'labor' ? 'chasanFixDelLabor' : 'chasanFixDelOpex';
-      return '<tr>'
-        + '<td style="padding:3px 6px"><input value="' + E(e[nf] || '') + '" onchange="' + setfn + '(' + i + ',\'' + nf + '\',this.value)" style="width:100%;min-width:90px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px"></td>'
-        + '<td style="padding:3px 6px;text-align:right"><input value="' + F(e.amount || 0) + '" onchange="' + setfn + '(' + i + ',\'amount\',this.value)" style="width:104px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;text-align:right;font-family:var(--mono)"></td>'
-        + '<td style="padding:3px 6px">' + _fxDept(e.dept, setfn + '(' + i + ',\'dept\',this.value)') + '</td>'
-        + '<td style="padding:3px 6px">' + _fxCat(e.category, setfn + '(' + i + ',\'category\',this.value)') + '</td>'
-        + '<td style="padding:3px 6px;text-align:right"><button onclick="' + delfn + '(' + i + ')" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:10px;padding:2px 7px;border-radius:5px;color:var(--danger)">삭제</button></td></tr>';
-    };
-    var _fxHead = '<thead><tr style="background:var(--surface-2)"><th style="padding:4px 6px;text-align:left;font-size:10px">이름/항목</th><th style="padding:4px 6px;text-align:right;font-size:10px">월 금액</th><th style="padding:4px 6px;text-align:left;font-size:10px">부서</th><th style="padding:4px 6px;text-align:left;font-size:10px">은행 카테고리(변동비 제외용)</th><th></th></tr></thead>';
-    var fixedPanel = '<details open style="margin:0 16px 12px;border:1px solid var(--border);border-radius:10px;padding:0 12px">'
-      + '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--text-2);padding:10px 0">💼 채산 고정비 패널 · Fixed Costs (인건비 ' + _fx.labor.length + '명 · 판관비 ' + _fx.opex.length + '건) — 매달 고정 · 카테고리는 은행 변동비에서 자동 제외</summary>'
-      + '<div style="font-size:11px;font-weight:700;color:#1d4ed8;margin:4px 0">인건비 · Labor (직원별)</div>'
-      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">' + _fxHead + '<tbody>' + _fx.labor.map(function (e, i) { return _fxRow(e, i, 'labor'); }).join('') + '</tbody></table></div>'
-      + '<div style="padding:5px 0"><button onclick="chasanFixAddLabor()" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:4px 11px;border-radius:6px">＋ 직원 추가</button></div>'
-      + '<div style="font-size:11px;font-weight:700;color:#b45309;margin:8px 0 4px">고정판관비 · Fixed OpEx (항목별)</div>'
-      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">' + _fxHead + '<tbody>' + _fx.opex.map(function (e, i) { return _fxRow(e, i, 'opex'); }).join('') + '</tbody></table></div>'
-      + '<div style="padding:5px 0 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button onclick="chasanFixAddOpex()" style="border:1px solid var(--border);background:none;cursor:pointer;font-size:11px;padding:4px 11px;border-radius:6px">＋ 항목 추가</button><button onclick="chasanFixSaveBtn()" style="border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer;font-size:11px;padding:5px 14px;border-radius:7px">저장 · Save & Recalc</button><span style="font-size:10px;color:var(--text-3)">한 번 입력 → 모든 달 고정. 카테고리 지정 시 그 은행 거래는 변동비에서 빠져 이중계상 방지.</span></div>'
-      + '</details>';
+
 
     // EXTRA 비용 에디터
     var extra = _extra[ym] || [];
@@ -768,7 +774,7 @@
       + '<div class="form-card" style="padding:0;overflow:hidden">'
       + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
       + '<div><div style="font-size:14px;font-weight:700">부서 채산 · Departmental P&L — ' + E(ym) + '</div>'
-      + '<div style="font-size:11px;color:var(--text-3)">매출·매입원가=인보이스 발생주의(매출 ' + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + ') · 기본부서 FUR VN · 인건비·고정판관비=고정비 패널 · 변동판관비=은행(고정카테고리 제외)' + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
+      + '<div style="font-size:11px;color:var(--text-3)">매출·매입원가=인보이스 발생주의(매출 ' + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + ') · 기본부서 FUR VN · 판관비=현금주의 · 인건비=' + (r.laborFinalized ? "확정대장" : "라이브(" + r.laborSource + ")") + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
       + '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csAlloc"' + (CHASAN_CFG.allocateCommon ? " checked" : "") + '> COMMON 배분 · Allocate</label>'
       + '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csUsd"' + (_usd ? " checked" : "") + '> USD</label>'
@@ -793,7 +799,7 @@
       + pcline()
       + phline()
       + '</tbody></table></div>'
-      + retag + uncatPanel + untagPanel + invDqPanel + cogsVendorEditor + fixedPanel + extraEditor
+      + retag + uncatPanel + untagPanel + invDqPanel + cogsVendorEditor + lwEditor + extraEditor
       + '<p style="font-size:11px;color:var(--text-3);padding:8px 16px;line-height:1.6">매출·매입원가=인보이스 발생주의(매출=발행 인보이스 / 매입원가=지정 업체 수취 인보이스, 모두 공급가액·VAT 제외) · 판관비=현금주의(뱅크) · 인건비=확정대장 tc 인원별 가중치 4부서 분배. <b>부서 기본값=FUR VN</b> — 매출/매입원가 셀을 클릭하면 인보이스별 드롭다운으로 FUR MX·SOURCING 등으로 변경, 또는 <b>「자산·Asset(제외)」</b>로 지정하면 매출원가에서 빠집니다(자본적 지출·자산 취득분). COMMON은 배분 ON 시 FUR VN/FUR MX/SOURCING에 3:3:1 완전분배.</p></div>';
 
     var usdEl = host.querySelector("#csUsd"), rateEl = host.querySelector("#csRate"), allocEl = host.querySelector("#csAlloc");
