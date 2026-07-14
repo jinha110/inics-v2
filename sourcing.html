@@ -147,6 +147,11 @@ tbody tr.clickable:hover{background:#FBFAF6}
 .prow{display:flex;align-items:center;gap:12px}
 
 .addbtn{border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:8px;white-space:nowrap;transition:.13s;display:inline-flex;align-items:center;gap:6px}
+.add-chips{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.chip-add{border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;white-space:nowrap;cursor:pointer;transition:.13s}
+.chip-add:hover{border-color:var(--brass);color:var(--brass)}
+.chip-add.on{background:var(--furn);border-color:var(--furn);color:#fff}
+.chip-add.on:hover{color:#fff;filter:brightness(1.05)}
 .addbtn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .addbtn.added{background:var(--furn);border-color:var(--furn);color:#fff}
 .empty{text-align:center;padding:52px 20px;color:var(--muted)}
@@ -195,6 +200,8 @@ tbody tr.clickable:hover{background:#FBFAF6}
 
 /* 관리자 DB */
 .admin-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.adm-search{flex:1;min-width:200px;border:1px solid var(--line-strong);background:var(--card);border-radius:9px;padding:9px 13px;font-size:13px;color:var(--ink)}
+.adm-search:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(169,121,31,.13)}
 .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden;background:var(--card)}
 .seg button{border:none;background:transparent;padding:8px 15px;font-size:12.5px;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--ink);color:#fff}
@@ -686,6 +693,7 @@ const SEED={products:withPrice([
 let S = store.load() || {products:SEED.products,cart:[],currency:"USD",quote:{client:"",no:autoQuoteNo()}};
 S.products = S.products?.length ? S.products : SEED.products;
 S.cart ||= []; S.currency ||= "USD"; S.quote ||= {client:"",no:autoQuoteNo()};
+S.cart.forEach(l=>{ if(!l.uid) l.uid=l.id+"#"+Math.random().toString(36).slice(2,8); if(l.color==null)l.color=""; });
 S.doc ||= "quote";
 S.invoice ||= {no:"",ref:"",due:"",terms:"100% within 15 days from invoice date / 100% trong vòng 15 ngày kể từ ngày phát hành",buyer:{name:"INICS AMERICA, S.A. de C.V.",tax:"PTS080904M71",addr:"Av. Industrial 201, Parque Industrial La Silla, Apodaca, Nuevo León, CP 66648, México",attn:"",email:""}};
 S.invoice.buyer ||= {name:"INICS AMERICA, S.A. de C.V.",tax:"PTS080904M71",addr:"Av. Industrial 201, Parque Industrial La Silla, Apodaca, Nuevo León, CP 66648, México",attn:"",email:""};
@@ -699,7 +707,7 @@ function clsChips(cat){ return ["전체", ...allCls(cat)]; }
 function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys=(p.fursys||[]).map(x=> typeof x==="string"?{model:x,price:0}:{model:(x&&x.model)||"",price:(x&&+x.price)||0});p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;p.url??="";p.colors??=[];if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
 normalizeProducts();
 
-let unlocked=false, view="home", adminCat="furniture";
+let unlocked=false, view="home", adminCat="furniture", adminQ="";
 let adminSel=new Set();
 function updateBulkBar(){
   const bar=document.getElementById("bulkBar"); if(!bar)return;
@@ -842,6 +850,8 @@ function fmt(n){const c=CUR[S.currency],v=isFinite(n)?n:0;return c.sym+v.toLocal
 function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
 function byId(id){return S.products.find(p=>p.id===id);}
 function counts(){return{furniture:S.products.filter(p=>p.cat==="furniture").length,consumable:S.products.filter(p=>p.cat==="consumable").length};}
+function newUid(id){return id+"#"+Math.random().toString(36).slice(2,8);}
+function mountAdminSearch(){const inp=document.getElementById("adminSearch");if(!inp)return;inp.addEventListener("input",()=>{adminQ=inp.value;render();const ni=document.getElementById("adminSearch");if(ni){ni.focus();ni.setSelectionRange(ni.value.length,ni.value.length);}});}
 function cartCount(){return S.cart.reduce((s,l)=>s+l.qty,0);}
 function linePrice(l){const p=byId(l.id);return l.price==null?(p?p.price:0):l.price;}
 function cartTotals(){let cost=0,sell=0,cbm=0;S.cart.forEach(l=>{const p=byId(l.id);if(!p)return;cost+=p.cost*l.qty;sell+=linePrice(l)*l.qty;cbm+=(p.cbm||0)*l.qty;});return{cost,sell,cbm,profit:sell-cost};}
@@ -878,7 +888,7 @@ function render(){
   if(view==="home") app.innerHTML=viewHome();
   else if(view==="furniture"||view==="consumable"){app.innerHTML=viewSearch(view);mountSearch(view);}
   else if(view==="cart") app.innerHTML=viewCart();
-  else if(view==="admin") { app.innerHTML=viewAdmin(); updateBulkBar(); }
+  else if(view==="admin") { app.innerHTML=viewAdmin(); mountAdminSearch(); updateBulkBar(); }
   else if(view==="form"){ app.innerHTML=viewForm(); mountForm(); }
 }
 function renderNav(){
@@ -949,14 +959,14 @@ function renderResults(cat){
   if(!list.length){box.innerHTML=`<div class="tablewrap"><div class="empty">${I.search}<p>일치하는 품목이 없습니다. / No matching items.</p><small>검색어·필터를 바꿔보세요. / Adjust search or filter.</small></div></div>`;return;}
   const isFurn=cat==="furniture";
   const rows=list.map(p=>{
-    const inCart=S.cart.some(l=>l.id===p.id);
+    const addCell=(p.colors&&p.colors.length)?`<div class="add-chips">${p.colors.map(c=>{const on=S.cart.some(l=>l.id===p.id&&(l.color||"")===c.name);return `<button class="chip-add ${on?"on":""}" data-addc="${p.id}" data-clr="${esc(c.name)}">${on?"✓":"+"} ${esc(c.name)}</button>`;}).join("")}</div>`:`<button class="addbtn ${S.cart.some(l=>l.id===p.id&&!l.color)?"added":""}" data-add="${p.id}">${S.cart.some(l=>l.id===p.id&&!l.color)?"✓ 담김":`${I.plus} 견적`}</button>`;
     const fursys=isFurn?`<div class="fursys-list">${(p.fursys||[]).map(x=>{const a=(x.model||"").split(" "),code=a.pop(),nm=a.join(" ");return `<span class="fursys-pill">${esc(nm)} <em>${esc(code)}</em></span>`;}).join("")||'<span class="pspec">— 매핑 없음 / none</span>'}</div>`:`<span class="pspec">${esc(p.unit)}</span>`;
     return `<tr class="clickable" data-open="${p.id}">
       <td><div class="prow">${thumb(p)}<div><div class="pname">${esc(p.name)}<span class="en">${esc(p.nameEn)}</span></div><div class="sku">${esc(p.sku)}</div></div></div></td>
       <td><span class="cls-tag ${isFurn?"":"cons"}">${esc(p.cls)} <span class="en">${clsEn(p.cls)}</span></span></td>
       <td>${fursys}</td>
       <td><span class="price">${fmt(p.price)}</span></td>
-      <td style="text-align:right"><button class="addbtn ${inCart?"added":""}" data-add="${p.id}">${inCart?"✓ 담김":`${I.plus} 견적`}</button></td>
+      <td style="text-align:right">${addCell}</td>
     </tr>`;
   }).join("");
   box.innerHTML=`
@@ -979,13 +989,13 @@ function viewCart(){
     const costCell=unlocked?`<td class="num"><span class="cost shown">${fmt(p.cost)}</span></td><td class="num"><span class="mgpct ${mg>=0?"pos":"neg"}">${mg.toFixed(0)}%</span></td>`:"";
     return `<tr>
       <td><div class="prow">${thumb(p)}<div><div class="pname">${esc(p.name)}<span class="en">${esc(p.nameEn)}</span></div><div class="sku">${esc(p.sku)}</div></div></div></td>
-      <td><div class="qty"><button data-qty="${l.id}" data-d="-1">−</button><input class="num" data-qtyin="${l.id}" value="${l.qty}"/><button data-qty="${l.id}" data-d="1">+</button></div></td>
-      <td><input class="clr-input" data-color="${l.id}" value="${esc(l.color||'')}" placeholder="예: Black"/></td>
-      <td><input class="pr-input" data-price="${l.id}" value="${up}"/></td>
+      <td><div class="qty"><button data-qty="${l.uid}" data-d="-1">−</button><input class="num" data-qtyin="${l.uid}" value="${l.qty}"/><button data-qty="${l.uid}" data-d="1">+</button></div></td>
+      <td><input class="clr-input" data-color="${l.uid}" value="${esc(l.color||'')}" placeholder="예: Black"/></td>
+      <td><input class="pr-input" data-price="${l.uid}" value="${up}"/></td>
       ${costCell}
       <td class="num" style="color:var(--cons)">${(p.cbm*l.qty).toFixed(3)}</td>
       <td class="num" style="color:var(--brass);font-weight:600">${fmt(up*l.qty)}</td>
-      <td><button class="rm" data-rm="${l.id}" title="삭제 / remove">${I.trash}</button></td>
+      <td><button class="rm" data-rm="${l.uid}" title="삭제 / remove">${I.trash}</button></td>
     </tr>`;
   }).join("");
   const costHead=unlocked?`<th>원가 / Cost</th><th>마진 / Mgn</th>`:"";
@@ -1023,7 +1033,7 @@ function viewCart(){
 /* 관리자 패널 · 제품 DB (컴팩트 · 다중선택 삭제) */
 function viewAdmin(){
   if(!unlocked){view="home";render();return"";}
-  const cat=adminCat, list=S.products.filter(p=>p.cat===cat), isFurn=cat==="furniture";
+  const cat=adminCat, list=S.products.filter(p=>p.cat===cat&&(!adminQ.trim()||matchProduct(p,{cls:"전체",q:adminQ}))), isFurn=cat==="furniture";
   const ids=new Set(list.map(p=>p.id)); [...adminSel].forEach(id=>{if(!ids.has(id))adminSel.delete(id);});
   const chips=(arr,cls)=>arr.map(a=>`<a class="att-chip ${cls}" href="${a.url}" target="_blank" rel="noopener" download title="${esc(a.name)}">${fileIcon(a)}</a>`).join("");
   const rows=list.map(p=>{
@@ -1048,6 +1058,7 @@ function viewAdmin(){
   <div class="admin-note">${I.lock}<span>일반 사용자는 검색만 가능. 등록/편집은 팝업, 첨부는 Firebase 저장. 사진 칸 클릭 → Ctrl+V. 가격 ${PRICE_TERM} 기준. / Add·edit via popup; files on Firebase.</span></div>
   <div class="admin-bar">
     <div class="seg"><button class="${isFurn?"on":""}" data-acat="furniture">가구 대체품 / Furniture</button><button class="${!isFurn?"on":""}" data-acat="consumable">소모품 / Consumables</button></div>
+    <input id="adminSearch" class="adm-search" type="text" placeholder="🔍 검색 / Search (name, SKU, model…)" value="${esc(adminQ)}" autocomplete="off"/>
     <button class="mini-btn" data-applymg="1">판가 = 원가 +${DEFAULT_MARGIN}% 일괄 / Apply ${DEFAULT_MARGIN}%</button>
     <button class="mini-btn mini-add" data-newp="${cat}">${I.plus} ${isFurn?"가구 대체품 등록 / Add furniture":"소모품 등록 / Add item"}</button>
   </div>
@@ -1152,15 +1163,16 @@ function buildInvoiceSheet(no){
 
 /* ══════════ 이벤트 ══════════ */
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-nav],[data-add],[data-cls],[data-qty],[data-rm],[data-del],[data-acat],[data-newp],[data-edit],[data-applymg],[data-open],[data-img],[data-bulkdel],[data-bulkclear]");
+  const el=e.target.closest("[data-nav],[data-add],[data-addc],[data-cls],[data-qty],[data-rm],[data-del],[data-acat],[data-newp],[data-edit],[data-applymg],[data-open],[data-img],[data-bulkdel],[data-bulkclear]");
   if(!el)return;
-  if(el.dataset.add!==undefined){e.stopPropagation();const id=el.dataset.add,_p=byId(id),ex=S.cart.find(l=>l.id===id);if(ex)ex.qty++;else S.cart.push({id,qty:1,price:null,color:(_p.colors&&_p.colors[0])?_p.colors[0].name:""});persist();toast(`${byId(id).name} 담김 / added`);renderNav();if(view==="furniture"||view==="consumable")renderResults(view);return;}
+  if(el.dataset.add!==undefined){e.stopPropagation();const id=el.dataset.add,ex=S.cart.find(l=>l.id===id&&!l.color);if(ex){S.cart=S.cart.filter(l=>l!==ex);toast(`${byId(id).nameEn||byId(id).name} 제거 / removed`);}else{S.cart.push({id,uid:newUid(id),qty:1,price:null,color:""});toast(`${byId(id).nameEn||byId(id).name} 담김 / added`);}persist();renderNav();if(view==="furniture"||view==="consumable")renderResults(view);return;}
+  if(el.dataset.addc!==undefined){e.stopPropagation();const id=el.dataset.addc,color=el.dataset.clr||"";const ex=S.cart.find(l=>l.id===id&&(l.color||"")===color);if(ex){S.cart=S.cart.filter(l=>l!==ex);toast(`${color} 제거 / removed`);}else{S.cart.push({id,uid:newUid(id),qty:1,price:null,color});toast(`${byId(id).nameEn||byId(id).name} · ${color} 담김 / added`);}persist();renderNav();if(view==="furniture"||view==="consumable")renderResults(view);return;}
   if(el.dataset.img!==undefined){openImageDialog(el.dataset.img);return;}
   if(el.dataset.open!==undefined){openProduct(el.dataset.open);return;}
   if(el.dataset.nav){const t=el.dataset.nav;if(t==="admin"&&!unlocked){openPin(()=>{unlocked=true;view="admin";render();});return;}view=t;render();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(el.dataset.cls!==undefined){filter[view].cls=el.dataset.cls;render();return;}
-  if(el.dataset.qty){const l=S.cart.find(x=>x.id===el.dataset.qty);if(l){l.qty=Math.max(1,l.qty+Number(el.dataset.d));persist();render();}return;}
-  if(el.dataset.rm){S.cart=S.cart.filter(x=>x.id!==el.dataset.rm);persist();render();return;}
+  if(el.dataset.qty){const l=S.cart.find(x=>x.uid===el.dataset.qty);if(l){l.qty=Math.max(1,l.qty+Number(el.dataset.d));persist();render();}return;}
+  if(el.dataset.rm){S.cart=S.cart.filter(x=>x.uid!==el.dataset.rm);persist();render();return;}
   if(el.dataset.del){const did=el.dataset.del;confirmModal("이 품목을 삭제할까요? / Delete this item?",()=>{S.products=S.products.filter(p=>p.id!==did);dropProduct(did);render();});return;}
   if(el.dataset.acat){adminCat=el.dataset.acat;adminSel.clear();render();return;}
   if(el.dataset.bulkdel!==undefined){const n=adminSel.size;if(!n)return;confirmModal(`선택한 ${n}개 품목을 삭제할까요? / Delete ${n} items?`,()=>{[...adminSel].forEach(id=>{S.products=S.products.filter(p=>p.id!==id);dropProduct(id);});adminSel.clear();render();toast(`${n}개 삭제됨 / Deleted`);});return;}
@@ -1178,9 +1190,9 @@ document.addEventListener("change",e=>{
     else if(f==="fursys")p.fursys=el.value.split(",").map(s=>s.trim()).filter(Boolean);
     else p[f]=el.value;
     saveProduct(p);if(f==="sku"||f==="cost")renderNav();return;}
-  if(el.dataset.price){const l=S.cart.find(x=>x.id===el.dataset.price);if(l){const v=parseFloat(el.value);l.price=isNaN(v)?null:Math.max(0,v);persist();render();}return;}
-  if(el.dataset.qtyin){const l=S.cart.find(x=>x.id===el.dataset.qtyin);if(l){l.qty=Math.max(1,parseInt(el.value)||1);persist();render();}return;}
-  if(el.dataset.color){const l=S.cart.find(x=>x.id===el.dataset.color);if(l){l.color=el.value;persist();}return;}
+  if(el.dataset.price){const l=S.cart.find(x=>x.uid===el.dataset.price);if(l){const v=parseFloat(el.value);l.price=isNaN(v)?null:Math.max(0,v);persist();render();}return;}
+  if(el.dataset.qtyin){const l=S.cart.find(x=>x.uid===el.dataset.qtyin);if(l){l.qty=Math.max(1,parseInt(el.value)||1);persist();render();}return;}
+  if(el.dataset.color){const l=S.cart.find(x=>x.uid===el.dataset.color);if(l){l.color=el.value;persist();}return;}
   if(el.id==="qClient"){S.quote.client=el.value;persist();return;}
   if(el.id==="ivNo"){S.invoice.no=el.value;persist();return;}
   if(el.id==="ivBuyer"){S.invoice.buyer.name=el.value;persist();return;}
@@ -1263,7 +1275,7 @@ function openProduct(id){
     if(ev.target===bg||ev.target.closest("[data-x]"))return close();
     const pq=ev.target.closest("[data-pq]");if(pq){qtyIn.value=Math.max(1,(parseInt(qtyIn.value)||1)+Number(pq.dataset.pq));return;}
     const sw=ev.target.closest("[data-pmcolor]");if(sw){pmColor=sw.dataset.pmcolor;bg.querySelectorAll(".swatch.pick").forEach(x=>x.classList.remove("sel"));sw.classList.add("sel");return;}
-    const add=ev.target.closest("[data-padd]");if(add){const q=Math.max(1,parseInt(qtyIn.value)||1);const ex=S.cart.find(l=>l.id===id);if(ex){ex.qty+=q;if(pmColor)ex.color=pmColor;}else S.cart.push({id,qty:q,price:null,color:pmColor||""});persist();toast(`${p.nameEn||p.name}${pmColor?" · "+pmColor:""} ${q}개 담김 / added`);close();render();}
+    const add=ev.target.closest("[data-padd]");if(add){const q=Math.max(1,parseInt(qtyIn.value)||1);const ex=S.cart.find(l=>l.id===id&&(l.color||"")===(pmColor||""));if(ex)ex.qty+=q;else S.cart.push({id,uid:newUid(id),qty:q,price:null,color:pmColor||""});persist();toast(`${p.nameEn||p.name}${pmColor?" · "+pmColor:""} ${q}개 담김 / added`);close();render();}
   });
   document.addEventListener("keydown",function esc2(ev){if(ev.key==="Escape"){close();document.removeEventListener("keydown",esc2);}});
 }
