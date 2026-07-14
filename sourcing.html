@@ -311,6 +311,10 @@ select.icell{appearance:none;font-weight:600;min-width:110px}
 .swatch .sw-rm{border:none;background:transparent;color:var(--muted);padding:2px;border-radius:50%;line-height:0}
 .swatch .sw-rm:hover{color:var(--danger);background:var(--danger-soft)}
 .swatch.view{padding:3px 12px 3px 3px}
+.swatch.pick{cursor:pointer;transition:.13s}
+.swatch.pick:hover{border-color:var(--brass)}
+.swatch.pick.sel{border-color:var(--ink);background:var(--ink);box-shadow:0 0 0 2px rgba(22,35,59,.12)}
+.swatch.pick.sel .sw-name{color:#fff}
 .color-picker{margin-top:8px;border:1px solid var(--line);border-radius:12px;padding:12px;background:#FBFAF6}
 .cp-sec{margin-bottom:12px}
 .cp-sec:last-child{margin-bottom:0}
@@ -1063,8 +1067,8 @@ function buildQuoteSheet(){
     const im=p.img?`<img src="${p.img}"/>`:`<span style="font-family:var(--mono);font-size:9px;color:#aaa">${initials(p)}</span>`;
     return `<tr>
       <td><div class="qs-img">${im}</div></td>
-      <td>${esc(p.name)} / ${esc(p.nameEn)}${l.color?` · <b>${esc(l.color)}</b>`:""}<br><span style="color:#999;font-size:10px">${esc(p.sku)} · ${esc(p.spec)}</span></td>
-      <td>${esc(p.cls)} / ${clsEn(p.cls)}</td>
+      <td>${esc(p.nameEn||p.name)}${l.color?` · <b>${esc(l.color)}</b>`:""}<br><span style="color:#999;font-size:10px">${esc(p.sku)}</span></td>
+      <td>${clsEn(p.cls)}</td>
       <td class="r">${l.qty} ${esc(p.unit)}</td>
       <td class="r">${(p.cbm*l.qty).toFixed(3)}</td>
       <td class="r">${fmt(up)}</td>
@@ -1098,7 +1102,7 @@ function buildInvoiceSheet(no){
   const rows=S.cart.map((l,i)=>{
     const p=byId(l.id);if(!p)return"";
     const up=linePrice(l);
-    const nm=esc(p.name)+((p.nameEn&&p.nameEn!==p.name)?` / ${esc(p.nameEn)}`:"")+(l.color?` (${esc(l.color)})`:"");
+    const nm=esc(p.nameEn||p.name)+(l.color?` (${esc(l.color)})`:"");
     return `<tr><td class="r">${i+1}</td><td>${nm}</td><td class="r">${l.qty} ${esc(p.unit)}</td><td class="r">${(p.cbm*l.qty).toFixed(3)}</td><td class="r">${fmt(up)}</td><td class="r">${fmt(up*l.qty)}</td></tr>`;
   }).join("");
   const iv=S.invoice, b=iv.buyer;
@@ -1150,7 +1154,7 @@ function buildInvoiceSheet(no){
 document.addEventListener("click",e=>{
   const el=e.target.closest("[data-nav],[data-add],[data-cls],[data-qty],[data-rm],[data-del],[data-acat],[data-newp],[data-edit],[data-applymg],[data-open],[data-img],[data-bulkdel],[data-bulkclear]");
   if(!el)return;
-  if(el.dataset.add!==undefined){e.stopPropagation();const id=el.dataset.add,ex=S.cart.find(l=>l.id===id);if(ex)ex.qty++;else S.cart.push({id,qty:1,price:null});persist();toast(`${byId(id).name} 담김 / added`);renderNav();if(view==="furniture"||view==="consumable")renderResults(view);return;}
+  if(el.dataset.add!==undefined){e.stopPropagation();const id=el.dataset.add,_p=byId(id),ex=S.cart.find(l=>l.id===id);if(ex)ex.qty++;else S.cart.push({id,qty:1,price:null,color:(_p.colors&&_p.colors[0])?_p.colors[0].name:""});persist();toast(`${byId(id).name} 담김 / added`);renderNav();if(view==="furniture"||view==="consumable")renderResults(view);return;}
   if(el.dataset.img!==undefined){openImageDialog(el.dataset.img);return;}
   if(el.dataset.open!==undefined){openProduct(el.dataset.open);return;}
   if(el.dataset.nav){const t=el.dataset.nav;if(t==="admin"&&!unlocked){openPin(()=>{unlocked=true;view="admin";render();});return;}view=t;render();window.scrollTo({top:0,behavior:"smooth"});return;}
@@ -1234,7 +1238,7 @@ function openProduct(id){
       <div class="pm-sku">${esc(p.sku)}</div>
       <p class="pm-spec">${esc(p.spec)||"—"}</p>
       ${fursys}
-      ${(p.colors||[]).length?`<div class="pm-colors"><label>🎨 컬러 / Colors</label><div class="sw-row">${p.colors.map(c=>`<span class="swatch view" title="${esc(c.name)}"><span class="sw-img">${c.img?`<img src="${c.img}"/>`:""}</span><span class="sw-name">${esc(c.name)}</span></span>`).join("")}</div></div>`:""}
+      ${(p.colors||[]).length?`<div class="pm-colors"><label>🎨 컬러 선택 / Choose color</label><div class="sw-row">${p.colors.map((c,ci)=>`<button type="button" class="swatch pick${ci===0?" sel":""}" data-pmcolor="${esc(c.name)}" title="${esc(c.name)}"><span class="sw-img">${c.img?`<img src="${c.img}"/>`:""}</span><span class="sw-name">${esc(c.name)}</span></button>`).join("")}</div></div>`:""}
       ${cmp}
       <div class="fact-grid">
         <div class="fact price"><label>판가 (${PRICE_TERM}) / Price</label><b>${fmt(p.price)}</b></div>
@@ -1254,10 +1258,12 @@ function openProduct(id){
   document.body.appendChild(bg);
   const close=()=>bg.remove();
   const qtyIn=bg.querySelector("#pmQty");
+  let pmColor=(p.colors&&p.colors.length)?p.colors[0].name:"";
   bg.addEventListener("click",ev=>{
     if(ev.target===bg||ev.target.closest("[data-x]"))return close();
     const pq=ev.target.closest("[data-pq]");if(pq){qtyIn.value=Math.max(1,(parseInt(qtyIn.value)||1)+Number(pq.dataset.pq));return;}
-    const add=ev.target.closest("[data-padd]");if(add){const q=Math.max(1,parseInt(qtyIn.value)||1);const ex=S.cart.find(l=>l.id===id);if(ex)ex.qty+=q;else S.cart.push({id,qty:q,price:null});persist();toast(`${p.name} ${q}개 담김 / added`);close();render();}
+    const sw=ev.target.closest("[data-pmcolor]");if(sw){pmColor=sw.dataset.pmcolor;bg.querySelectorAll(".swatch.pick").forEach(x=>x.classList.remove("sel"));sw.classList.add("sel");return;}
+    const add=ev.target.closest("[data-padd]");if(add){const q=Math.max(1,parseInt(qtyIn.value)||1);const ex=S.cart.find(l=>l.id===id);if(ex){ex.qty+=q;if(pmColor)ex.color=pmColor;}else S.cart.push({id,qty:q,price:null,color:pmColor||""});persist();toast(`${p.nameEn||p.name}${pmColor?" · "+pmColor:""} ${q}개 담김 / added`);close();render();}
   });
   document.addEventListener("keydown",function esc2(ev){if(ev.key==="Escape"){close();document.removeEventListener("keydown",esc2);}});
 }
