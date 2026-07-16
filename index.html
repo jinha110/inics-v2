@@ -5612,56 +5612,86 @@ function _projInvPayBadge(v){
   if(settled>0) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#92400e;white-space:nowrap" title="인보이스 모듈 은행 대사 기준"><i class="ti ti-progress-check"></i> 부분 '+fmtN(settled/100)+'/'+fmtN(total/100)+' · 잔여 '+fmtN(due/100)+'</span>';
   return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:'+(recv?'#991b1b':'#b45309')+';white-space:nowrap"><i class="ti ti-clock"></i> '+(recv?'미지급·Open A/P':'미수·Open A/R')+'</span>';
 }
+// ─── 프로젝트↔인보이스 다중 연결 헬퍼 ───
+function _projIdList(hiddenId){ var el=document.getElementById(hiddenId); if(!el||!el.value) return []; return String(el.value).split(',').map(function(s){return s.trim();}).filter(Boolean); }
+function _projSetIdList(hiddenId, arr){ var el=document.getElementById(hiddenId); if(el) el.value=(arr||[]).join(','); }
+function _projInvsByIds(ids){ return (ids||[]).map(function(id){ return (state.invoices||[]).find(function(x){return String(x.id)===String(id);}); }).filter(Boolean); }
+
+// ── 매입: 연결 인보이스 합계로 필드 파생 ──
+function _purchaseDeriveFromInvoices(){
+  var invs=_projInvsByIds(_projIdList('purchaseInvoiceId'));
+  if(!invs.length){ _setPurchaseFieldsLocked(false); return; }
+  var curs=(typeof qDistinct==='function')?qDistinct(invs.map(function(v){return (v.currency||'VND');})):[invs[0].currency||'VND'];
+  var mixedCur=curs.length>1, subSum=0, totSum=0;
+  invs.forEach(function(v){ totSum+=qNum(v.total); subSum+=((v.subtotal!=null&&v.subtotal!=='')?qNum(v.subtotal):qNum(v.total)); });
+  var vends=(typeof qDistinct==='function')?qDistinct(invs.map(function(v){return (v.vendor||'').trim();}).filter(Boolean)):[];
+  var pven=document.getElementById('purchaseVendor'); if(pven) pven.value=(vends.length<=1?(vends[0]||''):(vends[0]+' 외 '+(vends.length-1)));
+  var pcur=document.getElementById('purchaseCurrency'); if(pcur && !mixedCur) pcur.value=curs[0]||'VND';
+  var pvat=document.getElementById('purchaseVat'); if(pvat && invs[0].vatPct!=null && invs[0].vatPct!=='') pvat.value=invs[0].vatPct;
+  var _sv=function(id,val){ var e=document.getElementById(id); if(e){ e.value=(val==null?'':val); if(typeof fmtAmtInput==='function' && e.tagName==='INPUT') fmtAmtInput(e); } };
+  _sv('purchaseSubtotal', Math.round(subSum));
+  _sv('purchaseTotal', Math.round(totSum));
+  var _vae=document.getElementById('purchaseVatAmt'); if(_vae){ var _va=totSum-subSum; _vae.value=fmtN(_va>0?_va:0); }
+  _setPurchaseFieldsLocked(true);
+}
 function renderPurchaseInvoiceLink(){
   var sel=document.getElementById('purchaseInvoiceSel'); if(!sel) return;
   if(typeof window.chasanCogsVendorsReady==='function' && !window.chasanCogsVendorsReady() && typeof window.chasanCogsVendorsLoad==='function'){ window.chasanCogsVendorsLoad().then(function(){ if(document.getElementById('purchaseInvoiceSel')) renderPurchaseInvoiceLink(); }).catch(function(){}); }
-  var curId=((document.getElementById('purchaseInvoiceId')||{}).value)||'';
-  var invs=_receivedInvoices().filter(function(v){
-    if(String(v.id)===String(curId)) return true;      // 현재 연결건은 항상 표시
-    if(v.projectId) return false;                       // 이미 프로젝트에 연결된 인보이스 제거
-    return _invIsCogsVendor(v);                          // 채산 매출원가 등록 업체만
+  var ids=_projIdList('purchaseInvoiceId');
+  var pool=_receivedInvoices().filter(function(v){
+    if(ids.indexOf(String(v.id))>=0) return false;     // 이미 이 프로젝트에 연결됨 → 리스트에 표시
+    if(v.projectId) return false;                        // 타 프로젝트 연결 제거
+    return _invIsCogsVendor(v);                           // 채산 매출원가 등록 업체만
   });
-  var opts='<option value="">— 매입 인보이스 선택 · Select purchase invoice —</option>';
-  invs.forEach(function(v){
+  var opts='<option value="">＋ 매입 인보이스 추가 · Add invoice…</option>';
+  pool.forEach(function(v){
     var amt=(typeof _invFmt==='function')?_invFmt(v.total,v.currency||''):((v.currency||'')+' '+(v.total||''));
     var lbl=(v.invoiceNo||'(no.없음)')+' · '+(v.vendor||'')+' · '+amt;
-    opts+='<option value="'+v.id+'"'+(String(curId)===String(v.id)?' selected':'')+'>'+String(lbl).replace(/</g,'&lt;')+'</option>';
+    opts+='<option value="'+v.id+'">'+String(lbl).replace(/</g,'&lt;')+'</option>';
   });
-  sel.innerHTML=opts;
+  sel.innerHTML=opts; sel.value='';
   var box=document.getElementById('purchaseInvoiceLinked'); if(!box) return;
-  var v=curId?(state.invoices||[]).find(function(x){return String(x.id)===String(curId);}):null;
-  if(v){
-    var amt=(typeof _invFmt==='function')?_invFmt(v.total,v.currency||''):((v.currency||'')+' '+(v.total||''));
-    box.innerHTML='<div style="display:flex;align-items:center;gap:8px;background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius);padding:6px 9px;font-size:11px;flex-wrap:wrap">'
-      +'<i class="ti ti-link" style="color:#92400e"></i>'
-      +'<span style="flex:1;min-width:120px"><b>'+String(v.invoiceNo||'—').replace(/</g,'&lt;')+'</b> · '+String(v.vendor||'').replace(/</g,'&lt;')+' · '+amt+'</span>'
-      +_projInvPayBadge(v)
-      +(v.fileData?'<a href="javascript:void(0)" onclick="viewInvoiceFile(\''+v.id+'\')" style="color:#1d4ed8;text-decoration:none"><i class="ti ti-eye"></i> 원본</a>':'')
-      +'<a href="javascript:void(0)" onclick="openInvoiceForm(\''+v.id+'\')" style="color:#4338ca;text-decoration:none"><i class="ti ti-edit"></i> 수정</a>'
-      +'<a href="javascript:void(0)" onclick="linkPurchaseInvoice(\'\')" style="color:var(--danger);text-decoration:none"><i class="ti ti-x"></i> 해제</a></div>';
+  var linked=_projInvsByIds(ids);
+  if(linked.length){
+    _purchaseDeriveFromInvoices();
+    var rows=linked.map(function(v){
+      var amt=(typeof _invFmt==='function')?_invFmt(v.total,v.currency||''):((v.currency||'')+' '+(v.total||''));
+      return '<div style="display:flex;align-items:center;gap:7px;background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius);padding:5px 9px;font-size:11px;flex-wrap:wrap;margin-top:4px">'
+        +'<i class="ti ti-file-invoice" style="color:#92400e;flex-shrink:0"></i>'
+        +'<span style="flex:1;min-width:110px"><b>'+String(v.invoiceNo||'—').replace(/</g,'&lt;')+'</b> · '+String(v.vendor||'').replace(/</g,'&lt;')+' · '+amt+'</span>'
+        +_projInvPayBadge(v)
+        +(v.fileData?'<a href="javascript:void(0)" onclick="viewInvoiceFile(\''+v.id+'\')" style="color:#1d4ed8;text-decoration:none" title="원본"><i class="ti ti-eye"></i></a>':'')
+        +'<a href="javascript:void(0)" onclick="openInvoiceForm(\''+v.id+'\')" style="color:#4338ca;text-decoration:none" title="수정"><i class="ti ti-edit"></i></a>'
+        +'<a href="javascript:void(0)" onclick="unlinkPurchaseInvoice(\''+v.id+'\')" style="color:var(--danger);text-decoration:none" title="해제"><i class="ti ti-x"></i></a></div>';
+    }).join('');
+    var totByCur={}; linked.forEach(function(v){ var c=v.currency||'VND'; totByCur[c]=(totByCur[c]||0)+qNum(v.total); });
+    var totStr=Object.keys(totByCur).map(function(c){ return (typeof _invFmt==='function')?_invFmt(totByCur[c],c):(c+' '+totByCur[c]); }).join(' · ');
+    box.innerHTML='<div style="font-size:9px;font-weight:700;color:#92400e;margin-bottom:2px"><i class="ti ti-link"></i> 연결된 매입 인보이스 '+linked.length+'건 · 합계 '+totStr+'</div>'+rows;
   } else {
-    box.innerHTML='<div style="font-size:10px;color:var(--text-3)">채산 <b>매출원가</b> 등록 업체의 매입 인보이스만 표시 — 선택 시 거래처·금액·지급상태가 자동 연동됩니다 · COGS-vendor invoices only</div>';
+    _setPurchaseFieldsLocked(false);
+    box.innerHTML='<div style="font-size:10px;color:var(--text-3)">채산 <b>매출원가</b> 등록 업체의 매입 인보이스만 표시 — <b>여러 건 추가 가능</b> · 선택 시 거래처·합계·지급상태 자동 연동</div>';
   }
-  _setPurchaseFieldsLocked(!!curId);
 }
 function linkPurchaseInvoice(invId){
-  var hid=document.getElementById('purchaseInvoiceId'); if(!hid) return;
-  var prev=hid.value||'';
-  if(prev && String(prev)!==String(invId)){ var pv=(state.invoices||[]).find(function(x){return String(x.id)===String(prev);}); if(pv && String(pv.projectId||'')===String(_editingProjId)){ pv.projectId=''; pv.updatedAt=nowStr(); } }
-  hid.value=invId||'';
-  if(invId){
+  if(!invId){ renderPurchaseInvoiceLink(); return; }
+  var ids=_projIdList('purchaseInvoiceId');
+  if(ids.indexOf(String(invId))<0){
+    ids.push(String(invId));
     var v=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);});
-    if(v){
-      if(_editingProjId){ v.projectId=_editingProjId; v.updatedAt=nowStr(); }
-      var pven=document.getElementById('purchaseVendor'); if(pven) pven.value=v.vendor||'';
-      var pcur=document.getElementById('purchaseCurrency'); if(pcur) pcur.value=v.currency||'VND';
-      var pvat=document.getElementById('purchaseVat'); if(pvat && v.vatPct!=null && v.vatPct!=='') pvat.value=v.vatPct;
-      var _sv=function(id,val){ var e=document.getElementById(id); if(e){ e.value=(val==null?'':val); if(typeof fmtAmtInput==='function' && e.tagName==='INPUT') fmtAmtInput(e); } };
-      _sv('purchaseTotal', v.total);
-      if(v.subtotal!=null && v.subtotal!==''){ _sv('purchaseSubtotal', v.subtotal); var _vae=document.getElementById('purchaseVatAmt'); if(_vae){ var _va=qNum(v.total)-qNum(v.subtotal); _vae.value=fmtN(_va>0?_va:0); } }
-      else if(typeof recalcProjFinance==='function'){ recalcProjFinance('purchaseTotal'); }
-    }
+    if(v && _editingProjId){ v.projectId=_editingProjId; v.updatedAt=nowStr(); }
   }
+  _projSetIdList('purchaseInvoiceId', ids);
+  _purchaseDeriveFromInvoices();
+  if(typeof saveState==='function') saveState();
+  renderPurchaseInvoiceLink();
+  if(typeof projMarginRefresh==='function') projMarginRefresh();
+}
+function unlinkPurchaseInvoice(invId){
+  var ids=_projIdList('purchaseInvoiceId').filter(function(id){return String(id)!==String(invId);});
+  var v=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);});
+  if(v && String(v.projectId||'')===String(_editingProjId)){ v.projectId=''; v.updatedAt=nowStr(); }
+  _projSetIdList('purchaseInvoiceId', ids);
+  if(!ids.length) _setPurchaseFieldsLocked(false); else _purchaseDeriveFromInvoices();
   if(typeof saveState==='function') saveState();
   renderPurchaseInvoiceLink();
   if(typeof projMarginRefresh==='function') projMarginRefresh();
@@ -5671,54 +5701,81 @@ function _setSalesInvoiceFieldsLocked(locked){
   ['salesInvoiceNo','salesInvoiceAmount'].forEach(function(id){ var e=document.getElementById(id); if(e){ e.readOnly=!!locked; e.style.background=locked?'var(--surface-2)':''; e.style.color=locked?'var(--text-2)':''; } });
   var d=document.getElementById('salesInvoiceDate'); if(d){ d.disabled=!!locked; d.style.background=locked?'var(--surface-2)':''; }
 }
+// ── 매출: 연결 인보이스 합계로 필드 파생 ──
+function _salesDeriveFromInvoices(){
+  var invs=_projInvsByIds(_projIdList('salesInvoiceId'));
+  var noEl=document.getElementById('salesInvoiceNo'), amEl=document.getElementById('salesInvoiceAmount'), dtEl=document.getElementById('salesInvoiceDate');
+  var iss=document.getElementById('salesInvoiceIssued');
+  if(!invs.length){ if(iss){ iss.disabled=false; } _setSalesInvoiceFieldsLocked(false); return; }
+  var nos=invs.map(function(v){return v.invoiceNo||'';}).filter(Boolean);
+  if(noEl) noEl.value=(nos.length<=1?(nos[0]||''):(nos[0]+' 외 '+(nos.length-1)+'건'));
+  var sum=0; invs.forEach(function(v){ sum+=qNum(v.total); });
+  if(amEl){ amEl.value=String(Math.round(sum)); if(typeof fmtAmtInput==='function') fmtAmtInput(amEl); }
+  var dts=invs.map(function(v){return v.date||'';}).filter(Boolean).sort();
+  if(dtEl) dtEl.value=dts.length?dts[dts.length-1]:'';
+  if(iss){ iss.checked=true; iss.disabled=true; }
+  _setSalesInvoiceFieldsLocked(true);
+}
 function renderSalesInvoiceLink(){
   var sel=document.getElementById('salesInvoiceSel'); if(!sel) return;
-  var curId=((document.getElementById('salesInvoiceId')||{}).value)||'';
-  var invs=_issuedInvoices().filter(function(v){
-    if(String(v.id)===String(curId)) return true;      // 현재 연결건은 항상 표시
-    if(v.projectId) return false;                       // 이미 프로젝트에 연결된 인보이스 제거
+  var ids=_projIdList('salesInvoiceId');
+  var pool=_issuedInvoices().filter(function(v){
+    if(ids.indexOf(String(v.id))>=0) return false;
+    if(v.projectId) return false;
     return true;
   });
-  var opts='<option value="">— 매출 인보이스 선택 · Select sales invoice —</option>';
-  invs.forEach(function(v){
+  var opts='<option value="">＋ 매출 인보이스 추가 · Add invoice…</option>';
+  pool.forEach(function(v){
     var amt=(typeof _invFmt==='function')?_invFmt(v.total,v.currency||''):((v.currency||'')+' '+(v.total||''));
     var lbl=(v.invoiceNo||'(no.없음)')+' · '+amt;
-    opts+='<option value="'+v.id+'"'+(String(curId)===String(v.id)?' selected':'')+'>'+String(lbl).replace(/</g,'&lt;')+'</option>';
+    opts+='<option value="'+v.id+'">'+String(lbl).replace(/</g,'&lt;')+'</option>';
   });
-  sel.innerHTML=opts;
+  sel.innerHTML=opts; sel.value='';
   var box=document.getElementById('salesInvoiceLinked');
-  var v=curId?(state.invoices||[]).find(function(x){return String(x.id)===String(curId);}):null;
+  var linked=_projInvsByIds(ids);
   if(box){
-    if(v){
-      var amt=(typeof _invFmt==='function')?_invFmt(v.total,v.currency||''):((v.currency||'')+' '+(v.total||''));
-      box.innerHTML='<div style="display:flex;align-items:center;gap:8px;background:#dcfce7;border:1px solid #86efac;border-radius:var(--radius);padding:6px 9px;font-size:11px;flex-wrap:wrap">'
-        +'<i class="ti ti-link" style="color:#15803d"></i>'
-        +'<span style="flex:1;min-width:120px"><b>'+String(v.invoiceNo||'—').replace(/</g,'&lt;')+'</b> · '+amt+'</span>'
-        +_projInvPayBadge(v)
-        +(v.fileData?'<a href="javascript:void(0)" onclick="viewInvoiceFile(\''+v.id+'\')" style="color:#1d4ed8;text-decoration:none"><i class="ti ti-eye"></i> 원본</a>':'')
-        +'<a href="javascript:void(0)" onclick="openInvoiceForm(\''+v.id+'\')" style="color:#4338ca;text-decoration:none"><i class="ti ti-edit"></i> 수정</a>'
-        +'<a href="javascript:void(0)" onclick="linkSalesInvoice(\'\')" style="color:var(--danger);text-decoration:none"><i class="ti ti-x"></i> 해제</a></div>';
+    if(linked.length){
+      _salesDeriveFromInvoices();
+      var rows=linked.map(function(v){
+        var amt=(typeof _invFmt==='function')?_invFmt(v.total,v.currency||''):((v.currency||'')+' '+(v.total||''));
+        return '<div style="display:flex;align-items:center;gap:7px;background:#dcfce7;border:1px solid #86efac;border-radius:var(--radius);padding:5px 9px;font-size:11px;flex-wrap:wrap;margin-top:4px">'
+          +'<i class="ti ti-file-invoice" style="color:#15803d;flex-shrink:0"></i>'
+          +'<span style="flex:1;min-width:110px"><b>'+String(v.invoiceNo||'—').replace(/</g,'&lt;')+'</b> · '+amt+'</span>'
+          +_projInvPayBadge(v)
+          +(v.fileData?'<a href="javascript:void(0)" onclick="viewInvoiceFile(\''+v.id+'\')" style="color:#1d4ed8;text-decoration:none" title="원본"><i class="ti ti-eye"></i></a>':'')
+          +'<a href="javascript:void(0)" onclick="openInvoiceForm(\''+v.id+'\')" style="color:#4338ca;text-decoration:none" title="수정"><i class="ti ti-edit"></i></a>'
+          +'<a href="javascript:void(0)" onclick="unlinkSalesInvoice(\''+v.id+'\')" style="color:var(--danger);text-decoration:none" title="해제"><i class="ti ti-x"></i></a></div>';
+      }).join('');
+      var totByCur={}; linked.forEach(function(v){ var c=v.currency||'VND'; totByCur[c]=(totByCur[c]||0)+qNum(v.total); });
+      var totStr=Object.keys(totByCur).map(function(c){ return (typeof _invFmt==='function')?_invFmt(totByCur[c],c):(c+' '+totByCur[c]); }).join(' · ');
+      box.innerHTML='<div style="font-size:9px;font-weight:700;color:#15803d;margin-bottom:2px"><i class="ti ti-link"></i> 연결된 매출 인보이스 '+linked.length+'건 · 합계 '+totStr+'</div>'+rows;
     } else {
-      box.innerHTML='<div style="font-size:10px;color:#b45309"><i class="ti ti-alert-triangle"></i> 매출 인보이스 미연결 → <b>미발행</b>으로 처리 · not linked = unissued</div>';
+      _setSalesInvoiceFieldsLocked(false);
+      var iss0=document.getElementById('salesInvoiceIssued'); if(iss0){ iss0.disabled=false; }
+      box.innerHTML='<div style="font-size:10px;color:#b45309"><i class="ti ti-alert-triangle"></i> 매출 인보이스 미연결 → <b>미발행</b>으로 처리 · <b>여러 건 추가 가능</b></div>';
     }
   }
-  var iss=document.getElementById('salesInvoiceIssued'); if(iss){ iss.checked=!!curId; iss.disabled=true; }
-  _setSalesInvoiceFieldsLocked(!!curId);
 }
 function linkSalesInvoice(invId){
-  var hid=document.getElementById('salesInvoiceId'); if(!hid) return;
-  var prev=hid.value||'';
-  if(prev && String(prev)!==String(invId)){ var pv=(state.invoices||[]).find(function(x){return String(x.id)===String(prev);}); if(pv && String(pv.projectId||'')===String(_editingProjId)){ pv.projectId=''; pv.updatedAt=nowStr(); } }
-  hid.value=invId||'';
-  if(invId){
+  if(!invId){ renderSalesInvoiceLink(); return; }
+  var ids=_projIdList('salesInvoiceId');
+  if(ids.indexOf(String(invId))<0){
+    ids.push(String(invId));
     var v=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);});
-    if(v){
-      if(_editingProjId){ v.projectId=_editingProjId; v.updatedAt=nowStr(); }
-      var noEl=document.getElementById('salesInvoiceNo'); if(noEl) noEl.value=v.invoiceNo||'';
-      var amEl=document.getElementById('salesInvoiceAmount'); if(amEl){ amEl.value=(v.total==null?'':v.total); if(typeof fmtAmtInput==='function') fmtAmtInput(amEl); }
-      var dtEl=document.getElementById('salesInvoiceDate'); if(dtEl) dtEl.value=v.date||'';
-    }
+    if(v && _editingProjId){ v.projectId=_editingProjId; v.updatedAt=nowStr(); }
   }
+  _projSetIdList('salesInvoiceId', ids);
+  _salesDeriveFromInvoices();
+  if(typeof saveState==='function') saveState();
+  renderSalesInvoiceLink();
+  if(typeof projMarginRefresh==='function') projMarginRefresh();
+}
+function unlinkSalesInvoice(invId){
+  var ids=_projIdList('salesInvoiceId').filter(function(id){return String(id)!==String(invId);});
+  var v=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);});
+  if(v && String(v.projectId||'')===String(_editingProjId)){ v.projectId=''; v.updatedAt=nowStr(); }
+  _projSetIdList('salesInvoiceId', ids);
+  _salesDeriveFromInvoices();
   if(typeof saveState==='function') saveState();
   renderSalesInvoiceLink();
   if(typeof projMarginRefresh==='function') projMarginRefresh();
@@ -7066,8 +7123,8 @@ function _openProjectForm(id){
   toggleEndCust();
   renderProjLinkedQuotes(id ? (document.getElementById('projClient').value) : '');
   renderProjectHistory(id||null);
-  { var _pi=document.getElementById('purchaseInvoiceId'); if(_pi){ var _pj=id?(state.projects||[]).find(function(x){return x.id===id;}):null; _pi.value=(_pj&&_pj.purchase&&_pj.purchase.invoiceId)||''; } if(typeof renderPurchaseInvoiceLink==='function') renderPurchaseInvoiceLink(); }
-  { var _si=document.getElementById('salesInvoiceId'); if(_si){ var _pj2=id?(state.projects||[]).find(function(x){return x.id===id;}):null; _si.value=(_pj2&&_pj2.sales&&_pj2.sales.invoiceLinkId)||''; } if(typeof renderSalesInvoiceLink==='function') renderSalesInvoiceLink(); }
+  { var _pi=document.getElementById('purchaseInvoiceId'); if(_pi){ var _pj=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _pp=(_pj&&_pj.purchase)||{}; var _pids=(_pp.invoiceIds&&_pp.invoiceIds.length)?_pp.invoiceIds:(_pp.invoiceId?[_pp.invoiceId]:[]); _pi.value=_pids.join(','); } if(typeof renderPurchaseInvoiceLink==='function') renderPurchaseInvoiceLink(); }
+  { var _si=document.getElementById('salesInvoiceId'); if(_si){ var _pj2=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _sp=(_pj2&&_pj2.sales)||{}; var _sids=(_sp.invoiceLinkIds&&_sp.invoiceLinkIds.length)?_sp.invoiceLinkIds:(_sp.invoiceLinkId?[_sp.invoiceLinkId]:[]); _si.value=_sids.join(','); } if(typeof renderSalesInvoiceLink==='function') renderSalesInvoiceLink(); }
   document.getElementById('projectFormModal').style.display='block';
 }
 
@@ -7290,13 +7347,13 @@ function saveProject(){
   var gv=function(id){ return (document.getElementById(id).value||'').replace(/,/g,'').trim(); };
   var pTotalV=gv('purchaseTotal');
   var _st=(typeof _termNorm==='function')?_termNorm(_salesTerms):_salesTerms; var _r0=_st.rows[0]||{}; var _restAmt=0, _restPaid=(_st.count>1); for(var _i=1;_i<_st.rows.length;_i++){ _restAmt+=(_st.rows[_i].amt||0); if(!_st.rows[_i].paid) _restPaid=false; }
-  var sales={ currency:document.getElementById('salesCurrency').value, vat:document.getElementById('salesVat').value, subtotal:gv('salesSubtotal'), vatAmt:gv('salesVatAmt'), total:gv('salesTotal'), terms:_st, depositPct:String(_r0.pct||0), balancePct:(_st.count>1?String(Math.round((100-(_r0.pct||0))*100)/100):''), deposit:String(Math.round(_r0.amt||0)), depositPaid:!!_r0.paid, depositDate:_r0.paidDate||'', balance:String(Math.round(_restAmt)), balancePaid:_restPaid, balanceDate:'', invoiceIssued:document.getElementById('salesInvoiceIssued').checked, invoiceNo:(document.getElementById('salesInvoiceNo').value||'').trim(), invoiceAmount:gv('salesInvoiceAmount'), invoiceDate:document.getElementById('salesInvoiceDate').value, invoiceLinkId:((document.getElementById('salesInvoiceId')||{}).value)||'' };
-  var _pInvId=((document.getElementById('purchaseInvoiceId')||{}).value)||'';
-  var _pInv=_pInvId?(state.invoices||[]).find(function(x){return String(x.id)===String(_pInvId);}):null;
-  var _pPaid, _pPaidDate;
-  if(_pInv && typeof _invIsPaid==='function'){ _pPaid=_invIsPaid(_pInv); _pPaidDate=_pPaid?_projInvLastPayDate(_pInv):''; }   // 연결 인보이스 → 결제상태 연동
+  var sales={ currency:document.getElementById('salesCurrency').value, vat:document.getElementById('salesVat').value, subtotal:gv('salesSubtotal'), vatAmt:gv('salesVatAmt'), total:gv('salesTotal'), terms:_st, depositPct:String(_r0.pct||0), balancePct:(_st.count>1?String(Math.round((100-(_r0.pct||0))*100)/100):''), deposit:String(Math.round(_r0.amt||0)), depositPaid:!!_r0.paid, depositDate:_r0.paidDate||'', balance:String(Math.round(_restAmt)), balancePaid:_restPaid, balanceDate:'', invoiceIssued:document.getElementById('salesInvoiceIssued').checked, invoiceNo:(document.getElementById('salesInvoiceNo').value||'').trim(), invoiceAmount:gv('salesInvoiceAmount'), invoiceDate:document.getElementById('salesInvoiceDate').value, invoiceLinkIds:_projIdList('salesInvoiceId'), invoiceLinkId:(_projIdList('salesInvoiceId')[0]||'') };
+  var _pInvIds=_projIdList('purchaseInvoiceId');
+  var _pInvs=_projInvsByIds(_pInvIds);
+  var _pPaid, _pPaidDate='';
+  if(_pInvs.length && typeof _invIsPaid==='function'){ _pPaid=_pInvs.every(function(v){return _invIsPaid(v);}); if(_pPaid){ _pInvs.forEach(function(v){ var d=_projInvLastPayDate(v); if(d>_pPaidDate) _pPaidDate=d; }); } }   // 연결 인보이스 전건 완납 → 매입 지급완료
   else { _pPaid=((document.getElementById('purchaseDepositPaid')||{}).checked)||false; _pPaidDate=((document.getElementById('purchaseDepositDate')||{}).value)||''; }
-  var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, vat:document.getElementById('purchaseVat').value, subtotal:gv('purchaseSubtotal'), vatAmt:gv('purchaseVatAmt'), total:pTotalV, deposit:pTotalV, depositPaid:_pPaid, depositDate:_pPaidDate, balance:'', balancePaid:false, balanceDate:'', invoiceId:_pInvId };
+  var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, vat:document.getElementById('purchaseVat').value, subtotal:gv('purchaseSubtotal'), vatAmt:gv('purchaseVatAmt'), total:pTotalV, deposit:pTotalV, depositPaid:_pPaid, depositDate:_pPaidDate, balance:'', balancePaid:false, balanceDate:'', invoiceIds:_pInvIds, invoiceId:(_pInvIds[0]||'') };
   var data={
     client:client,
     ownerId:_projFormOwnerId,
