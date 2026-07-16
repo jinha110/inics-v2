@@ -1001,7 +1001,7 @@
     var _ytdLine = function (label, key) { return '<tr><td style="padding:6px 10px">' + label + "</td>" + _ytdCell(ytdTot, key, true) + REVENUE_DEPTS.map(function (d) { return _ytdCell(ytdAlloc[d], key); }).join("") + "</tr>"; };
     var _fsMonths = snaps.filter(function (o) { return o.snap && o.snap.finalizedAt && o.snap.byDept; });
     var _entVals = function (ent, sp) {
-      if (ent === "__TOTAL__") { var t = sp.totals || {}; return { revenue: +t.revenue || 0, cogs: +t.cogs || 0, labor: +t.labor || 0, opex: +t.opex || 0, extra: +t.extra || 0, op: +t.op || 0 }; }
+      if (ent === "__TOTAL__") { var t = sp.totals || {}; var _tr = +t.revenue || 0, _tc = +t.cogs || 0; return { revenue: _tr, cogs: _tc, gross: _tr - _tc, labor: +t.labor || 0, opex: +t.opex || 0, extra: +t.extra || 0, op: +t.op || 0 }; }
       var b = sp.byDept[ent] || {}, c = sp.byDept.COMMON || {}, w = (+_cw[ent] || 0) * _cwf, o = {};
       ["revenue", "cogs", "labor", "opex", "extra"].forEach(function (k) { o[k] = (+b[k] || 0) + (+c[k] || 0) * w; });
       o.gross = o.revenue - o.cogs; o.op = o.revenue - o.cogs - o.labor - o.opex - o.extra; return o;
