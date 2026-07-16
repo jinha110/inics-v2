@@ -848,8 +848,24 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <button id="tskTabDaily" onclick="taskSwitchTab(&#39;daily&#39;)"></button>
       <button id="tskTabWeekly" onclick="taskSwitchTab(&#39;weekly&#39;)"></button>
       <button id="tskTabMonthly" onclick="taskSwitchTab(&#39;monthly&#39;)"></button>
+      <button id="tskTabCalendar" onclick="taskSwitchTab(&#39;calendar&#39;)"></button>
     </div>
     <div id="reportBody"></div>
+  </div>
+
+  <div id="dailyStandupModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:660;overflow-y:auto;padding:28px 16px">
+    <div style="max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:16px;font-weight:700"><i class="ti ti-clipboard-check"></i> 오늘 업무 확인 · Daily Check</div>
+        <button class="btn btn-outline" onclick="closeDailyStandup()" style="font-size:11px;padding:4px 9px">닫기 · Close</button>
+      </div>
+      <div id="dailyStandupSub" style="font-size:12px;color:var(--text-3);margin-bottom:14px"></div>
+      <div id="dailyStandupBody"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+        <button class="btn btn-outline" onclick="closeDailyStandup()" style="font-size:12px;padding:7px 14px">나중에 · Later</button>
+        <button class="btn btn-dark" onclick="confirmDailyStandup()" style="font-size:12px;padding:7px 16px"><i class="ti ti-check"></i> 확인 완료 · Confirm</button>
+      </div>
+    </div>
   </div>
 
   <div id="taskFormModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:640;overflow-y:auto;padding:28px 16px">
@@ -2398,6 +2414,14 @@ function _mergeRecentLocalEdits(remote){
     // 로컬에만 있고(방금 추가) 최근 2분 내 편집된 항목은 원격에 없어도 유지
     state[coll].forEach(function(lt){ if(lt && lt.id!=null && !seen[String(lt.id)] && _recentLocal(lt)){ remote[coll].push(lt); } });
   });
+  // ── 관리자 설정 보호 (issue #5) ──
+  // modulePerms/viewScope/reportMembers 는 컬렉션이 아니라 meta 라서 위 per-record 병합의
+  // 보호를 못 받는다. 저장 시 찍은 _cfgRev 가 원격보다 최신이면 로컬 설정을 유지해,
+  // 뒤늦게 도착한 stale 원격 스냅샷이 방금 저장한 권한을 되돌리지 못하게 한다.
+  if((state._cfgRev||0) > (remote._cfgRev||0)){
+    ['modulePerms','viewScope','reportMembers'].forEach(function(k){ if(state[k]!==undefined) remote[k]=state[k]; });
+    remote._cfgRev=state._cfgRev;
+  }
   return remote;
 }
 async function loadState() {
@@ -5191,8 +5215,9 @@ function showHub() {
   var hubPage = document.getElementById('hubPage');
   if(hubPage) hubPage.style.display = 'block';
   // Per-user module access
-  ['approval','vendors','card','quote','project','finance','report','bankstmt'].forEach(function(k){
-    var c=document.getElementById('hubCard-'+k);
+  MODULE_DEFS.forEach(function(md){
+    if(md.special) return;                     // hr/acctAdmin 은 아래에서 별도 처리
+    var k=md.card||md.key; var c=document.getElementById('hubCard-'+k);
     if(c) c.style.display = moduleAllowed(k) ? '' : 'none';
   });
   var _cu=cardCurrentUser(); var _isAdm=(sessionIsAdmin||(_cu&&_cu.isAdmin));
@@ -5226,6 +5251,26 @@ function _mpNormalize(){               // 기존 숫자키/배열 → u-접두�
   for(var k in mp){ if(/^\d+$/.test(k)){ o['u'+k]=mp[k]; changed=true; } else { o[k]=mp[k]; } }
   if(changed) state.modulePerms=o;
 }
+// ── 모듈 레지스트리 (단일 출처) ──
+//   새 모듈은 여기 한 줄만 추가하면 (1)관리자 권한표 열, (2)허브 카드 노출,
+//   (3)기본 권한값에 전부 자동 반영된다. (issue #4: 채산 등 누락 방지)
+var MODULE_DEFS=[
+  {key:'approval', label:'전자결재', def:true,  card:'approval'},
+  {key:'card',     label:'카드',     def:true,  card:'card'},
+  {key:'report',   label:'업무',     def:true,  card:'report'},
+  {key:'vendors',  label:'거래처',   def:true,  card:'vendors'},
+  {key:'quote',    label:'견적',     def:true,  card:'quote'},
+  {key:'project',  label:'프로젝트', def:true,  card:'project'},
+  {key:'chasan',   label:'채산',     def:true,  card:'chasan'},
+  {key:'finance',  label:'정산',     def:true,  card:'finance'},
+  {key:'bankstmt', label:'은행',     def:true,  card:'bankstmt'},
+  {key:'contract', label:'계약',     def:true,  card:'contract'},
+  {key:'invoice',  label:'인보이스', def:true,  card:'invoice'},
+  {key:'export',   label:'수출',     def:true,  card:'export'},
+  {key:'hr',       label:'인사',     def:false, special:'hr'},
+  {key:'acctAdmin',label:'회계관리',  def:false, special:'acctAdmin'}
+];
+function moduleDefaults(){ var d={}; MODULE_DEFS.forEach(function(m){ d[m.key]=m.def; }); return d; }
 function moduleAllowed(key, u){
   u = u || cardCurrentUser();
   if(!u) return true;
@@ -5237,15 +5282,16 @@ function moduleAllowed(key, u){
 function setModulePerm(uid, key, allowed){
   if(!state.modulePerms) state.modulePerms={};
   var p=state.modulePerms[_mpk(uid)];
-  if(!p){ p={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,contract:true,invoice:true,acctAdmin:false,hr:false}; state.modulePerms[_mpk(uid)]=p; }
+  if(!p){ p=moduleDefaults(); state.modulePerms[_mpk(uid)]=p; }
   p[key]=!!allowed;
+  state._cfgRev=Date.now();
   saveState();
   showToast('모듈 권한 저장됨 · Access saved');
 }
 // 회계 관리자 패널 접근 권한 (기본 비활성 — 관리자 또는 명시적 허용자만)
 function acctAdminAllowed(u){ u=u||cardCurrentUser(); if(!u)return false; if(u.isAdmin||sessionIsAdmin)return true; var p=(state.modulePerms||{})[_mpk(u.id)]; if(!p)return false; return p.acctAdmin===true; }
 function canViewAll(module){ var u=cardCurrentUser(); if(!u)return true; if(u.isAdmin||sessionIsAdmin)return true; var sc=(state.viewScope||{})[u.id]; if(!sc)return true; return sc[module]!=='own'; }
-function setViewScope(uid,mod,val){ if(!state.viewScope)state.viewScope={}; if(!state.viewScope[uid])state.viewScope[uid]={}; state.viewScope[uid][mod]=val; saveState(); showToast('조회 범위 저장됨 · View scope saved'); }
+function setViewScope(uid,mod,val){ if(!state.viewScope)state.viewScope={}; if(!state.viewScope[uid])state.viewScope[uid]={}; state.viewScope[uid][mod]=val; state._cfgRev=Date.now(); saveState(); showToast('조회 범위 저장됨 · View scope saved'); }
 function renderViewScope(){
   var el=document.getElementById('adminViewScope'); if(!el)return;
   var mods=[['approval','전자결재'],['card','카드사용']];
@@ -5262,33 +5308,35 @@ function renderViewScope(){
 }
 function renderModulePerms(){
   var el=document.getElementById('adminModulePerms'); if(!el) return;
-  var mods=[['approval','전자결재'],['card','카드'],['report','업무'],['vendors','거래처'],['quote','견적'],['project','프로젝트'],['finance','정산'],['bankstmt','은행'],['hr','인사'],['acctAdmin','회계관리자']];
-  var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1">사용자 · User</div>'+mods.map(function(m){ return '<div style="width:62px;text-align:center">'+m[1]+'</div>'; }).join('')+'</div>';
+  var mods=MODULE_DEFS;                                   // 단일 출처 → 새 모듈 자동 표시
+  var COLW=58;
+  var head='<div style="display:flex;align-items:center;font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px"><div style="flex:1;min-width:130px">사용자 · User</div>'+mods.map(function(m){ return '<div style="width:'+COLW+'px;text-align:center;flex-shrink:0">'+m.label+'</div>'; }).join('')+'</div>';
   var rows=MEMBERS.map(function(m){
     var cells=mods.map(function(md){
-      if(m.isAdmin) return '<div style="width:62px;text-align:center;font-size:11px;color:#15803d;font-weight:600">전체 · All</div>';
-      var allowed = (md[0]==='acctAdmin')
+      if(m.isAdmin) return '<div style="width:'+COLW+'px;text-align:center;flex-shrink:0;font-size:12px;color:#15803d;font-weight:700" title="관리자 전체 접근">✓</div>';
+      var allowed = (md.special==='acctAdmin')
         ? (function(){ var pp=(state.modulePerms||{})[_mpk(m.id)]; return !!(pp && pp.acctAdmin===true); })()
-        : (md[0]==='hr')
+        : (md.special==='hr')
         ? (typeof hrModuleAllowed==='function' ? hrModuleAllowed(m) : false)
-        : moduleAllowed(md[0], m);
-      return '<div style="width:62px;text-align:center"><input type="checkbox" class="mperm" data-uid="'+m.id+'" data-mod="'+md[0]+'" '+(allowed?'checked':'')+' style="width:16px;height:16px;cursor:pointer"></div>';
+        : moduleAllowed(md.key, m);
+      return '<div style="width:'+COLW+'px;text-align:center;flex-shrink:0"><input type="checkbox" class="mperm" data-uid="'+m.id+'" data-mod="'+md.key+'" '+(allowed?'checked':'')+' style="width:16px;height:16px;cursor:pointer"></div>';
     }).join('');
-    return '<div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:9px 8px"><div style="flex:1;font-size:13px;font-weight:600">'+m.name+' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+m.role+'</span></div>'+cells+'</div>';
+    return '<div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:9px 8px"><div style="flex:1;min-width:130px;font-size:13px;font-weight:600">'+m.name+' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+m.role+'</span></div>'+cells+'</div>';
   }).join('');
-  el.innerHTML=head+rows
+  el.innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div style="min-width:'+(160+mods.length*COLW)+'px">'+head+rows+'</div></div>'
     +'<div style="padding:10px 8px;border-top:2px solid var(--border);display:flex;justify-content:flex-end"><button class="btn btn-dark" onclick="saveModulePerms()" style="font-size:12px;padding:7px 16px"><i class="ti ti-device-floppy"></i> 변경사항 저장 · Save Changes</button></div>'
-    +'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈이 숨겨집니다. <b>인사 · HR</b>·<b>회계관리자 · Accounting Admin</b>는 기본 비활성 — 체크 시 HR 모듈·은행 「Accounting Admin」 탭에 접근할 수 있습니다. 관리자는 항상 전체 접근. <b style="color:#b45309">변경 후 반드시 「변경사항 저장」을 눌러야 적용됩니다.</b></div>';
+    +'<div style="font-size:10px;color:var(--text-3);padding:8px">체크 해제 시 해당 사용자 허브에서 그 모듈 카드가 숨겨집니다. <b>인사</b>·<b>회계관리</b>는 기본 비활성 — 체크 시 접근 허용. 관리자(✓)는 항상 전체 접근. 열이 많으면 좌우로 스크롤하세요. <b style="color:#b45309">변경 후 반드시 「변경사항 저장」을 눌러야 적용됩니다.</b></div>';
 }
 function saveModulePerms(){
   if(!state.modulePerms) state.modulePerms={};
-  var DEF={approval:true,card:true,report:true,vendors:true,quote:true,project:true,finance:true,bankstmt:true,contract:true,invoice:true,acctAdmin:false,hr:false};
+  var DEF=moduleDefaults();
   var boxes=document.querySelectorAll('#adminModulePerms input.mperm');
   boxes.forEach(function(cb){
     var uid=cb.getAttribute('data-uid'), mod=cb.getAttribute('data-mod');
     if(!state.modulePerms[_mpk(uid)]) state.modulePerms[_mpk(uid)]=Object.assign({},DEF,state.modulePerms[_mpk(uid)]||{});
     state.modulePerms[_mpk(uid)][mod]=cb.checked;
   });
+  state._cfgRev=Date.now();          // 설정 변경 각인 → stale 원격 푸시가 되돌리지 못하게 (issue #5)
   saveState();
   showToast('모듈 권한 저장됨 · '+boxes.length+'개 설정 저장 완료');
   if(typeof renderModulePerms==='function') renderModulePerms();   // 저장 즉시 실제 값으로 화면 갱신
@@ -6047,7 +6095,9 @@ function isReportMember(uid){ var rm=state.reportMembers; if(!rm||!Object.keys(r
 function taskViewableMembers(){
   var me=cardCurrentUser();
   return MEMBERS.filter(function(m){
-    if(me && m.id===me.id) return true;   // 본인
+    if(me && m.id===me.id) return true;   // 본인은 항상
+    // 업무(report) 모듈이 꺼진 멤버는 로스터에서 제외 → 관리자 권한표와 TASK 목록 불일치 해소 (issue #1)
+    if(typeof moduleAllowed==='function' && !moduleAllowed('report', m)) return false;
     if(!m.taskPrivate) return true;       // 비공개 아닌 전원 상호 열람
     return false;                          // 비공개(JINHA) → 본인만
   });
@@ -6060,8 +6110,10 @@ function canEditTask(t){ if(!t)return false; var me=cardCurrentUser(); var isAdm
 // DAILY/주간/월간 렌더 대상 멤버
 //  - 열람 가능(비공개 JINHA 제외) 멤버 중 리포트 대상 + 본인은 항상
 function taskDailyMembers(){
-  var me=cardCurrentUser();
-  return taskViewableMembers().filter(function(m){return (me&&m.id===me.id)||isReportMember(m.id);});
+  // 일일·주간·월간은 열람 가능한 모든 멤버를 표시한다 (모두가 서로의 업무를 봄 · issue #2).
+  // 보고대상(state.reportMembers)은 Slack 다이제스트 대상 지정 용도로만 쓰고,
+  // 화면 열람은 제한하지 않는다.
+  return taskViewableMembers();
 }
 function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
 function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; if(pid==='networking')return '네트워킹 · Networking'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
@@ -6131,12 +6183,54 @@ function showReportApp(){
   var u=cardCurrentUser(); var un=document.getElementById('rptUserName'); if(un)un.textContent=u?('· '+u.name):'';
   if(!_reportDate)_reportDate=projTodayISO();
   renderTaskApp(); window.scrollTo(0,0);
+  setTimeout(function(){ if(typeof showDailyStandup==='function') showDailyStandup(false); },450); // 하루 한 번 자동 확인창
 }
 function closeReportApp(){ reportAppOpen=false; var a=document.getElementById('reportApp'); if(a)a.style.display='none'; if(typeof showHub==='function')showHub(); }
 function taskSwitchTab(t){ _taskTab=t; renderTaskApp(); }
 function reportSetDate(v){ _reportDate=v||projTodayISO(); renderTaskApp(); }
-function reportNav(dir){ var d=new Date(_reportDate||projTodayISO()); if(_taskTab==='weekly')d.setDate(d.getDate()+dir*7); else if(_taskTab==='monthly')d.setMonth(d.getMonth()+dir); else d.setDate(d.getDate()+dir); _reportDate=_isoD(d); renderTaskApp(); }
+function reportNav(dir){ var d=new Date(_reportDate||projTodayISO()); if(_taskTab==='weekly')d.setDate(d.getDate()+dir*7); else if(_taskTab==='monthly'||_taskTab==='calendar')d.setMonth(d.getMonth()+dir); else d.setDate(d.getDate()+dir); _reportDate=_isoD(d); renderTaskApp(); }
 function reportSetTarget(v){ if(v && !canViewMemberTasks(v)){ showToast('열람 권한이 없습니다 · No permission'); return; } _taskTargetUid=v||null; renderTaskApp(); }
+// ── 하루 업무 정리 · Daily standup (issue #5) ──
+function _standupKey(uid){ return 'inics_standup_'+uid+'_'+projTodayISO(); }
+function _standupCategorize(uid){
+  var today=projTodayISO();
+  var mine=(state.tasks||[]).filter(function(t){return t.userId===uid;});
+  return {
+    doneToday:  mine.filter(function(t){return t.status==='done' && t.closedDate===today;}),
+    inProgress: mine.filter(function(t){return t.status!=='done' && (t.startDate||'')<=today;}),
+    upcoming:   mine.filter(function(t){return t.status!=='done' && (t.startDate||'')>today;})
+  };
+}
+function showDailyStandup(force){
+  var me=cardCurrentUser(); if(!me) return;
+  if(!force){ try{ if(localStorage.getItem(_standupKey(me.id))) return; }catch(_){ } }
+  var c=_standupCategorize(me.id);
+  if(!force && !c.doneToday.length && !c.inProgress.length && !c.upcoming.length) return; // 업무 없으면 자동 팝업 생략
+  function sec(title,color,arr,emptyMsg){
+    var h='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:'+color+';margin-bottom:6px">'+title+' ('+arr.length+')</div>';
+    if(!arr.length){ h+='<div style="font-size:12px;color:var(--text-3)">'+emptyMsg+'</div>'; }
+    else { h+=arr.sort(function(a,b){return taskDelay(b)-taskDelay(a);}).map(function(t){
+      var delay=(t.status!=='done')?taskDelay(t):0;
+      var tag=(delay>0)?' <span style="font-size:10px;color:#b91c1c;font-weight:700">D+'+delay+'</span>':'';
+      var note=(t.status==='done'&&t.doneNote)?' <span style="color:var(--text-3)">— '+t.doneNote+'</span>':'';
+      return '<div style="font-size:12px;padding:5px 9px;border:1px solid var(--border);border-left:3px solid '+taskSignal(t.signal).c+';border-radius:6px;margin-bottom:4px;display:flex;gap:7px;align-items:center">'+signalDot(t.signal)+'<span style="flex:1">'+(t.title||'')+note+'</span>'+tag+'</div>';
+    }).join(''); }
+    return h+'</div>';
+  }
+  var body=sec('✅ 완료된 업무 · Completed today','#15803d',c.doneToday,'오늘 완료한 업무가 없습니다.')
+    +sec('▶ 진행 중인 업무 · In progress','#b45309',c.inProgress,'진행 중인 업무가 없습니다.')
+    +sec('◻ 진행 할 업무 · Upcoming · To-do','#2563eb',c.upcoming,'예정된 업무가 없습니다.');
+  var sub=document.getElementById('dailyStandupSub'); if(sub) sub.textContent=me.name+' · '+projTodayISO()+' · 아래 내용을 확인하고 「확인 완료」를 눌러주세요.';
+  var bd=document.getElementById('dailyStandupBody'); if(bd) bd.innerHTML=body;
+  var m=document.getElementById('dailyStandupModal'); if(m) m.style.display='block';
+}
+function closeDailyStandup(){ var m=document.getElementById('dailyStandupModal'); if(m) m.style.display='none'; }
+function confirmDailyStandup(){
+  var me=cardCurrentUser();
+  try{ if(me) localStorage.setItem(_standupKey(me.id),String(Date.now())); }catch(_){ }
+  closeDailyStandup();
+  showToast('오늘 업무 확인 완료 · Daily check confirmed');
+}
 function openTaskForm(id){
   if(id!=null){ var _et=(state.tasks||[]).find(function(x){return x.id===id;}); if(_et && !canEditTask(_et)){ showToast('본인 업무만 수정할 수 있습니다 · No permission'); return; } }
   _editingTaskId=id||null;
@@ -6279,13 +6373,71 @@ function syncTaskToProjects(t){
 // Backward-compatible alias
 function syncTaskToProject(t){ return syncTaskToProjects(t); }
 function renderTaskApp(){
-  [['Mytasks','내 업무 · My Tasks'],['Daily','일일 · Daily'],['Weekly','주간 · Weekly'],['Monthly','월간 · Monthly']].forEach(function(p){
+  [['Mytasks','내 업무 · My Tasks'],['Daily','일일 · Daily'],['Weekly','주간 · Weekly'],['Monthly','월간 · Monthly'],['Calendar','캘린더 · Calendar']].forEach(function(p){
     var b=document.getElementById('tskTab'+p[0]); if(b){ var on=_taskTab===p[0].toLowerCase(); b.innerHTML=p[1]; b.style.cssText='background:none;border:none;border-bottom:2px solid '+(on?'var(--text)':'transparent')+';color:'+(on?'var(--text)':'var(--text-3)')+';font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;font-family:var(--sans)'; }
   });
   var body=document.getElementById('reportBody'); if(!body)return;
   if(_taskTab==='mytasks') body.innerHTML=renderMyTasks();
   else if(_taskTab==='daily') body.innerHTML=renderDaily();
+  else if(_taskTab==='calendar') body.innerHTML=renderTaskCalendar();
   else body.innerHTML=renderRollup();
+}
+// 팀 공용 색상 (캘린더/범례) — 멤버 id 기준 안정적 배정
+var TASK_MEMBER_COLORS=['#2563eb','#b45309','#15803d','#7c3aed','#db2777','#0891b2','#ca8a04','#dc2626','#4f46e5','#0d9488'];
+function taskMemberColor(m){
+  var list=taskDailyMembers(); var i=list.findIndex(function(x){return x.id===m.id;});
+  if(i<0) i=(typeof m.id==='number'?m.id:0);
+  return TASK_MEMBER_COLORS[((i%TASK_MEMBER_COLORS.length)+TASK_MEMBER_COLORS.length)%TASK_MEMBER_COLORS.length];
+}
+// ── 월간 캘린더 : 완료일(closedDate) 기준으로 전원 업무 배치 (issue #3) ──
+function renderTaskCalendar(){
+  var base=_reportDate||projTodayISO();
+  var y=+base.slice(0,4), mo=+base.slice(5,7);
+  var label=base.slice(0,7)+' · Month';
+  var nav=dateNavBar('<span style="font-size:14px;font-weight:700">'+label+'</span>');
+  var members=taskDailyMembers();
+  // 범례
+  var legend='<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">'+members.map(function(m){
+    return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2)"><span style="width:10px;height:10px;border-radius:2px;background:'+taskMemberColor(m)+'"></span>'+m.name+'</span>';
+  }).join('')+'</div>';
+  // 완료 업무를 날짜별로 수집
+  var byDay={};
+  var memName={}; members.forEach(function(m){memName[m.id]=m;});
+  (state.tasks||[]).forEach(function(t){
+    if(t.status!=='done' || !t.closedDate) return;
+    if(!memName[t.userId]) return;                       // 열람 불가 멤버 제외
+    if(t.closedDate.slice(0,7)!==base.slice(0,7)) return;
+    (byDay[t.closedDate]=byDay[t.closedDate]||[]).push(t);
+  });
+  // 그리드 (월요일 시작)
+  var first=new Date(y, mo-1, 1);
+  var lead=(first.getDay()+6)%7;                          // 월=0
+  var daysInMonth=new Date(y, mo, 0).getDate();
+  var todayISO=projTodayISO();
+  var wk=['월','화','수','목','금','토','일'];
+  var head='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px">'+wk.map(function(d,i){
+    return '<div style="text-align:center;font-size:10px;font-weight:700;color:'+(i>=5?'#b91c1c':'var(--text-3)')+';padding:2px">'+d+'</div>';
+  }).join('')+'</div>';
+  var cells='';
+  for(var i=0;i<lead;i++){ cells+='<div style="min-height:78px;border:1px solid transparent"></div>'; }
+  for(var d=1; d<=daysInMonth; d++){
+    var iso=base.slice(0,7)+'-'+String(d).padStart(2,'0');
+    var items=byDay[iso]||[];
+    var isToday=(iso===todayISO);
+    var chips=items.slice(0,4).map(function(t){
+      var col=taskMemberColor(memName[t.userId]);
+      var lbl=(memName[t.userId]?memName[t.userId].name.split(' ')[0]:'')+' · '+(t.doneNote||t.title||'');
+      return '<div title="'+String(lbl).replace(/"/g,'&quot;')+'" style="font-size:9px;line-height:1.25;color:#fff;background:'+col+';border-radius:3px;padding:1px 4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(t.title||t.doneNote||'')+'</div>';
+    }).join('');
+    var more=items.length>4?'<div style="font-size:9px;color:var(--text-3);padding-left:2px">+'+(items.length-4)+' more</div>':'';
+    cells+='<div style="min-height:78px;border:1px solid var(--border);border-radius:6px;padding:3px 4px;background:'+(isToday?'#2563eb0d':'var(--surface)')+';'+(isToday?'border-color:#2563eb':'')+'">'
+      +'<div style="font-size:10px;font-weight:700;color:'+(isToday?'#2563eb':'var(--text-3)')+';margin-bottom:2px">'+d+(items.length?' <span style="font-weight:600;color:var(--text-3)">('+items.length+')</span>':'')+'</div>'
+      +chips+more+'</div>';
+  }
+  var grid='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">'+cells+'</div>';
+  var totalDone=Object.keys(byDay).reduce(function(s,k){return s+byDay[k].length;},0);
+  var summary='<div style="font-size:11px;color:var(--text-3);margin-top:10px">'+base.slice(0,7)+' 완료 업무 총 '+totalDone+'건 · 완료일(CLOSING) 기준</div>';
+  return nav+legend+head+grid+summary;
 }
 function signalDot(k){ var sg=taskSignal(k); return '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+sg.c+';flex-shrink:0" title="'+sg.l+'"></span>'; }
 function taskCard(t, compact){
@@ -6324,6 +6476,7 @@ function renderMyTasks(){
   if(isAdm){ hdr+='<select onchange="reportSetTarget(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">본인 · Me</option>'+taskViewableMembers().filter(function(m){return !me||m.id!==me.id;}).map(function(m){return '<option value="'+m.id+'"'+(String(_taskTargetUid)===String(m.id)?' selected':'')+'>'+m.name+'</option>';}).join('')+'</select>'
     +'<button class="btn btn-outline" onclick="openSlackConfig()" style="font-size:11px;padding:4px 8px" title="설정 · Settings"><i class="ti ti-settings"></i></button>'; }
   hdr+='<button class="btn btn-dark" onclick="openTaskForm(null)" style="font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i> 새 업무 · Add</button>'
+    +'<button class="btn btn-outline" onclick="showDailyStandup(true)" style="font-size:11px;padding:6px 10px"><i class="ti ti-clipboard-check"></i> 오늘 업무 확인</button>'
     +'<button class="btn btn-outline" onclick="fetchSlackToReport()" style="font-size:11px;padding:6px 10px"><i class="ti ti-brand-slack"></i> Slack 불러오기</button>'
     +'</div></div>';
   var mine=(state.tasks||[]).filter(function(t){return t.userId===uid;});
