@@ -37,6 +37,7 @@
 <script src="js/quote.js?v=1"></script>
 <script src="js/contract.js?v=1"></script>
 <script src="js/chasan.js?v=1"></script>
+<script src="js/export.js?v=1"></script>
 <script>
 (function() {
   if (typeof renderHrCon === "function" && window._hrConLoaded) {
@@ -536,6 +537,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-icon" style="background:#f5f3ff;color:#7c3aed"><i class="ti ti-layout-kanban"></i></div>
         <div class="hub-card-title">프로젝트 관리 · Projects</div>
         <div class="hub-card-desc">영업 파이프라인 · 단계 현황<br>Sales Pipeline · Kanban</div>
+      </div>
+      <div class="hub-card active-module" id="hubCard-export" onclick="enterModule(&#39;export&#39;)">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#0891b2">Active</div>
+        <div class="hub-card-icon" style="background:#ecfeff;color:#0891b2"><i class="ti ti-ship"></i></div>
+        <div class="hub-card-title">수출 프로젝트 · Export</div>
+        <div class="hub-card-desc">ETD 역산 · CPTPP 통관 SOP<br>Export SOP · Timeline</div>
       </div>
 
     </div>
@@ -2369,7 +2376,7 @@ async function saveState() {
 //   · 로컬에만 있는 신규(원격에 없음)로 최근 2분 내 편집분 → 유지
 // 3개 컬렉션만 보호하던 반창고를 전 컬렉션으로 확장 — projects 원상복구 버그의 근본 수정.
 var _MERGE_COLLS=['docs','vendors','vendorRequests','cardExpenses','cardMerchants',
-                  'products','quotes','projects','bankTxns','invoices','paymentRequests','tasks'];
+                  'products','quotes','projects','bankTxns','invoices','paymentRequests','tasks','exportProjects'];
 function _stampEdit(o){ if(o){ o._editedAt=Date.now(); o._rev=(o._rev||0)+1; } return o; }
 function _recentLocal(lt){ return (Date.now()-(lt&&lt._editedAt||0))<120000; }
 function _mergeRecentLocalEdits(remote){
@@ -8975,6 +8982,8 @@ function enterModule(module) {
     showQuoteApp();
   } else if(module === 'project') {
     showProjectApp();
+  } else if(module === 'export') {
+    showExportApp();
   } else if(module === 'finance') {
     showFinanceApp();
   } else if(module === 'report') {
@@ -9402,7 +9411,7 @@ function toggleBankType() {
   }
   var APPS=[
     ['cardApp','closeCardApp'],['quoteApp','closeQuoteApp'],['reportApp','closeReportApp'],
-    ['bankApp','closeBankApp'],['projectApp','closeProjectApp'],['financeApp','closeFinanceApp'],['contractApp','closeContractApp'],['invoiceApp','closeInvoiceApp'],['hrApp','closeHrApp']
+    ['bankApp','closeBankApp'],['projectApp','closeProjectApp'],['financeApp','closeFinanceApp'],['contractApp','closeContractApp'],['invoiceApp','closeInvoiceApp'],['hrApp','closeHrApp'],['exportApp','closeExportApp']
   ];
   function _closeTopApp(){
     for(var i=0;i<APPS.length;i++){
