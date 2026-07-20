@@ -177,8 +177,16 @@
       }).join("");
       var bepCells = REV_DEPTS.map(function (d) { return '<td style="text-align:right;padding:8px 10px;font-family:var(--mono);font-weight:700;color:#7c3aed">' + MV((fc.byDept[d] || {}).bepRev || 0) + '</td>'; }).join("");
       var bepRow = '<tr style="border-top:2px solid var(--text)"><td style="padding:8px 10px;font-weight:700;color:#7c3aed">🎯 BEP 목표매출 · Target Rev</td>' + bepCells + '<td style="text-align:right;padding:8px 10px;font-family:var(--mono);font-weight:700;color:#7c3aed;border-left:2px solid var(--text-3)">' + MV(fc.totals.bepRev || 0) + '</td></tr>';
+      // (1) 확정매출 = 다음달(nym) 발행 인보이스 기준 · 실시간
+      var _cfIssued = ((typeof state !== "undefined" && state && state.invoices) || []).filter(function (v) { return v && v.dir === "issued" && String(v.date || "").slice(0, 7) === nym; });
+      function _cfRev(v) { var s = parseFloat(String(v.subtotal == null ? "" : v.subtotal).replace(/[^0-9.\-]/g, "")); if (!(s > 0)) s = parseFloat(String(v.total == null ? "" : v.total).replace(/[^0-9.\-]/g, "")) || 0; return Math.round(s); }
+      var _cfByDept = {}; REV_DEPTS.forEach(function (d) { _cfByDept[d] = 0; }); var _cfTot = 0;
+      _cfIssued.forEach(function (v) { var r = _cfRev(v); _cfTot += r; if (REV_DEPTS.indexOf(v.chasanDept) >= 0) _cfByDept[v.chasanDept] += r; });
+      var _cfCells = REV_DEPTS.map(function (d) { return '<td style="text-align:right;padding:8px 10px;font-family:var(--mono);color:#15803d">' + MV(_cfByDept[d]) + '</td>'; }).join("");
+      var _bepTot = fc.totals.bepRev || 0, _cfPct = _bepTot > 0 ? Math.round(_cfTot / _bepTot * 100) : 0;
+      var _cfRow = '<tr style="border-top:1px solid var(--border)"><td style="padding:8px 10px;font-weight:700;color:#15803d">\u2705 확정매출 · Confirmed <span style="font-size:9px;font-weight:400;color:var(--text-3)">발행 인보이스·실시간</span></td>' + _cfCells + '<td style="text-align:right;padding:8px 10px;font-family:var(--mono);font-weight:700;color:#15803d;border-left:2px solid var(--text-3)">' + MV(_cfTot) + (_bepTot > 0 ? (' <span style="font-size:9px;color:var(--text-3)">달성 ' + _cfPct + '%</span>') : '') + '</td></tr>';
       h += '<div style="font-size:13px;font-weight:700;margin:12px 0 8px">다음달 예상채산 · Next-month Forecast (' + E(nym) + ') <span style="font-size:11px;color:var(--text-3);font-weight:400">공헌이익률 ' + Math.round((fc.cm || 0) * 100) + '% · 손익분기 목표매출</span></div>';
-      h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">' + fth + '</tr></thead><tbody>' + frows + bepRow + '</tbody></table></div>';
+      h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">' + fth + '</tr></thead><tbody>' + frows + bepRow + _cfRow + '</tbody></table></div>';
     } else { h += '<div style="font-size:11px;color:var(--text-3);padding:6px 0">※ 다음달 예상채산은 채산 모듈을 한 번 연 뒤 다시 생성하면 표시됩니다.</div>'; }
     return h;
   }
@@ -213,16 +221,7 @@
     var moDeliv = delivered.filter(function (o) { return _inRange(o.d, mStart, mEnd); });
 
     var h = _sectionTitle("프로젝트 · Projects", "#0891b2");
-    h += '<div style="font-size:13px;font-weight:700;margin:6px 0 8px">이번 주 납품완료 · Delivered this week <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + wkDeliv.length + '건)</span></div>';
-    if (wkDeliv.length) {
-      var drows = wkDeliv.map(function (o) { var p = o.p;
-        return '<tr><td style="padding:6px 10px">' + E(p.client || "—") + '</td><td style="padding:6px 10px;color:var(--text-2)">' + E(p.type || p.note || "—") + '</td><td style="padding:6px 10px;color:var(--text-3)">' + E(p.region || "") + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td><td style="text-align:right;padding:6px 10px;color:var(--text-2)">' + _iso(o.d) + '</td></tr>';
-      }).join("");
-      h += '<div style="overflow-x:auto;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="text-align:left;padding:6px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th><th style="text-align:left;padding:6px 10px;font-size:10px;color:var(--text-3)">프로젝트 · Type</th><th style="text-align:left;padding:6px 10px;font-size:10px;color:var(--text-3)">지역</th><th style="text-align:right;padding:6px 10px;font-size:10px;color:var(--text-3)">계약금액 · Amount</th><th style="text-align:right;padding:6px 10px;font-size:10px;color:var(--text-3)">납품일 · Date</th></tr></thead><tbody>' + drows + '</tbody></table></div>';
-      h += '<div style="font-size:11px;color:var(--text-2);margin-bottom:16px">주간 납품 합계 · Week total: <b>' + _dispSum(wkDeliv.map(function (o) { return o.p; })) + '</b></div>';
-    } else { h += '<div style="font-size:12px;color:var(--text-3);padding:8px 0 16px">이번 주 납품완료 건 없음.</div>'; }
-
-    h += '<div style="font-size:13px;font-weight:700;margin:6px 0 8px">진행 파이프라인 · Active Pipeline <span style="font-size:11px;color:var(--text-3);font-weight:400">(단계별 건수·금액)</span></div>';
+    h += '<div style="font-size:13px;font-weight:700;margin:6px 0 8px">진행 파이프라인 · Active Pipeline <span style="font-size:11px;color:var(--text-3);font-weight:400">(올해 ' + now.getFullYear() + ' · 단계별 건수·금액)</span></div>';
     var prows = PSTAGES.map(function (st) { var arr = projects.filter(function (p) { return p.stage === st[0]; });
       return '<tr><td style="padding:6px 10px"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' + st[2] + ';margin-right:7px"></span>' + st[1] + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + arr.length + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + _dispSum(arr) + '</td></tr>';
     }).join("");
@@ -232,12 +231,37 @@
     var holdN = projects.filter(function (p) { return p.stage === "hold"; }).length, lostN = projects.filter(function (p) { return p.stage === "lost"; }).length;
     h += '<div style="font-size:11px;color:var(--text-3);margin-bottom:16px">보류 · On-hold ' + holdN + '건 · 드롭 · Lost ' + lostN + '건 (합계 제외)</div>';
 
-    h += '<div style="font-size:13px;font-weight:700;margin:6px 0 8px">누적 납품 · Cumulative Delivered</div>';
+    // (3) 단계 변경 상세 — 보고월 기준 수주협의/수주확정/PO완료 (이전 변경은 기타)
+    var _rMon = _dOnly(wr.mon), _rmStart = new Date(_rMon.getFullYear(), _rMon.getMonth(), 1), _rmEnd = new Date(_rMon.getFullYear(), _rMon.getMonth() + 1, 0), _rmLbl = (_rMon.getMonth() + 1) + "월";
+    function _enteredStageDate(p, stg) { var hist = p.stageHistory || []; var dts = hist.filter(function (x) { return x && x.stage === stg; }).map(function (x) { return _parseAt(x.at); }).filter(Boolean); return dts.length ? new Date(Math.max.apply(null, dts.map(function (d) { return d.getTime(); }))) : null; }
+    var _detStages = [["nego", "수주협의 · Nego", "#7c3aed"], ["won", "수주확정 · Won", "#1d4ed8"], ["po", "PO완료 · PO", "#b45309"]];
+    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 6px">단계 변경 상세 · Stage Changes <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + _rmLbl + ' 변경분 · 이전은 기타)</span></div>';
+    _detStages.forEach(function (st) {
+      var inStage = projects.filter(function (p) { return p.stage === st[0]; });
+      var changed = inStage.filter(function (p) { return _inRange(_enteredStageDate(p, st[0]), _rmStart, _rmEnd); }).sort(function (a, b) { return _enteredStageDate(b, st[0]) - _enteredStageDate(a, st[0]); });
+      var etcN = inStage.length - changed.length;
+      h += '<div style="font-size:12px;font-weight:700;margin:8px 0 4px;color:' + st[2] + '">' + st[1] + ' <span style="font-weight:400;color:var(--text-3)">(' + _rmLbl + ' 변경 ' + changed.length + '건' + (etcN > 0 ? (' · 기타 ' + etcN + '건') : '') + ')</span></div>';
+      if (changed.length) {
+        var _rws = changed.map(function (p) { var d = _enteredStageDate(p, st[0]); return '<tr><td style="padding:5px 10px">' + E(p.client || "—") + '</td><td style="padding:5px 10px;color:var(--text-2)">' + E(p.type || p.note || "—") + '</td><td style="padding:5px 10px;color:var(--text-3)">' + E(p.region || "") + '</td><td style="text-align:right;padding:5px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td><td style="text-align:right;padding:5px 10px;color:var(--text-2)">' + (d ? _iso(d) : "") + '</td></tr>'; }).join("");
+        h += '<div style="overflow-x:auto;margin-bottom:4px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">프로젝트 · Type</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">지역</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">변경일 · Date</th></tr></thead><tbody>' + _rws + '</tbody></table></div>';
+      } else { h += '<div style="font-size:11px;color:var(--text-3);padding:2px 0 4px">' + _rmLbl + ' 변경 건 없음' + (etcN > 0 ? (' · 기타 ' + etcN + '건(이전 변경)') : '') + '</div>'; }
+    });
+
+    // (5) 누적 납품 = 발행 인보이스(issued) 기준
+    var _issued = ((typeof state !== "undefined" && state && state.invoices) || []).filter(function (v) { return v && v.dir === "issued"; });
+    function _invN(v) { return Math.round(parseFloat(String(v.total == null ? "" : v.total).replace(/[^0-9.\-]/g, "")) || 0); }
+    function _invC(v) { return v.currency || "VND"; }
+    function _invU(v) { return _invC(v) === "USD" ? _invN(v) : (_rate ? _invN(v) / _rate : 0); }
+    function _invSumD(arr) { if (_usd && _rate) return _fmtUSD(arr.reduce(function (s, v) { return s + _invU(v); }, 0)); var m = {}; arr.forEach(function (v) { var c = _invC(v); m[c] = (m[c] || 0) + _invN(v); }); return _fmtCur(m); }
+    function _invDate(v) { return _parseAt(v.date) || _parseAt(v.issueDate) || null; }
+    var _moInv = _issued.filter(function (v) { return _inRange(_invDate(v), mStart, mEnd); });
+    var _ytdInv = _issued.filter(function (v) { return _inRange(_invDate(v), yStart, yEnd); });
+    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 8px">누적 납품 · Cumulative Delivered <span style="font-size:11px;color:var(--text-3);font-weight:400">(발행 인보이스 기준 · Issued invoices)</span></div>';
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">'
-      + _kpi("이번 달 건수 · Month (" + (now.getMonth() + 1) + "월)", moDeliv.length, "#0891b2")
-      + _kpi("이번 달 금액 · Amount", null, "#0891b2", _dispSum(moDeliv.map(function (o) { return o.p; })))
-      + _kpi("올해 건수 · YTD " + now.getFullYear(), ytdDeliv.length, "#111827")
-      + _kpi("올해 금액 · Amount", null, "#111827", _dispSum(ytdDeliv.map(function (o) { return o.p; })))
+      + _kpi("이번 달 건수 · Month (" + (now.getMonth() + 1) + "월)", _moInv.length, "#0891b2")
+      + _kpi("이번 달 금액 · Amount", null, "#0891b2", _invSumD(_moInv))
+      + _kpi("올해 건수 · YTD " + now.getFullYear(), _ytdInv.length, "#111827")
+      + _kpi("올해 금액 · Amount", null, "#111827", _invSumD(_ytdInv))
       + '</div>';
     return h;
   }
@@ -286,14 +310,21 @@
     html2canvas(wrap, { scale: 2, backgroundColor: "#ffffff", useCORS: true }).then(function (canvas) {
       var pdf = new window.jspdf.jsPDF("p", "mm", "a4");
       var W = wrap.offsetWidth || 794, mmPerCss = 210 / W, marginMm = 8, usableMm = 297 - marginMm * 2;
-      var scale = canvas.width / W, usableCss = usableMm / mmPerCss, Hcss = canvas.height / scale, start = 0, first = true, guard = 0;
-      while (start < Hcss - 1 && guard++ < 80) {
-        var sliceCss = Math.min(usableCss, Hcss - start);
-        var sc = document.createElement("canvas"); sc.width = canvas.width; sc.height = Math.max(1, Math.round(sliceCss * scale));
-        sc.getContext("2d").drawImage(canvas, 0, Math.round(start * scale), canvas.width, sc.height, 0, 0, canvas.width, sc.height);
+      var scale = canvas.width / W, usablePx = Math.round((usableMm / mmPerCss) * scale);
+      var Hpx = canvas.height, ctx2 = canvas.getContext("2d"), imgData = null;
+      try { imgData = ctx2.getImageData(0, 0, canvas.width, Hpx); } catch (e) { imgData = null; }   // taint 시 고정분할로 폴백
+      function _blankRow(y) { if (!imgData) return false; var d = imgData.data, w = canvas.width, b = y * w * 4; for (var x = 0; x < w; x += 4) { var i = b + x * 4; if (d[i] < 245 || d[i + 1] < 245 || d[i + 2] < 245) return false; } return true; }
+      function _safeCut(target, minY) { var back = Math.round((target - minY) * 0.22); for (var y = target; y > target - back && y > minY + 2; y--) { if (_blankRow(y)) return y; } return target; }   // 글자 줄 사이 빈 띄에서 절단(줄 안 끕김)
+      var startPx = 0, first = true, guard = 0;
+      while (startPx < Hpx - 1 && guard++ < 200) {
+        var targetPx = Math.min(startPx + usablePx, Hpx);
+        var cutPx = (targetPx >= Hpx) ? Hpx : _safeCut(targetPx, startPx);
+        var slicePx = Math.max(1, cutPx - startPx);
+        var sc = document.createElement("canvas"); sc.width = canvas.width; sc.height = slicePx;
+        sc.getContext("2d").drawImage(canvas, 0, startPx, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
         if (!first) pdf.addPage();
-        pdf.addImage(sc.toDataURL("image/jpeg", 0.92), "JPEG", 0, marginMm, 210, sliceCss * mmPerCss);
-        first = false; start += sliceCss;
+        pdf.addImage(sc.toDataURL("image/jpeg", 0.92), "JPEG", 0, marginMm, 210, (slicePx / scale) * mmPerCss);
+        first = false; startPx = cutPx;
       }
       pdf.save("INICS_HQ_Report_" + _iso(_weekRange().mon) + ".pdf");
       document.body.removeChild(wrap);
@@ -331,9 +362,9 @@
     } catch (e) { copied = false; }
     var note = copied ? "※ 서식 있는 보고서 전체가 클립보드에 복사되었습니다. 본문을 클릭한 뒤 Ctrl+V(⌘V)로 붙여넣으면 표까지 그대로 들어갑니다.\n\n── 평문 요약 ──\n" : "";
     var body = note + plain;
-    var url = "https://outlook.office.com/mail/deeplink/compose?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(body.slice(0, 1600));
-    window.open(url, "_blank");
-    if (typeof showToast === "function") showToast(copied ? "Outlook 작성창 오픈 · 본문에 Ctrl+V로 서식본 붙여넣기" : "Outlook 작성창 오픈 (평문 요약 자동 기입)");
+    var mailto = "mailto:?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(body.slice(0, 1800));
+    window.location.href = mailto;   // OS 기본 메일앱(= Outlook classic) 작성창 오픈
+    if (typeof showToast === "function") showToast(copied ? "Outlook classic 작성창 오픈 · 본문에 Ctrl+V로 서식본 붙여넣기" : "Outlook classic 작성창 오픈 (평문 요약 자동 기입)");
   };
 
   function _sectionMx() {
