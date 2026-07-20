@@ -502,6 +502,9 @@
     var _unit = _fu ? "USD" : "VND";
     var fc = chasanForecast(ym, r);
     var T = DEPTS;
+    var _liveRevRow = '<tr style="background:var(--surface-2)"><td style="padding:6px 10px;text-align:left;font-weight:700">\uD83D\uDCB0 \uC2E4\uC2DC\uAC04 \uB9E4\uCD9C \u00B7 Live Revenue <span style="font-size:9px;color:var(--text-3)">\uBC1C\uD589 \uC778\uBCF4\uC774\uC2A4</span></td>' + T.map(function (t) { return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700">' + F2(((r.byDept[t] || {}).revenue) || 0) + '</td>'; }).join("") + '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700">' + F2(((r.totals || {}).revenue) || 0) + '</td></tr>';
+    var _bepPct = function (rv, bp) { var p = bp > 0 ? Math.round(rv / bp * 100) : 0; return { col: p >= 100 ? "#15803d" : (p >= 70 ? "#d97706" : "#dc2626"), s: bp > 0 ? p + "%" : "\u2014" }; };
+    var _bepPctRow = '<tr style="color:var(--text-3)"><td style="padding:4px 10px;text-align:left;font-size:11px">\u21B3 BEP \uB2EC\uC131\uB960 \u00B7 vs Target</td>' + T.map(function (t) { var q = _bepPct(((r.byDept[t] || {}).revenue) || 0, (fc.byDept[t] || {}).bepRev || 0); return '<td style="padding:4px 10px;text-align:right;font-family:var(--mono);font-size:11px;color:' + q.col + '">' + q.s + '</td>'; }).join("") + (function () { var q = _bepPct(((r.totals || {}).revenue) || 0, fc.totals.bepRev || 0); return '<td style="padding:4px 10px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:' + q.col + '">' + q.s + '</td>'; })() + '</tr>';
     var _fcRowLine = function (label, val, bold, color) {
       return '<div style="display:flex;gap:8px;font-size:11px;padding:3px 0' + (bold ? ";font-weight:700" : "") + '"><span style="flex:1;min-width:0' + (color ? ";color:" + color : "") + '">' + label + '</span><span style="font-family:var(--mono);flex-shrink:0' + (color ? ";color:" + color : "") + '">' + F2(val) + '</span></div>';
     };
@@ -540,6 +543,7 @@
     h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--text-3)">항목 · Item</th>'
       + T.map(function (t) { return '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">' + E(t) + '</th>'; }).join("")
       + '<th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--text-3)">합계 (' + _unit + ')</th></tr></thead><tbody>'
+      + _liveRevRow + _bepPctRow
       + row("(−) 인건비 · Labor (전월)", "labor")
       + row("(−) 고정판관비 · Fixed OpEx", "fixedOpex")
       + row("(−) 변동판관비 · Variable OpEx", "varOpex")

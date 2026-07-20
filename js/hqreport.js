@@ -95,10 +95,30 @@
       + '</div>';
   }
 
+  async function _hqrForeignConfirmed() {
+    try {
+      var all = await window.chasanLoadAll();
+      var fin = Object.keys(all).filter(function (k) { return /^\d{4}-\d{2}$/.test(k) && all[k] && all[k].finalizedAt; }).sort();
+      if (!fin.length) return { list: [], nym: null };
+      var nym = _nextYm(fin[fin.length - 1]);
+      var invs = (typeof state !== "undefined" && state && state.invoices) || [];
+      var list = invs.filter(function (v) { return v && v.dir === "issued" && String(v.date || "").slice(0, 7) === nym && String(v.currency || "VND").toUpperCase() !== "VND"; });
+      return { list: list, nym: nym };
+    } catch (e) { return { list: [], nym: null }; }
+  }
   window.hqrGenerate = async function () {
     var out = document.getElementById("hqrOutput"); if (!out) return;
     if (!_types.chasan && !_types.project && !_types.task && !_types.mx) { out.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:20px;text-align:center">항목을 하나 이상 선택하세요.</div>'; return; }
     var _mxEl = document.getElementById("hqrMx"); if (_mxEl) _mxText = _mxEl.value;
+    if (_types.chasan) {
+      var _fcf = await _hqrForeignConfirmed();
+      if (_fcf.list.length && !(_rate > 0)) {
+        var _ans = window.prompt("\uB2E4\uC74C\uB2EC(" + _fcf.nym + ") \uD655\uC815\uB9E4\uCD9C\uC5D0 \uC678\uD654(USD) \uC778\uBCF4\uC774\uC2A4 " + _fcf.list.length + "\uAC74\uC774 \uC788\uC2B5\uB2C8\uB2E4.\nVND\uB85C \uD658\uC0B0\uD560 \uD658\uC728(VND/USD)\uC744 \uC785\uB825\uD558\uC138\uC694:", "26000");
+        var _rr = parseFloat(String(_ans == null ? "" : _ans).replace(/[^0-9.]/g, "")) || 0;
+        if (!(_rr > 0)) { out.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:20px;text-align:center">\uD658\uC728\uC774 \uC785\uB825\uB418\uC9C0 \uC54A\uC544 \uBCF4\uACE0\uC11C \uC0DD\uC131\uC744 \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4. VND/USD \uD658\uC728 \uC785\uB825 \uD6C4 \uB2E4\uC2DC \uC0DD\uC131\uD558\uC138\uC694.</div>'; return; }
+        _rate = _rr; var _re = document.getElementById("hqrRate"); if (_re) _re.value = _rate;
+      }
+    }
     out.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:20px;text-align:center">보고서 작성 중… · Building…</div>';
     var wr = _weekRange();
     var body = _reportHeader(wr);
@@ -179,9 +199,9 @@
       var bepRow = '<tr style="border-top:2px solid var(--text)"><td style="padding:8px 10px;font-weight:700;color:#7c3aed">🎯 BEP 목표매출 · Target Rev</td>' + bepCells + '<td style="text-align:right;padding:8px 10px;font-family:var(--mono);font-weight:700;color:#7c3aed;border-left:2px solid var(--text-3)">' + MV(fc.totals.bepRev || 0) + '</td></tr>';
       // (1) 확정매출 = 다음달(nym) 발행 인보이스 기준 · 실시간
       var _cfIssued = ((typeof state !== "undefined" && state && state.invoices) || []).filter(function (v) { return v && v.dir === "issued" && String(v.date || "").slice(0, 7) === nym; });
-      function _cfRev(v) { var s = parseFloat(String(v.subtotal == null ? "" : v.subtotal).replace(/[^0-9.\-]/g, "")); if (!(s > 0)) s = parseFloat(String(v.total == null ? "" : v.total).replace(/[^0-9.\-]/g, "")) || 0; return Math.round(s); }
+      function _cfRev(v) { var s = parseFloat(String(v.subtotal == null ? "" : v.subtotal).replace(/[^0-9.\-]/g, "")); if (!(s > 0)) s = parseFloat(String(v.total == null ? "" : v.total).replace(/[^0-9.\-]/g, "")) || 0; var c = String(v.currency || "VND").toUpperCase(); if (c !== "VND") { var fx = parseFloat(String(v.fxRate == null ? (v.rate == null ? "" : v.rate) : v.fxRate).replace(/[^0-9.\-]/g, "")) || 0; if (!(fx > 0)) fx = _rate; if (fx > 0) s = s * fx; } return Math.round(s); }
       var _cfByDept = {}; REV_DEPTS.forEach(function (d) { _cfByDept[d] = 0; }); var _cfTot = 0;
-      _cfIssued.forEach(function (v) { var r = _cfRev(v); _cfTot += r; if (REV_DEPTS.indexOf(v.chasanDept) >= 0) _cfByDept[v.chasanDept] += r; });
+      _cfIssued.forEach(function (v) { var r = _cfRev(v); _cfTot += r; var _d = (v.chasanDept && REV_DEPTS.indexOf(v.chasanDept) >= 0) ? v.chasanDept : "FUR VN"; _cfByDept[_d] += r; });
       var _cfCells = REV_DEPTS.map(function (d) { return '<td style="text-align:right;padding:8px 10px;font-family:var(--mono);color:#15803d">' + MV(_cfByDept[d]) + '</td>'; }).join("");
       var _bepTot = fc.totals.bepRev || 0, _cfPct = _bepTot > 0 ? Math.round(_cfTot / _bepTot * 100) : 0;
       var _cfRow = '<tr style="border-top:1px solid var(--border)"><td style="padding:8px 10px;font-weight:700;color:#15803d">\u2705 확정매출 · Confirmed <span style="font-size:9px;font-weight:400;color:var(--text-3)">발행 인보이스·실시간</span></td>' + _cfCells + '<td style="text-align:right;padding:8px 10px;font-family:var(--mono);font-weight:700;color:#15803d;border-left:2px solid var(--text-3)">' + MV(_cfTot) + (_bepTot > 0 ? (' <span style="font-size:9px;color:var(--text-3)">달성 ' + _cfPct + '%</span>') : '') + '</td></tr>';
