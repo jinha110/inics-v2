@@ -14,6 +14,7 @@
   function E(s) { return typeof hrEsc === "function" ? hrEsc(s) : String(s == null ? "" : s); }
 
   var DEPTS = ["FUR VN", "FUR MX", "SOURCING", "COMMON"];
+  var _csViewRaw = false;   // 확정 뷰 "배분 풀기(보기)" — 확정본 불변, 표시만 배분 전 원본
   var REVENUE_DEPTS = ["FUR VN", "FUR MX", "SOURCING"];
   var CURRENCIES = ["VND", "USD", "MXN", "KRW"];
 
@@ -289,6 +290,7 @@
       byDept[t] = { revenue: revenue, cogs: cogs, labor: labor, opex: opex, extra: extra, op: op, margin: revenue ? op / revenue : 0 };
     });
     var headByDept = {}; DEPTS.forEach(function (t) { headByDept[t] = lab.head ? (lab.head[t] || 0) : 0; });
+    var byDeptRaw = JSON.parse(JSON.stringify(byDept)), headByDeptRaw = JSON.parse(JSON.stringify(headByDept));   // 배분 전 원본(확정 뷰 "배분 풀기"용)
     if (CHASAN_CFG.allocateCommon) {
       var com = byDept.COMMON;
       var _keys = ["revenue", "cogs", "labor", "opex", "extra"];   // 매출 포함 전항목 재분배 → 총계 불변
@@ -313,7 +315,7 @@
     DEPTS.forEach(function (t) { ["revenue", "cogs", "labor", "opex", "extra", "op"].forEach(function (k) { tot[k] += byDept[t][k]; }); });
     tot.margin = tot.revenue ? tot.op / tot.revenue : 0;
     var totHead = DEPTS.reduce(function (a, t) { return a + (headByDept[t] || 0); }, 0);
-    return { ym: ym, byDept: byDept, totals: tot, headByDept: headByDept, totHead: totHead, laborSource: lab.source, laborFinalized: lab.finalized, laborRows: lab.rows,
+    return { ym: ym, byDept: byDept, totals: tot, headByDept: headByDept, totHead: totHead, byDeptRaw: byDeptRaw, headByDeptRaw: headByDeptRaw, laborSource: lab.source, laborFinalized: lab.finalized, laborRows: lab.rows,
       dq: { uncat: bank.uncat, untagged: bank.untagged, unsplit: bank.unsplit, uncatList: bank.uncatList, untaggedList: bank.untaggedList, invFxMiss: inv.fxMissInv, invAsset: inv.assetInv, invAssetSum: inv.assetSum, revCount: inv.revCount, cogsCount: inv.cogsCount }, allocated: CHASAN_CFG.allocateCommon };
   };
 
@@ -600,9 +602,22 @@
     var _snap = await chasanLoadSnapshot(ym);
     var _final = !!(_snap && _snap.finalizedAt && _snap.byDept && _snap.totals);
     var _drift = _final ? Math.round(Math.abs((_live.totals.op || 0) - (_snap.totals.op || 0))) : 0;
+    if (!_final) _csViewRaw = false;                                              // 배분 풀기는 확정 뷰 전용
+    var _rawAvail = !!(_final && _snap.byDeptRaw && typeof _snap.byDeptRaw === "object");
+    var _showRaw  = !!(_final && _csViewRaw);                                     // 확정본 불변, 표시만 배분 전
+    var _rawFromLive = _showRaw && !_rawAvail;                                    // 과거 확정본에 원본 미저장 → 라이브 배분전 fallback
+    var _rawByDept = _showRaw ? (_rawAvail ? _snap.byDeptRaw : _live.byDeptRaw) : null;
+    var _rawHead   = _showRaw ? (_rawAvail ? (_snap.headByDeptRaw || _snap.headByDept) : _live.headByDeptRaw) : null;
+    var _rawTotals = null, _rawTotHead = 0;
+    if (_showRaw && _rawByDept) {                                                 // 합계 행 = 원본 컬럼합(반올림 잔차 방지)
+      _rawTotals = { revenue: 0, cogs: 0, labor: 0, opex: 0, extra: 0, op: 0 };
+      DEPTS.forEach(function (t) { ["revenue","cogs","labor","opex","extra","op"].forEach(function (k) { _rawTotals[k] += ((_rawByDept[t] && _rawByDept[t][k]) || 0); }); _rawTotHead += ((_rawHead && _rawHead[t]) || 0); });
+      _rawTotals.margin = _rawTotals.revenue ? _rawTotals.op / _rawTotals.revenue : 0;
+    }
     var r = _final
-      ? { byDept: _snap.byDept, totals: _snap.totals, allocated: !!_snap.allocated, laborFinalized: true, laborSource: "확정", laborRows: [], headByDept: (_snap.headByDept || _live.headByDept || {}), totHead: (_snap.totHead != null ? _snap.totHead : _live.totHead), dq: { uncat: { count: 0, debit: 0, credit: 0 }, untagged: 0, unsplit: [], uncatList: [], untaggedList: [] } }
+      ? { byDept: (_showRaw ? _rawByDept : _snap.byDept), totals: (_showRaw ? _rawTotals : _snap.totals), allocated: _showRaw ? false : !!_snap.allocated, laborFinalized: true, laborSource: "확정", laborRows: [], headByDept: (_showRaw ? _rawHead : (_snap.headByDept || _live.headByDept || {})), totHead: (_showRaw ? _rawTotHead : (_snap.totHead != null ? _snap.totHead : _live.totHead)), dq: { uncat: { count: 0, debit: 0, credit: 0 }, untagged: 0, unsplit: [], uncatList: [], untaggedList: [] } }
       : _live;
+    var _rawWarn = _showRaw ? '<div style="border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:11px;color:var(--text-3)">🔓 배분 풀기(보기) — 확정본(배분 적용)은 이력 그대로 보존됩니다. 지금 표는 <b>배분 전 원본</b>(COMMON 원천 포함, 매출부서는 직접귀속만)입니다.' + (_rawFromLive ? ' <span style="color:var(--warning)">⚠ 이 월은 원본 미저장 → 라이브 배분전 기준(확정 시점과 다를 수 있음).</span>' : '') + '</div>' : "";
     var money = function (v) { return _usd && _rate ? (v / _rate).toLocaleString("en-US", { maximumFractionDigits: 0 }) : F(v); };
     var unit = _usd && _rate ? "USD" : "VND";
     var pct = function (x) { return (x * 100).toFixed(1) + "%"; };
@@ -792,13 +807,15 @@
 
     window._csLastR = r; window._csLastYm = ym;
     host.querySelector("#csBody").innerHTML =
-      _csTabs("month") + _driftWarn
+      _csTabs("month") + _driftWarn + _rawWarn
       + '<div class="form-card" style="padding:0;overflow:hidden">'
       + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
       + '<div><div style="font-size:14px;font-weight:700">부서 채산 · Departmental P&L — ' + E(ym) + '</div>'
       + '<div style="font-size:11px;color:var(--text-3)">매출·매입원가=인보이스 발생주의(매출 ' + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + ') · 기본부서 FUR VN · 판관비=현금주의 · 인건비=' + (r.laborFinalized ? "확정대장" : "라이브(" + r.laborSource + ")") + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-      + '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csAlloc"' + (CHASAN_CFG.allocateCommon ? " checked" : "") + '> COMMON 배분 · Allocate</label>'
+      + (_final
+          ? '<label style="font-size:11px;color:' + (_showRaw ? "var(--text)" : "var(--text-3)") + ';display:flex;align-items:center;gap:5px;font-weight:' + (_showRaw ? "600" : "400") + '" title="확정본은 그대로 두고 보기만 배분 해제"><input type="checkbox" id="csViewRaw"' + (_csViewRaw ? " checked" : "") + '> 배분 풀기(보기) · Unallocate view</label>'
+          : '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csAlloc"' + (CHASAN_CFG.allocateCommon ? " checked" : "") + '> COMMON 배분 · Allocate</label>')
       + '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csUsd"' + (_usd ? " checked" : "") + '> USD</label>'
       + '<input id="csRate" type="number" placeholder="VND/USD" value="' + (_rate || "") + '" style="width:100px;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px">'
       + '<button id="csXlsx" style="border:1px solid var(--border);background:none;color:var(--text-2);font-size:11px;cursor:pointer;padding:6px 11px;border-radius:7px">⬇ Excel</button>'
@@ -829,7 +846,8 @@
     if (usdEl) usdEl.onchange = function () { _usd = usdEl.checked; if (_usd && !(+rateEl.value)) { alert("월 환율(VND/USD)을 입력하세요."); _usd = false; usdEl.checked = false; return; } renderChasan(ym, host, opts); };
     if (rateEl) rateEl.onchange = function () { _rate = +rateEl.value || 0; if (_usd) renderChasan(ym, host, opts); };
     if (allocEl) allocEl.onchange = function () { CHASAN_CFG.allocateCommon = allocEl.checked; renderChasan(ym, host, opts); };
-    var _payload = function () { return { byDept: _live.byDept, totals: _live.totals, fx: { usd: _usd, vndPerUsd: _rate }, laborFinalized: _live.laborFinalized, allocated: _live.allocated, headByDept: _live.headByDept, totHead: _live.totHead }; };
+    var viewRawEl = host.querySelector("#csViewRaw"); if (viewRawEl) viewRawEl.onchange = function () { _csViewRaw = viewRawEl.checked; renderChasan(ym, host, opts); };
+    var _payload = function () { return { byDept: _live.byDept, totals: _live.totals, fx: { usd: _usd, vndPerUsd: _rate }, laborFinalized: _live.laborFinalized, allocated: _live.allocated, headByDept: _live.headByDept, totHead: _live.totHead, byDeptRaw: _live.byDeptRaw, headByDeptRaw: _live.headByDeptRaw }; };
     var _bind = function (id, fn) { var el = host.querySelector(id); if (el) el.onclick = fn; };
     var _csArchive = async function () { try { if (typeof XLSX === "undefined") return false; var all = await chasanLoadAll(); var bytes = chasanBuildWorkbook(ym, _live, _lw, _extra[ym], _live.laborRows, all); return await chasanArchiveXlsx(ym, chasanXlsxBlob(bytes)); } catch (e) { return false; } };
     _bind("#csXlsx", function () { chasanDownloadXlsx(ym); });
@@ -908,7 +926,7 @@
     var d = chasanLineDetail(ym, dept, key);
     var glabel = d.groupKey === "category" ? "카테고리 · Category" : "거래처 · Vendor";
     var _an = "";
-    if (CHASAN_CFG.allocateCommon) { _an = (dept === "COMMON") ? ' · 배분 전 원천 · pre-alloc pool' : ' · 직접귀속만(배분분 제외) · direct only'; }
+    if (_csViewRaw) { _an = ' · 배분 풀림(원본) · unallocated view'; } else if (CHASAN_CFG.allocateCommon) { _an = (dept === "COMMON") ? ' · 배분 전 원천 · pre-alloc pool' : ' · 직접귀속만(배분분 제외) · direct only'; }
     var html = '<div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:2px 0 6px;min-width:260px">'
       + '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">' + E(dept) + ' · ' + glabel + '별 (' + d.count + '건' + (d.assetCount ? ' · 자산 제외 ' + d.assetCount + '건' : '') + ')' + _an + '</div>';
     if (!d.groups.length) { var _m = "직접 귀속 거래 없음 · No direct txns"; if (CHASAN_CFG.allocateCommon && dept !== "COMMON") _m += " — 표시값은 COMMON 배분분입니다. COMMON 열을 클릭해 원천 확인"; html += '<div style="font-size:11px;color:var(--text-3)">' + _m + '</div>'; }
