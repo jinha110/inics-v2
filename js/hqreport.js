@@ -102,7 +102,7 @@
       if (!fin.length) return { list: [], nym: null };
       var nym = _nextYm(fin[fin.length - 1]);
       var invs = (typeof state !== "undefined" && state && state.invoices) || [];
-      var list = invs.filter(function (v) { return v && v.dir === "issued" && String(v.date || "").slice(0, 7) === nym && String(v.currency || "VND").toUpperCase() !== "VND"; });
+      var list = invs.filter(function (v) { if (!(v && v.dir === "issued" && String(v.date || "").slice(0, 7) === nym && String(v.currency || "VND").toUpperCase() !== "VND")) return false; var fx = parseFloat(String(v.fxRate == null ? (v.rate == null ? "" : v.rate) : v.fxRate).replace(/[^0-9.]/g, "")) || 0; return !(fx > 0); });
       return { list: list, nym: nym };
     } catch (e) { return { list: [], nym: null }; }
   }
@@ -187,6 +187,8 @@
       + _kpi("영업이익 · OP", null, ytd.op < 0 ? "#dc2626" : "#15803d", MV(ytd.op))
       + _kpi("영업이익률 · OP%", null, "#6b7280", ytd.revenue ? (ytd.op / ytd.revenue * 100).toFixed(1) + "%" : "—")
       + '</div>';
+    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 8px">\uD83D\uDCD1 \uBD80\uC11C\uBCC4 \uC190\uC775 \u00B7 \uC6D4\uBCC4 & \uB204\uC801 \u00B7 Monthly & YTD (' + ((_usd && _rate) ? 'USD' : 'VND') + ' \u00B7 COMMON \uBC30\uBD84)</div>';
+    h += (typeof window.chasanBuildYtdFsTable === 'function' ? window.chasanBuildYtdFsTable(year, { usd: _usd, rate: _rate, all: all }) : '') + '<div style="height:6px"></div>';
     if (fc) {
       var nym = _nextYm(ym);
       var fLines = [["(−) 인건비 · Labor", "labor"], ["(−) 고정판관비 · Fixed OpEx", "fixedOpex"], ["(−) 변동판관비 · Variable OpEx", "varOpex"]];

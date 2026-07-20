@@ -994,6 +994,45 @@
     svg += "</svg>";
     return svg + '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin-top:6px">' + series.map(function (s) { return '<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:' + s.color + '"></span>' + E(s.name) + "</span>"; }).join("") + "</div>";
   }
+  // -- reusable: departmental P&L Monthly & YTD FS table (shared by History tab + HQ weekly report) --
+  window.chasanBuildYtdFsTable = function (year, opt) {
+    opt = opt || {}; var all = opt.all || {};
+    var usd = ("usd" in opt) ? opt.usd : _usd, rate = ("rate" in opt) ? opt.rate : _rate;
+    var money = function (v) { return (usd && rate) ? (v / rate).toLocaleString("en-US", { maximumFractionDigits: 0 }) : F(v); };
+    var months = []; for (var mo = 1; mo <= 12; mo++) months.push(year + "-" + String(mo).padStart(2, "0"));
+    var snaps = months.map(function (mm) { return { ym: mm, snap: all[mm] || null }; });
+    var _cw = (CHASAN_CFG.commonWeights || {}), _cwsum = REVENUE_DEPTS.reduce(function (a, t) { return a + (+_cw[t] || 0); }, 0), _cwf = ((CHASAN_CFG.commonAllocNormalize !== false) && _cwsum > 0) ? 1 / _cwsum : 1;
+    var _fsMonths = snaps.filter(function (o) { return o.snap && o.snap.finalizedAt && o.snap.byDept; });
+    var _entVals = function (ent, sp) {
+      if (ent === "__TOTAL__") { var t = sp.totals || {}; var _tr = +t.revenue || 0, _tc = +t.cogs || 0; return { revenue: _tr, cogs: _tc, gross: _tr - _tc, labor: +t.labor || 0, opex: +t.opex || 0, extra: +t.extra || 0, op: +t.op || 0 }; }
+      var b = sp.byDept[ent] || {}, cc = sp.byDept.COMMON || {}, w = (+_cw[ent] || 0) * _cwf, o = {};
+      ["revenue", "cogs", "labor", "opex", "extra"].forEach(function (k) { o[k] = (+b[k] || 0) + (+cc[k] || 0) * w; });
+      o.gross = o.revenue - o.cogs; o.op = o.revenue - o.cogs - o.labor - o.opex - o.extra; return o;
+    };
+    var _fsLines = [["\uB9E4\uCD9C \u00B7 Revenue", "revenue", false], ["(\u2212) \uB9E4\uC785\uC6D0\uAC00 \u00B7 COGS", "cogs", false], ["= \uB9E4\uCD9C\uCD1D\uC774\uC775 \u00B7 Gross Profit", "gross", "sub"], ["(\u2212) \uC778\uAC74\uBE44 \u00B7 Labor", "labor", false], ["(\u2212) \uD310\uAD00\uBE44 \u00B7 OpEx", "opex", false], ["(\u2212) EXTRA", "extra", false], ["= \uC601\uC5C5\uC774\uC775 \u00B7 OP", "op", true]];
+    var _fsEnts = [["\uC804\uCCB4 \u00B7 Total", "__TOTAL__", "#111827"], ["FUR VN", "FUR VN", "#2563eb"], ["FUR MX", "FUR MX", "#16a34a"], ["SOURCING", "SOURCING", "#d97706"]];
+    if (!_fsMonths.length) return '<div class="form-card" style="padding:14px 16px;font-size:12px;color:var(--text-3)">\uD655\uC815\uB41C \uC6D4\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uC6D4\uBCC4 \uCC44\uC0B0\uC5D0\uC11C \uD655\uC815\uD558\uBA74 \uC5EC\uAE30\uC5D0 \uC6D4\uBCC4+\uB204\uC801 \uC7AC\uBB34\uC81C\uD45C\uAC00 \uC313\uC785\uB2C8\uB2E4.</div>';
+    var fsHtml = "";
+    _fsEnts.forEach(function (en) {
+      var title = en[0], ent = en[1], color = en[2];
+      var mvals = _fsMonths.map(function (o) { return _entVals(ent, o.snap); });
+      var cum = { revenue: 0, cogs: 0, labor: 0, opex: 0, extra: 0, op: 0 }; cum.gross = 0;
+      mvals.forEach(function (v) { ["revenue", "cogs", "gross", "labor", "opex", "extra", "op"].forEach(function (k) { cum[k] += v[k]; }); });
+      var th = '<th style="padding:5px 9px;text-align:left;font-size:10px;color:var(--text-3)">\uD56D\uBAA9 \u00B7 Item</th>' + _fsMonths.map(function (o) { return '<th style="padding:5px 9px;text-align:right;font-size:10px;color:var(--text-3)">' + E(o.ym.slice(5)) + '\uC6D4</th>'; }).join("") + '<th style="padding:5px 9px;text-align:right;font-size:10px;color:var(--text-2);font-weight:700;border-left:2px solid var(--text-3)">\uB204\uC801 \u00B7 YTD</th>';
+      var rows = _fsLines.map(function (ln) {
+        var lbl = ln[0], key = ln[1], typ = ln[2]; var isTot = (typ === true), isSub = (typ === "sub");
+        var fw = isTot ? ";font-weight:700" : (isSub ? ";font-weight:600" : "");
+        var subColor = isSub ? ";color:#1d4ed8" : "";
+        var cells = mvals.map(function (v) { var x = v[key]; return '<td style="padding:5px 9px;text-align:right;font-family:var(--mono);' + (x < 0 ? "color:var(--danger)" : "") + fw + subColor + '">' + money(x) + '</td>'; }).join("");
+        var cx = cum[key]; var cumCell = '<td style="padding:5px 9px;text-align:right;font-family:var(--mono);border-left:2px solid var(--text-3);font-weight:700;' + (cx < 0 ? "color:var(--danger)" : subColor) + '">' + money(cx) + '</td>';
+        var rowStyle = isTot ? ' style="border-top:2px solid var(--text)"' : (isSub ? ' style="border-top:1px solid var(--border);background:var(--surface-2)"' : "");
+        return '<tr' + rowStyle + '><td style="padding:5px 9px' + fw + subColor + '">' + lbl + '</td>' + cells + cumCell + '</tr>';
+      }).join("");
+      var mgRow = '<tr style="color:var(--text-3)"><td style="padding:4px 9px;font-size:10px">\uC601\uC5C5\uC774\uC775\uB960 \u00B7 OP%</td>' + mvals.map(function (v) { return '<td style="padding:4px 9px;text-align:right;font-size:10px">' + (v.revenue ? ((v.op / v.revenue) * 100).toFixed(1) + "%" : "\u2014") + '</td>'; }).join("") + '<td style="padding:4px 9px;text-align:right;font-size:10px;border-left:2px solid var(--text-3)">' + (cum.revenue ? ((cum.op / cum.revenue) * 100).toFixed(1) + "%" : "\u2014") + '</td></tr>';
+      fsHtml += '<div class="form-card" style="padding:0;overflow:hidden;margin-bottom:12px"><div style="padding:8px 14px;font-size:12px;font-weight:700;border-bottom:1px solid var(--border);border-left:4px solid ' + color + '">' + title + '</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="background:var(--surface-2)">' + th + '</tr></thead><tbody>' + rows + mgRow + '</tbody></table></div></div>';
+    });
+    return fsHtml;
+  };
   window.renderChasanHistory = async function (host, ym) {
     host = typeof host === "string" ? document.getElementById(host) : host; if (!host) return;
     host.innerHTML = _csTabs("history") + '<div style="font-size:13px;color:var(--text-3)">이력 로딩…</div>';
@@ -1021,35 +1060,7 @@
     var ytdAlloc = {}; REVENUE_DEPTS.forEach(function (d) { ytdAlloc[d] = {}; ["revenue", "cogs", "labor", "opex", "extra", "op"].forEach(function (k) { ytdAlloc[d][k] = (+ytd[d][k] || 0) + (+(((ytd.COMMON || {})[k]) || 0)) * ((+_cw[d] || 0) * _cwf); }); });
     var _ytdCell = function (obj, key, bold) { var v = +obj[key] || 0; return '<td style="padding:6px 10px;text-align:right;font-family:var(--mono);' + (bold ? "font-weight:700;" : "") + (v < 0 ? "color:var(--danger)" : "") + '">' + money(v) + "</td>"; };
     var _ytdLine = function (label, key) { return '<tr><td style="padding:6px 10px">' + label + "</td>" + _ytdCell(ytdTot, key, true) + REVENUE_DEPTS.map(function (d) { return _ytdCell(ytdAlloc[d], key); }).join("") + "</tr>"; };
-    var _fsMonths = snaps.filter(function (o) { return o.snap && o.snap.finalizedAt && o.snap.byDept; });
-    var _entVals = function (ent, sp) {
-      if (ent === "__TOTAL__") { var t = sp.totals || {}; var _tr = +t.revenue || 0, _tc = +t.cogs || 0; return { revenue: _tr, cogs: _tc, gross: _tr - _tc, labor: +t.labor || 0, opex: +t.opex || 0, extra: +t.extra || 0, op: +t.op || 0 }; }
-      var b = sp.byDept[ent] || {}, c = sp.byDept.COMMON || {}, w = (+_cw[ent] || 0) * _cwf, o = {};
-      ["revenue", "cogs", "labor", "opex", "extra"].forEach(function (k) { o[k] = (+b[k] || 0) + (+c[k] || 0) * w; });
-      o.gross = o.revenue - o.cogs; o.op = o.revenue - o.cogs - o.labor - o.opex - o.extra; return o;
-    };
-    var _fsLines = [["매출 · Revenue", "revenue", false], ["(\u2212) 매입원가 · COGS", "cogs", false], ["= 매출총이익 · Gross Profit", "gross", "sub"], ["(\u2212) 인건비 · Labor", "labor", false], ["(\u2212) 판관비 · OpEx", "opex", false], ["(\u2212) EXTRA", "extra", false], ["= 영업이익 · OP", "op", true]];
-    var _fsEnts = [["전체 · Total", "__TOTAL__", "#111827"], ["FUR VN", "FUR VN", "#2563eb"], ["FUR MX", "FUR MX", "#16a34a"], ["SOURCING", "SOURCING", "#d97706"]];
-    var fsHtml = "";
-    _fsEnts.forEach(function (en) {
-      var title = en[0], ent = en[1], color = en[2];
-      var mvals = _fsMonths.map(function (o) { return _entVals(ent, o.snap); });
-      var cum = { revenue: 0, cogs: 0, labor: 0, opex: 0, extra: 0, op: 0 };
-      cum.gross = 0; mvals.forEach(function (v) { ["revenue", "cogs", "gross", "labor", "opex", "extra", "op"].forEach(function (k) { cum[k] += v[k]; }); });
-      var th = '<th style="padding:5px 9px;text-align:left;font-size:10px;color:var(--text-3)">항목 · Item</th>' + _fsMonths.map(function (o) { return '<th style="padding:5px 9px;text-align:right;font-size:10px;color:var(--text-3)">' + E(o.ym.slice(5)) + '월</th>'; }).join("") + '<th style="padding:5px 9px;text-align:right;font-size:10px;color:var(--text-2);font-weight:700;border-left:2px solid var(--text-3)">누적 · YTD</th>';
-      var rows = _fsLines.map(function (ln) {
-        var lbl = ln[0], key = ln[1], typ = ln[2]; var isTot = (typ === true), isSub = (typ === "sub"), emph = isTot || isSub;
-        var fw = isTot ? ";font-weight:700" : (isSub ? ";font-weight:600" : "");
-        var subColor = isSub ? ";color:#1d4ed8" : "";
-        var cells = mvals.map(function (v) { var x = v[key]; return '<td style="padding:5px 9px;text-align:right;font-family:var(--mono);' + (x < 0 ? "color:var(--danger)" : "") + fw + subColor + '">' + money(x) + '</td>'; }).join("");
-        var cx = cum[key]; var cumCell = '<td style="padding:5px 9px;text-align:right;font-family:var(--mono);border-left:2px solid var(--text-3);font-weight:700;' + (cx < 0 ? "color:var(--danger)" : subColor) + '">' + money(cx) + '</td>';
-        var rowStyle = isTot ? ' style="border-top:2px solid var(--text)"' : (isSub ? ' style="border-top:1px solid var(--border);background:var(--surface-2)"' : "");
-        return '<tr' + rowStyle + '><td style="padding:5px 9px' + fw + subColor + '">' + lbl + '</td>' + cells + cumCell + '</tr>';
-      }).join("");
-      var mgRow = '<tr style="color:var(--text-3)"><td style="padding:4px 9px;font-size:10px">영업이익률 · OP%</td>' + mvals.map(function (v) { return '<td style="padding:4px 9px;text-align:right;font-size:10px">' + (v.revenue ? ((v.op / v.revenue) * 100).toFixed(1) + "%" : "—") + '</td>'; }).join("") + '<td style="padding:4px 9px;text-align:right;font-size:10px;border-left:2px solid var(--text-3)">' + (cum.revenue ? ((cum.op / cum.revenue) * 100).toFixed(1) + "%" : "—") + '</td></tr>';
-      fsHtml += '<div class="form-card" style="padding:0;overflow:hidden;margin-bottom:12px"><div style="padding:8px 14px;font-size:12px;font-weight:700;border-bottom:1px solid var(--border);border-left:4px solid ' + color + '">' + title + '</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="background:var(--surface-2)">' + th + '</tr></thead><tbody>' + rows + mgRow + '</tbody></table></div></div>';
-    });
-    if (!_fsMonths.length) fsHtml = '<div class="form-card" style="padding:14px 16px;font-size:12px;color:var(--text-3)">확정된 월이 없습니다. 월별 채산에서 확정하면 여기에 월별+누적 재무제표가 쌓입니다.</div>';
+    var fsHtml = window.chasanBuildYtdFsTable(year, { usd: _usd, rate: _rate, all: all });
         var series = [{ name: "전체 영업이익 · Total OP", color: "#111827", values: snaps.map(function (o) { return o.snap && o.snap.totals ? (+o.snap.totals.op || 0) : 0; }) }];
     var seriesRev = [{ name: "전체 매출액 · Total Revenue", color: "#1d4ed8", values: snaps.map(function (o) { var t = o.snap && o.snap.totals; return t ? (+t.revenue || 0) : 0; }) }];
     var yearSel = '<select onchange="chasanHistYear(this.value)" style="border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:13px">' + yList.map(function (yy) { return '<option value="' + yy + '"' + (yy === year ? " selected" : "") + ">" + yy + "년</option>"; }).join("") + "</select>";
