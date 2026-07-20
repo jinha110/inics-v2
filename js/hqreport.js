@@ -271,7 +271,7 @@
 
     // (5) 누적 납품 = 발행 인보이스(issued) 기준
     var _issued = ((typeof state !== "undefined" && state && state.invoices) || []).filter(function (v) { return v && v.dir === "issued"; });
-    function _invN(v) { return Math.round(parseFloat(String(v.total == null ? "" : v.total).replace(/[^0-9.\-]/g, "")) || 0); }
+    function _invN(v) { var s = parseFloat(String(v.subtotal == null ? "" : v.subtotal).replace(/[^0-9.\-]/g, "")); if (!(s > 0)) s = parseFloat(String(v.total == null ? "" : v.total).replace(/[^0-9.\-]/g, "")) || 0; return Math.round(s); }
     function _invC(v) { return v.currency || "VND"; }
     function _invU(v) { return _invC(v) === "USD" ? _invN(v) : (_rate ? _invN(v) / _rate : 0); }
     function _invSumD(arr) { if (_usd && _rate) return _fmtUSD(arr.reduce(function (s, v) { return s + _invU(v); }, 0)); var m = {}; arr.forEach(function (v) { var c = _invC(v); m[c] = (m[c] || 0) + _invN(v); }); return _fmtCur(m); }
@@ -294,7 +294,7 @@
   function _tType(t) { return (typeof taskTypeLabel === "function") ? taskTypeLabel(t.taskType) : (t.taskType || ""); }
 
   function _sectionTask() {
-    var tasks = (typeof state !== "undefined" && state && state.tasks) || [];
+    var tasks = ((typeof state !== "undefined" && state && state.tasks) || []).filter(function (t) { return t && !t._deleted; });
     var wr = _weekRange(); var mon = _dOnly(wr.mon), sun = _dOnly(wr.sun);
     var doneWk = tasks.filter(function (t) { return t.status === "done" && _inRange(_parseAt(t.closedDate), mon, sun); }).sort(function (a, b) { return String(a.userName || "").localeCompare(String(b.userName || "")); });
     var sigOrder = { red: 0, yellow: 1, green: 2 };
