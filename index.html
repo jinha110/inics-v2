@@ -36,9 +36,9 @@
 <script src="js/hr-con.js?v=9" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/quote.js?v=1"></script>
 <script src="js/contract.js?v=1"></script>
-<script src="js/chasan.js?v=1"></script>
+<script src="js/chasan.js?v=2"></script>
 <script src="js/export.js?v=1"></script>
-<script src="js/hqreport.js?v=1"></script>
+<script src="js/hqreport.js?v=2"></script>
 <script>
 (function() {
   if (typeof renderHrCon === "function" && window._hrConLoaded) {
@@ -826,10 +826,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="fg" style="margin:0"><label style="font-size:10px">인보이스 번호 · No.</label><input type="text" id="invNo" autocomplete="off" style="font-size:13px;padding:6px 9px"></div>
       <div class="fg" style="margin:0"><label style="font-size:10px">발행일 · Date</label><input type="date" id="invDate" style="font-size:13px;padding:6px 9px"></div>
       <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">거래처 · Counterparty</label><input type="text" id="invVendor" list="invoiceVendorList" autocomplete="off" style="font-size:13px;padding:6px 9px"><datalist id="invoiceVendorList"></datalist></div>
-      <div class="fg" style="margin:0"><label style="font-size:10px">통화 · Currency</label><select id="invCurrency" style="font-size:13px;padding:6px 9px"><option>VND</option><option>USD</option><option>MXN</option><option>KRW</option></select></div>
+      <div class="fg" style="margin:0"><label style="font-size:10px">통화 · Currency</label><select id="invCurrency" onchange="invCurrencyChange()" style="font-size:13px;padding:6px 9px"><option>VND</option><option>USD</option><option>MXN</option><option>KRW</option></select></div>
+      <div class="fg" id="invFxWrap" style="margin:0;display:none"><label style="font-size:10px">환율 · FX Rate <span id="invFxUnit" style="color:var(--text-3);font-weight:400"></span></label><input type="text" id="invFxRate" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);_invUpdVndPreview()" placeholder="예: 26,000" style="font-size:13px;padding:6px 9px"></div>
       <div class="fg" style="margin:0"><label style="font-size:10px">공급가액 · Subtotal</label><input type="text" id="invSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);invRecalc()" style="font-size:13px;padding:6px 9px"></div>
       <div class="fg" style="margin:0"><label style="font-size:10px">VAT %</label><select id="invVatPct" onchange="invRecalc()" style="font-size:13px;padding:6px 9px"><option value="8">8%</option><option value="10">10%</option><option value="0">0%</option></select></div>
       <div class="fg" style="margin:0"><label style="font-size:10px">합계 · Total</label><input type="text" id="invTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);invRecalcFromTotal()" style="font-size:13px;padding:6px 9px;font-weight:700"></div>
+      <div id="invVndPreview" style="grid-column:1/-1;display:none;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:7px 10px"></div>
       <div class="fg" style="margin:0"><label style="font-size:10px">분류 · Category</label><input type="text" id="invCategory" autocomplete="off" placeholder="예: 가구 매출 / 자재 매입" style="font-size:13px;padding:6px 9px"></div><div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">프로젝트 연결 · Project</label><select id="invProject" style="font-size:13px;padding:6px 9px"></select></div>
       <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">비고 · Note</label><input type="text" id="invNote" autocomplete="off" style="font-size:13px;padding:6px 9px"></div>
       <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">첨부 파일 · File (PDF/이미지)</label><input type="file" id="invFileInput" accept="image/*,application/pdf" onchange="handleInvoiceFile(this.files[0])" style="font-size:12px"><div id="invFileName" style="font-size:11px;color:var(--text-3);margin-top:4px"></div></div>
@@ -5536,8 +5538,10 @@ function renderInvoiceApp(){
     +'<thead><tr><th style="'+th+'">구분 · Type</th><th style="'+th+'">번호 · No.</th><th style="'+th+'">발행일 · Date</th><th style="'+th+'">거래처 · Party</th><th style="'+th+';text-align:right">공급가액 · Subtotal</th><th style="'+th+';text-align:right">VAT</th><th style="'+th+';text-align:right">합계 · Total</th><th style="'+th+'">결제 · Payment</th><th style="'+th+'">분류 · Category</th><th style="'+th+'">프로젝트 · Project</th><th style="'+th+';text-align:center">파일 · File</th><th style="'+th+';text-align:right">작업 · Action</th></tr></thead>'
     +'<tbody>'+rows+'</tbody><tfoot style="break-inside:avoid;page-break-inside:avoid">'+_foot+'</tfoot></table></div>';
 }
-function invRecalc(){ var sub=qNum(document.getElementById('invSubtotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var tot=sub*(1+r); document.getElementById('invTotal').value=fmtN(Math.round(tot)); }
-function invRecalcFromTotal(){ var tot=qNum(document.getElementById('invTotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var sub=r>0?tot/(1+r):tot; document.getElementById('invSubtotal').value=fmtN(Math.round(sub)); }
+function invRecalc(){ var sub=qNum(document.getElementById('invSubtotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var tot=sub*(1+r); document.getElementById('invTotal').value=fmtN(Math.round(tot)); _invUpdVndPreview(); }
+function invRecalcFromTotal(){ var tot=qNum(document.getElementById('invTotal').value); var r=qNum(document.getElementById('invVatPct').value)/100; var sub=r>0?tot/(1+r):tot; document.getElementById('invSubtotal').value=fmtN(Math.round(sub)); _invUpdVndPreview(); }
+function invCurrencyChange(){ var cur=(document.getElementById('invCurrency').value||'VND').toUpperCase(); var wrap=document.getElementById('invFxWrap'); var unit=document.getElementById('invFxUnit'); if(wrap) wrap.style.display=(cur==='VND')?'none':''; if(unit) unit.textContent=(cur==='VND')?'':('(VND / '+cur+')'); _invUpdVndPreview(); }
+function _invUpdVndPreview(){ var el=document.getElementById('invVndPreview'); if(!el) return; var cur=(document.getElementById('invCurrency').value||'VND').toUpperCase(); if(cur==='VND'){ el.style.display='none'; el.innerHTML=''; return; } var fx=qNum(document.getElementById('invFxRate').value); var tot=qNum(document.getElementById('invTotal').value); var sub=qNum(document.getElementById('invSubtotal').value); if(!(fx>0)){ el.style.display='block'; el.innerHTML='<span style="color:var(--warning)">\u26A0 \uD658\uC728 \uBBF8\uC785\uB825 \u00B7 \uCC44\uC0B0\u00B7\uBCF4\uACE0\uC11C\uC5D0\uC11C \uC0C1\uB2E8 USD \uD658\uC728\uB85C \uB300\uCCB4 \uACC4\uC0B0\uB428</span>'; return; } el.style.display='block'; el.innerHTML='\uCC44\uC0B0\u00B7\uBCF4\uACE0\uC11C \uBC18\uC601\uC561 \u00B7 VND \uD658\uC0B0 &nbsp; \uACF5\uAE09\uAC00\uC561 <b>'+fmtN(Math.round(sub*fx))+'</b> &nbsp;\u00B7&nbsp; \uD569\uACC4 <b>'+fmtN(Math.round(tot*fx))+' VND</b> &nbsp;<span style="color:var(--text-3)">(@'+fmtN(fx)+')</span>'; }
 function _invVendorDatalist(){ var names=[]; try{ var vm=(typeof buildVendorMap==='function')?buildVendorMap():{}; names=Object.keys(vm).map(function(k){return vm[k].name||'';}); }catch(e){} var dl=document.getElementById('invoiceVendorList'); if(dl) dl.innerHTML=qDistinct(names).map(function(c){return '<option value="'+String(c).replace(/"/g,'&quot;')+'">';}).join(''); }
 function openInvoiceForm(id){
   _invEditId=id||null; _invFileBuf=null;
@@ -5548,6 +5552,7 @@ function openInvoiceForm(id){
   document.getElementById('invDate').value=v?(v.date||''):projTodayISO();
   document.getElementById('invVendor').value=v?(v.vendor||''):'';
   document.getElementById('invCurrency').value=v?(v.currency||'VND'):'VND';
+  document.getElementById('invFxRate').value=(v&&v.fxRate!=null&&v.fxRate!=='')?fmtN(v.fxRate):'';
   document.getElementById('invSubtotal').value=v&&v.subtotal!=null?fmtN(v.subtotal):'';
   document.getElementById('invVatPct').value=v&&v.vatPct!=null?v.vatPct:'8';
   document.getElementById('invTotal').value=v&&v.total!=null?fmtN(v.total):'';
@@ -5558,6 +5563,7 @@ function openInvoiceForm(id){
   document.getElementById('invFileInput').value='';
   document.getElementById('invDeleteBtn').style.display=v?'inline-flex':'none';
   _invVendorDatalist();
+  invCurrencyChange();
   document.getElementById('invoiceModal').style.display='block';
 }
 function closeInvoiceForm(){ document.getElementById('invoiceModal').style.display='none'; }
@@ -5834,11 +5840,15 @@ function saveInvoice(){
   var no=(document.getElementById('invNo').value||'').trim();
   var vendor=(document.getElementById('invVendor').value||'').trim();
   if(!no && !vendor){ showToast('인보이스 번호 또는 거래처를 입력하세요 · Enter invoice no. or party'); return; }
+  var _invCur=(document.getElementById('invCurrency').value||'VND').toUpperCase();
+  var _invFx=gv('invFxRate');
+  if(_invCur!=='VND' && !(parseFloat(_invFx)>0)){ showToast(_invCur+' 인보이스는 환율(VND/'+_invCur+')을 입력해야 합니다 · FX rate required'); var _fe=document.getElementById('invFxRate'); if(_fe) _fe.focus(); return; }
   var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null);
   var rec={
     dir:document.getElementById('invDir').value,
     invoiceNo:no, date:document.getElementById('invDate').value||projTodayISO(),
-    vendor:vendor, currency:document.getElementById('invCurrency').value||'VND',
+    vendor:vendor, currency:_invCur,
+    fxRate:(_invCur!=='VND'?_invFx:''),
     subtotal:gv('invSubtotal'), vatPct:document.getElementById('invVatPct').value, total:gv('invTotal'),
     category:(document.getElementById('invCategory').value||'').trim(), note:(document.getElementById('invNote').value||'').trim(),
     projectId:(document.getElementById('invProject')?document.getElementById('invProject').value:'')
