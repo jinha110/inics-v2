@@ -8029,6 +8029,7 @@ function showBankApp(){
     var av=document.getElementById('bankAvatarChip'); if(av && typeof getAvatar==='function') av.innerHTML=getAvatar(gu.id,'sm');
   }
   if(!bankCurrentAcct && state.bankAccounts && state.bankAccounts.length) bankCurrentAcct = state.bankAccounts[0].acctNo;
+  bankDefaultMonth(bankCurrentAcct); // 기본: 최근 월만 표시 · default to latest month
   bankTab='stmt';
   renderBankApp();
 }
@@ -8096,7 +8097,7 @@ function renderBankAccountBar(){
       +'</div>';
   }).join('')+'</div>';
 }
-function bankSelectAcct(acctNo){ bankCurrentAcct=acctNo; window.bankSel={}; renderBankApp(); }
+function bankSelectAcct(acctNo){ bankCurrentAcct=acctNo; window.bankSel={}; bankDefaultMonth(acctNo); renderBankApp(); }
 
 function renderBankUploadBar(){
   var el=document.getElementById('bankUploadBar'); if(!el) return;
@@ -8863,6 +8864,20 @@ function _bankMatchKind(t){
   if(typeof _txnInvLinked==='function' && _txnInvLinked(t)) return 'inv';
   return 'none';
 }
+function _bankLatestMonth(acctNo){
+  var mx='';
+  (state.bankTxns||[]).forEach(function(t){
+    if(t.acctNo!==acctNo) return;
+    var ym=_bankYm(t.date);
+    if(ym && ym>mx) mx=ym;
+  });
+  return mx; // '' 이면 데이터 없음 · empty = no data
+}
+// 은행 앱 진입/계좌전환 시 기본 월필터를 최근 데이터월로 자동 지정 (전체는 검색으로)
+function bankDefaultMonth(acctNo){
+  var mx=_bankLatestMonth(acctNo);
+  bankListFilter.month = mx || '';
+}
 function _bankPassFilter(t){
   var f=bankListFilter;
   if(f.month && _bankYm(t.date)!==f.month) return false;
@@ -9050,21 +9065,22 @@ function renderBankList(){
   if(!acc){ el.innerHTML=''; return; }
   var txns=(state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;});
   txns.sort(function(a,b){ var d=bankDateKey(b.date)-bankDateKey(a.date); return d!==0?d:(a.seq-b.seq); });
-  // summary
+  var txnsAll=txns;
+  var txnsF=txns.filter(_bankPassFilter);
+  // summary — 필터(월 등) 적용된 표시 대상 기준 · reflects the visible/filtered rows
   var sumEl=document.getElementById('bankSummary');
   var totDebit=0,totCredit=0,uncat=0;
-  txns.forEach(function(t){ totDebit+=t.debit; totCredit+=t.credit; if(!t.category||t.category==='Uncategorized') uncat++; });
+  txnsF.forEach(function(t){ totDebit+=t.debit; totCredit+=t.credit; if(!t.category||t.category==='Uncategorized') uncat++; });
+  var _fActive=!!(bankListFilter.q||bankListFilter.cat||bankListFilter.dir||bankListFilter.match||bankListFilter.dept||bankListFilter.month);
   if(sumEl){
     sumEl.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">'
-      +'<span style="font-size:12px;color:var(--text-2);margin-right:4px">'+txns.length+' txns</span>'
+      +'<span style="font-size:12px;color:var(--text-2);margin-right:4px">'+txnsF.length+' txns'+(_fActive?' <span style=\"color:var(--text-3)\">/ '+txnsAll.length+' 전체</span>':'')+'</span>'+(bankListFilter.month?'<span style="background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700"><i class="ti ti-calendar"></i> '+bankListFilter.month+'</span>':'')
       +'<span style="background:#fef2f2;color:#b91c1c;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">Out · 출금 '+bankFmt(totDebit,acc.currency)+'</span>'
       +'<span style="background:#ecfdf5;color:#15803d;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">In · 입금 '+bankFmt(totCredit,acc.currency)+'</span>'
       +(uncat?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">Uncategorized · 미분류 '+uncat+'</span>':'<span style="background:#dcfce7;color:#15803d;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">All categorized · 분류 완료</span>')
       +'</div>';
   }
   if(!txns.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-file-spreadsheet"></i><p>No transactions · 거래내역 없음 — Upload an Excel statement · 엑셀 업로드</p></div>'; return; }
-  var txnsAll=txns;
-  var txnsF=txns.filter(_bankPassFilter);
   if(bankSort.key){ var _sd=bankSort.dir; txnsF=txnsF.slice().sort(function(a,b){ var va=_bankSortVal(a,bankSort.key), vb=_bankSortVal(b,bankSort.key), c; if(typeof va==='number'&&typeof vb==='number') c=va-vb; else c=String(va).localeCompare(String(vb)); if(c!==0) return c*_sd; return (a.seq||0)-(b.seq||0); }); }
   var th='padding:8px 9px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface-2)';
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
