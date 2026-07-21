@@ -7166,8 +7166,8 @@ function _openProjectForm(id){
   toggleEndCust();
   renderProjLinkedQuotes(id ? (document.getElementById('projClient').value) : '');
   renderProjectHistory(id||null);
-  { var _pi=document.getElementById('purchaseInvoiceId'); if(_pi){ var _pj=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _pp=(_pj&&_pj.purchase)||{}; var _pids=(_pp.invoiceIds&&_pp.invoiceIds.length)?_pp.invoiceIds:(_pp.invoiceId?[_pp.invoiceId]:[]); _pi.value=_pids.join(','); } if(typeof renderPurchaseInvoiceLink==='function') renderPurchaseInvoiceLink(); }
-  { var _si=document.getElementById('salesInvoiceId'); if(_si){ var _pj2=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _sp=(_pj2&&_pj2.sales)||{}; var _sids=(_sp.invoiceLinkIds&&_sp.invoiceLinkIds.length)?_sp.invoiceLinkIds:(_sp.invoiceLinkId?[_sp.invoiceLinkId]:[]); _si.value=_sids.join(','); } if(typeof renderSalesInvoiceLink==='function') renderSalesInvoiceLink(); }
+  { var _pi=document.getElementById('purchaseInvoiceId'); if(_pi){ var _pj=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _pp=(_pj&&_pj.purchase)||{}; var _pids=((_pp.invoiceIds&&_pp.invoiceIds.length)?_pp.invoiceIds:(_pp.invoiceId?[_pp.invoiceId]:[])).map(String); var _pseen={}; _pids.forEach(function(x){ _pseen[String(x)]=1; }); if(id){ (state.invoices||[]).forEach(function(v){ if(String(v.projectId||'')===String(id) && String(v.dir||'')==='received' && !_pseen[String(v.id)]){ _pids.push(String(v.id)); _pseen[String(v.id)]=1; } }); } _pi.value=_pids.join(','); } if(typeof renderPurchaseInvoiceLink==='function') renderPurchaseInvoiceLink(); }
+  { var _si=document.getElementById('salesInvoiceId'); if(_si){ var _pj2=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _sp=(_pj2&&_pj2.sales)||{}; var _sids=((_sp.invoiceLinkIds&&_sp.invoiceLinkIds.length)?_sp.invoiceLinkIds:(_sp.invoiceLinkId?[_sp.invoiceLinkId]:[])).map(String); var _sseen={}; _sids.forEach(function(x){ _sseen[String(x)]=1; }); if(id){ (state.invoices||[]).forEach(function(v){ if(String(v.projectId||'')===String(id) && String(v.dir||'')==='issued' && !_sseen[String(v.id)]){ _sids.push(String(v.id)); _sseen[String(v.id)]=1; } }); } _si.value=_sids.join(','); } if(typeof renderSalesInvoiceLink==='function') renderSalesInvoiceLink(); }
   document.getElementById('projectFormModal').style.display='block';
 }
 
@@ -7261,7 +7261,16 @@ function onProjStageChange(){
   document.getElementById('projLostWrap').style.display = st==='lost'?'flex':'none';
   document.getElementById('projFinanceWrap').style.display = projWonPlus(st)?'block':'none';
 }
-function fmtAmtInput(el){ if(!el)return; var v=String(el.value||'').replace(/[^\d]/g,''); el.value=v?Number(v).toLocaleString('en-US'):''; }
+function fmtAmtInput(el){ if(!el)return;
+  var s=String(el.value||'').replace(/[^\d.]/g,'');              // 숫자·소숫점만 허용 · digits + decimal
+  var i=s.indexOf('.');
+  if(i>=0){ s=s.slice(0,i+1)+s.slice(i+1).replace(/\./g,''); }    // 소숫점 1개만 · single dot
+  var di=s.indexOf('.');
+  var intp=(di>=0?s.slice(0,di):s), frac=(di>=0?s.slice(di+1):'');
+  intp=intp.replace(/^0+(?=\d)/,'');                             // 앞자리 0 제거 · strip leading zeros
+  var intf=(intp===''?'':Number(intp).toLocaleString('en-US'));
+  el.value=(di>=0)?((intf===''?'0':intf)+'.'+frac):intf;         // 입력중 소숫점 유지 · keep trailing dot while typing
+}
 function _pfEl(id){ return document.getElementById(id); }
 function _pfV(id){ var e=document.getElementById(id); return e?qNum(e.value):0; }
 function _pfSet(id,n){ var e=document.getElementById(id); if(e) e.value=fmtN(Math.round(n)); }
