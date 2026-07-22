@@ -380,15 +380,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 /* ── HUB PAGE ── */
 .hub-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-top: 24px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 20px;
 }
 .hub-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 32px 24px;
+  padding: 22px 16px;
   cursor: pointer;
   transition: all .15s;
   text-align: center;
@@ -409,19 +409,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   cursor: default;
 }
 .hub-card-icon {
-  width: 56px; height: 56px;
-  border-radius: 14px;
+  width: 46px; height: 46px;
+  border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 26px;
-  margin: 0 auto 14px;
+  font-size: 22px;
+  margin: 0 auto 10px;
 }
 .hub-card-title {
-  font-size: 15px; font-weight: 600;
-  margin-bottom: 6px; color: var(--text);
+  font-size: 13.5px; font-weight: 600;
+  margin-bottom: 5px; color: var(--text);
+  line-height: 1.35; word-break: keep-all;
 }
 .hub-card-desc {
-  font-size: 12px; color: var(--text-3);
-  line-height: 1.5;
+  font-size: 11px; color: var(--text-3);
+  line-height: 1.45; word-break: keep-all;
 }
 .hub-card-badge {
   position: absolute; top: 12px; right: 12px;
@@ -438,9 +439,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .hub-welcome-sub {
   font-size: 13px; color: var(--text-3);
 }
-@media(max-width:768px){
-  .hub-grid { grid-template-columns: 1fr; gap: 12px; }
-  .hub-card { padding: 22px 18px; }
+@media(max-width:980px){
+  .hub-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+@media(max-width:600px){
+  .hub-grid { grid-template-columns: 1fr; gap: 10px; }
+  .hub-card { padding: 18px 16px; }
 }
 
 </style>
@@ -469,7 +473,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 <!-- HUB PAGE (shows before entering a module) -->
 <div id="hubPage" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
-  <div style="max-width:900px;margin:0 auto;padding:40px 24px">
+  <div style="max-width:1120px;margin:0 auto;padding:40px 24px">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">INICS VINA</div>
@@ -514,6 +518,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-title">거래처 DB · Vendor Database</div>
         <div class="hub-card-desc">거래처 · 은행정보 · 문서 검색<br>Vendor · Bank Info · Search</div>
       </div>
+      <div class="hub-card active-module" id="hubCard-pnd" onclick="enterModule(&#39;pnd&#39;)" style="border-color:#fca5a5;background:#fff7f7">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#b91c1c">PND</div>
+        <div class="hub-card-icon" style="background:#fef2f2;color:#b91c1c"><i class="ti ti-alert-triangle"></i></div>
+        <div class="hub-card-title">미처리 점검 · Pending</div>
+        <div class="hub-card-desc">카드·은행·업무·인보이스 누락 점검<br>Card · Bank · Task · Invoice</div>
+        <div id="hubPndBadge" style="display:none;margin-top:8px"><span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px"></span></div>
+      </div>
+
       <div class="hub-card active-module" id="hubCard-contract" onclick="enterModule(&#39;contract&#39;)">
         <div class="hub-card-badge" style="background:var(--surface-2);color:#4338ca">Active</div>
         <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca"><i class="ti ti-file-certificate"></i></div>
@@ -609,6 +621,47 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+
+<!-- PND · PENDING PANEL — standalone overlay -->
+<div id="pndApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
+  <div style="max-width:1120px;margin:0 auto;padding:28px 24px 60px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" onclick="closePndApp()" style="padding:5px 11px;font-size:11px"><i class="ti ti-arrow-left"></i> Hub &middot; &#54728;&#48652;</button>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">PND &middot; &#48120;&#52376;&#47532; &#51216;&#44160;</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2)">
+        <span id="pndAvatarChip"></span><span id="pndUserName"></span>
+        <button class="btn btn-outline" onclick="hubLogout()" style="padding:4px 9px;font-size:11px"><i class="ti ti-logout"></i> Sign out</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">&#54004;&#46041; &#51473;&#51452;&#51004;&#47196; &#45572;&#46973;&#46108; &#54637;&#47785;&#51012; &#51088;&#46041; &#51216;&#44160;&#54633;&#45768;&#45796; &middot; Cross-module pending checks</div>
+
+    <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">
+      <div class="fg"><label>&#51216;&#44160; &#44592;&#44036; &middot; Window</label>
+        <select id="pndDays" onchange="pndSetDays(this.value)">
+          <option value="30">&#52572;&#44540; 30&#51068; &middot; 30 days</option>
+          <option value="90" selected>&#52572;&#44540; 90&#51068; &middot; 90 days</option>
+          <option value="180">&#52572;&#44540; 180&#51068; &middot; 180 days</option>
+          <option value="0">&#51204;&#52404; &middot; All</option>
+        </select>
+      </div>
+      <div class="fg"><label>&#48372;&#44592; &middot; View</label>
+        <select id="pndOnlyOpen" onchange="pndSetOnlyOpen(this.value)">
+          <option value="1" selected>&#48120;&#52376;&#47532;&#47564; &middot; Pending only</option>
+          <option value="0">&#51204;&#52404; &#54637;&#47785; &middot; All checks</option>
+        </select>
+      </div>
+      <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label>
+        <button class="btn btn-outline" onclick="renderPnd()" style="font-size:12px;padding:7px 12px"><i class="ti ti-refresh"></i> &#45796;&#49884; &#51216;&#44160; &middot; Re-scan</button>
+      </div>
+    </div>
+
+    <div id="pndSummary" style="margin-bottom:16px"></div>
+    <div id="pndBody"></div>
+  </div>
+</div>
+
 <!-- CARD USAGE — standalone overlay (separate from approval app) -->
 <div id="cardApp" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto">
   <div style="max-width:900px;margin:0 auto;padding:28px 24px 60px">
@@ -627,8 +680,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- Tabs -->
     <div style="display:flex;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border)">
-      <button id="cardTabDash" onclick="cardSwitchTab(&#39;dash&#39;)"><i class="ti ti-chart-bar"></i> 대시보드 · Dashboard</button>
       <button id="cardTabList" onclick="cardSwitchTab(&#39;list&#39;)"><i class="ti ti-list"></i> 내역 · Records</button>
+      <button id="cardTabDash" onclick="cardSwitchTab(&#39;dash&#39;)"><i class="ti ti-chart-bar"></i> 대시보드 · Dashboard</button>
     </div>
 
     <!-- Dashboard view -->
@@ -4772,7 +4825,7 @@ function showCardApp(){
   var avEl = document.getElementById('cardAvatarChip'); if(avEl && u && typeof getAvatar==='function') avEl.innerHTML = getAvatar(u.id, 'sm');
   toggleCardForm(false);
   renderCard();
-  cardSwitchTab('dash');
+  cardSwitchTab('list');          // 진입 기본 = 내역 · Records first (대시보드는 뒤로)
   window.scrollTo(0,0);
 }
 
@@ -5307,7 +5360,7 @@ function viewCardDetail(id){
 // ── Card dashboard (집계) ──
 var cardTab='dash';
 function styleCardTabs(){
-  [['cardTabDash','dash'],['cardTabList','list']].forEach(function(p){
+  [['cardTabList','list'],['cardTabDash','dash']].forEach(function(p){
     var b=document.getElementById(p[0]); if(!b) return;
     var on = cardTab===p[1];
     b.style.cssText='background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 2px;margin-right:18px;color:'+(on?'var(--text)':'var(--text-3)')+';border-bottom:2px solid '+(on?'var(--text)':'transparent')+';margin-bottom:-1px';
@@ -5934,6 +5987,7 @@ function showHub() {
     badge.style.display = 'block';
     badge.querySelector('span').textContent = pending + ' 건 대기 중';
   }
+  if(typeof updatePndBadge==='function'){ try{ updatePndBadge(); }catch(_){ } }
   setTimeout(_checkDailyTaskPrompt, 800);
 }
 
@@ -5952,6 +6006,7 @@ function _mpNormalize(){               // 기존 숫자키/배열 → u-접두�
 //   (3)기본 권한값에 전부 자동 반영된다. (issue #4: 채산 등 누락 방지)
 var MODULE_DEFS=[
   {key:'approval', label:'전자결재', def:true,  card:'approval'},
+  {key:'pnd',      label:'PND',      def:true,  card:'pnd'},
   {key:'card',     label:'카드',     def:true,  card:'card'},
   {key:'report',   label:'업무',     def:true,  card:'report'},
   {key:'vendors',  label:'거래처',   def:true,  card:'vendors'},
@@ -6037,6 +6092,239 @@ function saveModulePerms(){
   saveState();
   showToast('모듈 권한 저장됨 · '+boxes.length+'개 설정 저장 완료');
   if(typeof renderModulePerms==='function') renderModulePerms();   // 저장 즉시 실제 값으로 화면 갱신
+}
+
+
+// ═══════════════════════════════════════════
+// PND · PENDING PANEL (미처리 항목 자동 점검)
+//   카드 재무확인 / 은행매칭 / INV번호 / 업무 당일확인 /
+//   은행명세서 지연 / CATEGORY·DEPT 미분류 / 인보이스 미연결
+// ═══════════════════════════════════════════
+var pndAppOpen = false;
+var pndFilter  = { days:90, onlyOpen:true };
+var PND_INV_CATS = ['Sales Revenue','Purchase / COGS'];   // 인보이스 연결이 반드시 필요한 분류
+var PND_DEPT_SKIP_CATS = ['Inter-account Transfer'];      // 부서 지정 불필요
+
+function _pndToday(){ return (typeof projTodayISO==='function') ? projTodayISO() : new Date().toISOString().slice(0,10); }
+function _pndFmtD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _pndDaysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return _pndFmtD(d); }
+function _pndISO(v){
+  if(!v) return '';
+  var s=String(v).trim(), m;
+  if((m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+  if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/))){ var y=m[3].length===2?('20'+m[3]):m[3]; return y+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2); }
+  return '';
+}
+// 기준일의 직전 영업일 (주말 제외) — 은행 명세서는 여기까지 들어와 있어야 함
+function _pndLastBizDay(){
+  var d=new Date(); d.setDate(d.getDate()-1);
+  while(d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()-1);
+  return _pndFmtD(d);
+}
+function _pndFrom(){ return pndFilter.days ? _pndDaysAgo(pndFilter.days) : ''; }
+function _pndInWindow(dateStr){ var f=_pndFrom(); if(!f) return true; var iso=_pndISO(dateStr); return !iso || iso>=f; }
+
+// 카드 내역 — 조회범위 권한 반영
+function _pndCards(){
+  var all=(state.cardExpenses||[]).slice();
+  if(typeof canViewAll==='function' && !canViewAll('card')){
+    var u=(typeof cardCurrentUser==='function')?cardCurrentUser():null; var uid=u?u.id:null;
+    all=all.filter(function(x){ return x.userId===uid; });
+  }
+  return all.filter(function(x){ return _pndInWindow(x.date); })
+            .sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
+}
+function _pndBankTxns(){
+  return (state.bankTxns||[]).filter(function(t){ return _pndInWindow(t.date); })
+    .sort(function(a,b){ return String(_pndISO(b.date)).localeCompare(String(_pndISO(a.date))); });
+}
+function _pndAmt(x){ return (x.currency||'')+' '+((typeof cardFmtAmount==='function')?cardFmtAmount(x.amount):x.amount); }
+function _pndBankAmt(t){
+  var d=Math.round(t.debit||0), c=Math.round(t.credit||0);
+  var n=(typeof fmtN==='function')?fmtN:function(v){return v;};
+  return (c>0 ? ('입금 In '+n(c)) : ('출금 Out '+n(d))) + ' ' + (t.currency||'');
+}
+
+// ── 점검 실행 ──────────────────────────────────────
+function pndScan(){
+  var G=[], cards=_pndCards(), txns=_pndBankTxns(), today=_pndToday();
+
+  // 1) 카드 · 재무 미확인
+  G.push({ id:'cardConfirm', chip:'카드 재무확인', color:'#b45309', icon:'ti-checkbox',
+    title:'카드 · 재무 확인 미완료', sub:'Card — not CONFIRMED by Finance ('+(typeof CARD_CONFIRMERS!=='undefined'?CARD_CONFIRMERS.join(' / '):'')+')',
+    items: cards.filter(function(x){ return !x.confirmed; }).map(function(x){
+      return { a:(x.date||'—'), b:(x.merchant||'—'), c:(x.userName||x.user||'')+(x.dept?(' · '+x.dept):''), d:_pndAmt(x), act:"pndOpenCard("+x.id+")" };
+    })
+  });
+
+  // 2) 카드 · 은행 미매칭
+  G.push({ id:'cardBank', chip:'카드 은행매칭', color:'#0e7490', icon:'ti-arrows-left-right',
+    title:'카드 · 은행 미매칭', sub:'Card — no bank statement line matched',
+    items: cards.filter(function(x){ return !x.matchTxnId; }).map(function(x){
+      var cand='';
+      if(typeof _cardMatchInfo==='function'){ var i=_cardMatchInfo(x); cand=(i.status==='confident')?'후보 1건 · auto-matchable':(i.candidates&&i.candidates.length?('후보 '+i.candidates.length+'건'):'후보 없음'); }
+      return { a:(x.date||'—'), b:(x.merchant||'—'), c:cand, d:_pndAmt(x), act:"pndOpenCard("+x.id+")" };
+    })
+  });
+
+  // 3) 카드 · INV 번호 누락
+  G.push({ id:'cardInv', chip:'카드 INV번호', color:'#7c3aed', icon:'ti-file-invoice',
+    title:'카드 · INV 번호 누락', sub:'Card — invoice number missing',
+    items: cards.filter(function(x){ return !String(x.invoiceNo||'').trim(); }).map(function(x){
+      return { a:(x.date||'—'), b:(x.merchant||'—'), c:(x.invoice==='yes'?'발행함 · issued (번호 없음)':'미발행 · not issued'), d:_pndAmt(x), act:"pndOpenCard("+x.id+")" };
+    })
+  });
+
+  // 4) 업무 · 당일 확인 미완료 (인원별)
+  var tc=(state.taskConfirms||{});
+  var members=(typeof MEMBERS!=='undefined'?MEMBERS:[]).filter(function(m){ return m && m.id; });
+  G.push({ id:'taskConfirm', chip:'업무 당일확인', color:'#15803d', icon:'ti-user-check',
+    title:'업무관리 · 당일 업무 확인 미완료', sub:'Task Management — daily check not confirmed ('+today+')',
+    items: members.filter(function(m){ var r=tc['u'+m.id]; return !(r && r.date===today); }).map(function(m){
+      var open=(state.tasks||[]).filter(function(t){ return t.userId===m.id && t.status!=='done'; }).length;
+      var doneT=(state.tasks||[]).filter(function(t){ return t.userId===m.id && t.status==='done' && t.closedDate===today; }).length;
+      var r=tc['u'+m.id];
+      return { a:m.name, b:(m.dept||'')+' · '+(m.role||''), c:'진행중 '+open+'건 · 오늘완료 '+doneT+'건', d:(r?('최종 '+r.date):'기록 없음'), act:"pndGo('report')" };
+    })
+  });
+
+  // 5) 은행 · 명세서 미입력 (기준일 -1영업일 기준)
+  var need=_pndLastBizDay();
+  var accts=(state.bankAccounts||[]);
+  G.push({ id:'bankLag', chip:'명세서 지연', color:'#b91c1c', icon:'ti-calendar-exclamation',
+    title:'은행 명세서 · 최신 입력 지연', sub:'Bank statement — not imported through '+need+' (직전 영업일 · last business day)',
+    items: accts.map(function(a){
+      var last=''; (state.bankTxns||[]).forEach(function(t){ if(t.acctNo!==a.acctNo) return; var iso=_pndISO(t.date); if(iso>last) last=iso; });
+      return { acct:a, last:last };
+    }).filter(function(o){ return !o.last || o.last < need; }).map(function(o){
+      var gap='';
+      if(o.last){ var g=Math.round((new Date(need)-new Date(o.last))/86400000); gap=g+'일 지연 · '+g+'d behind'; } else { gap='데이터 없음 · no data'; }
+      return { a:o.acct.acctNo, b:(o.acct.currency||'')+' · '+(o.acct.name||''), c:'최종 입력 '+(o.last||'—'), d:gap, act:"pndGo('bankstmt')" };
+    })
+  });
+
+  // 6) 은행 · CATEGORY 미분류
+  G.push({ id:'bankCat', chip:'CATEGORY', color:'#92400e', icon:'ti-tag',
+    title:'은행 · CATEGORY 미분류', sub:'Bank — uncategorized transactions',
+    items: txns.filter(function(t){
+      if(typeof bankIsLocked==='function' && bankIsLocked(t)) return false;   // 마감된 기간 제외
+      return !t.category || t.category==='Uncategorized';
+    }).map(function(t){
+      return { a:(t.date||'—'), b:(t.vendor||t.note||t.ref||t.type||'—'), c:(t.acctNo||''), d:_pndBankAmt(t), act:"pndGo('bankstmt')" };
+    })
+  });
+
+  // 7) 은행 · DEPT 미지정
+  G.push({ id:'bankDept', chip:'DEPT', color:'#4338ca', icon:'ti-building',
+    title:'은행 · DEPT 미지정', sub:'Bank — department not assigned',
+    items: txns.filter(function(t){
+      if(typeof bankIsLocked==='function' && bankIsLocked(t)) return false;
+      if(PND_DEPT_SKIP_CATS.indexOf(t.category||'')>=0) return false;
+      var d=(typeof _bankDept==='function')?_bankDept(t):(t.dept||'');
+      return !String(d||'').trim();
+    }).map(function(t){
+      return { a:(t.date||'—'), b:(t.vendor||t.note||t.ref||t.type||'—'), c:(t.category||'Uncategorized'), d:_pndBankAmt(t), act:"pndGo('bankstmt')" };
+    })
+  });
+
+  // 8) 은행 · 인보이스 연결 필요하나 미연결
+  G.push({ id:'bankInv', chip:'인보이스 연결', color:'#0891b2', icon:'ti-link-off',
+    title:'은행 · 인보이스 미연결', sub:'Bank — invoice link required but missing (' + PND_INV_CATS.join(' / ') + ')',
+    items: txns.filter(function(t){
+      if(typeof bankIsLocked==='function' && bankIsLocked(t)) return false;
+      if(PND_INV_CATS.indexOf(t.category||'')<0) return false;                 // 매출/매입 라인만 필수
+      if(typeof _txnInvBlocked==='function' && _txnInvBlocked(t)) return false; // 카드·전자결재가 점유한 라인
+      if(typeof _txnInvLinked==='function' && _txnInvLinked(t)) {
+        var rem=(typeof _txnInvRemainingCents==='function')?_txnInvRemainingCents(t):0;
+        return rem>100;                                                        // 부분충당 잔여분도 미처리
+      }
+      return true;
+    }).map(function(t){
+      var note='미연결 · unlinked';
+      if(typeof _bankInvInfo==='function'){ var bi=_bankInvInfo(t);
+        if(bi.linked.length) note='부분충당 · partial ('+bi.linked.length+'건)';
+        else if(bi.candidates && bi.candidates.length) note='후보 '+bi.candidates.length+'건 · candidates';
+      }
+      return { a:(t.date||'—'), b:(t.vendor||t.note||t.ref||'—'), c:(t.category||'')+' · '+note, d:_pndBankAmt(t), act:"pndGo('invoice')" };
+    })
+  });
+
+  return G;
+}
+
+function pndTotal(){ try{ return pndScan().reduce(function(s,g){ return s+g.items.length; },0); }catch(e){ return 0; } }
+
+function updatePndBadge(){
+  var b=document.getElementById('hubPndBadge'); if(!b) return;
+  var n=pndTotal();
+  if(n>0){ b.style.display='block'; b.querySelector('span').textContent=n+' 건 미처리'; }
+  else { b.style.display='none'; }
+}
+
+function pndSetDays(v){ pndFilter.days=parseInt(v||'0',10)||0; renderPnd(); }
+function pndSetOnlyOpen(v){ pndFilter.onlyOpen=(String(v)==='1'); renderPnd(); }
+
+function pndGo(mod){ closePndApp(true); if(typeof enterModule==='function') enterModule(mod); }
+function pndOpenCard(id){
+  closePndApp(true);
+  if(typeof enterModule==='function') enterModule('card');
+  setTimeout(function(){ if(typeof viewCardDetail==='function') viewCardDetail(id); }, 350);
+}
+
+function _pndRow(it){
+  return '<div onclick="'+(it.act||'')+'" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid var(--border);cursor:pointer;font-size:12px">'
+    +'<span style="width:88px;flex-shrink:0;color:var(--text-3)">'+(it.a||'')+'</span>'
+    +'<span style="flex:1;min-width:130px;font-weight:600">'+(it.b||'')+'</span>'
+    +'<span style="flex:1;min-width:130px;color:var(--text-2)">'+(it.c||'')+'</span>'
+    +'<span style="font-weight:700;white-space:nowrap">'+(it.d||'')+'</span>'
+    +'</div>';
+}
+
+function renderPnd(){
+  var sum=document.getElementById('pndSummary'), body=document.getElementById('pndBody');
+  if(!sum||!body) return;
+  var G=pndScan(), total=G.reduce(function(s,g){ return s+g.items.length; },0);
+
+  sum.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:'+(total?'#fff7f7':'#f0fdf4')+'">'
+    +'<div style="font-size:22px;font-weight:800;color:'+(total?'#b91c1c':'#15803d')+'">'+total+'</div>'
+    +'<div style="font-size:12px;color:var(--text-2)">'+(total?'건의 미처리 항목 · pending items':'미처리 항목 없음 · all clear')+'</div>'
+    +'<div style="flex:1"></div>'
+    +G.map(function(g){ return '<span onclick="document.getElementById(\'pndSec-'+g.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})" style="cursor:pointer;background:'+(g.items.length?'#fee2e2':'#dcfce7')+';color:'+(g.items.length?'#b91c1c':'#15803d')+';border-radius:20px;padding:4px 11px;font-size:11px;font-weight:700">'+(g.chip||g.title)+' '+g.items.length+'</span>'; }).join('')
+    +'</div>';
+
+  var secs=G.filter(function(g){ return pndFilter.onlyOpen ? g.items.length>0 : true; });
+  if(!secs.length){ body.innerHTML='<div style="padding:34px;text-align:center;color:var(--text-3);font-size:13px">모든 항목이 처리되었습니다 · Nothing pending 🎉</div>'; updatePndBadge(); return; }
+
+  body.innerHTML=secs.map(function(g){
+    var head='<div style="display:flex;align-items:center;gap:9px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--border)">'
+      +'<i class="ti '+g.icon+'" style="color:'+g.color+';font-size:16px"></i>'
+      +'<div><div style="font-size:13px;font-weight:700">'+g.title+'</div><div style="font-size:10.5px;color:var(--text-3)">'+g.sub+'</div></div>'
+      +'<div style="flex:1"></div>'
+      +'<span style="background:'+(g.items.length?'#fee2e2':'#dcfce7')+';color:'+(g.items.length?'#b91c1c':'#15803d')+';border-radius:20px;padding:3px 11px;font-size:12px;font-weight:800">'+g.items.length+'</span>'
+      +'</div>';
+    var rows = g.items.length
+      ? g.items.slice(0,300).map(_pndRow).join('') + (g.items.length>300 ? '<div style="padding:8px 10px;font-size:11px;color:var(--text-3);border-top:1px solid var(--border)">외 '+(g.items.length-300)+'건 · '+(g.items.length-300)+' more</div>' : '')
+      : '<div style="padding:14px;font-size:12px;color:#15803d">처리 완료 · Clear</div>';
+    return '<div id="pndSec-'+g.id+'" style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px;background:var(--surface)">'+head+rows+'</div>';
+  }).join('');
+  updatePndBadge();
+}
+
+function showPndApp(){
+  pndAppOpen=true;
+  var hub=document.getElementById('hubPage'); if(hub) hub.style.display='none';
+  var app=document.getElementById('pndApp'); if(app) app.style.display='block';
+  var u=(typeof cardCurrentUser==='function')?cardCurrentUser():null;
+  var n=document.getElementById('pndUserName'); if(n&&u) n.textContent=u.name;
+  var av=document.getElementById('pndAvatarChip'); if(av&&u&&typeof getAvatar==='function') av.innerHTML=getAvatar(u.id,'sm');
+  var ds=document.getElementById('pndDays'); if(ds) ds.value=String(pndFilter.days);
+  renderPnd();
+  window.scrollTo(0,0);
+}
+function closePndApp(skipHub){
+  pndAppOpen=false;
+  var app=document.getElementById('pndApp'); if(app) app.style.display='none';
+  if(!skipHub && typeof showHub==='function') showHub();
 }
 
 // ═══════════════════════════════════════════
@@ -7042,6 +7330,12 @@ function closeDailyStandup(){ var m=document.getElementById('dailyStandupModal')
 function confirmDailyStandup(){
   var me=cardCurrentUser();
   try{ if(me) localStorage.setItem(_standupKey(me.id),String(Date.now())); }catch(_){ }
+  // PND 패널에서 인원별 확인 여부를 볼 수 있도록 서버 state 에도 기록
+  if(me){
+    if(!state.taskConfirms) state.taskConfirms={};
+    state.taskConfirms['u'+me.id]={date:projTodayISO(), at:nowStr(), name:me.name};
+    try{ saveState(); }catch(_){ }
+  }
   closeDailyStandup();
   showToast('오늘 업무 확인 완료 · Daily check confirmed');
 }
@@ -10085,6 +10379,8 @@ function enterModule(module) {
     showReportApp();
   } else if(module === 'bankstmt') {
     showBankApp();
+  } else if(module === 'pnd') {
+    showPndApp();
   } else if(module === 'contract') {
     showContractApp();
   } else if(module === 'invoice') {
@@ -10386,13 +10682,15 @@ function gateLogin() {
   const user = GATE_USERS.concat(extra).find(u => u.id === id && pwOf(u) === pw);
   if (!user) { document.getElementById('gateErr').style.display = 'block'; return; }
   document.getElementById('gateErr').style.display = 'none';
-  document.getElementById('loginGate').classList.add('hidden');
   sessionStorage.setItem('inics_gate', '1');
   sessionStorage.setItem('inics_uid', String(user.memberId));
-  setTimeout(() => {
-    applyGateSession(user.memberId);
-    setTimeout(() => showHub(), 300);
-  }, 200);
+  // 허브를 먼저 띄운 뒤 게이트를 내린다 → 전자결재 화면이 잠깐 보이는 현상 방지
+  var _hp = document.getElementById('hubPage');
+  if (_hp) _hp.style.display = 'block';
+  document.getElementById('loginGate').classList.add('hidden');
+  applyGateSession(user.memberId);
+  try { showHub(); } catch(_) {}
+  setTimeout(() => { applyGateSession(user.memberId); try{ showHub(); }catch(_){} }, 300);
 }
 
 function applyGateSession(memberId) {
@@ -10459,11 +10757,15 @@ function toggleBankType() {
 (function checkSession() {
   if (sessionStorage.getItem('inics_gate') === '1') {
     var uid = parseInt(sessionStorage.getItem('inics_uid') || '0');
+    // 허브 먼저 표시 → 새로고침 시 전자결재 화면 노출 방지
+    var _hp0 = document.getElementById('hubPage');
+    if (_hp0) _hp0.style.display = 'block';
     document.getElementById('loginGate').classList.add('hidden');
     if (uid) {
       applyGateSession(uid);
-      setTimeout(function(){ applyGateSession(uid); }, 300);
-      setTimeout(function(){ applyGateSession(uid); showHub(); }, 800);
+      try{ showHub(); }catch(_){}
+      setTimeout(function(){ applyGateSession(uid); try{ showHub(); }catch(_){} }, 300);
+      setTimeout(function(){ applyGateSession(uid); try{ showHub(); }catch(_){} }, 800);
     }
   }
 })();
@@ -10510,7 +10812,7 @@ function toggleBankType() {
   }
   var APPS=[
     ['cardApp','closeCardApp'],['quoteApp','closeQuoteApp'],['reportApp','closeReportApp'],
-    ['bankApp','closeBankApp'],['projectApp','closeProjectApp'],['financeApp','closeFinanceApp'],['contractApp','closeContractApp'],['invoiceApp','closeInvoiceApp'],['hrApp','closeHrApp'],['exportApp','closeExportApp']
+    ['bankApp','closeBankApp'],['projectApp','closeProjectApp'],['financeApp','closeFinanceApp'],['contractApp','closeContractApp'],['invoiceApp','closeInvoiceApp'],['hrApp','closeHrApp'],['exportApp','closeExportApp'],['pndApp','closePndApp']
   ];
   function _closeTopApp(){
     for(var i=0;i<APPS.length;i++){
