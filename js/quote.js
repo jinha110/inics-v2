@@ -107,6 +107,7 @@ function newQuote(){
   editingQuoteId=null; quoteLines=[];
   document.getElementById('qNo').value=genQuoteNo();
   document.getElementById('qClient').value='';
+  if(typeof populateQuoteProjects==='function') populateQuoteProjects('');
   var d=new Date(); document.getElementById('qDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   document.getElementById('qValid').value='15';
   document.getElementById('qCurrency').value='VND';
@@ -123,6 +124,34 @@ function addQuoteLine(p){
 }
 
 function removeQuoteLine(i){ quoteLines.splice(i,1); renderQuoteLines(); }
+
+// ── 품목 순서 변경 (▲▼ 버튼 + 드래그 앤 드롭) ──
+function moveQuoteLine(i,d){
+  var j=i+d; if(j<0 || j>=quoteLines.length) return;
+  var t=quoteLines[i]; quoteLines[i]=quoteLines[j]; quoteLines[j]=t;
+  renderQuoteLines();
+}
+var _qDragFrom=null;
+function qDragStart(i,e){
+  _qDragFrom=i;
+  try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',String(i)); }catch(_){}
+}
+function qDragOver(i,e){
+  e.preventDefault();
+  try{ e.dataTransfer.dropEffect='move'; }catch(_){}
+  var tr=e.currentTarget; if(tr&&tr.style){ tr.style.outline='2px solid #4338ca'; tr.style.outlineOffset='-2px'; }
+}
+function qDragLeave(i,e){ var tr=e.currentTarget; if(tr&&tr.style){ tr.style.outline=''; } }
+function qDrop(i,e){
+  e.preventDefault();
+  var tr=e.currentTarget; if(tr&&tr.style){ tr.style.outline=''; }
+  var from=_qDragFrom; if(from==null){ try{ from=parseInt(e.dataTransfer.getData('text/plain'),10); }catch(_){} }
+  _qDragFrom=null;
+  if(from==null || isNaN(from) || from===i) return;
+  var it=quoteLines.splice(from,1)[0];
+  quoteLines.splice(i,0,it);
+  renderQuoteLines();
+}
 
 // Size 문자열(WxDxH)에서 CBM 산출. 값이 100 이상이면 mm, 미만이면 cm 로 간주.
 function cbmFromSize(size){
@@ -179,53 +208,60 @@ function initQuotePaste(){
 function renderQuoteLines(){
   var box=document.getElementById('quoteLinesBox'); if(!box) return;
   if(!quoteLines.length){ box.innerHTML='<div style="font-size:13px;color:var(--text-3);padding:10px">품목을 추가하세요. · Add an item.</div>'; recalcQuote(); return; }
-  var inp='font-size:13px;padding:7px 9px';
-  var th='padding:8px 6px;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;text-align:left;white-space:nowrap;border-bottom:2px solid var(--border)';
-  var td='padding:6px 6px;border-bottom:1px solid var(--border);vertical-align:top';
+  var inp='font-size:12px;padding:5px 6px';
+  var th='padding:7px 4px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.02em;text-align:left;white-space:nowrap;border-bottom:2px solid var(--border)';
+  var td='padding:5px 4px;border-bottom:1px solid var(--border);vertical-align:top';
   var header='<thead><tr>'
-    +'<th style="'+th+'">#</th><th style="'+th+'">Product Code</th><th style="'+th+'">Category</th><th style="'+th+'">Product Name</th><th style="'+th+'">Color</th><th style="'+th+'">Image</th>'
-    +'<th style="'+th+'">Size (WxDxH)</th><th style="'+th+';text-align:right">CBM/EA</th><th style="'+th+';text-align:right">Qty</th>'
-    +'<th style="'+th+'">Cost</th><th style="'+th+'">마진/판가 · Margin/Price</th><th style="'+th+'">Unit Price</th><th style="'+th+'">Amount</th><th style="'+th+'">VN생산</th><th style="'+th+'">Remark</th><th style="'+th+'"></th>'
+    +'<th style="'+th+'">순서 #</th><th style="'+th+'">Code</th><th style="'+th+'">Category</th><th style="'+th+'">Product Name</th><th style="'+th+'">Color</th><th style="'+th+'">Image</th>'
+    +'<th style="'+th+'">Size</th><th style="'+th+';text-align:right">CBM</th><th style="'+th+';text-align:right">Qty</th>'
+    +'<th style="'+th+'">Cost</th><th style="'+th+'">마진/판가</th><th style="'+th+';text-align:right">Unit</th><th style="'+th+';text-align:right">Amount</th><th style="'+th+'">VN</th><th style="'+th+'">Remark</th><th style="'+th+'"></th>'
     +'</tr></thead>';
   var rows=quoteLines.map(function(l,i){
     var thumb = l.image
-      ? window._img(l.image,'style="width:64px;height:52px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:4px;display:block"')
-      : '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:52px;border:1px dashed var(--border);border-radius:4px;cursor:pointer;color:var(--text-3)" title="이미지 업로드 · Upload Image"><i class="ti ti-camera" style="font-size:16px"></i><input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>';
-    var imgCell='<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'+thumb
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">'
-        +(l.image?'<label style="font-size:10px;color:#1d4ed8;cursor:pointer">교체 · Replace<input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>':'')
-        +'<button onclick="pasteImage('+i+')" style="font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">붙여넣기 · Paste</button>'
-        +'<button onclick="setQLineImageUrl('+i+')" style="font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">URL</button>'
-        +(l.image?'<button onclick="clearQLineImage('+i+')" style="font-size:10px;border:none;background:none;color:var(--danger);cursor:pointer;padding:0">제거 · Remove</button>':'')
+      ? window._img(l.image,'style="width:50px;height:40px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:4px;display:block"')
+      : '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:50px;height:40px;border:1px dashed var(--border);border-radius:4px;cursor:pointer;color:var(--text-3)" title="이미지 업로드 · Upload Image"><i class="ti ti-camera" style="font-size:14px"></i><input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>';
+    var imgCell='<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:56px">'+thumb
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;line-height:1.2">'
+        +(l.image?'<label style="font-size:9px;color:#1d4ed8;cursor:pointer" title="교체 · Replace">교체<input type="file" accept="image/*" style="display:none" onchange="handleQuoteLineImage('+i+',this.files[0])"></label>':'')
+        +'<button onclick="pasteImage('+i+')" style="font-size:9px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0" title="붙여넣기 · Paste">붙임</button>'
+        +'<button onclick="setQLineImageUrl('+i+')" style="font-size:9px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0">URL</button>'
+        +(l.image?'<button onclick="clearQLineImage('+i+')" style="font-size:9px;border:none;background:none;color:var(--danger);cursor:pointer;padding:0" title="제거 · Remove">삭제</button>':'')
       +'</div></div>';
     var modeCell='<div style="display:flex;flex-direction:column;gap:4px">'
-      +'<select onchange="setQMode('+i+',this.value)" style="width:104px;'+inp+'"><option value="margin"'+(l.mode==='margin'?' selected':'')+'>마진율%(원가)</option><option value="price"'+(l.mode==='price'?' selected':'')+'>확정판가 · Final Price</option></select>'
+      +'<select onchange="setQMode('+i+',this.value)" style="width:86px;'+inp+'"><option value="margin"'+(l.mode==='margin'?' selected':'')+'>마진율%</option><option value="price"'+(l.mode==='price'?' selected':'')+'>확정판가</option></select>'
       +(l.mode==='margin'
-        ? '<input type="text" inputmode="decimal" value="'+(l.margin||'')+'" oninput="setQLine('+i+',\'margin\',this.value)" placeholder="%" style="width:104px;'+inp+';text-align:right">'
-        : '<input type="text" inputmode="decimal" value="'+(l.price||'')+'" oninput="setQLine('+i+',\'price\',this.value)" placeholder="판가 · Price" style="width:104px;'+inp+';text-align:right">')
-      +'<div style="font-size:11px;color:var(--text-3);white-space:nowrap">→ 판가 <span id="qmodeunit-'+i+'" style="color:#1d4ed8;font-weight:700"></span></div>'
+        ? '<input type="text" inputmode="decimal" value="'+(l.margin||'')+'" oninput="setQLine('+i+',\'margin\',this.value)" placeholder="%" style="width:86px;'+inp+';text-align:right">'
+        : '<input type="text" inputmode="decimal" value="'+(l.price||'')+'" oninput="setQLine('+i+',\'price\',this.value)" placeholder="판가" style="width:86px;'+inp+';text-align:right">')
+      +'<div style="font-size:10px;color:var(--text-3);white-space:nowrap">→ <span id="qmodeunit-'+i+'" style="color:#1d4ed8;font-weight:700"></span></div>'
       +'</div>';
-    return '<tr>'
-      +'<td style="'+td+';font-weight:700;color:var(--text-2);padding-top:13px;font-size:13px">'+(i+1)+'</td>'
-      +'<td style="'+td+'"><input list="quoteProductCodes" value="'+(l.code||'').replace(/"/g,'&quot;')+'" onchange="setQCode('+i+',this.value)" placeholder="Code" style="width:130px;'+inp+';font-weight:600"></td>'
-      +'<td style="'+td+'"><input list="quoteCategories" value="'+(l.category||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'category\',this.value)" placeholder="Category" style="width:150px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input list="quoteProductNames" value="'+(l.name||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'name\',this.value)" onchange="setQName('+i+',this.value)" placeholder="Product Name" style="width:190px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input list="quoteColors" value="'+(l.colorCode||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'colorCode\',this.value)" onchange="setQColor('+i+',this.value)" placeholder="Color" style="width:95px;'+inp+'"></td>'
+    var ordCell='<div style="display:flex;align-items:center;gap:2px">'
+      +'<span draggable="true" ondragstart="qDragStart('+i+',event)" style="cursor:grab;color:var(--text-3);font-size:14px;line-height:1" title="드래그해서 순서 변경 · Drag to reorder"><i class="ti ti-grip-vertical"></i></span>'
+      +'<span style="font-weight:700;color:var(--text-2);font-size:12px;min-width:14px;text-align:right">'+(i+1)+'</span>'
+      +'<span style="display:flex;flex-direction:column;gap:1px">'
+        +'<button onclick="moveQuoteLine('+i+',-1)"'+(i===0?' disabled':'')+' style="border:none;background:none;padding:0;line-height:1;cursor:'+(i===0?'default':'pointer')+';color:'+(i===0?'var(--border)':'#4338ca')+';font-size:10px" title="위로 · Up">\u25b2</button>'
+        +'<button onclick="moveQuoteLine('+i+',1)"'+(i===quoteLines.length-1?' disabled':'')+' style="border:none;background:none;padding:0;line-height:1;cursor:'+(i===quoteLines.length-1?'default':'pointer')+';color:'+(i===quoteLines.length-1?'var(--border)':'#4338ca')+';font-size:10px" title="아래로 · Down">\u25bc</button>'
+      +'</span></div>';
+    return '<tr ondragover="qDragOver('+i+',event)" ondragleave="qDragLeave('+i+',event)" ondrop="qDrop('+i+',event)">'
+      +'<td style="'+td+';padding-top:10px">'+ordCell+'</td>'
+      +'<td style="'+td+'"><input list="quoteProductCodes" value="'+(l.code||'').replace(/"/g,'&quot;')+'" onchange="setQCode('+i+',this.value)" placeholder="Code" style="width:90px;'+inp+';font-weight:600"></td>'
+      +'<td style="'+td+'"><input list="quoteCategories" value="'+(l.category||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'category\',this.value)" placeholder="Category" style="width:80px;'+inp+'"></td>'
+      +'<td style="'+td+'"><input list="quoteProductNames" value="'+(l.name||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'name\',this.value)" onchange="setQName('+i+',this.value)" placeholder="Product Name" style="width:140px;'+inp+'"></td>'
+      +'<td style="'+td+'"><input list="quoteColors" value="'+(l.colorCode||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'colorCode\',this.value)" onchange="setQColor('+i+',this.value)" placeholder="Color" style="width:68px;'+inp+'"></td>'
       +'<td style="'+td+';text-align:center">'+imgCell+'</td>'
-      +'<td style="'+td+'"><input type="text" value="'+(l.size||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'size\',this.value)" placeholder="WxDxH" style="width:135px;'+inp+'"></td>'
-      +'<td style="'+td+'"><input type="text" inputmode="decimal" value="'+(l.cbm||'')+'" oninput="setQLine('+i+',\'cbm\',this.value)" placeholder="0.000" style="width:74px;'+inp+';text-align:right">'
-        +'<button onclick="autoCbm('+i+')" style="display:block;margin-top:3px;font-size:10px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0;width:74px;text-align:right" title="Size(WxDxH)에서 자동계산">자동계산</button></td>'
-      +'<td style="'+td+'"><input type="text" inputmode="numeric" value="'+(l.qty||'')+'" oninput="setQLine('+i+',\'qty\',this.value)" style="width:56px;'+inp+';text-align:right"></td>'
-      +'<td style="'+td+'"><input type="text" inputmode="decimal" value="'+(l.cost||'')+'" oninput="setQLine('+i+',\'cost\',this.value)" placeholder="원가 · Cost" style="width:118px;'+inp+';text-align:right"></td>'
+      +'<td style="'+td+'"><input type="text" value="'+(l.size||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'size\',this.value)" placeholder="WxDxH" style="width:86px;'+inp+'"></td>'
+      +'<td style="'+td+'"><input type="text" inputmode="decimal" value="'+(l.cbm||'')+'" oninput="setQLine('+i+',\'cbm\',this.value)" placeholder="0.000" style="width:58px;'+inp+';text-align:right">'
+        +'<button onclick="autoCbm('+i+')" style="display:block;margin-top:2px;font-size:9px;border:none;background:none;color:#1d4ed8;cursor:pointer;padding:0;width:58px;text-align:right" title="Size(WxDxH)에서 자동계산">자동</button></td>'
+      +'<td style="'+td+'"><input type="text" inputmode="numeric" value="'+(l.qty||'')+'" oninput="setQLine('+i+',\'qty\',this.value)" style="width:46px;'+inp+';text-align:right"></td>'
+      +'<td style="'+td+'"><input type="text" inputmode="decimal" value="'+(l.cost||'')+'" oninput="setQLine('+i+',\'cost\',this.value)" placeholder="원가" style="width:76px;'+inp+';text-align:right"></td>'
       +'<td style="'+td+'">'+modeCell+'</td>'
-      +'<td style="'+td+';text-align:right;font-size:13px;padding-top:13px"><span id="qunit-'+i+'" style="font-weight:600"></span></td>'
-      +'<td style="'+td+';text-align:right;font-size:13px;font-weight:700;padding-top:13px"><span id="qamt-'+i+'"></span></td>'
-      +'<td style="'+td+';text-align:center;padding-top:13px"><input type="checkbox" '+(l.vnMade?'checked':'')+' onchange="setQVN('+i+',this.checked)" style="width:17px;height:17px;cursor:pointer" title="베트남 생산 · Made in Vietnam"></td>'
-      +'<td style="'+td+'"><input type="text" value="'+(l.remark||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'remark\',this.value)" placeholder="Remark" style="width:140px;'+inp+'"></td>'
-      +'<td style="'+td+';padding-top:11px"><button class="btn btn-outline" style="font-size:12px;padding:5px 8px" onclick="removeQuoteLine('+i+')"><i class="ti ti-x"></i></button></td>'
+      +'<td style="'+td+';text-align:right;font-size:12px;padding-top:10px;white-space:nowrap"><span id="qunit-'+i+'" style="font-weight:600"></span></td>'
+      +'<td style="'+td+';text-align:right;font-size:12px;font-weight:700;padding-top:10px;white-space:nowrap"><span id="qamt-'+i+'"></span></td>'
+      +'<td style="'+td+';text-align:center;padding-top:10px"><input type="checkbox" '+(l.vnMade?'checked':'')+' onchange="setQVN('+i+',this.checked)" style="width:16px;height:16px;cursor:pointer" title="베트남 생산 · Made in Vietnam"></td>'
+      +'<td style="'+td+'"><input type="text" value="'+(l.remark||'').replace(/"/g,'&quot;')+'" oninput="setQLine('+i+',\'remark\',this.value)" placeholder="Remark" style="width:76px;'+inp+'"></td>'
+      +'<td style="'+td+';padding-top:9px"><button class="btn btn-outline" style="font-size:11px;padding:4px 6px" onclick="removeQuoteLine('+i+')"><i class="ti ti-x"></i></button></td>'
       +'</tr>';
   }).join('');
-  box.innerHTML='<table style="border-collapse:collapse;min-width:1580px;width:100%">'+header+'<tbody>'+rows+'</tbody></table>';
+  box.innerHTML='<table style="border-collapse:collapse;min-width:1180px;width:100%">'+header+'<tbody>'+rows+'</tbody></table>';
   recalcQuote();
 }
 
@@ -259,6 +295,7 @@ function collectQuote(){
     id: editingQuoteId,
     quoteNo: document.getElementById('qNo').value,
     client: document.getElementById('qClient').value,
+    projectId: (((document.getElementById('qProject')||{}).value)||''),
     date: document.getElementById('qDate').value,
     validDays: qNum(document.getElementById('qValid').value),
     currency: document.getElementById('qCurrency').value,
@@ -277,6 +314,8 @@ function saveQuote(){
   // 자동 DB화: 제품 → 제품 DB, 고객사 → 거래처 DB
   q.lines.forEach(function(l){ upsertProductFromLine(l, q.currency); });
   ensureVendor(q.client);
+  // 프로젝트 연결 견적이면 해당 프로젝트에도 즉시 반영되도록 표기
+  if(q.projectId){ var _lp=(state.projects||[]).find(function(x){ return String(x.id)===String(q.projectId); }); if(_lp && typeof _stampEdit==='function') _stampEdit(_lp); }
   if(editingQuoteId){ var idx=state.quotes.findIndex(function(x){ return x.id===editingQuoteId; }); if(idx>=0){ q.createdAt=state.quotes[idx].createdAt; q.updatedAt=nowStr(); state.quotes[idx]=q; } }
   else { q.id=(state.quoteSeq=(state.quoteSeq||0)+1); q.quoteNo=document.getElementById('qNo').value; q.createdAt=nowStr(); editingQuoteId=q.id; state.quotes.push(q); }
   saveState(); populateQuoteProductCodes(); showToast('견적 저장 · 제품/고객 DB 반영 완료'); renderSavedQuotes();
@@ -286,7 +325,7 @@ function renderSavedQuotes(){
   var el=document.getElementById('quoteSavedList'); if(!el) return;
   var q=((document.getElementById('qSavedSearch')||{}).value||'').toLowerCase().trim();
   var list=(state.quotes||[]).slice().sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
-  if(q){ var t=q.split(/\s+/); list=list.filter(function(x){ var hay=[x.quoteNo,x.client,x.date].join(' ').toLowerCase(); return t.every(function(k){ return hay.indexOf(k)>=0; }); }); }
+  if(q){ var t=q.split(/\s+/); list=list.filter(function(x){ var _p=(state.projects||[]).find(function(y){ return String(y.id)===String(x.projectId||''); }); var hay=[x.quoteNo,x.client,x.date,(_p&&_p.projName)||''].join(' ').toLowerCase(); return t.every(function(k){ return hay.indexOf(k)>=0; }); }); }
   if(!list.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-folder"></i><p>저장된 견적 없음 · No saved quotes</p></div>'; return; }
   var th='font-size:11px;color:var(--text-3);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
   var td='font-size:12px;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle';
@@ -296,7 +335,7 @@ function renderSavedQuotes(){
     return '<tr>'
       +'<td style="'+td+';white-space:nowrap;color:var(--text-2)">'+(x.date||'—')+'</td>'
       +'<td style="'+td+';font-family:var(--mono);white-space:nowrap">'+(x.quoteNo||'—')+'</td>'
-      +'<td style="'+td+';font-weight:600">'+(x.client||'—')+'</td>'
+      +'<td style="'+td+';font-weight:600">'+(x.client||'—')+(function(){ var p=(state.projects||[]).find(function(y){ return String(y.id)===String(x.projectId||''); }); return p?('<div style="font-weight:400;font-size:11px;color:var(--text-3)">'+String(p.projName||('PJ-'+p.id)).replace(/</g,'&lt;')+'</div>'):''; })()+'</td>'
       +'<td style="'+td+';text-align:center;color:var(--text-2)">'+((x.lines||[]).length)+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700">'+(x.currency||'')+' '+fmtN(tot)+(vatLbl?(' <span style="font-size:10px;color:var(--text-3);font-weight:400">'+vatLbl+'</span>'):'')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap">'
@@ -324,6 +363,7 @@ function loadQuote(id, pdf){
   var x=(state.quotes||[]).find(function(e){ return e.id===id; }); if(!x) return;
   editingQuoteId=x.id;
   document.getElementById('qNo').value=x.quoteNo||''; document.getElementById('qClient').value=x.client||'';
+  populateQuoteProjects(x.projectId||'');
   document.getElementById('qDate').value=x.date||''; document.getElementById('qValid').value=(x.validDays!=null?x.validDays:'');
   document.getElementById('qCurrency').value=x.currency||'VND'; document.getElementById('qVat').value=(x.vat==='exempt'?'exempt':String(x.vat!=null?x.vat:'8'));
   document.getElementById('qNotes').value=x.notes||'';
@@ -821,19 +861,46 @@ function exportProductsExcel(){
   showToast('제품 DB Excel 저장 · '+list.length+'개');
 }
 
-function _projQuotesC(p){ return (state.quotes||[]).filter(function(q){return (q.client||'').toLowerCase()===((p&&p.client)||'').toLowerCase();}).sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');}); }
+// 프로젝트 단위 견적 매칭: projectId 가 있으면 그 프로젝트만, 없으면(레거시) 고객사명으로 매칭
+function _projQuotesC(p){
+  if(!p) return [];
+  var pid=String(p.id), cl=String(p.client||'').toLowerCase();
+  return (state.quotes||[]).filter(function(q){
+    if(q && q.projectId) return String(q.projectId)===pid;
+    return String((q&&q.client)||'').toLowerCase()===cl;
+  }).sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');});
+}
+// 견적 폼의 프로젝트 드롭다운 — 입력된 고객사의 프로젝트만 표시
+function populateQuoteProjects(sel){
+  var el=document.getElementById('qProject'); if(!el) return;
+  var cl=String(((document.getElementById('qClient')||{}).value)||'').trim().toLowerCase();
+  var cur=(sel!=null)?String(sel):String(el.value||'');
+  var ps=(state.projects||[]).filter(function(p){ return !cl || String(p.client||'').toLowerCase()===cl; })
+          .sort(function(a,b){ return String(b.regDate||'').localeCompare(String(a.regDate||'')); });
+  var h='<option value="">— 프로젝트 미지정 · None</option>';
+  h+=ps.map(function(p){
+    var lb=(p.projName||('PJ-'+p.id))+(p.stage&&typeof projStage==='function'?(' · '+projStage(p.stage).label):'');
+    return '<option value="'+p.id+'"'+(String(p.id)===cur?' selected':'')+'>'+String(lb).replace(/</g,'&lt;')+'</option>';
+  }).join('');
+  if(cur && !ps.some(function(p){ return String(p.id)===cur; })){
+    var op=(state.projects||[]).find(function(p){ return String(p.id)===cur; });
+    if(op) h+='<option value="'+op.id+'" selected>'+String((op.client||'')+' · '+(op.projName||('PJ-'+op.id))).replace(/</g,'&lt;')+'</option>';
+  }
+  el.innerHTML=h;
+}
 
-function renderProjLinkedQuotes(client){
+function renderProjLinkedQuotes(projId){
   var box=document.getElementById('projLinkedQuotes'); if(!box) return;
-  client=(client||'').trim();
-  var qs = client ? (state.quotes||[]).filter(function(q){ return (q.client||'').toLowerCase()===client.toLowerCase(); }) : [];
+  var p=(state.projects||[]).find(function(x){ return String(x.id)===String(projId); });
+  var qs = p ? _projQuotesC(p) : [];
   if(!qs.length){ box.innerHTML=''; return; }
   qs.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   box.innerHTML='<div class="form-card-title" style="margin-bottom:6px;color:var(--text-2)"><i class="ti ti-file-invoice"></i> 연결 견적서 · Linked Quotes ('+qs.length+')</div>'
     + qs.map(function(q){
         var tot=(q.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
+        var unassigned=!q.projectId ? '<span style="font-size:9px;font-weight:700;color:#b45309;background:#b4530914;padding:1px 6px;border-radius:8px">프로젝트 미지정</span>' : '';
         return '<a href="javascript:void(0)" onclick="closeProjectForm();openRelatedQuote('+q.id+')" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text);font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)">'
           +'<i class="ti ti-file-invoice" style="color:#4338ca"></i><span class="docno">'+(q.quoteNo||('Q-'+q.id))+'</span> '
-          +'<span style="flex:1">'+(q.date||'')+'</span><span style="font-weight:600">'+(q.currency||'')+' '+fmtN(tot)+'</span></a>';
+          +'<span style="flex:1">'+(q.date||'')+' '+unassigned+'</span><span style="font-weight:600">'+(q.currency||'')+' '+fmtN(tot)+'</span></a>';
       }).join('');
 }

@@ -237,7 +237,7 @@ function renderContractApp(){
   if(cfilter==='confirmed') projs=projs.filter(function(p){return p.contractConfirmed;});
   else if(cfilter==='draft') projs=projs.filter(function(p){return !p.contractConfirmed;});
   var sdocs=(state.docs||[]).filter(function(d){return /계약체결/.test(d.type||'');});
-  function pHay(p){ var o=p.contractOpts||{}; return [o.contractNo,p.clientFull,p.client,p.title,o.date].join(' ').toLowerCase(); }
+  function pHay(p){ var o=p.contractOpts||{}; return [o.contractNo,p.clientFull,p.client,p.projName,p.title,o.date].join(' ').toLowerCase(); }
   function dHay(d){ return [d.docNo,d.title,d.type,d.dept].join(' ').toLowerCase(); }
   if(q){ var ts=q.split(/\s+/);
     projs=projs.filter(function(p){ return ts.every(function(t){return pHay(p).indexOf(t)>=0;}); });
@@ -271,7 +271,7 @@ function renderContractApp(){
       return '<tr>'
         +'<td style="'+td+'">'+statusBadge+'</td>'
         +'<td style="'+td+';font-family:var(--mono);font-weight:700;color:#4338ca;white-space:nowrap">'+(o.contractNo||'—')+'</td>'
-        +'<td style="'+td+';font-weight:600">'+(p.clientFull||p.client||'—')+(p.title?'<div style="font-size:10px;color:var(--text-3);font-weight:400">'+p.title+'</div>':'')+'</td>'
+        +'<td style="'+td+';font-weight:600">'+(p.clientFull||p.client||'—')+(p.projName?'<div style="font-size:10px;color:#b45309;font-weight:600">'+String(p.projName).replace(/</g,'&lt;')+'</div>':'')+(p.title?'<div style="font-size:10px;color:var(--text-3);font-weight:400">'+p.title+'</div>':'')+'</td>'
         +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(o.date||'')+'</td>'
         +'<td style="'+td+';text-align:right;font-weight:700;white-space:nowrap">'+tt.cur+' '+fmtN(Math.round(tt.total))+'</td>'
         +'<td style="'+td+';white-space:nowrap;color:var(--text-2);font-size:11px">'+(function(){var _t=_ctTerms(p);var _n=Math.max(1,Math.min(3,parseInt(_t.count,10)||(_t.rows?_t.rows.length:1)||1));return _t.rows.slice(0,_n).map(function(r,i){return 'P'+(i+1)+'·'+(i+1)+'차 '+(parseFloat(r.pct)||0)+'%';}).join(' / ');})()+'</td>'

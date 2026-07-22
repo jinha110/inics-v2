@@ -879,7 +879,7 @@
     if (typeof saveState === "function") saveState();
     if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
   };
-  function _csProjName(pid){ if(pid==null||pid==="") return ""; var ps=(typeof state!=="undefined"&&state&&state.projects)||[]; var p=ps.find(function(x){return String(x.id)===String(pid);}); return p ? (p.clientFull||p.client||p.name||("#"+pid)) : ""; }
+  function _csProjName(pid){ if(pid==null||pid==="") return ""; var ps=(typeof state!=="undefined"&&state&&state.projects)||[]; var p=ps.find(function(x){return String(x.id)===String(pid);}); if(!p) return ""; var _b=(p.clientFull||p.client||p.name||("#"+pid)); return _b+(p.projName?(" · "+p.projName):""); }
   window.chasanLineDetail = function (ym, dept, key) {
     // 매출·매입원가 → 인보이스 발생기준 (자산 분류는 합계 제외, 행은 표시)
     if (key === "revenue" || key === "cogs") {
