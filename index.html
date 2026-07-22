@@ -1287,6 +1287,12 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>Valid · 유효기간(일)</label><input type="number" id="qValid" min="0" placeholder="15" style="width:100%"></div>
           <div class="fg"><label>Currency · 통화</label><select id="qCurrency" onchange="recalcQuote()"><option>VND</option><option>USD</option><option>KRW</option><option>MXN</option></select></div>
           <div class="fg"><label>VAT</label><select id="qVat" onchange="recalcQuote()"><option value="8">VAT 8%</option><option value="10">VAT 10%</option><option value="0">VAT 0%</option><option value="exempt">Exempt · 면세</option></select></div>
+          <div class="fg"><label>CBM 표시 · Show CBM</label>
+            <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:7px 0">
+              <input type="checkbox" id="qShowCbm" onchange="recalcQuote()" style="width:17px;height:17px;cursor:pointer">
+              <span>견적서(PDF·Excel)에 CBM 포함</span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -1309,6 +1315,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <button class="btn btn-outline" onclick="newQuote()"><i class="ti ti-refresh"></i> 새 견적 · New</button>
         <button class="btn btn-outline" onclick="saveQuote()"><i class="ti ti-device-floppy"></i> 저장 · Save</button>
         <button class="btn btn-outline" onclick="previewQuote()"><i class="ti ti-eye"></i> 미리보기 · Preview</button>
+        <button class="btn btn-outline" onclick="exportQuoteExcel()"><i class="ti ti-file-spreadsheet"></i> Excel 다운로드 · Export</button>
         <button class="btn btn-dark" onclick="exportQuotePdf()"><i class="ti ti-file-type-pdf"></i> PDF 출력 · Export</button>
       </div>
     </div>
@@ -1329,7 +1336,10 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>Product Name</label><input type="text" id="pName" list="quoteProductNames" placeholder="예: Beconn+"></div>
           <div class="fg"><label>Size (WxDxH)</label><input type="text" id="pSize" placeholder="예: 3200*1200"></div>
           <div class="fg"><label>Color CODE</label><input type="text" id="pColor" placeholder="예: RCNWW"></div>
-          <div class="fg"><label>원가 · Cost</label><input type="text" id="pCost" inputmode="decimal" placeholder="0" oninput="formatCardAmount(this)"></div>
+          <div class="fg"><label>CBM (m³/EA) <span style="color:var(--text-3);font-weight:400">— Size에서 자동계산 가능</span></label>
+            <div style="display:flex;gap:6px"><input type="text" id="pCbm" inputmode="decimal" placeholder="0.000" style="flex:1;text-align:right">
+            <button class="btn btn-outline" style="font-size:11px;padding:6px 10px;white-space:nowrap" onclick="autoCbmProduct()">자동계산</button></div></div>
+          <div class="fg"><label>원가 · Cost</label><input type="text" id="pCost" inputmode="decimal" placeholder="0" style="text-align:right" oninput="formatCardAmount(this)"></div>
           <div class="fg"><label>통화 · Currency</label><select id="pCurrency"><option>VND</option><option>USD</option><option>KRW</option><option>MXN</option></select></div>
           <div class="fg"><label>Image <span style="color:var(--text-3);font-weight:400">선택 · Select</span></label>
             <div style="display:flex;gap:6px"><label class="upload-zone" style="display:block;padding:8px;flex:1;text-align:center"><span style="font-size:11px">이미지 업로드 · Upload Image</span><input type="file" accept="image/*" style="display:none" onchange="handleProductImage(this.files[0])"></label>
@@ -1345,7 +1355,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       </div>
       <div class="form-card" style="margin-bottom:14px">
         <div class="form-card-title"><i class="ti ti-upload"></i> CSV 일괄 등록 · Bulk import</div>
-        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">컬럼 순서: <strong>code, category, name, size, colorCode, cost, currency</strong> (첫 줄 헤더 허용)</div>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">컬럼 순서: <strong>code, category, name, size, colorCode, cost, currency, cbm</strong> (첫 줄 헤더 허용 · cbm 비우면 Size에서 자동계산)</div>
         <textarea id="qCsv" style="min-height:80px;font-family:var(--mono,monospace);font-size:11px" placeholder="CCR232AT,MEETING TABLE,BECONN+,3200*1200,RCNWW,20000000,VND"></textarea>
         <div class="btn-row" style="margin-top:8px">
           <label class="btn btn-outline" style="font-size:11px;padding:5px 11px;cursor:pointer">CSV 파일 선택<input type="file" accept=".csv,text/csv" style="display:none" onchange="loadCsvFile(this.files[0])"></label>
@@ -1354,7 +1364,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       </div>
       <div class="form-card" style="margin-bottom:14px">
         <div class="form-card-title"><i class="ti ti-file-spreadsheet"></i> Excel 템플릿 일괄 등록 · Excel import</div>
-        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">제품 DB 템플릿(.xlsx)을 그대로 올리면 자동 등록됩니다. 인식 컬럼: <strong>Category · Product Name · Size · Product Code · Color CODE · Unit Price · REMARK</strong> · 코드 기준으로 기존 제품은 갱신됩니다.</div>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">제품 DB 템플릿(.xlsx)을 그대로 올리면 자동 등록됩니다. 인식 컬럼: <strong>Category · Product Name · Size · Product Code · Color CODE · CBM · Unit Price · REMARK</strong> · 코드 기준으로 기존 제품은 갱신됩니다.</div>
         <div class="btn-row">
           <label class="btn btn-dark" style="font-size:11px;padding:5px 11px;cursor:pointer"><i class="ti ti-file-spreadsheet"></i> Excel 파일 선택 · Choose .xlsx<input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleProductExcel(this.files[0]);this.value=&#39;&#39;"></label>
         </div>
@@ -5275,9 +5285,15 @@ function upsertProductFromLine(l,cur){
   if(!code && !name) return;
   if(!state.products) state.products=[];
   var idx=state.products.findIndex(function(p){ if(code) return (p.code||'').toLowerCase()===code.toLowerCase(); return !(p.code||'') && (p.name||'').toLowerCase()===name.toLowerCase() && (p.colorCode||'').toLowerCase()===(l.colorCode||'').trim().toLowerCase(); });
-  var rec={ code:code, category:(l.category||'').trim(), name:name, size:(l.size||'').trim(), colorCode:(l.colorCode||'').trim(), cost:String(l.cost==null?'':l.cost).replace(/,/g,'').trim(), currency:cur||'VND', image:l.image||'' };
-  if(idx>=0){ var old=state.products[idx]; if(!rec.image) rec.image=old.image||''; if(!rec.cost) rec.cost=old.cost||''; state.products[idx]=Object.assign({}, old, rec); }
-  else state.products.push(rec);
+  var _cbm=String(l.cbm==null?'':l.cbm).replace(/,/g,'').trim();
+  if(!_cbm && typeof cbmFromSize==='function') _cbm=cbmFromSize(l.size)||'';
+  var rec={ code:code, category:(l.category||'').trim(), name:name, size:(l.size||'').trim(), colorCode:(l.colorCode||'').trim(), cbm:_cbm, cost:String(l.cost==null?'':l.cost).replace(/,/g,'').trim(), currency:cur||'VND', image:l.image||'' };
+  if(idx>=0){ var old=state.products[idx]; if(!rec.image) rec.image=old.image||''; if(!rec.cost) rec.cost=old.cost||''; if(!rec.cbm) rec.cbm=old.cbm||''; state.products[idx]=Object.assign({}, old, rec); }
+  else {
+    // 코드가 없는 신규 라인은 동일 사양 중복을 만들지 않도록 한 번 더 검사
+    if(!code && typeof findDupProduct==='function' && findDupProduct(rec)) return;
+    state.products.push(rec);
+  }
 }
 function _xlsxRowImages(buf){
   // .xlsx(zip) 내부 그림을 추출해 {엑셀행(0-based): dataURL} 매핑 반환
@@ -5326,7 +5342,7 @@ function handleProductExcel(file){
         if(hi<0){ showToast('템플릿 헤더를 찾을 수 없습니다 (Product Code / Product Name 행 필요)'); return; }
         var hdr=(rows[hi]||[]).map(function(x){return String(x).replace(/\s+/g,' ').trim().toLowerCase();});
         function col(){ var names=[].slice.call(arguments); for(var n=0;n<names.length;n++){ for(var j=0;j<hdr.length;j++){ if(hdr[j].indexOf(names[n])>=0) return j; } } return -1; }
-        var cCat=col('category'), cName=col('product name','name'), cSize=col('size'), cCode=col('product code','code'), cColor=col('color'), cPrice=col('unit price','price');
+        var cCat=col('category'), cName=col('product name','name'), cSize=col('size'), cCode=col('product code','code'), cColor=col('color'), cPrice=col('unit price','price'), cCbm=col('cbm','m3','m³');
         function nrm(v){ return String(v==null?'':v).replace(/\s+/g,' ').trim(); }
         var added=0,updated=0,withImg=0;
         for(var i=hi+1;i<rows.length;i++){
@@ -5336,7 +5352,7 @@ function handleProductExcel(file){
           var img=imgMap[i]||'';        // i = rows 인덱스 = 엑셀행(0-based)
           if(img) withImg++;
           var exists=code?getProduct(code):null;
-          upsertProductFromLine({ code:code, category:nrm(cCat>=0?r[cCat]:''), name:name, size:nrm(cSize>=0?r[cSize]:''), colorCode:nrm(cColor>=0?r[cColor]:''), cost:nrm(cPrice>=0?r[cPrice]:'').replace(/,/g,''), image:img }, 'VND');
+          upsertProductFromLine({ code:code, category:nrm(cCat>=0?r[cCat]:''), name:name, size:nrm(cSize>=0?r[cSize]:''), colorCode:nrm(cColor>=0?r[cColor]:''), cbm:nrm(cCbm>=0?r[cCbm]:'').replace(/,/g,''), cost:nrm(cPrice>=0?r[cPrice]:'').replace(/,/g,''), image:img }, 'VND');
           if(exists) updated++; else added++;
         }
         saveState(); if(typeof renderQuoteDb==='function') renderQuoteDb(); populateQuoteProductCodes();
@@ -5367,10 +5383,32 @@ function handleProductImage(file){
 }
 function setProductImageUrl(){ openImageUrlDialog('product'); }
 function resetProductForm(){
-  ['pCode','pCategory','pName','pSize','pColor','pCost'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  ['pCode','pCategory','pName','pSize','pColor','pCbm','pCost'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   var c=document.getElementById('pCurrency'); if(c) c.selectedIndex=0;
   productImageData=null; editingProductCode=null;
   var pv=document.getElementById('pImagePreview'); if(pv) pv.innerHTML='';
+}
+function autoCbmProduct(){
+  var sz=(document.getElementById('pSize')||{}).value||'';
+  var v=(typeof cbmFromSize==='function')?cbmFromSize(sz):'';
+  if(!v){ showToast('Size에 W×D×H 3개 값이 필요합니다 (예: 1200*600*720)'); return; }
+  var el=document.getElementById('pCbm'); if(el) el.value=v;
+  showToast('CBM 자동계산 · '+v+' m³/EA');
+}
+// 중복 판정: ① 코드 동일  ② 코드 없거나 다르더라도 품명+색상+사이즈가 모두 동일
+function _prodSig(p){ return [(p.name||''),(p.colorCode||''),(p.size||'')].map(function(x){ return String(x).replace(/\s+/g,'').toLowerCase(); }).join('|'); }
+function findDupProduct(rec, excludeCode){
+  var ex=(excludeCode||'').trim().toLowerCase();
+  var code=(rec.code||'').trim().toLowerCase();
+  var sig=_prodSig(rec);
+  var list=state.products||[];
+  for(var i=0;i<list.length;i++){
+    var p=list[i], pc=(p.code||'').trim().toLowerCase();
+    if(ex && pc===ex) continue;
+    if(code && pc===code) return {p:p, why:'code'};
+    if(sig!=='||' && _prodSig(p)===sig) return {p:p, why:'spec'};
+  }
+  return null;
 }
 function saveProduct(){
   var code=(document.getElementById('pCode').value||'').trim();
@@ -5380,21 +5418,56 @@ function saveProduct(){
     name:(document.getElementById('pName').value||'').trim(),
     size:(document.getElementById('pSize').value||'').trim(),
     colorCode:(document.getElementById('pColor').value||'').trim(),
+    cbm:(document.getElementById('pCbm')?(document.getElementById('pCbm').value||'').replace(/,/g,'').trim():''),
     cost:(document.getElementById('pCost').value||'').replace(/,/g,'').trim(),
     currency:(document.getElementById('pCurrency').value||'VND'),
     image: productImageData || (editingProductCode && getProduct(editingProductCode) ? getProduct(editingProductCode).image : '') || '' };
   if(!state.products) state.products=[];
+  // ── 중복 등록 방지 ──
+  var dup=findDupProduct(rec, editingProductCode);
+  if(dup){
+    if(dup.why==='code'){
+      showToast('이미 등록된 코드입니다 · Duplicate code: '+dup.p.code);
+      if(!confirm('코드 「'+dup.p.code+'」는 이미 등록돼 있습니다.\n기존 제품을 이 내용으로 덮어쓸까요?\n\nCode already exists — overwrite the existing product?')) return;
+      editingProductCode=dup.p.code;
+    } else {
+      if(!confirm('동일 사양(품명·색상·사이즈)의 제품이 이미 있습니다:\n\n· '+(dup.p.code||'(코드없음)')+' — '+(dup.p.name||'')+' / '+(dup.p.colorCode||'')+' / '+(dup.p.size||'')+'\n\n중복 등록을 방지합니다. 그래도 별개 제품으로 등록할까요?\nRegister anyway as a separate product?')) return;
+    }
+  }
   var key=(editingProductCode||code).toLowerCase();
   var idx=state.products.findIndex(function(p){ return (p.code||'').toLowerCase()===key; });
-  if(idx>=0) state.products[idx]=rec; else state.products.push(rec);
+  if(idx>=0) state.products[idx]=Object.assign({}, state.products[idx], rec); else state.products.push(rec);
   saveState(); resetProductForm(); renderQuoteDb(); populateQuoteProductCodes();
   showToast('제품 저장 완료 · Product saved');
+}
+// 기존 중복 일괄 정리 — 코드 우선, 정보가 많은 레코드를 남김
+function dedupeProducts(){
+  var list=(state.products||[]);
+  if(!list.length){ showToast('제품이 없습니다'); return; }
+  function score(p){ var n=0; ['code','name','category','size','colorCode','cbm','cost','image'].forEach(function(k){ if(p[k]) n++; }); return n; }
+  var byCode={}, bySig={}, keep=[], removed=0;
+  list.slice().sort(function(a,b){ return score(b)-score(a); }).forEach(function(p){
+    var c=(p.code||'').trim().toLowerCase(), sg=_prodSig(p);
+    var hit = (c && byCode[c]) || (sg!=='||' && bySig[sg]) || null;
+    if(hit){
+      ['category','name','size','colorCode','cbm','cost','image','currency'].forEach(function(k){ if(!hit[k] && p[k]) hit[k]=p[k]; });
+      removed++; return;
+    }
+    keep.push(p); if(c) byCode[c]=p; if(sg!=='||') bySig[sg]=p;
+  });
+  if(!removed){ showToast('중복 제품이 없습니다 · No duplicates'); return; }
+  if(!confirm('중복 제품 '+removed+'건을 통합합니다.\n비어 있는 항목은 중복본의 값으로 채워집니다.\n\nMerge '+removed+' duplicate product(s)?')) return;
+  keep.sort(function(a,b){ return String(a.code||'').localeCompare(String(b.code||'')); });
+  state.products=keep;
+  saveState(); renderQuoteDb(); populateQuoteProductCodes();
+  showToast('중복 '+removed+'건 통합 완료 · '+keep.length+'개 남음');
 }
 function editProduct(code){
   var p=getProduct(code); if(!p) return;
   document.getElementById('pCode').value=p.code||''; document.getElementById('pCategory').value=p.category||'';
   document.getElementById('pName').value=p.name||''; document.getElementById('pSize').value=p.size||'';
   document.getElementById('pColor').value=p.colorCode||''; document.getElementById('pCost').value=p.cost?fmtN(p.cost):'';
+  var _cb=document.getElementById('pCbm'); if(_cb) _cb.value=p.cbm||'';
   var c=document.getElementById('pCurrency'); if(c) c.value=p.currency||'VND';
   productImageData=p.image||null; editingProductCode=p.code;
   var pv=document.getElementById('pImagePreview'); if(pv) pv.innerHTML = p.image?'<img src="'+p.image+'" style="max-width:90px;max-height:90px;border:1px solid var(--border);border-radius:var(--radius)">':'';
@@ -5409,18 +5482,22 @@ function loadCsvFile(file){ if(!file) return; var r=new FileReader(); r.onload=f
 function importProductsCsv(){
   var txt=(document.getElementById('qCsv').value||'').trim(); if(!txt){ showToast('CSV 내용을 넣으세요'); return; }
   if(!state.products) state.products=[];
-  var lines=txt.split(/\r?\n/), n=0;
+  var lines=txt.split(/\r?\n/), n=0, dupSkip=0;
   lines.forEach(function(line,i){
     var c=line.split(',').map(function(x){ return x.trim(); });
     if(!c[0]) return;
     if(i===0 && c[0].toLowerCase()==='code') return; // header
-    var rec={ code:c[0], category:c[1]||'', name:c[2]||'', size:c[3]||'', colorCode:c[4]||'', cost:(c[5]||'').replace(/,/g,''), currency:c[6]||'VND', image:'' };
+    var rec={ code:c[0], category:c[1]||'', name:c[2]||'', size:c[3]||'', colorCode:c[4]||'', cost:(c[5]||'').replace(/,/g,''), currency:c[6]||'VND', cbm:(c[7]||'').replace(/,/g,''), image:'' };
+    if(!rec.cbm && typeof cbmFromSize==='function') rec.cbm=cbmFromSize(rec.size)||'';
     var idx=state.products.findIndex(function(p){ return (p.code||'').toLowerCase()===rec.code.toLowerCase(); });
-    var old=idx>=0?state.products[idx]:null; if(old) rec.image=old.image||'';
-    if(idx>=0) state.products[idx]=rec; else state.products.push(rec); n++;
+    var old=idx>=0?state.products[idx]:null;
+    if(old){ rec.image=old.image||''; if(!rec.cbm) rec.cbm=old.cbm||''; }
+    if(idx>=0) state.products[idx]=rec;
+    else { if(typeof findDupProduct==='function' && findDupProduct(rec)) { dupSkip++; return; } state.products.push(rec); }
+    n++;
   });
   saveState(); renderQuoteDb(); populateQuoteProductCodes(); document.getElementById('qCsv').value='';
-  showToast(n+'개 제품 등록/갱신 · Imported');
+  showToast(n+'개 제품 등록/갱신'+(dupSkip?(' · 중복 '+dupSkip+'건 건너뜀'):'')+' · Imported');
 }
 
 // ── Quote builder ──
@@ -5438,13 +5515,13 @@ function setQMode(i,val){ if(!quoteLines[i]) return; quoteLines[i].mode=val; ren
 function setQCode(i,val){
   if(!quoteLines[i]) return; quoteLines[i].code=val;
   var p=getProduct(val);
-  if(p){ quoteLines[i].category=p.category||''; quoteLines[i].name=p.name||''; quoteLines[i].size=p.size||''; quoteLines[i].colorCode=p.colorCode||''; quoteLines[i].cost=p.cost||''; if(p.image) quoteLines[i].image=p.image; }
+  if(p){ quoteLines[i].category=p.category||''; quoteLines[i].name=p.name||''; quoteLines[i].size=p.size||''; quoteLines[i].colorCode=p.colorCode||''; quoteLines[i].cost=p.cost||''; quoteLines[i].cbm=p.cbm||((typeof cbmFromSize==='function')?cbmFromSize(p.size):'')||''; if(p.image) quoteLines[i].image=p.image; }
   renderQuoteLines();
 }
 function setQName(i,val){
   if(!quoteLines[i]) return; quoteLines[i].name=val;
   var p=getProductByNameColor(val, quoteLines[i].colorCode);
-  if(p){ if(!quoteLines[i].code) quoteLines[i].code=p.code||''; if(!quoteLines[i].category) quoteLines[i].category=p.category||''; if(!quoteLines[i].size) quoteLines[i].size=p.size||''; if(!quoteLines[i].colorCode) quoteLines[i].colorCode=p.colorCode||''; if(!qNum(quoteLines[i].cost)&&p.cost) quoteLines[i].cost=p.cost; if(!quoteLines[i].image && p.image) quoteLines[i].image=p.image; renderQuoteLines(); }
+  if(p){ if(!quoteLines[i].code) quoteLines[i].code=p.code||''; if(!quoteLines[i].category) quoteLines[i].category=p.category||''; if(!quoteLines[i].size) quoteLines[i].size=p.size||''; if(!quoteLines[i].colorCode) quoteLines[i].colorCode=p.colorCode||''; if(!qNum(quoteLines[i].cost)&&p.cost) quoteLines[i].cost=p.cost; if(!qNum(quoteLines[i].cbm)&&p.cbm) quoteLines[i].cbm=p.cbm; if(!quoteLines[i].image && p.image) quoteLines[i].image=p.image; renderQuoteLines(); }
 }
 function setQColor(i,val){
   if(!quoteLines[i]) return; quoteLines[i].colorCode=val;
