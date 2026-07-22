@@ -344,22 +344,27 @@ function buildQuoteHtml(q){
   var vatAmt=qExempt?0:sub*qVatPct/100, total=sub+vatAmt;
   var showCbm=!!q.showCbm;
   var cbmTot=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.cbm)*qNum(l.qty); },0);
+  var TDB='border:1px solid #ccc;padding:5px 4px;vertical-align:middle';
+  function tdc(align, html, extra){
+    return '<td style="'+TDB+';text-align:'+align+(extra||'')+'">'+(html==null?'':html)+'</td>';
+  }
+  var NUM=';font-variant-numeric:tabular-nums;white-space:nowrap';
   var rows=(q.lines||[]).map(function(l,i){
     var img=l.image?window._img(l.image,'style="max-width:74px;max-height:60px;object-fit:contain;background:#fff"'):'';
     var lc=qNum(l.cbm)*qNum(l.qty);
     return '<tr>'
-      +'<td style="text-align:center">'+(i+1)+'</td>'
-      +'<td>'+(l.category||'')+'</td>'
-      +'<td>'+(l.name||'')+'</td>'
-      +'<td style="text-align:center">'+img+'</td>'
-      +'<td style="text-align:center">'+(l.size||'')+'</td>'
-      +'<td style="text-align:center">'+(l.code||'')+'</td>'
-      +'<td style="text-align:center">'+(l.colorCode||'')+'</td>'
-      +'<td style="text-align:right">'+fmtN(l.qty)+'</td>'
-      +(showCbm?('<td style="text-align:right">'+(lc?lc.toFixed(3):'')+'</td>'):'')
-      +'<td style="text-align:right">'+fmtN(l.unitPrice)+'</td>'
-      +'<td style="text-align:right">'+fmtN(l.amount)+'</td>'
-      +'<td>'+(l.remark||'')+'</td>'
+      +tdc('center', i+1)
+      +tdc('left',   l.category||'')
+      +tdc('left',   l.name||'')
+      +tdc('center', img)
+      +tdc('center', l.size||'')
+      +tdc('center', l.code||'')
+      +tdc('center', l.colorCode||'')                       // COLOR — 가운데
+      +tdc('center', fmtN(l.qty))                           // QTY   — 가운데
+      +(showCbm?tdc('right', (lc?lc.toFixed(3):''), NUM):'')
+      +tdc('right',  fmtN(l.unitPrice), NUM)                // 금액  — 오른쪽
+      +tdc('right',  fmtN(l.amount), NUM)                   // 금액  — 오른쪽
+      +tdc('left',   l.remark||'')
       +'</tr>';
   }).join('');
   var CS=showCbm?10:9;                                   // tfoot colspan (CBM 컬럼 유무)
@@ -367,7 +372,7 @@ function buildQuoteHtml(q){
   var notesHtml=(q.notes||'').split(/\n/).map(function(n){ return n.trim()?'<div>'+n+'</div>':''; }).join('');
   return '<div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a18;padding:22px 20px">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;border:1px solid #999;padding:10px 12px">'
-      +(QUOTE_LOGO_IMG?'<img src="'+QUOTE_LOGO_IMG+'" style="height:34px;object-fit:contain;display:block">':'<div style="display:flex;align-items:center;gap:9px">'+'<div style="width:6px;height:34px;background:#1d4ed8;border-radius:2px"></div>'+'<div><div style="font-size:22px;font-weight:800;letter-spacing:1.5px;color:#1a1a18;line-height:1">INICS</div>'+'<div style="font-size:7.5px;color:#666;letter-spacing:.5px;margin-top:3px">VINA · Authorized FURSYS Dealer</div></div>'+'</div>')
+      +(_qLogo()?'<img src="'+_qLogo()+'" style="height:34px;object-fit:contain;display:block">':'<div style="display:flex;align-items:center;gap:9px">'+'<div style="width:6px;height:34px;background:#1d4ed8;border-radius:2px"></div>'+'<div><div style="font-size:22px;font-weight:800;letter-spacing:1.5px;color:#1a1a18;line-height:1">INICS</div>'+'<div style="font-size:7.5px;color:#666;letter-spacing:.5px;margin-top:3px">VINA · Authorized FURSYS Dealer</div></div>'+'</div>')
       +'<div style="font-size:20px;font-weight:700;color:#6b7280;letter-spacing:2px;text-align:center;flex:1">QUOTATION</div>'
       +'<div style="font-size:9px;text-align:right;color:#444"><div><b>No</b> '+(q.quoteNo||'')+'</div><div><b>Date</b> '+(q.date||'')+'</div><div><b>'+(validText(q.validDays)||'')+'</b></div></div>'
     +'</div>'
@@ -379,10 +384,10 @@ function buildQuoteHtml(q){
         +(showCbm?('<th style="'+th+';width:42px">CBM<br>(m&sup3;)</th>'):'')
         +'<th style="'+th+'">Unit Price<br>(before VAT)</th><th style="'+th+'">Amount<br>(before VAT)</th><th style="'+th+'">REMARK</th>'
       +'</tr></thead>'
-      +'<tbody style="font-size:8.5px">'+rows.replace(/<td /g,'<td style="border:1px solid #ccc;padding:5px 4px;vertical-align:middle" ').replace(/<td>/g,'<td style="border:1px solid #ccc;padding:5px 4px;vertical-align:middle">')+'</tbody>'
+      +'<tbody style="font-size:8.5px">'+rows+'</tbody>'
       +'<tfoot>'
       +(showCbm&&cbmTot>0?('<tr><td colspan="'+CS+'" style="border:1px solid #ccc;padding:5px;text-align:right;font-weight:700">TOTAL CBM (m&sup3;)</td><td colspan="2" style="border:1px solid #ccc;padding:5px;text-align:right;font-weight:700">'+cbmTot.toFixed(3)+'</td></tr>'):'')
-      +'<tr><td colspan="'+CS+'" style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#f3f4f6">TOTAL (Excl. VAT)</td><td style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#f3f4f6">'+fmtN(sub)+'</td><td style="border:1px solid #bbb;background:#f3f4f6"></td></tr>'
+      +'<tr><td colspan="'+CS+'" style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#f3f4f6">TOTAL (Excl. VAT)</td><td style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#f3f4f6;white-space:nowrap">'+fmtN(sub)+'</td><td style="border:1px solid #bbb;background:#f3f4f6"></td></tr>'
       +(qExempt
          ? '<tr><td colspan="'+CS+'" style="border:1px solid #ccc;padding:5px;text-align:right">VAT</td><td colspan="2" style="border:1px solid #ccc;padding:5px;text-align:right">Exempt</td></tr>'
          : (qVatPct>0?'<tr><td colspan="'+CS+'" style="border:1px solid #ccc;padding:5px;text-align:right">VAT '+qVatPct+'%</td><td style="border:1px solid #ccc;padding:5px;text-align:right">'+fmtN(vatAmt)+'</td><td style="border:1px solid #ccc"></td></tr><tr><td colspan="'+CS+'" style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#eef2ff">TOTAL (Incl. VAT)</td><td style="border:1px solid #bbb;padding:6px;text-align:right;font-weight:800;background:#eef2ff">'+fmtN(total)+'</td><td style="border:1px solid #bbb;background:#eef2ff"></td></tr>':''))
@@ -440,11 +445,296 @@ function exportQuotePdf(){
   });
 }
 
-// ── 견적서 Excel 내보내기 (SheetJS) ──
-function exportQuoteExcel(q){
+// ── 견적서 Excel 내보내기 : PDF 서식 재현 + 이미지 삽입 (ExcelJS) ──
+function _qLogo(){
+  if(typeof companyLogo==='function') return companyLogo();
+  return (typeof QUOTE_LOGO_DEFAULT!=='undefined') ? QUOTE_LOGO_DEFAULT : '';
+}
+function _qLoadScript(src){
+  if(typeof _ercLoadScript==='function') return _ercLoadScript(src);
+  return new Promise(function(res,rej){ var e=document.createElement('script'); e.src=src; e.onload=res; e.onerror=function(){rej(new Error('load fail'));}; document.head.appendChild(e); });
+}
+async function _ensureExcelJs(){
+  if(typeof ExcelJS!=='undefined') return true;
+  try{ await _qLoadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'); }catch(e){ return false; }
+  return (typeof ExcelJS!=='undefined');
+}
+function _imgNatural(dataUrl){
+  return new Promise(function(res){
+    try{
+      var im=new Image();
+      im.onload=function(){ res({w:im.naturalWidth||im.width||4, h:im.naturalHeight||im.height||3}); };
+      im.onerror=function(){ res(null); };
+      im.src=dataUrl;
+    }catch(_){ res(null); }
+  });
+}
+// Excel 단위 → 픽셀 환산 (Calibri 11 기준: 열 폭 1 ≒ 7px, 행 높이 1pt = 4/3 px)
+var EMU=9525;                                       // 1px = 9525 EMU
+var QX_SCALE=1.5;                                   // 견적서 Excel 전체 배율 (열폭·행높이·글자)
+var QX_LOGO_FILL=0.70;                              // 로고를 자리 대비 몇 %로 넣을지 (1.0 = 꽉 참)
+function _sc(n){ return Math.round(n*QX_SCALE*100)/100; }
+function _colPx(w){ return Math.round((w||8)*7+5); }
+function _rowPx(pt){ return Math.round((pt||15)*4/3); }
+// 영역 왼쪽 끝에서 px 만큼 떨어진 지점을 (열 인덱스, 열 내부 EMU 오프셋) 으로 환산
+function _anchorX(widths, px){
+  var c=0;
+  while(c<widths.length-1){ var w=_colPx(widths[c]); if(px<w) break; px-=w; c++; }
+  return { col:c, off:Math.max(0, Math.round(px*EMU)) };
+}
+function _anchorY(heights, px){
+  var r=0;
+  while(r<heights.length-1){ var h=_rowPx(heights[r]); if(px<h) break; px-=h; r++; }
+  return { row:r, off:Math.max(0, Math.round(px*EMU)) };
+}
+function _dataUrlExt(d){
+  var m=String(d||'').match(/^data:image\/([a-z0-9+]+)/i);
+  var e=(m?m[1]:'jpeg').toLowerCase();
+  if(e==='jpg') e='jpeg';
+  return (e==='png'||e==='gif'||e==='jpeg')?e:'jpeg';
+}
+async function exportQuoteExcel(q){
+  q = q || collectQuote();
+  if(!q.lines || !q.lines.length){ showToast('품목을 추가하세요 · Add an item'); return; }
+  showToast('Excel 생성 중… · Building');
+  var haveLib = await _ensureExcelJs();
+  if(!haveLib){ showToast('서식 모듈 로드 실패 — 단순표로 저장합니다'); return exportQuoteExcelPlain(q); }
+  try{ await _buildQuoteXlsx(q); }
+  catch(e){ console.error('[quoteXlsx]', e); showToast('서식 Excel 실패 — 단순표로 저장: '+((e&&e.message)||'')); exportQuoteExcelPlain(q); }
+}
+async function _buildQuoteXlsx(q){
+  var cur=q.currency||'VND', showCbm=!!q.showCbm;
+  var sub=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.amount); },0);
+  var qExempt=(q.vat==='exempt'), vatPct=qExempt?0:qNum(q.vat);
+  var vatAmt=qExempt?0:sub*vatPct/100, total=sub+vatAmt;
+  var cbmTot=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.cbm)*qNum(l.qty); },0);
+
+  // 이미지 포인터(§f§) → dataURL 복원 + 원본 비율 확보
+  if(typeof _quoteResolveImgs==='function'){ try{ await _quoteResolveImgs(q); }catch(_){ } }
+  var imgs=[];
+  for(var ii=0; ii<q.lines.length; ii++){
+    var v=q.lines[ii].image, data=v;
+    if(typeof v==='string' && v.indexOf('\u00A7f\u00A7')===0 && window._resolveRef){
+      try{ data=await window._resolveRef(v); }catch(_){ data=null; }
+    }
+    if(typeof data==='string' && data.slice(0,5)==='data:'){
+      imgs[ii]={ data:data, nat:(await _imgNatural(data)) };
+    }
+  }
+
+  // 컬럼 정의 — PDF 와 동일한 순서/정렬
+  var COLS=[
+    {h:'No',            w:5,  a:'center'},
+    {h:'Category',      w:20, a:'left', ind:1},
+    {h:'Product Name',  w:28, a:'left', ind:1},
+    {h:'Image',         w:15, a:'center'},
+    {h:'Size (WxDxH)',  w:18, a:'center'},
+    {h:'Product Code',  w:16, a:'center'},
+    {h:'Color CODE',    w:13, a:'center'},
+    {h:'Qty',           w:7,  a:'center'}
+  ];
+  if(showCbm) COLS.push({h:'CBM (m³)', w:10, a:'right', z:'0.000'});
+  COLS.push({h:'Unit Price\n(before VAT)', w:16, a:'right', z:'#,##0'});
+  COLS.push({h:'Amount\n(before VAT)',    w:18, a:'right', z:'#,##0'});
+  COLS.push({h:'REMARK', w:22, a:'left'});
+  var NC=COLS.length;
+  function L(n){ var sN='', x=n; while(x>0){ var m=(x-1)%26; sN=String.fromCharCode(65+m)+sN; x=Math.floor((x-1)/26); } return sN; }
+
+  var wb=new ExcelJS.Workbook();
+  wb.creator='INICS VINA'; wb.created=new Date();
+  var ws=wb.addWorksheet('Quotation', {
+    views:[{showGridLines:false, state:'frozen', ySplit:5}],
+    pageSetup:{paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2}}
+  });
+  COLS.forEach(function(c){ c.w=_sc(c.w); });          // 1.5배 확대
+  ws.columns=COLS.map(function(c){ return {width:c.w}; });
+
+  var THIN={style:'thin', color:{argb:'FFBBBBBB'}};
+  var BOX ={top:{style:'thin',color:{argb:'FF999999'}},left:{style:'thin',color:{argb:'FF999999'}},bottom:{style:'thin',color:{argb:'FF999999'}},right:{style:'thin',color:{argb:'FF999999'}}};
+  function box(range, fn){
+    ws.mergeCells(range);
+    var c=ws.getCell(range.split(':')[0]);
+    c.border=BOX; if(fn) fn(c); return c;
+  }
+  // ── 헤더 (PDF 상단 박스 재현) ──
+  var midStart=4, midEnd=Math.max(5, NC-3);          // 4열(=D)부터 QUOTATION 제목 영역
+  // ── 로고 자리 (A1:C2) — 관리자 패널에서 등록한 로고를 정중앙에 꽉 채워 넣는다 ──
+  // ── 로고 자리 (A1:C2) — 관리자 패널 로고를 정중앙에 배치 ──
+  var LOGO_COLS=3;                                     // A~C 를 로고 자리로 확보 (로고 없어도 비워 둠)
+  var PADL=4;                                          // 테두리에 닿지 않을 최소 여백(px)
+  var HCAP=_sc(26), HMIN=_sc(15);                      // 로고 행 1행 높이 상·하한(pt)
+  var logoData=_qLogo();
+  var logoOK=(typeof logoData==='string' && logoData.slice(0,5)==='data:');
+  var lwArr=COLS.slice(0,LOGO_COLS).map(function(c){ return c.w; });
+  var areaW=lwArr.reduce(function(a,w){ return a+_colPx(w); },0);
+  var lnat=logoOK ? ((await _imgNatural(logoData)) || {w:4,h:1}) : null;
+
+  var H12=_sc(20), lw=0, lh=0;
+  if(lnat && lnat.h>0){
+    // 1) 상한 영역 안에서 비율 유지 최대 크기 → 2) QX_LOGO_FILL 만큼만 사용
+    var capH=_rowPx(HCAP)*2;
+    var fit=Math.min((areaW-PADL*2)/lnat.w, (capH-PADL*2)/lnat.h);
+    lw=Math.max(20, Math.round(lnat.w*fit*QX_LOGO_FILL));
+    lh=Math.max(10, Math.round(lnat.h*fit*QX_LOGO_FILL));
+    // 3) 로고 크기에 맞춰 자리 높이를 좁혀 빈 띠가 남지 않게
+    H12=Math.min(HCAP, Math.max(HMIN, Math.round(((lh+PADL*2)/2)*3/4*10)/10));
+  }
+  box('A1:'+L(LOGO_COLS)+'2', function(c){
+    c.value='';                                        // 로고 자리는 항상 비워 둔다
+    c.alignment={vertical:'middle', horizontal:'center'};
+  });
+  ws.getRow(1).height=H12; ws.getRow(2).height=H12;
+  if(logoOK){
+    var areaH=_rowPx(H12)*2;
+    if(lh > areaH-PADL*2){                             // 반올림으로 넘칠 때 보정
+      var k=(areaH-PADL*2)/lh; lh=Math.round(lh*k); lw=Math.round(lw*k);
+    }
+    var ax=_anchorX(lwArr, (areaW-lw)/2);
+    var ay=_anchorY([H12,H12], (areaH-lh)/2);
+    try{
+      var lid=wb.addImage({ base64:logoData, extension:_dataUrlExt(logoData) });
+      ws.addImage(lid, {
+        tl:{ nativeCol:ax.col, nativeColOff:ax.off, nativeRow:ay.row, nativeRowOff:ay.off },
+        ext:{ width:lw, height:lh }, editAs:'oneCell' });
+    }catch(e){ console.warn('[logo]', e && e.message); }
+  }
+  box(L(midStart)+'1:'+L(midEnd)+'2', function(c){
+    c.value='QUOTATION';
+    c.font={bold:true, size:_sc(20), color:{argb:'FF6B7280'}};
+    c.alignment={vertical:'middle', horizontal:'center'};
+  });
+  box(L(midEnd+1)+'1:'+L(NC)+'1', function(c){
+    c.value='No  '+(q.quoteNo||'')+'      Date  '+(q.date||'');
+    c.font={size:_sc(9)}; c.alignment={vertical:'middle', horizontal:'right'};
+  });
+  box(L(midEnd+1)+'2:'+L(NC)+'2', function(c){
+    c.value=(typeof validText==='function'? (validText(q.validDays)||'') : ('Valid '+(q.validDays||'')+' days'));
+    c.font={size:_sc(9)}; c.alignment={vertical:'middle', horizontal:'right'};
+  });
+  box('A3:'+L(NC)+'3', function(c){
+    c.value='Client:  '+(q.client||'');
+    c.font={bold:true, size:_sc(11)}; c.alignment={vertical:'middle', horizontal:'left', indent:1};
+  });
+  ws.getRow(3).height=_sc(18);
+  ws.getRow(4).height=_sc(6);
+
+  // ── 표 헤더 ──
+  var HR=5;
+  var hr=ws.getRow(HR); hr.height=_sc(28);
+  COLS.forEach(function(c,i){
+    var cell=hr.getCell(i+1);
+    cell.value=c.h;
+    cell.font={bold:true, size:_sc(9), color:{argb:'FF333333'}};
+    cell.alignment={vertical:'middle', horizontal:'center', wrapText:true};
+    cell.fill={type:'pattern', pattern:'solid', fgColor:{argb:'FFF3F4F6'}};
+    cell.border={top:THIN,left:THIN,bottom:THIN,right:THIN};
+  });
+
+  // ── 품목 행 ──
+  var IMGCOL=4;
+  var r=HR;
+  (q.lines||[]).forEach(function(l,i){
+    r++;
+    var row=ws.getRow(r);
+    var hasImg=!!(imgs[i] && imgs[i].data);
+    row.height=hasImg?_sc(52):_sc(20);
+    var lc=qNum(l.cbm)*qNum(l.qty);
+    var vals=[ i+1, l.category||'', l.name||'', null, l.size||'', l.code||'', l.colorCode||'', qNum(l.qty) ];
+    if(showCbm) vals.push(lc||null);
+    vals.push(qNum(l.unitPrice)); vals.push(qNum(l.amount)); vals.push(l.remark||'');
+    COLS.forEach(function(c,ci){
+      var cell=row.getCell(ci+1);
+      if(vals[ci]!==null && vals[ci]!==undefined && vals[ci]!=='') cell.value=vals[ci];
+      cell.font={size:_sc(9)};
+      cell.alignment={vertical:'middle', horizontal:c.a, wrapText:(c.a==='left'), indent:(c.ind||0)};
+      if(c.z) cell.numFmt=c.z;
+      cell.border={top:THIN,left:THIN,bottom:THIN,right:THIN};
+    });
+    // 이미지 삽입 — 셀 실제 폭·높이 기준으로 가로·세로 정중앙
+    if(hasImg){
+      var cellW=_colPx(COLS[IMGCOL-1].w), cellH=_rowPx(row.height), PAD=5;
+      var nat=imgs[i].nat || {w:4,h:3};
+      var sc=Math.min((cellW-PAD*2)/nat.w, (cellH-PAD*2)/nat.h);
+      var iw=Math.max(10, Math.round(nat.w*sc)), ih=Math.max(8, Math.round(nat.h*sc));
+      var id=wb.addImage({ base64:imgs[i].data, extension:_dataUrlExt(imgs[i].data) });
+      ws.addImage(id, {
+        tl:{ nativeCol:(IMGCOL-1), nativeColOff:Math.round(((cellW-iw)/2)*EMU),
+             nativeRow:(r-1),      nativeRowOff:Math.round(((cellH-ih)/2)*EMU) },
+        ext:{ width:iw, height:ih },
+        editAs:'oneCell'
+      });
+    }
+  });
+
+  // ── 합계 ──
+  function totRow(label, val, opt){
+    r++;
+    opt=opt||{};
+    var row=ws.getRow(r); row.height=_sc(18);
+    ws.mergeCells('A'+r+':'+L(NC-2)+r);
+    var lc=ws.getCell('A'+r);
+    lc.value=label;
+    lc.font={bold:!!opt.bold, size:_sc(9.5)};
+    lc.alignment={vertical:'middle', horizontal:'right'};
+    var vc=ws.getCell(L(NC-1)+r);
+    vc.value=val;
+    vc.font={bold:!!opt.bold, size:_sc(9.5)};
+    vc.alignment={vertical:'middle', horizontal:'right'};
+    if(typeof val==='number') vc.numFmt=opt.z||'#,##0';
+    var rc=ws.getCell(L(NC)+r); rc.value='';
+    [lc,vc,rc].forEach(function(c){
+      c.border={top:THIN,left:THIN,bottom:THIN,right:THIN};
+      if(opt.fill) c.fill={type:'pattern', pattern:'solid', fgColor:{argb:opt.fill}};
+    });
+    return r;
+  }
+  if(showCbm && cbmTot>0) totRow('TOTAL CBM (m³)', Number(cbmTot.toFixed(3)), {z:'0.000', bold:true});
+  totRow('TOTAL (Excl. VAT)', sub, {bold:true, fill:'FFF3F4F6'});
+  if(qExempt) totRow('VAT', 'Exempt');
+  else if(vatPct>0){
+    totRow('VAT '+vatPct+'%', vatAmt);
+    totRow('TOTAL (Incl. VAT)', total, {bold:true, fill:'FFEEF2FF'});
+  }
+
+  // ── 안내문 / 푸터 ──
+  r++;
+  (q.notes||'').split(/\n/).forEach(function(n){
+    if(!n.trim()) return;
+    r++;
+    ws.mergeCells('A'+r+':'+L(NC)+r);
+    var c=ws.getCell('A'+r);
+    c.value=n.trim(); c.font={size:_sc(8.5), color:{argb:'FF555555'}};
+    c.alignment={vertical:'middle', horizontal:'left', indent:1};
+    ws.getRow(r).height=_sc(14);
+  });
+  r+=1;
+  ws.mergeCells('A'+r+':'+L(NC)+r);
+  var fc=ws.getCell('A'+r);
+  fc.value='Currency: '+cur+(q.preparedBy?('   ·   Prepared by '+q.preparedBy):'');
+  fc.font={size:_sc(8), color:{argb:'FF999999'}};
+  fc.alignment={vertical:'middle', horizontal:'right'};
+
+  ws.autoFilter={ from:{row:HR, column:1}, to:{row:HR+(q.lines||[]).length, column:NC} };
+
+  var buf=await wb.xlsx.writeBuffer();
+  var fn=(q.quoteNo||'quotation')+(q.client?('_'+String(q.client).replace(/[^a-zA-Z0-9]/g,'')):'')+'.xlsx';
+  _downloadBlob(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fn);
+  var nImg=imgs.filter(function(x){ return x&&x.data; }).length;
+  showToast('Excel 저장 완료 · '+fn+(nImg?(' · 이미지 '+nImg+'개'):' · 이미지 없음'));
+  return {fileName:fn, images:nImg, logo:!!logoOK, scale:QX_SCALE, logoFill:QX_LOGO_FILL, logoBox:{w:lw,h:lh,areaW:areaW,rowPt:H12}, buffer:buf};
+}
+function _downloadBlob(blob, fn){
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=fn;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ try{ document.body.removeChild(a); URL.revokeObjectURL(url); }catch(_){ } }, 400);
+}
+// ── 폴백: 서식 없는 단순표 (SheetJS) ──
+function exportQuoteExcelPlain(q){
   if(typeof XLSX==='undefined'){ showToast('Excel 모듈 로드 실패(네트워크 확인)'); return; }
   q = q || collectQuote();
   if(!q.lines || !q.lines.length){ showToast('품목을 추가하세요 · Add an item'); return; }
+  // 서식/이미지 없이 값만 저장하는 백업 경로
   var cur=q.currency||'VND';
   var showCbm=!!q.showCbm;
   var sub=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.amount); },0);

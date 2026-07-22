@@ -22,11 +22,12 @@
   function FILEURL(h){ return BASE + FILES + "/" + encodeURIComponent(h) + ".json"; }
 
   var COLLECTIONS = ["docs","vendors","vendorRequests","cardExpenses","cardMerchants",
-                     "products","quotes","projects","bankTxns","invoices","paymentRequests","tasks"];
+                     "products","quotes","projects","bankTxns","invoices","paymentRequests","tasks",
+                     "assets"];
   var _isColl = {}; COLLECTIONS.forEach(function(c){ _isColl[c]=1; });
   // 외부화 대상: 무거운 첨부를 가진 컬렉션만 (나머지 작은 것은 인라인 유지)
-  var EXT = { docs:1, products:1, vendors:1, cardExpenses:1 };
-  var FILES_V = 2;                  // 외부화 스키마 버전 (필드 추가 시 +1 → 백그라운드 재마이그레이션)
+  var EXT = { docs:1, products:1, vendors:1, cardExpenses:1, assets:1 };
+  var FILES_V = 3;                  // 외부화 스키마 버전 (필드 추가 시 +1 → 백그라운드 재마이그레이션)
   var REF = "\u00A7f\u00A7";        // 포인터 접두사 (§f§)
   var PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="; // 1px 투명
 
@@ -68,6 +69,8 @@
       if(_isDataUrl(it.bankQR)) it.bankQR=ext(it.bankQR);
     } else if(coll==="cardExpenses"){
       if(_isDataUrl(it.receipt)) it.receipt=ext(it.receipt);
+    } else if(coll==="assets"){
+      if(_isDataUrl(it.data)) it.data=ext(it.data);
     }
     return it;
   }
