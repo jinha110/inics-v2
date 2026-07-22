@@ -253,19 +253,48 @@
     var holdN = projects.filter(function (p) { return p.stage === "hold"; }).length, lostN = projects.filter(function (p) { return p.stage === "lost"; }).length;
     h += '<div style="font-size:11px;color:var(--text-3);margin-bottom:16px">보류 · On-hold ' + holdN + '건 · 드롭 · Lost ' + lostN + '건 (합계 제외)</div>';
 
-    // (3) 단계 변경 상세 — 보고월 기준 수주협의/수주확정/PO완료 (이전 변경은 기타)
+    // (3) 단계 변경 상세 — 보고월 내 stageHistory 이벤트 전체 (전 단계 · 신규등록 포함)
     var _rMon = _dOnly(wr.mon), _rmStart = new Date(_rMon.getFullYear(), _rMon.getMonth(), 1), _rmEnd = new Date(_rMon.getFullYear(), _rMon.getMonth() + 1, 0), _rmLbl = (_rMon.getMonth() + 1) + "월";
-    function _enteredStageDate(p, stg) { var hist = p.stageHistory || []; var dts = hist.filter(function (x) { return x && x.stage === stg; }).map(function (x) { return _parseAt(x.at); }).filter(Boolean); return dts.length ? new Date(Math.max.apply(null, dts.map(function (d) { return d.getTime(); }))) : null; }
-    var _detStages = [["nego", "수주협의 · Nego", "#7c3aed"], ["won", "수주확정 · Won", "#1d4ed8"], ["po", "PO완료 · PO", "#b45309"]];
-    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 6px">단계 변경 상세 · Stage Changes <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + _rmLbl + ' 변경분 · 이전은 기타)</span></div>';
+    var _EXTRA = [["delivered", "납품완료 · Delivered", "#15803d"], ["hold", "보류 · Hold", "#6b7280"], ["lost", "드롭 · Lost", "#b91c1c"]];
+    var _detStages = PSTAGES.concat(_EXTRA);
+    // 프로젝트당 1건 — 보고기간 내 마지막 이동만 표기 (중간 경유 단계는 표시 안 함)
+    var _evtByStage = {};
+    _detStages.forEach(function (st) { _evtByStage[st[0]] = []; });
+    projects.forEach(function (p) {
+      var hist = (p.stageHistory || []).filter(function (x) { return x && x.stage; });
+      var last = null, nMoves = 0;
+      hist.forEach(function (x) {
+        var d = _parseAt(x.at); if (!d || !_inRange(d, _rmStart, _rmEnd)) return;
+        if (!_evtByStage[x.stage]) return;
+        nMoves++;
+        if (last && last.d > d) return;
+        last = { p: p, d: d, stage: x.stage, first: !!x.first };
+      });
+      // stageHistory 자체가 없는 레거시·임포트 건은 등록일 기준으로 현 단계 1건 보정
+      if (!hist.length && _evtByStage[p.stage]) {
+        var rd = _parseAt(p.regDate) || _parseAt(p.createdAt);
+        if (rd && _inRange(rd, _rmStart, _rmEnd)) { last = { p: p, d: rd, stage: p.stage, first: true, legacy: true }; nMoves = 1; }
+      }
+      if (last) { last.moves = nMoves; _evtByStage[last.stage].push(last); }
+    });
+    var _evtTot = _detStages.reduce(function (n, st) { return n + _evtByStage[st[0]].length; }, 0);
+    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 6px">단계 변경 상세 · Stage Changes <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + _rmLbl + ' 변경 ' + _evtTot + '건 · 프로젝트당 최종 이동 1건 · 신규등록 포함)</span></div>';
     _detStages.forEach(function (st) {
+      var evs = _evtByStage[st[0]].slice().sort(function (a, b) { return b.d - a.d; });
       var inStage = projects.filter(function (p) { return p.stage === st[0]; });
-      var changed = inStage.filter(function (p) { return _inRange(_enteredStageDate(p, st[0]), _rmStart, _rmEnd); }).sort(function (a, b) { return _enteredStageDate(b, st[0]) - _enteredStageDate(a, st[0]); });
-      var etcN = inStage.length - changed.length;
-      h += '<div style="font-size:12px;font-weight:700;margin:8px 0 4px;color:' + st[2] + '">' + st[1] + ' <span style="font-weight:400;color:var(--text-3)">(' + _rmLbl + ' 변경 ' + changed.length + '건' + (etcN > 0 ? (' · 기타 ' + etcN + '건') : '') + ')</span></div>';
-      if (changed.length) {
-        var _rws = changed.map(function (p) { var d = _enteredStageDate(p, st[0]); return '<tr><td style="padding:5px 10px">' + E(p.client || "—") + '</td><td style="padding:5px 10px;color:var(--text-2)">' + E(p.type || p.note || "—") + '</td><td style="padding:5px 10px;color:var(--text-3)">' + E(p.region || "") + '</td><td style="text-align:right;padding:5px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td><td style="text-align:right;padding:5px 10px;color:var(--text-2)">' + (d ? _iso(d) : "") + '</td></tr>'; }).join("");
-        h += '<div style="overflow-x:auto;margin-bottom:4px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">프로젝트 · Type</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">지역</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">변경일 · Date</th></tr></thead><tbody>' + _rws + '</tbody></table></div>';
+      var chIds = {}; evs.forEach(function (x) { chIds[x.p.id] = 1; });
+      var etcN = inStage.filter(function (p) { return !chIds[p.id]; }).length;
+      if (!evs.length && !inStage.length) return;
+      h += '<div style="font-size:12px;font-weight:700;margin:8px 0 4px;color:' + st[2] + '">' + st[1] + ' <span style="font-weight:400;color:var(--text-3)">(' + _rmLbl + ' 변경 ' + evs.length + '건' + (etcN > 0 ? (' · 기타 ' + etcN + '건') : '') + ')</span></div>';
+      if (evs.length) {
+        var _rws = evs.map(function (x) {
+          var p = x.p, cur = (p.stage === st[0]);
+          var kind = x.first ? '<span style="color:#0891b2">신규등록</span>' : '<span style="color:var(--text-2)">단계이동</span>';
+          if (x.moves > 1) kind += ' <span style="font-size:9px;color:var(--text-3)">(' + x.moves + '회 중 최종)</span>';
+          if (!cur) kind += ' <span style="font-size:9px;color:var(--text-3)">→ ' + E((PSTAGES.concat(_EXTRA).filter(function (s3) { return s3[0] === p.stage; })[0] || ["", p.stage])[1]) + '</span>';
+          return '<tr><td style="padding:5px 10px">' + E(p.client || "—") + '</td><td style="padding:5px 10px;color:var(--text-2)">' + E(p.type || p.note || "—") + '</td><td style="padding:5px 10px;color:var(--text-3)">' + E(p.region || "") + '</td><td style="text-align:right;padding:5px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td><td style="padding:5px 10px;font-size:10px">' + kind + '</td><td style="text-align:right;padding:5px 10px;color:var(--text-2)">' + _iso(x.d) + '</td></tr>';
+        }).join("");
+        h += '<div style="overflow-x:auto;margin-bottom:4px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">프로젝트 · Type</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">지역</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">구분</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">변경일 · Date</th></tr></thead><tbody>' + _rws + '</tbody></table></div>';
       } else { h += '<div style="font-size:11px;color:var(--text-3);padding:2px 0 4px">' + _rmLbl + ' 변경 건 없음' + (etcN > 0 ? (' · 기타 ' + etcN + '건(이전 변경)') : '') + '</div>'; }
     });
 
