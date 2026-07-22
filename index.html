@@ -1281,24 +1281,25 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div id="quoteBuildView">
       <div class="form-card" style="margin-bottom:14px">
         <div class="form-card-title"><i class="ti ti-file-invoice"></i> Quotation Info · 견적 정보</div>
-        <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-          <div class="fg"><label>견적번호 · Quote No</label><input type="text" id="qNo" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>Client · 고객사 <span style="color:var(--text-3);font-weight:400">거래처DB</span></label><input type="text" id="qClient" list="quoteClients" placeholder="고객사 검색/추가 · Search/Add client" autocomplete="off"></div>
+        <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;align-items:end">
+          <div class="fg"><label>견적번호 · No</label><input type="text" id="qNo" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
+          <div class="fg"><label>Client · 고객사 <span style="color:var(--text-3);font-weight:400">거래처DB</span></label><input type="text" id="qClient" list="quoteClients" placeholder="고객사 검색/추가 · Search/Add client" autocomplete="off" oninput="if(typeof populateQuoteProjects==='function')populateQuoteProjects()"></div>
+          <div class="fg"><label>Project · 프로젝트 <span style="color:var(--text-3);font-weight:400">고객사별 건 구분</span></label><select id="qProject"></select></div>
           <div class="fg"><label>Date · 일자</label><input type="date" id="qDate"></div>
-          <div class="fg"><label>Valid · 유효기간(일)</label><input type="number" id="qValid" min="0" placeholder="15" style="width:100%"></div>
+          <div class="fg"><label>Valid · 유효(일)</label><input type="number" id="qValid" min="0" placeholder="15" style="width:100%"></div>
           <div class="fg"><label>Currency · 통화</label><select id="qCurrency" onchange="recalcQuote()"><option>VND</option><option>USD</option><option>KRW</option><option>MXN</option></select></div>
           <div class="fg"><label>VAT</label><select id="qVat" onchange="recalcQuote()"><option value="8">VAT 8%</option><option value="10">VAT 10%</option><option value="0">VAT 0%</option><option value="exempt">Exempt · 면세</option></select></div>
-          <div class="fg"><label>CBM 표시 · Show CBM</label>
-            <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:7px 0">
-              <input type="checkbox" id="qShowCbm" onchange="recalcQuote()" style="width:17px;height:17px;cursor:pointer">
-              <span>견적서(PDF·Excel)에 CBM 포함</span>
+          <div class="fg"><label>CBM 표시</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:7px 0;white-space:nowrap">
+              <input type="checkbox" id="qShowCbm" onchange="recalcQuote()" style="width:16px;height:16px;cursor:pointer">
+              <span>PDF·Excel 포함</span>
             </label>
           </div>
         </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:13px;font-weight:600">품목 · Line items <span style="font-size:11px;color:var(--text-3);font-weight:400">한 줄 입력 · 가로 스크롤</span></div>
+        <div style="font-size:13px;font-weight:600">품목 · Line items <span style="font-size:11px;color:var(--text-3);font-weight:400">순서 변경: <i class="ti ti-grip-vertical"></i> 드래그 또는 ▲▼</span></div>
         <button class="btn btn-dark" style="font-size:12px;padding:6px 12px" onclick="addQuoteLine()"><i class="ti ti-plus"></i> 품목 추가 · Add line</button>
       </div>
       <datalist id="quoteProductCodes"></datalist>
@@ -2326,6 +2327,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
             <div class="admin-card-body">
               <input type="text" id="adminVendorSearch" placeholder="거래처 검색 · Search vendor (이름·MST·종류)" oninput="renderAdminVendors()" style="width:100%;box-sizing:border-box;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none;margin-bottom:9px">
               <div id="adminVendorList"></div>
+              <div id="adminVendorHidden"></div>
             </div>
           </div>
           <!-- Module Access -->
@@ -3483,6 +3485,19 @@ function rejectVendorReq(id){
   showToast('반려 처리 · Rejected');
 }
 
+function _renderHiddenVendors(){
+  var box=document.getElementById('adminVendorHidden'); if(!box) return;
+  var h=state.vendorHidden||{};
+  var ks=Object.keys(h);
+  if(!ks.length){ box.innerHTML=''; return; }
+  box.innerHTML='<div style="margin-top:10px;padding-top:9px;border-top:1px dashed var(--border)">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text-3);margin-bottom:5px">삭제(숨김)된 거래처 · Deleted ('+ks.length+') — 복원 가능</div>'
+    +ks.sort().map(function(k){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0">'
+        +'<span style="font-size:12px;color:var(--text-3);text-decoration:line-through">'+String(k).replace(/</g,'&lt;')+'</span>'
+        +'<button class="btn btn-outline" style="font-size:10px;padding:2px 8px" onclick="restoreVendor(\''+k.replace(/'/g,"\\'")+'\')"><i class="ti ti-arrow-back-up"></i> 복원</button></div>';
+    }).join('')+'</div>';
+}
 var _admVendOpen={};
 function toggleAdminVendor(i){
   _admVendOpen[i]=!_admVendOpen[i];
@@ -3494,6 +3509,7 @@ function renderAdminVendors(){
   var q = ((document.getElementById('adminVendorSearch')||{}).value||'').toLowerCase().trim();
   var all = getAllVendors();
   var list = Object.keys(all).map(function(k){ return all[k]; }).sort(function(a,b){ return a.name.localeCompare(b.name); });
+  _renderHiddenVendors();
   if(q) list = list.filter(function(v){
     return String(v.name||'').toLowerCase().indexOf(q)>=0
         || String(v.reg||'').toLowerCase().indexOf(q)>=0
@@ -3505,7 +3521,7 @@ function renderAdminVendors(){
   if(!list.length){ el.innerHTML = '<p style="font-size:12px;color:var(--text-3)">'+(q?'검색 결과 없음 · No match':'No vendors · 거래처 없음')+'</p>'; return; }
   el.innerHTML = list.map(function(v,i){
     var tag = v.source==='master' ? '<span class="badge b-done" style="font-size:9px">Master</span>' : '<span class="badge b-draft" style="font-size:9px">Doc</span>';
-    var del = (v.source==='master' && _isAdminUser()) ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();deleteVendor(\''+v.name.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button>' : '';
+    var del = _isAdminUser() ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();deleteVendor(\''+v.name.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button>' : '';
     var open = !!_admVendOpen[i];
     return '<div style="border-bottom:1px solid var(--border);padding:7px 0">'
       +'<div onclick="toggleAdminVendor('+i+')" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer">'
@@ -3519,11 +3535,22 @@ function renderAdminVendors(){
   }).join('');
 }
 
+// 거래처 숨김(삭제) 목록 — 업무·견적·프로젝트 등에서 자동 재생성되는 것을 막는다
+function _vhKey(n){ return String(n||'').trim().toLowerCase(); }
+function vendorIsHidden(n){ var k=_vhKey(n); return !!(k && state.vendorHidden && state.vendorHidden[k]); }
+function vendorUnhide(n){ var k=_vhKey(n); if(k && state.vendorHidden) delete state.vendorHidden[k]; }
+function restoreVendor(name){
+  vendorUnhide(name); saveState(); renderAdmin();
+  if(typeof renderVendorDB==='function') renderVendorDB();
+  showToast('복원 완료 · Restored: '+name);
+}
 function deleteVendor(name){
   if(!_isAdminUser()){ showToast('관리자만 삭제할 수 있습니다 · Admin only'); return; }
-  if(!confirm('거래처 마스터에서 삭제할까요?\nDelete from vendor master? ('+name+')')) return;
+  if(!confirm('거래처를 삭제(숨김)할까요?\n업무·견적·프로젝트에서 자동 재생성되는 것도 함께 차단됩니다.\nDelete & suppress vendor? ('+name+')')) return;
   var key = name.trim().toLowerCase();
   state.vendors = (state.vendors||[]).filter(function(v){ return v.name.trim().toLowerCase()!==key; });
+  if(!state.vendorHidden) state.vendorHidden={};
+  state.vendorHidden[key]=nowStr();
   saveState(); renderAdmin();
   if(typeof renderVendorDB==='function') renderVendorDB();
   showToast('삭제 완료 · Deleted');
@@ -4082,6 +4109,9 @@ function buildVendorMap(){
     });
   });
 
+  // 삭제(숨김)된 거래처는 자동 재생성 대상에서 제외
+  Object.keys(vendors).forEach(function(k){ if(vendorIsHidden(k)) delete vendors[k]; });
+
   // 거래 기간(최초·최종 거래일) 산출
   Object.keys(vendors).forEach(function(k){ var v=vendors[k]; var ds=[];
     (v.docs||[]).forEach(function(d){ if(d.date) ds.push(String(d.date).slice(0,10)); });
@@ -4369,6 +4399,7 @@ function buildVendorIndex() {
       bankForeignAddr: e.bankForeignAddr || '', source:'doc'
     };
   });
+  Object.keys(idx).forEach(function(k){ if(vendorIsHidden(k)) delete idx[k]; });
   return idx;
 }
 
@@ -4377,6 +4408,7 @@ function getAllVendors() {
   var idx = buildVendorIndex();
   (state.vendors || []).forEach(function(v){
     if(!v || !v.name) return;
+    if(vendorIsHidden(v.name)) return;
     idx[v.name.trim().toLowerCase()] = Object.assign({}, v, {source:'master'});
   });
   return idx;
@@ -6269,7 +6301,7 @@ function _invProjectOptions(sel){
   sel=String(sel==null?"":sel);
   var opts='<option value="">— 프로젝트 미연결 · None</option>';
   var ps=(state.projects||[]).slice().sort(function(a,b){ return String(a.client||"").localeCompare(String(b.client||"")); });
-  opts+=ps.map(function(p){ var lbl=(p.client||("PJ-"+p.id))+(p.clientFull?(" · "+p.clientFull):""); return '<option value="'+p.id+'"'+(String(p.id)===sel?" selected":"")+'>'+String(lbl).replace(/</g,"&lt;").slice(0,50)+'</option>'; }).join("");
+  opts+=ps.map(function(p){ var lbl=(p.client||("PJ-"+p.id))+(p.projName?(" · "+p.projName):"")+(!p.projName&&p.clientFull?(" · "+p.clientFull):""); return '<option value="'+p.id+'"'+(String(p.id)===sel?" selected":"")+'>'+String(lbl).replace(/</g,"&lt;").slice(0,60)+'</option>'; }).join("");
   return opts;
 }
 function setInvoiceProject(id, projId){
@@ -7061,7 +7093,7 @@ function updateTaskFormFields(){
   var pw=document.getElementById("tskProjectWrap"); if(pw)pw.style.display=isNet?"none":"";
   if(isNet){ var np=document.getElementById("tskNewProjWrap"); if(np)np.style.display="none"; }
 }
-function addVendorByName(name){ name=(name||"").trim(); if(!name)return; if(!state.vendors)state.vendors=[]; if(getAllVendors()[name.toLowerCase()])return; state.vendors.push({name:name, source:"networking", createdAt:nowStr()}); }
+function addVendorByName(name){ name=(name||"").trim(); if(!name)return; if(!state.vendors)state.vendors=[]; vendorUnhide(name); if(getAllVendors()[name.toLowerCase()])return; state.vendors.push({name:name, source:"networking", createdAt:nowStr()}); }
 function createQuickProject(){
   var name=(document.getElementById("tskNewProjName").value||"").trim();
   if(!name){ showToast("고객사/프로젝트명을 입력하세요"); return; }
@@ -7185,7 +7217,8 @@ function renderTaskCalendar(){
     return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2)"><span style="width:10px;height:10px;border-radius:2px;background:'+taskMemberColor(m)+'"></span>'+m.name+'</span>';
   }).join('')
     +'<span style="display:inline-flex;align-items:center;gap:8px;font-size:11px;color:var(--text-3);margin-left:4px">'
-    +'<span>☑ 완료 · Done</span><span>☐ 진행 · Open</span></span>'
+    +'<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#fff;border:1px solid var(--border);vertical-align:-1px"></span> ☑ 완료 · Done (흰색)</span>'
+    +'<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--text-3)"></span> ☐ 미완료 · Open (담당자 색)</span></span>'
     +'</div>';
   // 업무를 날짜별로 수집 — 완료건은 완료일, 미완료건은 시작일 기준
   var byDay={};
@@ -7227,7 +7260,7 @@ function renderTaskCalendar(){
       var tip=nm+' · '+raw+(done&&t.doneNote?(' / '+t.doneNote):'')+(done?' [완료]':' [진행]');
       var txt=raw.length>16?(raw.slice(0,16)+'…'):raw;
       return '<div title="'+_ce(tip)+'" onclick="openTaskForm('+t.id+')" style="cursor:pointer;display:flex;align-items:center;gap:3px;min-width:0;font-size:9px;line-height:1.35;'
-        +(done?('color:#fff;background:'+col+';border:1px solid '+col+';'):('color:'+col+';background:transparent;border:1px dashed '+col+';'))
+        +(done?('color:var(--text-3);background:#fff;border:1px solid var(--border);'):('color:#fff;background:'+col+';border:1px solid '+col+';'))
         +'border-radius:3px;padding:1px 3px;margin-bottom:2px">'
         +'<span style="flex:0 0 auto;font-size:9px;line-height:1">'+(done?'☑':'☐')+'</span>'
         +'<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_ce(txt)+'</span>'
@@ -7264,7 +7297,7 @@ function taskCard(t, compact){
   return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+sg.c+';border-radius:var(--radius);padding:10px 12px;margin-bottom:8px'+(done?';opacity:.9':'')+'">'
     +'<div style="display:flex;gap:8px;align-items:flex-start"><div style="margin-top:3px">'+signalDot(t.signal)+'</div>'
     +'<div style="flex:1;min-width:0">'
-    +'<div style="font-size:13px;font-weight:600">'+(done?'<span style="color:#15803d;font-weight:800">\u2713 </span>':'')+t.title+'</div>'
+    +'<div style="font-size:13px;font-weight:600'+(done?';text-decoration:line-through;color:var(--text-3)':'')+'">'+(done?'<span style="color:#15803d;font-weight:800;text-decoration:none">\u2713 </span>':'')+t.title+'</div>'
     +(t.purpose?'<div style="font-size:11px;color:var(--text-3);margin-top:1px">목적: '+t.purpose+'</div>':'')
     +(done&&t.doneNote?'<div style="font-size:12px;color:var(--text-2);margin-top:3px;white-space:pre-wrap">✓ '+t.doneNote+'</div>':'')
     +(t.issue?'<div style="font-size:11px;color:#b91c1c;margin-top:3px"><i class="ti ti-alert-triangle"></i> '+t.issue+'</div>':'')
@@ -7405,7 +7438,7 @@ function taskRow(t){
   return '<tr style="border-bottom:1px solid var(--border)'+(done?';opacity:.9':'')+'">'
    +'<td style="padding:6px 8px"><input type="checkbox" class="tskRowChk" data-id="'+t.id+'" '+(_taskSel[t.id]?'checked':'')+' onclick="toggleTaskSel('+t.id+',this)" style="width:auto;margin:0"></td>'
    +'<td style="padding:6px 8px">'+signalDot(t.signal)+'</td>'
-   +'<td style="padding:6px 8px;font-size:12px">'+(done?'<span style="color:#15803d;font-weight:800">\u2713 </span>':'')+t.title+(done&&t.doneNote?'<div style="font-size:11px;color:var(--text-3);text-decoration:none">✓ '+t.doneNote+'</div>':'')+(t.issue?'<div style="font-size:10px;color:#b91c1c">⚠ '+t.issue+'</div>':'')+'</td>'
+   +'<td style="padding:6px 8px;font-size:12px'+(done?';text-decoration:line-through;color:var(--text-3)':'')+'">'+(done?'<span style="color:#15803d;font-weight:800;text-decoration:none">\u2713 </span>':'')+t.title+(done&&t.doneNote?'<div style="font-size:11px;color:var(--text-3);text-decoration:none">✓ '+t.doneNote+'</div>':'')+(t.issue?'<div style="font-size:10px;color:#b91c1c">⚠ '+t.issue+'</div>':'')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:#b45309;white-space:nowrap">'+taskProjLabels(t).join(', ')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+taskTypeLabel(t.taskType)+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+(t.startDate||'')+'</td>'
@@ -7578,9 +7611,9 @@ function projCardHtml(p){
   var owner = projOwnerName(p.ownerId);
   var typeBadge = p.type ? '<span style="font-size:9px;font-weight:600;color:var(--text-2);background:var(--surface-2);padding:1px 6px;border-radius:8px">'+p.type+'</span>' : '';
   var custBadge = p.custType ? '<span style="font-size:9px;font-weight:700;color:#4338ca;background:#eef2ff;padding:1px 6px;border-radius:8px">'+p.custType+'</span>' : '';
-  var qCount = (state.quotes||[]).filter(function(q){ return (q.client||'').toLowerCase()===(p.client||'').toLowerCase(); }).length;
+  var qCount = (typeof _projQuotesC==='function') ? _projQuotesC(p).length : 0;
   var qBadge = qCount ? '<span style="font-size:9px;font-weight:600;color:#4338ca;display:inline-flex;align-items:center;gap:2px"><i class="ti ti-file-invoice" style="font-size:10px"></i>'+qCount+'</span>' : '';
-  var _pq=(state.quotes||[]).filter(function(q){ return (q.client||'').toLowerCase()===(p.client||'').toLowerCase(); });
+  var _pq=(typeof _projQuotesC==='function') ? _projQuotesC(p) : [];
   var quoteLinks = _pq.length
     ? '<div style="margin-top:7px;border-top:1px dashed var(--border);padding-top:6px"><div style="font-size:9px;color:var(--text-3);margin-bottom:3px;font-weight:600"><i class="ti ti-file-invoice"></i> 견적서 · Quotations</div>'
       + _pq.map(function(q){ var tot=(q.lines||[]).reduce(function(s,l){return s+qNum(l.amount);},0);
@@ -7847,7 +7880,7 @@ function _openProjectForm(id){
   if(_oadm&&_osel){ _osel.innerHTML=MEMBERS.map(function(m){return '<option value="'+m.id+'">'+m.name+'</option>';}).join(''); _osel.value=_projFormOwnerId; _osel.style.display=''; _oinp.style.display='none'; }
   else if(_osel){ _osel.style.display='none'; _oinp.style.display=''; }
   toggleEndCust();
-  renderProjLinkedQuotes(id ? (document.getElementById('projClient').value) : '');
+  renderProjLinkedQuotes(id||'');
   renderProjectHistory(id||null);
   { var _pi=document.getElementById('purchaseInvoiceId'); if(_pi){ var _pj=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _pp=(_pj&&_pj.purchase)||{}; var _pids=((_pp.invoiceIds&&_pp.invoiceIds.length)?_pp.invoiceIds:(_pp.invoiceId?[_pp.invoiceId]:[])).map(String); var _pseen={}; _pids.forEach(function(x){ _pseen[String(x)]=1; }); if(id){ (state.invoices||[]).forEach(function(v){ if(String(v.projectId||'')===String(id) && String(v.dir||'')==='received' && !_pseen[String(v.id)]){ _pids.push(String(v.id)); _pseen[String(v.id)]=1; } }); } _pi.value=_pids.join(','); } if(typeof renderPurchaseInvoiceLink==='function') renderPurchaseInvoiceLink(); }
   { var _si=document.getElementById('salesInvoiceId'); if(_si){ var _pj2=id?(state.projects||[]).find(function(x){return x.id===id;}):null; var _sp=(_pj2&&_pj2.sales)||{}; var _sids=((_sp.invoiceLinkIds&&_sp.invoiceLinkIds.length)?_sp.invoiceLinkIds:(_sp.invoiceLinkId?[_sp.invoiceLinkId]:[])).map(String); var _sseen={}; _sids.forEach(function(x){ _sseen[String(x)]=1; }); if(id){ (state.invoices||[]).forEach(function(v){ if(String(v.projectId||'')===String(id) && String(v.dir||'')==='issued' && !_sseen[String(v.id)]){ _sids.push(String(v.id)); _sseen[String(v.id)]=1; } }); } _si.value=_sids.join(','); } if(typeof renderSalesInvoiceLink==='function') renderSalesInvoiceLink(); }
@@ -8149,6 +8182,10 @@ function saveProject(){
     // 같은 고객사라도 프로젝트명이 다르면 별건으로 신규 등록 (한 고객사 다중 프로젝트 지원)
     var _pnk=(data.projName||'').toLowerCase();
     var ex=state.projects.find(function(x){ return (x.client||'').toLowerCase()===client.toLowerCase() && (x.projName||'').toLowerCase()===_pnk; });
+    // 프로젝트명이 비어 있는데 같은 고객사 건이 이미 있으면 "갱신 / 신규" 를 명시적으로 확인
+    if(ex && !_pnk){
+      if(!confirm('["'+client+'"] 프로젝트가 이미 있습니다.\n\n확인 = 기존 프로젝트 갱신\n취소 = 별건으로 새로 등록 (프로젝트명 입력 권장)\n\nUpdate existing? (Cancel = create new)')){ ex=null; }
+    }
     if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; data.contractScans=ex.contractScans||[]; data.contractSeq=ex.contractSeq; data.contractConfirmed=ex.contractConfirmed; data.contractConfirmedAt=ex.contractConfirmedAt; data.contractConfirmedBy=ex.contractConfirmedBy; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신 · Existing client — card updated'); }
     else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); data.logs=[]; data.stageHistory=[{stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:''),first:true}]; state.projects.push(data); showToast('프로젝트 등록 완료 · Project registered'); }
   }
@@ -8257,8 +8294,8 @@ function _projApplyPnlRecords(records){
   if(!state.projects) state.projects=[];
   var touched={}, addedC={}, updatedC={};
   records.forEach(function(rec){
-    if(!rec.client) return; var key=String(rec.client).toLowerCase();
-    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===key; });
+    if(!rec.client) return; var key=String(rec.client).toLowerCase()+'|'+String(rec.projName||'').toLowerCase();
+    var ex=_projFindByClient(rec.client, rec.projName);
     if(!ex){ var u=(typeof cardCurrentUser==='function')?cardCurrentUser():null;
       ex={ id:(state.projectSeq=(state.projectSeq||0)+1), client:rec.client, region:'VIETNAM', type:'기타', currency:'VND', stage:rec.stage||'po', createdAt:nowStr(), createdBy:(u?u.name:'notion') };
       state.projects.push(ex); addedC[key]=1; }
@@ -8300,8 +8337,8 @@ function projRunImport(){
   if(!state.projects) state.projects=[];
   var added=0, updated=0, _pnlBatch={};
   mapped.forEach(function(rec){
-    var _key=(rec.client||'').toLowerCase();
-    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===_key; });
+    var _key=(rec.client||'').toLowerCase()+'|'+String(rec.projName||'').toLowerCase();
+    var ex=_projFindByClient(rec.client, rec.projName);
     if(ex){
       ex.stage=rec.stage; ex.targetDate=rec.targetDate||ex.targetDate; ex.note=rec.note||ex.note;
       ex.remark=rec.remark||ex.remark; ex.region=rec.region||ex.region;
@@ -8548,13 +8585,23 @@ function projMigrate(){
   if(!state.projNoteCleaned){ state.projects.forEach(function(p){ if(p.note && p.note.indexOf('Full Payment Processed at Once')>=0){ p.note=''; changed=true; } }); state.projNoteCleaned=true; changed=true; }
   if(changed && typeof saveState==='function') saveState();
 }
+// 임포트·시드용 프로젝트 탐색: 고객사 + 프로젝트명 우선 → 프로젝트명 없는 건 → 첫 건
+function _projFindByClient(client, name){
+  var k=String(client||'').trim().toLowerCase(); if(!k) return null;
+  var n=String(name||'').trim().toLowerCase();
+  var ps=(state.projects||[]).filter(function(p){ return String(p.client||'').trim().toLowerCase()===k; });
+  if(!ps.length) return null;
+  if(n){ var e=ps.find(function(p){ return String(p.projName||'').trim().toLowerCase()===n; }); if(e) return e; }
+  var blank=ps.find(function(p){ return !String(p.projName||'').trim(); });
+  return blank || ps[0];
+}
 function projSeedOnce(){
   if(!state.projects) state.projects=[];
   if(state.projectsSeeded) return;
   var u=(typeof cardCurrentUser==='function')?cardCurrentUser():null;
   var added=0;
   PROJ_SEED.forEach(function(rec){
-    var ex=state.projects.find(function(p){ return (p.client||'').toLowerCase()===rec.client.toLowerCase(); });
+    var ex=_projFindByClient(rec.client, rec.projName);
     if(!ex){ state.projects.push(Object.assign({ id:(state.projectSeq=(state.projectSeq||0)+1), ownerId:null, location:"", amount:"", lostReason:"", createdAt:(typeof nowStr==="function"?nowStr():""), createdBy:"Notion import" }, rec)); added++; }
   });
   state.projectsSeeded=true;
@@ -8678,7 +8725,7 @@ function renderFinanceDashboard(){
     + rows.map(function(r){
         var s=projStage(r.p.stage);
         return '<tr style="cursor:pointer" onclick="showProjectAppToEdit('+r.p.id+')">'
-          +'<td style="'+tdl+';font-weight:600">'+(r.p.client||'—')+(r.p.custType?' <span style="font-size:9px;color:var(--text-3)">'+r.p.custType+'</span>':'')+'</td>'
+          +'<td style="'+tdl+';font-weight:600">'+(r.p.client||'—')+(r.p.custType?' <span style="font-size:9px;color:var(--text-3)">'+r.p.custType+'</span>':'')+(r.p.projName?'<div style="font-size:10px;font-weight:400;color:var(--text-3)">'+String(r.p.projName).replace(/</g,'&lt;')+'</div>':'')+'</td>'
           +'<td style="'+tdl+'"><span style="font-size:10px;color:#fff;background:'+s.color+';padding:2px 7px;border-radius:8px">'+s.label+'</span></td>'
           +'<td style="'+td+'">'+fmtN(r.c.sTotal)+'</td>'
           +'<td style="'+td+'">'+invTag(r.c)+'</td>'
