@@ -895,7 +895,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="fg" style="margin-bottom:10px"><label>업무 내용 · Task *</label><input type="text" id="tskTitle" placeholder="예: 건설사 미팅 — 회사 소개·협업 요청" autocomplete="off"></div>
       <div class="fg" style="margin-bottom:10px"><label>업무 유형 · Type</label><select id="tskType" onchange="updateTaskFormFields()"></select></div>
       <div class="fg" id="tskProjectWrap" style="margin-bottom:10px"><label>연관 프로젝트 · Projects <span style="font-weight:400;color:var(--text-3)">(여러 개 선택 · multi-select)</span></label><div style="position:relative"><button type="button" id="tskProjDropBtn" onclick="tskToggleProjDrop()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);font-family:var(--sans);color:var(--text);cursor:pointer;text-align:left"><span id="tskProjSummary" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">공통/기타 · Common</span><i class="ti ti-chevron-down" id="tskProjChev" style="font-size:15px;flex-shrink:0;transition:transform .15s"></i></button><div id="tskProjDropPanel" style="display:none;position:absolute;z-index:10;top:calc(100% + 4px);left:0;right:0;max-height:240px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 6px 20px rgba(0,0,0,.15)"></div></div></div>
-      <div class="fg" id="tskNetCompanyWrap" style="margin-bottom:10px;display:none"><label>업체명 · Company (네트워킹)</label><input type="text" id="tskNetCompany" list="quoteClients" placeholder="만난 업체명 — 거래처 DB에 등록됨" autocomplete="off"></div>
+      <div class="fg" id="tskNetCompanyWrap" style="margin-bottom:10px"><label>업체명 · Company <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0">입력 시 거래처 DB 자동 생성 · 메모가 히스토리로 기록</span></label><input type="text" id="tskNetCompany" list="quoteClients" placeholder="업체명 입력 — 거래처 DB에 자동 등록" autocomplete="off"></div>
       <div id="tskNewProjWrap" style="margin-bottom:10px;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px">
         <label style="font-size:11px;color:var(--text-2);display:block;margin-bottom:5px">새 프로젝트 · New Project (고객사명)</label>
         <div style="display:flex;gap:6px"><input type="text" id="tskNewProjName" list="quoteClients" placeholder="고객사명 입력 · Enter client name" autocomplete="off" style="flex:1;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><button type="button" class="btn btn-dark" style="font-size:11px;padding:6px 12px;white-space:nowrap" onclick="createQuickProject()">생성 · Create</button></div>
@@ -1135,6 +1135,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       </div>
       <div class="fgrid">
         <div class="fg"><label>고객사 닉네임 · Client (약칭) <span>거래처DB 연동</span></label><input type="text" id="projClient" list="projectClients" placeholder="약칭/검색 또는 신규" autocomplete="off" onchange="fillProjectFromVendor(this.value)"></div>
+        <div class="fg"><label>프로젝트명 · Project Name <span>한 고객사 다건 구분</span></label><input type="text" id="projName" placeholder="예: 2026 신사옥 가구 납품" autocomplete="off"></div>
         <div class="fg"><label>고객사 정식명칭 · Official Name <a href="javascript:void(0)" onclick="triggerErcUploadForProject()" style="font-size:10px;color:#4338ca;text-decoration:none;margin-left:6px" title="ERC PDF 자동인식으로 정식명칭·MST·주소 채우기"><i class="ti ti-file-certificate"></i> ERC 업로드</a></label><input type="text" id="projClientFull" placeholder="계약서용 정식 회사명 (CÔNG TY ...)" autocomplete="off"></div>
         <div class="fg"><label>담당자 · Owner</label><input type="text" id="projOwnerName" readonly="" style="background:var(--surface-2);color:var(--text-2)"><select id="projOwnerSelect" onchange="setProjOwner(this.value)" style="display:none"></select></div>
         <div class="fg"><label>지역 · Region <span>직접 입력·추가 가능</span></label><input type="text" id="projRegion" list="projRegionList" placeholder="선택 또는 신규 입력" autocomplete="off"><datalist id="projRegionList"></datalist></div>
@@ -2321,8 +2322,11 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           </div>
           <!-- Vendor Management -->
           <div class="admin-card">
-            <div class="admin-card-hdr"><i class="ti ti-building-store"></i> Vendor Master · 거래처 마스터 관리</div>
-            <div class="admin-card-body" id="adminVendorList"></div>
+            <div class="admin-card-hdr"><i class="ti ti-building-store"></i> Vendor Master · 거래처 마스터 관리 <span id="adminVendorCnt" class="cnt-badge" style="margin-left:6px">0</span></div>
+            <div class="admin-card-body">
+              <input type="text" id="adminVendorSearch" placeholder="거래처 검색 · Search vendor (이름·MST·종류)" oninput="renderAdminVendors()" style="width:100%;box-sizing:border-box;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);outline:none;margin-bottom:9px">
+              <div id="adminVendorList"></div>
+            </div>
           </div>
           <!-- Module Access -->
           <div class="admin-card">
@@ -2463,9 +2467,26 @@ async function saveState() {
 var _MERGE_COLLS=['docs','vendors','vendorRequests','cardExpenses','cardMerchants',
                   'products','quotes','projects','bankTxns','invoices','paymentRequests','tasks','exportProjects'];
 function _stampEdit(o){ if(o){ o._editedAt=Date.now(); o._rev=(o._rev||0)+1; } return o; }
+// ── 삭제 무덤 (tombstone) ──
+// 다른 탭/기기의 stale 스냅샷이 "삭제된 레코드"를 되살리는 문제(업무가 지워도 계속 생기는 현상)의 근본 차단.
+// 삭제 시 id 를 무덤에 기록 → 원격 병합·로드 시 무덤에 있는 id 는 무조건 제거. 90일 후 자동 정리.
+var _TOMB_TTL=90*86400000;
+function _tombAdd(coll,id){ if(id==null)return; if(!state._tombs)state._tombs={}; if(!state._tombs[coll])state._tombs[coll]={}; state._tombs[coll]['k'+id]=Date.now(); }
+function _tombPurge(st){ if(!st||!st._tombs)return; var cut=Date.now()-_TOMB_TTL;
+  Object.keys(st._tombs).forEach(function(c){ var m=st._tombs[c]||{};
+    Object.keys(m).forEach(function(k){ if(!(m[k]>cut)) delete m[k]; });
+    if(!Object.keys(m).length) delete st._tombs[c]; }); }
+function _tombApply(st){ if(!st||!st._tombs)return st; _tombPurge(st);
+  Object.keys(st._tombs).forEach(function(c){ var m=st._tombs[c]||{};
+    if(Array.isArray(st[c])) st[c]=st[c].filter(function(it){ return !(it && it.id!=null && m['k'+it.id]); }); });
+  return st; }
 function _recentLocal(lt){ return (Date.now()-(lt&&lt._editedAt||0))<120000; }
 function _mergeRecentLocalEdits(remote){
   if(!remote || !state) return remote;
+  // 삭제 무덤 병합 (로컬 ∪ 원격) — 어느 탭에서 지웠든 전 탭에서 삭제 유지
+  var _lTomb=state._tombs||{}, _rTomb=remote._tombs||{}, _mTomb={};
+  Object.keys(_lTomb).concat(Object.keys(_rTomb)).forEach(function(c){ _mTomb[c]=Object.assign({}, _rTomb[c]||{}, _lTomb[c]||{}); });
+  if(Object.keys(_mTomb).length) remote._tombs=_mTomb;
   _MERGE_COLLS.forEach(function(coll){
     if(!Array.isArray(state[coll]) || !Array.isArray(remote[coll])) return;
     var localById={}; state[coll].forEach(function(it){ if(it && it.id!=null) localById[String(it.id)]=it; });
@@ -2481,7 +2502,7 @@ function _mergeRecentLocalEdits(remote){
       return rt;
     });
     // 로컬에만 있고(방금 추가) 최근 2분 내 편집된 항목은 원격에 없어도 유지
-    state[coll].forEach(function(lt){ if(lt && lt.id!=null && !seen[String(lt.id)] && _recentLocal(lt)){ remote[coll].push(lt); } });
+    state[coll].forEach(function(lt){ if(lt && lt.id!=null && !seen[String(lt.id)] && _recentLocal(lt) && !(_mTomb[coll]&&_mTomb[coll]['k'+lt.id])){ remote[coll].push(lt); } });
   });
   // ── 관리자 설정 보호 (issue #5) ──
   // modulePerms/viewScope/reportMembers 는 컬렉션이 아니라 meta 라서 위 per-record 병합의
@@ -2491,6 +2512,7 @@ function _mergeRecentLocalEdits(remote){
     ['modulePerms','viewScope','reportMembers'].forEach(function(k){ if(state[k]!==undefined) remote[k]=state[k]; });
     remote._cfgRev=state._cfgRev;
   }
+  _tombApply(remote);                        // 무덤에 있는 레코드는 원격에서 와도 제거
   return remote;
 }
 async function loadState() {
@@ -2539,6 +2561,7 @@ async function loadState() {
     // 단독 '계약 · Contract' 유형 제거 (계약체결로 통합)
     if(state.docTypes){ state.docTypes=state.docTypes.filter(function(t){ return t!=='계약 · Contract'; }); }
   }
+  _tombApply(state);                         // 삭제된 레코드가 되살아나지 않도록 로드 직후 정리
   if(typeof bankSeedOnce==='function') bankSeedOnce();
   // apply saved passwords
   if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});} if(state.memberNames){Object.entries(state.memberNames).forEach(([id,nm])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.name=nm;});}
@@ -3460,18 +3483,39 @@ function rejectVendorReq(id){
   showToast('반려 처리 · Rejected');
 }
 
+var _admVendOpen={};
+function toggleAdminVendor(i){
+  _admVendOpen[i]=!_admVendOpen[i];
+  var b=document.getElementById('avdet-'+i); if(b)b.style.display=_admVendOpen[i]?'block':'none';
+  var c=document.getElementById('avchev-'+i); if(c)c.style.transform=_admVendOpen[i]?'rotate(180deg)':'';
+}
 function renderAdminVendors(){
   var el = document.getElementById('adminVendorList'); if(!el) return;
+  var q = ((document.getElementById('adminVendorSearch')||{}).value||'').toLowerCase().trim();
   var all = getAllVendors();
   var list = Object.keys(all).map(function(k){ return all[k]; }).sort(function(a,b){ return a.name.localeCompare(b.name); });
-  if(!list.length){ el.innerHTML = '<p style="font-size:12px;color:var(--text-3)">No vendors · 거래처 없음</p>'; return; }
-  el.innerHTML = list.map(function(v){
+  if(q) list = list.filter(function(v){
+    return String(v.name||'').toLowerCase().indexOf(q)>=0
+        || String(v.reg||'').toLowerCase().indexOf(q)>=0
+        || String(v.taxCode||'').toLowerCase().indexOf(q)>=0
+        || String(v.nameVi||'').toLowerCase().indexOf(q)>=0
+        || String(v.type||'').toLowerCase().indexOf(q)>=0;
+  });
+  var cntEl=document.getElementById('adminVendorCnt'); if(cntEl) cntEl.textContent=list.length;
+  if(!list.length){ el.innerHTML = '<p style="font-size:12px;color:var(--text-3)">'+(q?'검색 결과 없음 · No match':'No vendors · 거래처 없음')+'</p>'; return; }
+  el.innerHTML = list.map(function(v,i){
     var tag = v.source==='master' ? '<span class="badge b-done" style="font-size:9px">Master</span>' : '<span class="badge b-draft" style="font-size:9px">Doc</span>';
-    var del = (v.source==='master' && _isAdminUser()) ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="deleteVendor(\''+v.name.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button>' : '';
-    return '<div style="border-bottom:1px solid var(--border);padding:8px 0">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
-      +'<div style="font-size:13px;font-weight:600">'+v.name+' '+tag+(v.reg?' <span style="font-size:10px;color:var(--text-3)">'+v.reg+'</span>':'')+'</div>'+del+'</div>'
-      +'<div style="font-size:11px;color:var(--text-2);margin-top:3px">'+vendorBankSummary(v)+'</div></div>';
+    var del = (v.source==='master' && _isAdminUser()) ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();deleteVendor(\''+v.name.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash"></i></button>' : '';
+    var open = !!_admVendOpen[i];
+    return '<div style="border-bottom:1px solid var(--border);padding:7px 0">'
+      +'<div onclick="toggleAdminVendor('+i+')" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer">'
+      +'<div style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+      +'<i class="ti ti-chevron-down" id="avchev-'+i+'" style="font-size:14px;color:var(--text-3);transition:transform .15s;margin-right:4px'+(open?';transform:rotate(180deg)':'')+'"></i>'
+      +v.name+' '+tag+(v.type?' <span style="font-size:9px;color:var(--text-3)">'+v.type+'</span>':'')+'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+del+'</div></div>'
+      +'<div id="avdet-'+i+'" style="display:'+(open?'block':'none')+';margin-top:6px;padding-left:18px">'
+      +(v.reg||v.taxCode?'<div style="font-size:11px;color:var(--text-3)">MST · '+(v.taxCode||v.reg)+'</div>':'')
+      +'<div style="font-size:11px;color:var(--text-2);margin-top:3px">'+vendorBankSummary(v)+'</div></div></div>';
   }).join('');
 }
 
@@ -3924,7 +3968,7 @@ function buildVendorMap(){
   function ensure(key){
     key = (key||'').trim();
     if(!key) return null;
-    if(!vendors[key]) vendors[key] = {name:key, reg:'', bank:{}, docs:[], srcs:{}, sales:{}, purch:{}, custLogs:[]};
+    if(!vendors[key]) vendors[key] = {name:key, reg:'', bank:{}, docs:[], srcs:{}, sales:{}, purch:{}, custLogs:[], projects:[]};
     return vendors[key];
   }
 
@@ -3994,7 +4038,11 @@ function buildVendorMap(){
         v.srcs.project=true;
         v.docs.push({src:'project', no:'PJ-'+p.id, title:'프로젝트 · '+(projStage(p.stage).label), id:p.id, cur:sCur, amt:sAmt, date:p.regDate||''});
         if(sAmt) v.sales[sCur]=(v.sales[sCur]||0)+sAmt;
-        if(p.logs&&p.logs.length){ v.custLogs=(v.custLogs||[]).concat(p.logs); }
+        // 업무(task) 파생 로그는 아래 6)에서 원문 그대로 다시 적재하므로 여기선 제외 (중복 방지)
+        if(p.logs&&p.logs.length){ v.custLogs=(v.custLogs||[]).concat(p.logs.filter(function(l){ return !(l&&l.source==='task'); }).map(function(l){ return Object.assign({},l,{proj:(p.projName||''), pid:p.id}); })); }
+        v.projects=v.projects||[];
+        v.projects.push({id:p.id, name:p.projName||'', stage:projStage(p.stage).label, date:p.regDate||'', cur:sCur, amt:sAmt,
+                         pcur:(p.purchase&&p.purchase.currency)||'', pamt:(p.purchase?(qNum(p.purchase.total)||(qNum(p.purchase.deposit)+qNum(p.purchase.balance))):0), note:p.note||''});
       }
     }
     if(p.purchase && p.purchase.vendor){
@@ -4008,6 +4056,37 @@ function buildVendorMap(){
         if(pAmt) v2.purch[pCur]=(v2.purch[pCur]||0)+pAmt;
       }
     }
+  });
+
+  // 6) 업무 (state.tasks) — 업체명/연관 프로젝트 고객사로 거래처 자동 생성 + 내용·메모를 히스토리로 적재
+  (state.tasks||[]).forEach(function(t){
+    if(!t) return;
+    var names={};
+    if(t.netCompany) names[String(t.netCompany).trim()]=1;
+    try{ (taskProjectIds(t)||[]).forEach(function(pid){
+      var p=(state.projects||[]).find(function(x){ return String(x.id)===String(pid); });
+      if(p&&p.client) names[p.client]=1;
+    }); }catch(e){}
+    Object.keys(names).forEach(function(nm){
+      nm=(nm||'').trim(); if(!nm) return;
+      var v=ensure(nm); if(!v) return;
+      v.srcs.task=true;
+      var body=[];
+      if(t.purpose) body.push('목적 · Purpose: '+t.purpose);
+      if(t.status==='done' && t.doneNote) body.push('완료내용 · Done: '+t.doneNote);
+      if(t.issue) body.push('메모 · Memo: '+t.issue);
+      var head='['+(t.status==='done' ? ('완료 '+(t.closedDate||'')) : ('진행 '+(t.startDate||'')))+'] '+(t.title||'');
+      var _pl=''; try{ _pl=(taskProjLabels(t)||[]).join(', '); }catch(e){}
+      v.custLogs=(v.custLogs||[]).concat([{ text: head+(body.length?('\n'+body.join('\n')):''),
+        at:(t.updatedAt||t.createdAt||''), by:(t.userName||''), source:'task', taskId:t.id, proj:_pl }]);
+    });
+  });
+
+  // 거래 기간(최초·최종 거래일) 산출
+  Object.keys(vendors).forEach(function(k){ var v=vendors[k]; var ds=[];
+    (v.docs||[]).forEach(function(d){ if(d.date) ds.push(String(d.date).slice(0,10)); });
+    (v.projects||[]).forEach(function(p){ if(p.date) ds.push(String(p.date).slice(0,10)); });
+    ds.sort(); v.firstDate=ds[0]||''; v.lastDate=ds[ds.length-1]||'';
   });
 
   // 종류 자동 분류 (명시 지정이 없을 때): 견적/프로젝트매출=매출처, 전자결재=매입처, 카드=판관비, 그 외=기타
@@ -4066,7 +4145,9 @@ function renderVendorDB() {
   if(q) list = list.filter(function(v){
     return v.name.toLowerCase().includes(q) || (v.reg||'').toLowerCase().includes(q) ||
       (v.bank.bankVN||'').toLowerCase().includes(q) || (v.bank.bankForeign||'').toLowerCase().includes(q) ||
-      v.docs.some(function(d){ return (d.no||'').toLowerCase().includes(q) || (d.inv||'').toLowerCase().includes(q) || (d.po||'').toLowerCase().includes(q) || (d.title||'').toLowerCase().includes(q); });
+      v.docs.some(function(d){ return (d.no||'').toLowerCase().includes(q) || (d.inv||'').toLowerCase().includes(q) || (d.po||'').toLowerCase().includes(q) || (d.title||'').toLowerCase().includes(q); }) ||
+      (v.projects||[]).some(function(p){ return String(p.name||'').toLowerCase().includes(q) || String(p.note||'').toLowerCase().includes(q) || String(p.stage||'').toLowerCase().includes(q); }) ||
+      (v.custLogs||[]).some(function(l){ return String(l.text||'').toLowerCase().includes(q); });
   });
   list.sort(function(a,b){ return a.name.localeCompare(b.name); });
 
@@ -4080,7 +4161,8 @@ function renderVendorDB() {
     quote:  {label:'견적', icon:'ti-file-invoice', color:'#1d4ed8'},
     card:   {label:'카드', icon:'ti-credit-card', color:'#15803d'},
     project:{label:'프로젝트', icon:'ti-folder', color:'#b45309'},
-    contract:{label:'계약', icon:'ti-file-certificate', color:'#4338ca'}
+    contract:{label:'계약', icon:'ti-file-certificate', color:'#4338ca'},
+    task:   {label:'업무', icon:'ti-checkbox', color:'#0f766e'}
   };
 
   el.innerHTML = list.map(function(v,vi){
@@ -4090,16 +4172,32 @@ function renderVendorDB() {
     var bankLabel = v.bank.type === 'vn' ? 'Vietnam · 베트남' : 'Foreign · 해외';
     var _sk=Object.keys(v.sales||{}).filter(function(c){return v.sales[c];});
     var _pk=Object.keys(v.purch||{}).filter(function(c){return v.purch[c];});
-    var settleHtml=(_sk.length||_pk.length)
-      ? '<div class="ifield" style="margin-top:10px"><div class="lbl">Settlement · 매출/매입 정산 (프로젝트)</div><div class="val" style="font-size:12px;line-height:1.8">'
-        +(_sk.length?'<div>매출 · Sales: <b style="color:#1d4ed8">'+_sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')
-        +(_pk.length?'<div>매입 · Purchase: <b style="color:#b45309">'+_pk.map(function(c){return fmtN(v.purch[c])+' '+c;}).join(' · ')+'</b></div>':'')
+    var _period=(v.firstDate||v.lastDate)?('<div style="font-size:11px;color:var(--text-3);margin-top:4px">거래기간 · Period: <b>'+(v.firstDate||'—')+'</b> ~ <b>'+(v.lastDate||'—')+'</b> · 프로젝트 '+((v.projects||[]).length)+'건 · 문서 '+(v.docs.length)+'건</div>'):'';
+    var settleHtml=(_sk.length||_pk.length||_period)
+      ? '<div class="ifield" style="margin-top:10px"><div class="lbl">Settlement · 총 매출/매입 (누계)</div><div class="val" style="font-size:12px;line-height:1.8">'
+        +(_sk.length?'<div>총 매출 · Total Sales: <b style="color:#1d4ed8">'+_sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')
+        +(_pk.length?'<div>총 매입 · Total Purchase: <b style="color:#b45309">'+_pk.map(function(c){return fmtN(v.purch[c])+' '+c;}).join(' · ')+'</b></div>':'')
+        +_period
         +'</div></div>' : '';
-    var _logs=(v.custLogs||[]);
-    var custLogHtml=_logs.length ? '<div class="ifield" style="margin-top:10px"><div class="lbl">고객 대화 로그 · Customer Log ('+_logs.length+')</div><div class="val" style="font-size:12px;line-height:1.6">'+_logs.slice().reverse().slice(0,8).map(function(l){ return '<div style="padding:4px 0;border-bottom:1px solid var(--border)"><div style="white-space:pre-wrap">'+(l.text||'')+'</div><div style="font-size:10px;color:var(--text-3)">'+(l.by?l.by+' · ':'')+(l.at||'')+'</div></div>'; }).join('')+'</div></div>' : '';
+    var _pjs=(v.projects||[]).slice().sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
+    var pjHtml=_pjs.length ? '<div class="ifield" style="margin-top:10px"><div class="lbl">프로젝트 · Projects ('+_pjs.length+')</div><div class="val" style="font-size:12px;line-height:1.8">'
+      +_pjs.map(function(p){
+        return '<div style="padding:3px 0;border-bottom:1px dashed var(--border)"><a href="javascript:void(0)" onclick="openRelatedProject('+p.id+')" style="text-decoration:none;color:var(--text)">'
+          +'<b>'+String(p.name||('PJ-'+p.id)).replace(/</g,'&lt;')+'</b>'
+          +' <span style="font-size:10px;color:#b45309">'+p.stage+'</span>'
+          +(p.date?' <span class="docno">'+p.date+'</span>':'')
+          +(p.amt?' <span style="font-size:11px;color:#1d4ed8">매출 '+fmtN(p.amt)+' '+(p.cur||'')+'</span>':'')
+          +(p.pamt?' <span style="font-size:11px;color:#b45309">매입 '+fmtN(p.pamt)+' '+(p.pcur||'')+'</span>':'')
+          +'</a></div>';
+      }).join('')+'</div></div>' : '';
+    var _logs=(v.custLogs||[]).slice().sort(function(a,b){ return String(a.at||'').localeCompare(String(b.at||'')); });
+    var custLogHtml=_logs.length ? '<div class="ifield" style="margin-top:10px"><div class="lbl">고객 히스토리 · Customer History ('+_logs.length+') <span style="font-weight:400;color:var(--text-3)">업무 메모·대화 내용 포함</span></div><div class="val" style="font-size:12px;line-height:1.6;max-height:340px;overflow-y:auto">'+_logs.slice().reverse().slice(0,40).map(function(l){
+      var pj=l.proj?'<span style="display:inline-block;font-size:9px;font-weight:700;color:#b45309;background:#b4530914;padding:1px 6px;border-radius:8px;margin-right:5px">'+String(l.proj).replace(/</g,'&lt;')+'</span>':'';
+      var sc=l.source==='task'?'<span style="display:inline-block;font-size:9px;font-weight:700;color:#0f766e;background:#0f766e14;padding:1px 6px;border-radius:8px;margin-right:5px">업무</span>':'';
+      return '<div style="padding:6px 0;border-bottom:1px solid var(--border)"><div style="margin-bottom:2px">'+sc+pj+'</div><div style="white-space:pre-wrap">'+String(l.text||'').replace(/</g,'&lt;')+'</div><div style="font-size:10px;color:var(--text-3);margin-top:2px">'+(l.by?l.by+' · ':'')+(l.at||'')+'</div></div>'; }).join('')+'</div></div>' : '';
 
     // source chips
-    var srcChips = ['expense','contract','quote','card','project'].filter(function(s){ return v.srcs[s]; }).map(function(s){
+    var srcChips = ['expense','contract','quote','card','project','task'].filter(function(s){ return v.srcs[s]; }).map(function(s){
       var c=SRC[s]; return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:'+c.color+';background:'+c.color+'14;padding:2px 7px;border-radius:10px;margin-left:5px"><i class="ti '+c.icon+'" style="font-size:11px"></i>'+c.label+'</span>';
     }).join('');
 
@@ -4144,7 +4242,7 @@ function renderVendorDB() {
       +'<div id="vdet-'+vi+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">'
       +'<div style="margin-bottom:8px"><span class="badge b-draft">'+bankLabel+'</span>'+(v.reg?'<span class="docno" style="margin-left:6px">사업자 · '+v.reg+'</span>':'')+'</div>'
       +typeSel+ercHtml      +'<div class="ifield" style="margin-top:10px"><div class="lbl">ERC 사업자등록증 · Auto-fill from ERC</div><div class="val"><button class="btn btn-outline" style="font-size:11px;padding:5px 11px" onclick="triggerErcUploadFor(\''+_vesc+'\')"><i class="ti ti-file-certificate"></i> ERC 업로드 · Upload &amp; auto-fill</button> <span style="font-size:10px;color:var(--text-3)">이 거래처에 세금코드·주소 자동채움</span></div></div>'
-      +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+(_ercM.bankQR?('<div style="margin-top:7px"><div style="font-size:10px;color:var(--text-3);margin-bottom:4px">계좌 QR · Bank QR</div>'+_imgTag(_ercM.bankQR,'style="max-width:170px;border:1px solid var(--border);border-radius:var(--radius);display:block;background:#fff"')+'</div>'):'')+'</div></div>'+settleHtml+custLogHtml+forceLinkHtml
+      +'<div class="ifield"><div class="lbl">Bank Info · 은행정보</div><div class="val" style="font-size:12px">'+bankInfo+(_ercM.bankQR?('<div style="margin-top:7px"><div style="font-size:10px;color:var(--text-3);margin-bottom:4px">계좌 QR · Bank QR</div>'+_imgTag(_ercM.bankQR,'style="max-width:170px;border:1px solid var(--border);border-radius:var(--radius);display:block;background:#fff"')+'</div>'):'')+'</div></div>'+settleHtml+pjHtml+custLogHtml+forceLinkHtml
       +'</div>'
       +'</div></div>';
   }).join('');
@@ -5744,6 +5842,37 @@ function renderLogoAdmin(){
         :'기본 로고 사용 중 · Using default')
     +'</div></div>';
 }
+// ── 전일 업무 미입력 알림 (주말 제외, 1일 1회) ──
+function _prevBizDayISO(){
+  var d=new Date(); d.setHours(0,0,0,0);
+  do{ d.setDate(d.getDate()-1); } while(d.getDay()===0 || d.getDay()===6);
+  return _isoD(d);
+}
+function _checkDailyTaskPrompt(){
+  try{
+    var now=new Date();
+    if(now.getDay()===0 || now.getDay()===6) return;                 // 주말 제외
+    var u=(typeof cardCurrentUser==='function'?cardCurrentUser():null) || window._gateUser;
+    if(!u || u.id==null) return;
+    if(!Array.isArray(state.tasks) || !state.tasks.length) return;   // 데이터 로드 전이면 오탐 방지
+    var key='inics_dailyask_'+u.id+'_'+_isoD(now);
+    if(localStorage.getItem(key)) return;                            // 오늘 이미 물어봄
+    var prev=_prevBizDayISO();
+    var has=(state.tasks||[]).some(function(t){
+      if(!t || String(t.userId)!==String(u.id)) return false;
+      var cd=String(t.createdAt||'').slice(0,10).replace(/\./g,'-');
+      return t.startDate===prev || t.closedDate===prev || cd===prev;
+    });
+    if(has) return;
+    localStorage.setItem(key,'1');
+    if(confirm('전일('+prev+') 업무 입력 내역이 없습니다.\n지금 업무를 입력하시겠습니까?\n\nNo task recorded for '+prev+'. Enter it now?')){
+      if(typeof enterModule==='function') enterModule('report');
+      setTimeout(function(){
+        if(typeof openTaskForm==='function'){ openTaskForm(); var s=document.getElementById('tskStart'); if(s) s.value=prev; }
+      },500);
+    }
+  }catch(e){}
+}
 function showHub() {
   if(typeof _eaStack!=='undefined') _eaStack=[];
   var hubPage = document.getElementById('hubPage');
@@ -5773,6 +5902,7 @@ function showHub() {
     badge.style.display = 'block';
     badge.querySelector('span').textContent = pending + ' 건 대기 중';
   }
+  setTimeout(_checkDailyTaskPrompt, 800);
 }
 
 // ── Per-user module access ──
@@ -6768,7 +6898,7 @@ function taskDailyMembers(){
   return taskViewableMembers();
 }
 function reportTargetUser(){ return _taskTargetUid ? (gm(_taskTargetUid)||null) : cardCurrentUser(); }
-function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; if(pid==='networking')return '네트워킹 · Networking'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?p.client:'(삭제된 프로젝트)'; }
+function taskProjLabel(pid){ if(pid==='common'||!pid)return '공통/기타 · Common'; if(pid==='networking')return '네트워킹 · Networking'; var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); return p?((p.client||'')+(p.projName?(' · '+p.projName):'')):'(삭제된 프로젝트)'; }
 // Normalized list of project IDs linked to a task (supports legacy single projectId)
 function taskProjectIds(t){
   if(t && Array.isArray(t.projectIds) && t.projectIds.length) return t.projectIds.slice();
@@ -6818,7 +6948,7 @@ function renderTaskProjectChips(){
   var html=row(chk(sel.indexOf('common')>=0)+'<span>공통/기타 · Common</span>','_tskToggleCommon()');
   (state.projects||[]).slice().sort(function(a,b){return (a.client||'').localeCompare(b.client||'');}).forEach(function(p){
     var active=sel.indexOf(String(p.id))>=0;
-    html+=row(chk(active)+'<span>'+(p.client||'?')+' · '+projStage(p.stage).label+'</span>',"tskToggleProject('"+p.id+"')");
+    html+=row(chk(active)+'<span>'+(p.client||'?')+(p.projName?(' · '+p.projName):'')+' · '+projStage(p.stage).label+'</span>',"tskToggleProject('"+p.id+"')");
   });
   html+=row('<i class="ti ti-plus" style="font-size:14px;width:16px;color:#b45309"></i><span style="color:#b45309;font-weight:600">새 프로젝트 추가 · New project</span>','tskToggleNewProjBox()');
   panel.innerHTML=html;
@@ -6927,7 +7057,7 @@ function updateTaskFormFields(){
   var type=document.getElementById("tskType").value;
   var isNet=(type==="networking");
   var w=document.getElementById("tskStartWrap"); if(w)w.style.display=(type==="meeting"||isNet)?"none":"";
-  var nc=document.getElementById("tskNetCompanyWrap"); if(nc)nc.style.display=isNet?"":"none";
+  var nc=document.getElementById("tskNetCompanyWrap"); if(nc)nc.style.display="";   // 업체명은 모든 유형에서 입력
   var pw=document.getElementById("tskProjectWrap"); if(pw)pw.style.display=isNet?"none":"";
   if(isNet){ var np=document.getElementById("tskNewProjWrap"); if(np)np.style.display="none"; }
 }
@@ -6956,8 +7086,8 @@ function saveTask(){
   var _isNet=(_type==='networking');
   var _projIds = _isNet ? [] : (_tskSelProjects||[]).filter(function(x){return x && x!=='common' && x!=='networking';});
   _projIds = _projIds.filter(function(x,i){return _projIds.indexOf(x)===i;}); // dedupe
-  var _netCo=_isNet?(document.getElementById('tskNetCompany').value||'').trim():'';
-  if(_isNet && _netCo){ addVendorByName(_netCo); }
+  var _netCo=(document.getElementById('tskNetCompany').value||'').trim();
+  if(_netCo){ addVendorByName(_netCo); }
   var data={
     title:title,
     purpose:(document.getElementById('tskPurpose').value||'').trim(),
@@ -6988,6 +7118,7 @@ function deleteTask(id){
   if(!confirm('이 업무를 삭제할까요? · Delete this task?'))return;
   (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
   state.tasks=(state.tasks||[]).filter(function(x){return x.id!==id;});
+  _tombAdd('tasks',id);
   saveState(); closeTaskForm(); renderTaskApp(); showToast('삭제됨 · Deleted');
 }
 function completeTask(id){
@@ -7013,9 +7144,10 @@ function syncTaskToProjects(t){
   (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===t.id);}); });
   var ids=taskProjectIds(t); if(!ids.length)return;
   var done=t.status==='done';
+  var _extra=(t.purpose?('\n목적 · Purpose: '+t.purpose):'')+(t.issue?('\n메모 · Memo: '+t.issue):'');
   var txt = done
-    ? '[업무완료 '+(t.closedDate||'')+'] '+(t.doneNote||t.title)+(t.estHours?' ('+t.estHours+'h)':'')
-    : '[업무 '+(t.startDate||projTodayISO())+'] '+t.title+(t.purpose?' — '+t.purpose:'')+(t.issue?' / '+t.issue:'');
+    ? '[업무완료 '+(t.closedDate||'')+'] '+t.title+(t.estHours?' ('+t.estHours+'h)':'')+(t.doneNote?('\n완료내용 · Done: '+t.doneNote):'')+_extra
+    : '[업무 '+(t.startDate||projTodayISO())+'] '+t.title+_extra;
   ids.forEach(function(pid){
     var p=(state.projects||[]).find(function(x){return String(x.id)===String(pid);}); if(!p)return;
     p.logs=p.logs||[];
@@ -7098,7 +7230,7 @@ function renderTaskCalendar(){
         +(done?('color:#fff;background:'+col+';border:1px solid '+col+';'):('color:'+col+';background:transparent;border:1px dashed '+col+';'))
         +'border-radius:3px;padding:1px 3px;margin-bottom:2px">'
         +'<span style="flex:0 0 auto;font-size:9px;line-height:1">'+(done?'☑':'☐')+'</span>'
-        +'<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'+(done?';text-decoration:line-through':'')+'">'+_ce(txt)+'</span>'
+        +'<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_ce(txt)+'</span>'
         +'</div>';
     }).join('');
     var more=items.length>4?'<div style="font-size:9px;color:var(--text-3);padding-left:2px">+'+(items.length-4)+' more</div>':'';
@@ -7129,10 +7261,10 @@ function taskCard(t, compact){
     : (done
     ? '<button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="reopenTask('+t.id+')"><i class="ti ti-arrow-back-up"></i> 재개 · Resume</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>'
     : '<button class="btn btn-dark" style="font-size:10px;padding:3px 9px" onclick="completeTask('+t.id+')"><i class="ti ti-check"></i> 완료 · Close</button><button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="openTaskForm('+t.id+')"><i class="ti ti-edit"></i></button>');
-  return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+sg.c+';border-radius:var(--radius);padding:10px 12px;margin-bottom:8px'+(done?';opacity:.72':'')+'">'
+  return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+sg.c+';border-radius:var(--radius);padding:10px 12px;margin-bottom:8px'+(done?';opacity:.9':'')+'">'
     +'<div style="display:flex;gap:8px;align-items:flex-start"><div style="margin-top:3px">'+signalDot(t.signal)+'</div>'
     +'<div style="flex:1;min-width:0">'
-    +'<div style="font-size:13px;font-weight:600'+(done?';text-decoration:line-through;color:var(--text-3)':'')+'">'+t.title+'</div>'
+    +'<div style="font-size:13px;font-weight:600">'+(done?'<span style="color:#15803d;font-weight:800">\u2713 </span>':'')+t.title+'</div>'
     +(t.purpose?'<div style="font-size:11px;color:var(--text-3);margin-top:1px">목적: '+t.purpose+'</div>':'')
     +(done&&t.doneNote?'<div style="font-size:12px;color:var(--text-2);margin-top:3px;white-space:pre-wrap">✓ '+t.doneNote+'</div>':'')
     +(t.issue?'<div style="font-size:11px;color:#b91c1c;margin-top:3px"><i class="ti ti-alert-triangle"></i> '+t.issue+'</div>':'')
@@ -7265,14 +7397,15 @@ function deleteSelectedTasks(){
   if(!confirm(ids.length+'건을 삭제할까요? · Delete '+ids.length+' tasks?'))return;
   ids.forEach(function(id){ (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); }); });
   state.tasks=(state.tasks||[]).filter(function(x){return ids.indexOf(x.id)<0;});
+  ids.forEach(function(id){ _tombAdd('tasks',id); });
   _taskSel={}; saveState(); renderTaskApp(); showToast(ids.length+'건 삭제됨 · Deleted');
 }
 function taskRow(t){
   var done=t.status==='done'; var delay=taskDelay(t);
-  return '<tr style="border-bottom:1px solid var(--border)'+(done?';opacity:.6':'')+'">'
+  return '<tr style="border-bottom:1px solid var(--border)'+(done?';opacity:.9':'')+'">'
    +'<td style="padding:6px 8px"><input type="checkbox" class="tskRowChk" data-id="'+t.id+'" '+(_taskSel[t.id]?'checked':'')+' onclick="toggleTaskSel('+t.id+',this)" style="width:auto;margin:0"></td>'
    +'<td style="padding:6px 8px">'+signalDot(t.signal)+'</td>'
-   +'<td style="padding:6px 8px;font-size:12px'+(done?';text-decoration:line-through;color:var(--text-3)':'')+'">'+t.title+(done&&t.doneNote?'<div style="font-size:11px;color:var(--text-3);text-decoration:none">✓ '+t.doneNote+'</div>':'')+(t.issue?'<div style="font-size:10px;color:#b91c1c">⚠ '+t.issue+'</div>':'')+'</td>'
+   +'<td style="padding:6px 8px;font-size:12px">'+(done?'<span style="color:#15803d;font-weight:800">\u2713 </span>':'')+t.title+(done&&t.doneNote?'<div style="font-size:11px;color:var(--text-3);text-decoration:none">✓ '+t.doneNote+'</div>':'')+(t.issue?'<div style="font-size:10px;color:#b91c1c">⚠ '+t.issue+'</div>':'')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:#b45309;white-space:nowrap">'+taskProjLabels(t).join(', ')+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+taskTypeLabel(t.taskType)+'</td>'
    +'<td style="padding:6px 8px;font-size:11px;color:var(--text-3);white-space:nowrap">'+(t.startDate||'')+'</td>'
@@ -7413,7 +7546,7 @@ function projFilteredList(){
   return (state.projects||[]).filter(function(p){
     if(ow && String(p.ownerId)!==String(ow)) return false;
     if(rg && p.region!==rg) return false;
-    if(q){ var hay=[p.client,p.note,p.location,p.type].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    if(q){ var hay=[p.client,p.projName,p.note,p.location,p.type].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
     return true;
   });
 }
@@ -7461,7 +7594,7 @@ function projCardHtml(p){
   return '<div class="proj-card" draggable="true" ondragstart="projDragStart(event,'+p.id+')" ondragend="projDragEnd(event)" '
     +'style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+s.color+';border-radius:var(--radius);padding:8px 9px;cursor:grab">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer" onclick="toggleProjDetail('+p.id+')">'
-      +'<div style="font-size:12px;font-weight:700;line-height:1.2;flex:1;min-width:0">'+(p.client||'—')+(qCount?' <span style="font-size:9px;font-weight:600;color:#4338ca">·'+qCount+'견적</span>':'')+(typeof _projMarginChip==='function'?_projMarginChip(p):'')+'</div>'
+      +'<div style="font-size:12px;font-weight:700;line-height:1.2;flex:1;min-width:0">'+(p.client||'—')+(p.projName?'<span style="font-weight:500;color:var(--text-3)"> · '+String(p.projName).replace(/</g,'&lt;')+'</span>':'')+(qCount?' <span style="font-size:9px;font-weight:600;color:#4338ca">·'+qCount+'견적</span>':'')+(typeof _projMarginChip==='function'?_projMarginChip(p):'')+'</div>'
       +'<button onclick="event.stopPropagation();toggleProjDetail('+p.id+')" draggable="false" style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:9px;color:var(--text-2);padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:var(--sans)">DETAIL <i class="ti ti-chevron-down" id="pchev-'+p.id+'" style="font-size:11px;vertical-align:-1px"></i></button>'
     +'</div>'
     +'<div id="pdet-'+p.id+'" style="display:none;margin-top:6px">'
@@ -7486,9 +7619,8 @@ function toggleProjDetail(id){
   var ch=document.getElementById('pchev-'+id); if(ch) ch.style.transform=open?'rotate(180deg)':'';
 }
 function toggleEndCust(){
-  var wrap=document.getElementById('projEndCustWrap'); if(!wrap) return;
-  var sel=document.getElementById('projCustType');
-  wrap.style.display=(sel&&sel.value==='B2B')?'block':'none';
+  // 최종 고객 정보(End Customer) 입력란 사용 안 함 — 항상 숨김
+  var wrap=document.getElementById('projEndCustWrap'); if(wrap) wrap.style.display='none';
 }
 
 // drag & drop (desktop)
@@ -7548,7 +7680,7 @@ function renderProjectList(){
   var el=document.getElementById('projList'); if(!el) return;
   var q=((document.getElementById('projListSearch')||{}).value||'').toLowerCase().trim();
   var list=(state.projects||[]).slice();
-  if(q){ list=list.filter(function(p){ var hay=[p.client,projOwnerName(p.ownerId),p.region,p.location,p.type,projStage(p.stage).label,p.note].join(' ').toLowerCase(); return hay.indexOf(q)>=0; }); }
+  if(q){ list=list.filter(function(p){ var hay=[p.client,p.projName,projOwnerName(p.ownerId),p.region,p.location,p.type,projStage(p.stage).label,p.note].join(' ').toLowerCase(); return hay.indexOf(q)>=0; }); }
   if(!list.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-folder"></i><p>프로젝트 없음 · No projects</p></div>'; return; }
   list.sort(function(a,b){
     var va=_projSortVal(a,_projSortKey), vb=_projSortVal(b,_projSortKey), r;
@@ -7571,7 +7703,7 @@ function renderProjectList(){
     var td='padding:9px 10px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
     return '<tr style="cursor:pointer" onclick="editProject('+p.id+')" onmouseover="this.style.background=\'var(--surface-2)\'" onmouseout="this.style.background=\'\'">'
       +'<td style="'+td+'">'+tag+'</td>'
-      +'<td style="'+td+';font-weight:700">'+(p.client||'\u2014')+'</td>'
+      +'<td style="'+td+';font-weight:700">'+(p.client||'\u2014')+(p.projName?'<div style="font-weight:400;font-size:11px;color:var(--text-3)">'+String(p.projName).replace(/</g,'&lt;')+'</div>':'')+'</td>'
       +'<td style="'+td+';color:var(--text-3);white-space:nowrap">'+(p.regDate||'\u2014')+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;color:var(--text-2)">'+_amtStr+'</td>'
       +'<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700">'+_sStr+'</td>'
@@ -7660,6 +7792,7 @@ function _openProjectForm(id){
     if(p){
       document.getElementById('projFormTitle').textContent='프로젝트 수정 · '+(p.client||'');
       document.getElementById('projClient').value=p.client||'';
+      var _pn=document.getElementById('projName'); if(_pn)_pn.value=p.projName||'';
       document.getElementById('projClientFull').value=p.clientFull||'';
       var _ec=p.endCustomer||{}; document.getElementById('projEndName').value=_ec.name||''; document.getElementById('projEndRep').value=_ec.rep||''; document.getElementById('projEndAddr').value=_ec.addr||''; document.getElementById('projEndContact').value=_ec.contact||'';
       _projFormOwnerId = p.ownerId || (cu?cu.id:null);
@@ -7685,6 +7818,7 @@ function _openProjectForm(id){
   } else {
     document.getElementById('projFormTitle').textContent='새 프로젝트 등록';
     document.getElementById('projClient').value='';
+    var _pn0=document.getElementById('projName'); if(_pn0)_pn0.value='';
     document.getElementById('projClientFull').value='';
     ['projEndName','projEndRep','projEndAddr','projEndContact'].forEach(function(i){ var el=document.getElementById(i); if(el)el.value=''; });
     _projFormOwnerId = cu?cu.id:null;
@@ -7756,12 +7890,31 @@ function renderProjectHistory(id){
   var panel=document.getElementById('projHistoryPanel'); if(!panel) return;
   var p=(state.projects||[]).find(function(x){ return x.id===id; });
   if(!p){ panel.innerHTML='<div style="font-size:11px;color:var(--text-3);line-height:1.7">프로젝트를 저장하면<br>단계 히스토리·대화 로그를 남길 수 있습니다.</div>'; return; }
+  var _cl=(p.client||'').toLowerCase();
+  var _sib=(state.projects||[]).filter(function(x){ return (x.client||'').toLowerCase()===_cl; });
+  var _tS={}, _tP={}, _dts=[];
+  _sib.forEach(function(x){
+    var sd=x.sales||{}; var sa=qNum(sd.invoiceAmount)||qNum(sd.total)||qNum(x.amount); var sc=sd.currency||x.currency||'';
+    if(sa) _tS[sc]=(_tS[sc]||0)+sa;
+    var pu=x.purchase||{}; var pa=qNum(pu.total)||(qNum(pu.deposit)+qNum(pu.balance)); var pc=pu.currency||'';
+    if(pa) _tP[pc]=(_tP[pc]||0)+pa;
+    if(x.regDate) _dts.push(x.regDate);
+  });
+  _dts.sort();
+  var _sKeys=Object.keys(_tS).filter(function(c){return _tS[c];});
+  var _pKeys=Object.keys(_tP).filter(function(c){return _tP[c];});
   var summary='<div style="font-size:11px;color:var(--text-2);margin-bottom:12px;line-height:1.8;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px">'
     +'<div>고객사 · Client: <b>'+(p.client||'')+'</b></div>'
+    +(p.projName?'<div>프로젝트 · Project: <b>'+String(p.projName).replace(/</g,'&lt;')+'</b></div>':'')
     +'<div>등록일 · Reg: <b>'+(p.regDate||(p.createdAt||'').slice(0,10)||'—')+'</b></div>'
     +(p.targetDate?'<div>목표일 · Target: <b>'+p.targetDate+'</b></div>':'')
     +'<div>현재 단계 · Stage: <b style="color:'+projStage(p.stage).color+'">'+projStage(p.stage).label+'</b></div>'
-    +'</div>';
+    +'<div style="border-top:1px dashed var(--border);margin-top:6px;padding-top:6px">'
+    +'<div>이 고객사 프로젝트 · Projects: <b>'+_sib.length+'건</b>'+(_dts.length?(' <span style="color:var(--text-3)">('+_dts[0]+' ~ '+_dts[_dts.length-1]+')</span>'):'')+'</div>'
+    +'<div>총 매출 · Total Sales: <b style="color:#1d4ed8">'+(_sKeys.length?_sKeys.map(function(c){return fmtN(_tS[c])+' '+c;}).join(' · '):'—')+'</b></div>'
+    +'<div>총 매입 · Total Purchase: <b style="color:#b45309">'+(_pKeys.length?_pKeys.map(function(c){return fmtN(_tP[c])+' '+c;}).join(' · '):'—')+'</b></div>'
+    +(_sib.length>1?('<div style="margin-top:4px;color:var(--text-3)">'+_sib.map(function(x){ return '<a href="javascript:void(0)" onclick="editProject('+x.id+')" style="color:'+(x.id===p.id?'var(--text)':'#4338ca')+';text-decoration:none">'+(x.projName||('PJ-'+x.id))+'</a>'; }).join(' / ')+'</div>'):'')
+    +'</div></div>';
   var hist=(p.stageHistory||[]);
   var histHtml = hist.length ? hist.map(function(h){
     var st=projStage(h.stage);
@@ -7770,13 +7923,19 @@ function renderProjectHistory(id){
       +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+st.label+(h.first?' <span style="font-size:9px;color:var(--text-3);font-weight:400">(등록) · (Registered)</span>':'')+'</div>'
       +'<div style="font-size:10px;color:var(--text-3)">'+(h.at||'')+(h.by?' · '+h.by:'')+'</div></div></div>';
   }).join('') : '<div style="font-size:11px;color:var(--text-3)">단계 변경 기록 없음 · No stage history</div>';
-  var logs=(p.logs||[]);
-  var logsHtml = logs.length ? logs.slice().map(function(l,i){ return {l:l,i:i}; }).reverse().map(function(o){
-    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:7px">'
-      +'<div style="font-size:12px;white-space:pre-wrap;line-height:1.5">'+(o.l.text||'')+'</div>'
+  // 동일 고객사의 모든 프로젝트 로그를 통합해서 표시 (현 프로젝트 로그만 삭제 가능)
+  var logs=[];
+  _sib.forEach(function(x){ (x.logs||[]).forEach(function(l,i){ logs.push({l:l, i:i, own:(x.id===p.id), pname:(x.projName||('PJ-'+x.id))}); }); });
+  logs.sort(function(a,b){ return String(a.l.at||'').localeCompare(String(b.l.at||'')); });
+  var logsHtml = logs.length ? logs.slice().reverse().map(function(o){
+    var pj='<span style="display:inline-block;font-size:9px;font-weight:700;color:#b45309;background:#b4530914;padding:1px 6px;border-radius:8px;margin-right:5px">'+String(o.pname).replace(/</g,'&lt;')+'</span>';
+    var sc=(o.l.source==='task')?'<span style="display:inline-block;font-size:9px;font-weight:700;color:#0f766e;background:#0f766e14;padding:1px 6px;border-radius:8px;margin-right:5px">업무</span>':'';
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:7px'+(o.own?'':';border-left:3px solid #b4530955')+'">'
+      +'<div style="margin-bottom:3px">'+sc+pj+'</div>'
+      +'<div style="font-size:12px;white-space:pre-wrap;line-height:1.5">'+String(o.l.text||'').replace(/</g,'&lt;')+'</div>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">'
       +'<span style="font-size:10px;color:var(--text-3)">'+(o.l.by?o.l.by+' · ':'')+(o.l.at||'')+'</span>'
-      +'<button onclick="deleteProjectLog('+o.i+')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0" title="삭제 · Delete"><i class="ti ti-trash"></i></button>'
+      +(o.own?'<button onclick="deleteProjectLog('+o.i+')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0" title="삭제 · Delete"><i class="ti ti-trash"></i></button>':'')
       +'</div></div>';
   }).join('') : '<div style="font-size:11px;color:var(--text-3)">아직 대화 로그가 없습니다.</div>';
   panel.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="ti ti-history"></i> 고객 히스토리 · History</div>'
@@ -7785,7 +7944,7 @@ function renderProjectHistory(id){
     +'<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px">단계 진행 · Stage Timeline</div>'
     +histHtml
     +'<hr style="border:none;border-top:1px solid var(--border);margin:13px 0">'
-    +'<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">대화 로그 · Communication Log</div>'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">고객 히스토리 · Customer History <span style="text-transform:none;letter-spacing:0;font-weight:400">(이 고객사 전체 프로젝트 통합)</span></div>'
     +'<textarea id="projLogInput" placeholder="고객 미팅/통화/메일 내용 기록..." style="width:100%;min-height:54px;font-family:var(--sans);font-size:12px;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius);outline:none;resize:vertical;margin-bottom:7px;box-sizing:border-box"></textarea>'
     +'<button class="btn btn-dark" onclick="addProjectLog()" style="font-size:11px;padding:6px 11px;width:100%"><i class="ti ti-message-plus"></i> 로그 추가 · Add Log</button>'
     +'<div style="margin-top:12px">'+logsHtml+'</div>';
@@ -7957,6 +8116,7 @@ function saveProject(){
   var purchase={ vendor:(document.getElementById('purchaseVendor').value||'').trim(), currency:document.getElementById('purchaseCurrency').value, vat:document.getElementById('purchaseVat').value, subtotal:gv('purchaseSubtotal'), vatAmt:gv('purchaseVatAmt'), total:pTotalV, deposit:pTotalV, depositPaid:_pPaid, depositDate:_pPaidDate, balance:'', balancePaid:false, balanceDate:'', invoiceIds:_pInvIds, invoiceId:(_pInvIds[0]||'') };
   var data={
     client:client,
+    projName:((document.getElementById('projName')||{}).value||'').trim(),
     ownerId:_projFormOwnerId,
     region:document.getElementById('projRegion').value||'',
     location:(document.getElementById('projLocation').value||'').trim(),
@@ -7964,7 +8124,7 @@ function saveProject(){
     buyerAddr:(document.getElementById('projBuyerAddr').value||'').trim(),
     buyerTax:(document.getElementById('projBuyerTax').value||'').trim(),
     clientFull:(document.getElementById('projClientFull').value||'').trim(),
-    endCustomer:(document.getElementById('projCustType').value==='B2B')?{ name:(document.getElementById('projEndName').value||'').trim(), rep:(document.getElementById('projEndRep').value||'').trim(), addr:(document.getElementById('projEndAddr').value||'').trim(), contact:(document.getElementById('projEndContact').value||'').trim() }:null,
+    endCustomer:null,
     type:document.getElementById('projType').value||'',
     custType:document.getElementById('projCustType').value||'',
     stage:document.getElementById('projStage').value||'lead',
@@ -7986,7 +8146,9 @@ function saveProject(){
     var idx=state.projects.findIndex(function(x){ return x.id===_editingProjId; });
     if(idx>=0){ var _prev=state.projects[idx]; data.id=_editingProjId; data.createdAt=_prev.createdAt; data.createdBy=_prev.createdBy; data.updatedAt=nowStr(); data.logs=_prev.logs||[]; data.stageHistory=_prev.stageHistory||[]; data.contractOpts=_prev.contractOpts; data.contractScans=_prev.contractScans||[]; data.contractSeq=_prev.contractSeq; data.contractConfirmed=_prev.contractConfirmed; data.contractConfirmedAt=_prev.contractConfirmedAt; data.contractConfirmedBy=_prev.contractConfirmedBy; if(_prev.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } state.projects[idx]=data; }
   } else {
-    var ex=state.projects.find(function(x){ return (x.client||'').toLowerCase()===client.toLowerCase(); });
+    // 같은 고객사라도 프로젝트명이 다르면 별건으로 신규 등록 (한 고객사 다중 프로젝트 지원)
+    var _pnk=(data.projName||'').toLowerCase();
+    var ex=state.projects.find(function(x){ return (x.client||'').toLowerCase()===client.toLowerCase() && (x.projName||'').toLowerCase()===_pnk; });
     if(ex){ data.id=ex.id; data.createdAt=ex.createdAt; data.createdBy=ex.createdBy; data.updatedAt=nowStr(); data.logs=ex.logs||[]; data.stageHistory=ex.stageHistory||[]; data.contractOpts=ex.contractOpts; data.contractScans=ex.contractScans||[]; data.contractSeq=ex.contractSeq; data.contractConfirmed=ex.contractConfirmed; data.contractConfirmedAt=ex.contractConfirmedAt; data.contractConfirmedBy=ex.contractConfirmedBy; if(ex.stage!==data.stage){ data.stageHistory.push({stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:'')}); } var i2=state.projects.findIndex(function(x){ return x.id===ex.id; }); state.projects[i2]=data; showToast('이미 등록된 고객 — 기존 카드 갱신 · Existing client — card updated'); }
     else { data.id=(state.projectSeq=(state.projectSeq||0)+1); data.createdAt=nowStr(); data.createdBy=(u?u.name:''); data.logs=[]; data.stageHistory=[{stage:data.stage,label:projStage(data.stage).label,at:nowStr(),by:(u?u.name:''),first:true}]; state.projects.push(data); showToast('프로젝트 등록 완료 · Project registered'); }
   }
@@ -7999,6 +8161,7 @@ function deleteProject(id){
   if(id==null) return;
   if(!confirm('이 프로젝트를 삭제할까요? · Delete this project?')) return;
   state.projects=(state.projects||[]).filter(function(x){ return x.id!==id; });
+  _tombAdd('projects',id);
   saveState(); closeProjectForm(); renderProjectBoard(); if(_projTab==='list') renderProjectList(); showToast('삭제 완료 · Deleted');
 }
 
