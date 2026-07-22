@@ -25,7 +25,8 @@
                      "products","quotes","projects","bankTxns","invoices","paymentRequests","tasks"];
   var _isColl = {}; COLLECTIONS.forEach(function(c){ _isColl[c]=1; });
   // 외부화 대상: 무거운 첨부를 가진 컬렉션만 (나머지 작은 것은 인라인 유지)
-  var EXT = { docs:1, products:1 };
+  var EXT = { docs:1, products:1, vendors:1, cardExpenses:1 };
+  var FILES_V = 2;                  // 외부화 스키마 버전 (필드 추가 시 +1 → 백그라운드 재마이그레이션)
   var REF = "\u00A7f\u00A7";        // 포인터 접두사 (§f§)
   var PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="; // 1px 투명
 
@@ -55,8 +56,18 @@
       ["draftAtts","payAtts","contractAtts"].forEach(function(f){
         if(Array.isArray(it[f])) it[f].forEach(function(a){ if(a && _isDataUrl(a.data)) a.data=ext(a.data); });
       });
+      // 의견(notes) 첨부
+      if(Array.isArray(it.notes)) it.notes.forEach(function(n){
+        if(n && Array.isArray(n.atts)) n.atts.forEach(function(a){ if(a && _isDataUrl(a.data)) a.data=ext(a.data); });
+      });
+      // 지출결의서 은행 QR
+      if(it.expenseData && _isDataUrl(it.expenseData.bankQR)) it.expenseData.bankQR=ext(it.expenseData.bankQR);
     } else if(coll==="products"){
       if(_isDataUrl(it.image)) it.image=ext(it.image);
+    } else if(coll==="vendors"){
+      if(_isDataUrl(it.bankQR)) it.bankQR=ext(it.bankQR);
+    } else if(coll==="cardExpenses"){
+      if(_isDataUrl(it.receipt)) it.receipt=ext(it.receipt);
     }
     return it;
   }
@@ -190,7 +201,7 @@
     var tree=_assembleFull(stateObj, files);
     // 파일 먼저 업로드
     for(var h in files){ try{ var fr=await fetch(FILEURL(h),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(files[h])}); if(fr.ok){ window._filesWritten[h]=1; window._fileCache[h]=files[h]; } }catch(_){} }
-    tree.meta = tree.meta||{}; tree.meta.__files=1;
+    tree.meta = tree.meta||{}; tree.meta.__files=1; tree.meta.__filesV=FILES_V;
     var r=await fetch(V2URL(".json"),{ method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(tree) });
     if(!r.ok) throw new Error("migrate HTTP "+r.status);
     window._fbSnapshotFromState(stateObj);
@@ -200,9 +211,9 @@
   // ── 파일 외부화 마이그레이션 (이미 v2지만 base64 인라인인 경우, 백그라운드 1회) ──
   async function _migrateFilesBg(){
     try{
-      var flag=await (await fetch(V2URL("/meta/__files.json"),{cache:'no-cache'})).json();
-      if(flag) return;                                       // 이미 외부화됨
-      console.log("⏳ 파일 외부화 마이그레이션 시작…");
+      var flag=await (await fetch(V2URL("/meta/__filesV.json"),{cache:'no-cache'})).json();
+      if(Number(flag)>=FILES_V) return;                      // 이미 현재 버전으로 외부화됨
+      console.log("⏳ 파일 외부화 마이그레이션 시작 (v"+FILES_V+")…");
       for(var ci=0; ci<COLLECTIONS.length; ci++){
         var c=COLLECTIONS[ci]; if(!EXT[c]) continue;
         var node=await (await fetch(V2URL("/"+c+".json"),{cache:'no-cache'})).json();
@@ -217,7 +228,8 @@
         if(changed){ await fetch(V2URL("/"+c+".json"),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)}); }
       }
       await fetch(V2URL("/meta/__files.json"),{method:"PUT",headers:{"Content-Type":"application/json"},body:"1"});
-      console.log("✅ 파일 외부화 완료 — 다음 로드부터 가벼워집니다.");
+      await fetch(V2URL("/meta/__filesV.json"),{method:"PUT",headers:{"Content-Type":"application/json"},body:String(FILES_V)});
+      console.log("✅ 파일 외부화 완료 (v"+FILES_V+") — 다음 로드부터 가벼워집니다.");
     }catch(e){ console.warn("파일 외부화 마이그레이션 보류:",e&&e.message); }
   }
 
@@ -229,7 +241,7 @@
       if(data && data.__v){
         var st=_reassemble(data); window._fbSnapshotFromState(st);
         setSyncStatus('ok','Live sync · 실시간 동기화');
-        if(!(data.meta && data.meta.__files)) setTimeout(_migrateFilesBg, 2000);   // 외부화 안 됐으면 백그라운드 전환
+        if(!(data.meta && Number(data.meta.__filesV)>=FILES_V)) setTimeout(_migrateFilesBg, 2000);   // 미외부화/구버전이면 백그라운드 전환
         return st;
       }
       var lr=await fetch(BASE+LEGACY,{mode:'cors',cache:'no-cache'});
