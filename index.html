@@ -7666,7 +7666,10 @@ function projDrop(e,stageKey){ e.preventDefault(); e.currentTarget.style.outline
 function setProjectStage(id,stageKey){
   var p=(state.projects||[]).find(function(x){ return x.id===id; }); if(!p) return;
   if(p.stage===stageKey) return;
+  var _u=(typeof cardCurrentUser==='function')?cardCurrentUser():null;
   p.stage=stageKey; p.updatedAt=nowStr();
+  if(!p.stageHistory) p.stageHistory=[];
+  p.stageHistory.push({stage:stageKey,label:projStage(stageKey).label,at:nowStr(),by:(_u?_u.name:'')});
   if(stageKey==='lost' && !p.lostReason){ var r=prompt('드롭 사유를 입력하세요 (가격/경쟁사/예산부족/일정연기/내부취소/기타):',''); p.lostReason=(r||'기타').trim(); }
   if(stageKey!=='lost') p.lostReason='';
   saveState(); renderProjectBoard(); if(_projTab==='list') renderProjectList();
