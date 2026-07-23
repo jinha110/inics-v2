@@ -717,7 +717,7 @@ S.customCls ||= {furniture:[],consumable:[]}; S.customCls.furniture ||= []; S.cu
 S.colorLib ||= [];
 function allCls(cat){ return [...new Set([...CLS[cat].filter(c=>c!=="전체"), ...((S.customCls&&S.customCls[cat])||[])])]; }
 function clsChips(cat){ return ["전체", ...allCls(cat)]; }
-function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys=(p.fursys||[]).map(x=> typeof x==="string"?{model:x,price:0}:{model:(x&&x.model)||"",price:(x&&+x.price)||0});p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;p.url??="";p.colors??=[];if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
+function normalizeProducts(){S.products.forEach(p=>{p.nameEn??=p.name;p.cbm??=0;p.img??="";p.fursys=(p.fursys||[]).map(x=> typeof x==="string"?{model:x,price:0}:{model:(x&&x.model)||"",price:(x&&+x.price)||0});p.supplier??="";p.attachments??=[];p.specFiles??=[];p.costCcy??="USD";p.fx??=25400;p.costRaw??=p.cost;p.url??="";p.colors??=[];p.colors=p.colors.map(c=>{if(c&&c.id&&!c.img){const m=(S.colorLib||[]).find(x=>x.id===c.id);if(m&&m.img)return Object.assign({},c,{img:m.img});}return c;});if(p.price==null)p.price=Math.round(p.cost*(1+DEFAULT_MARGIN/100)*100)/100;});}
 normalizeProducts();
 
 let unlocked=false, view="home", adminCat="furniture", adminQ="";
@@ -731,7 +731,28 @@ function updateBulkBar(){
 }
 let filter={furniture:{q:"",cls:"전체"},consumable:{q:"",cls:"전체"}};
 
-function persist(){ const ok=store.save(S); if(!ok) toast("⚠ 로컬 저장 용량 초과 / Local storage full"); return ok; }
+/* 로컬 저장용 경량 사본 — base64 이미지는 제외(용량 초과 방지). 원본은 메모리+Firebase에 유지 */
+function _liteState(){
+  const o=Object.assign({},S);
+  o.products=(S.products||[]).map(p=>{
+    if(!p||typeof p!=="object") return p;
+    const hasData = typeof p.img==="string" && /^data:/.test(p.img);
+    const cols = Array.isArray(p.colors) ? p.colors : null;
+    const stripCol = cols && cols.some(c=>c&&c.img&&c.id&&(S.colorLib||[]).some(x=>x.id===c.id));
+    if(!hasData && !stripCol) return p;
+    const q=Object.assign({},p);
+    if(hasData) q.img="";
+    if(stripCol) q.colors=cols.map(c=>(c&&c.img&&c.id&&(S.colorLib||[]).some(x=>x.id===c.id))?Object.assign({},c,{img:""}):c);
+    return q;
+  });
+  return o;
+}
+function persist(){
+  let ok=store.save(_liteState());
+  if(!ok){ try{ localStorage.removeItem("inics_sourcing_v2"); }catch(e){} ok=store.save(_liteState()); }
+  if(!ok) toast("⚠ 로컬 저장 용량 초과 / Local storage full");
+  return ok;
+}
 function autoQuoteNo(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `QT-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;}
 function nextInvoiceNo(){const y=new Date().getFullYear();const n=(S.invoiceSeq&&S.invoiceSeq[y])||0;return `INV-${y}-${String(n+1).padStart(4,"0")}`;}
 function bumpInvoiceSeq(){const y=new Date().getFullYear();S.invoiceSeq||={};S.invoiceSeq[y]=((S.invoiceSeq[y])||0)+1;}
@@ -782,6 +803,53 @@ async function uploadAttachment(productId, file, folder){
   const url = "https://firebasestorage.googleapis.com/v0/b/"+STORAGE_BUCKET+"/o/"+encodeURIComponent(path)+"?alt=media"+(token?("&token="+token):"");
   return {name:file.name, url, size:file.size||0, type:file.type||"", path, ts:Date.now()};
 }
+/* dataURL → Blob */
+function _dataUrlToBlob(u){
+  const m=/^data:([^;,]+)(;base64)?,/.exec(u||"");
+  if(!m) return null;
+  const mime=m[1], isB64=!!m[2], body=u.slice(m[0].length);
+  if(!isB64) return new Blob([decodeURIComponent(body)],{type:mime});
+  const bin=atob(body), arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+/* base64 사진 → Storage 업로드 후 다운로드 URL 반환 */
+async function uploadImgDataUrl(productId, dataUrl){
+  const blob=_dataUrlToBlob(dataUrl);
+  if(!blob) return dataUrl;
+  const t=blob.type||"";
+  const ext=/webp/.test(t)?"webp":/png/.test(t)?"png":"jpg";
+  const file=new File([blob],"photo."+ext,{type:t||"image/jpeg"});
+  const a=await uploadAttachment(productId,file,"photos");
+  return a.url;
+}
+/* 저장 직전 호출: 사진이 base64면 Storage로 승격 */
+async function promoteProductImg(p){
+  if(!p||typeof p.img!=="string"||!/^data:/.test(p.img)) return false;
+  if(!NET.on) return false;                       // 오프라인이면 로컬 유지
+  try{ p.img=await uploadImgDataUrl(p.id,p.img); return true; }
+  catch(e){ console.warn("사진 업로드 실패",e); toast("사진 업로드 실패 — 임시 저장 / Upload failed"); return false; }
+}
+/* 기존 base64 사진 일괄 이전 (1회) · 콘솔에서 migrateImages(true) 로 재실행 */
+async function migrateImages(force){
+  const MK="inics_sourcing_imgmig_v1";
+  if(!NET.on) return 0;
+  if(!force){ try{ if(localStorage.getItem(MK)) return 0; }catch(e){} }
+  const targets=(S.products||[]).filter(p=>typeof p.img==="string"&&/^data:/.test(p.img));
+  if(!targets.length){ try{ localStorage.setItem(MK,"1"); }catch(e){} return 0; }
+  toast("사진 "+targets.length+"건 클라우드 이전 중… / Migrating…");
+  let n=0;
+  for(const p of targets){
+    try{ p.img=await uploadImgDataUrl(p.id,p.img); pushProduct(p); n++; }
+    catch(e){ console.warn("이전 실패",p.sku,e); }
+  }
+  persist(); render();
+  try{ localStorage.setItem(MK,"1"); }catch(e){}
+  toast("사진 "+n+"건 이전 완료 / "+n+" migrated");
+  return n;
+}
+try{ window.migrateImages=migrateImages; }catch(e){}
+
 function fmtSize(b){ b=+b||0; return b<1024?b+" B":b<1048576?(b/1024).toFixed(0)+" KB":(b/1048576).toFixed(1)+" MB"; }
 function fileIcon(a){
   const t=(a.type||"")+" "+(a.name||"");
@@ -856,6 +924,7 @@ async function boot(){
     NET.on=true; subscribeProducts(); setSync("online");
   }catch(e){ console.warn("RTDB 연결 실패 → 로컬 모드",e); NET.on=false; setSync("local"); }
   render();
+  setTimeout(()=>{ migrateImages().catch(e=>console.warn("마이그레이션 오류",e)); }, 2000);
 }
 
 /* 유틸 */
@@ -1531,7 +1600,7 @@ function mountForm(){
   app.querySelectorAll("[data-formcancel]").forEach(b=>b.addEventListener("click",back));
   const del=app.querySelector("[data-formdel]");
   if(del) del.addEventListener("click",()=>{ confirmModal("이 품목을 삭제할까요? / Delete this item?",()=>{ S.products=S.products.filter(x=>x.id!==f.id); dropProduct(f.id); back(); toast("삭제됨 / Deleted"); }); });
-  app.querySelector("[data-formsave]").addEventListener("click",()=>{
+  app.querySelector("[data-formsave]").addEventListener("click",async()=>{
     if([...f.attachments,...f.specFiles].some(a=>a.uploading)){ toast("첨부 업로드 중… 잠시 후 저장 / Uploading…"); return; }
     if(f.cat==="consumable") f.fursys=[];
     delete f._margin;
@@ -1541,6 +1610,7 @@ function mountForm(){
     if(formCtx.editing){ const i=S.products.findIndex(x=>x.id===f.id); if(i>=0)S.products[i]=f; else S.products.push(f); }
     else { S.products.unshift(f); }
     const wasEditing=formCtx.editing;
+    await promoteProductImg(f);
     saveProduct(f); back(); toast(wasEditing?"저장·동기화됨 / Saved":"등록·동기화됨 / Registered");
   });
   setTimeout(()=>{const p=$("#fmPaste");if(p)p.focus();},40);
@@ -1600,12 +1670,19 @@ function openImageDialog(id){
   const close=()=>{document.removeEventListener("paste",onPaste);bg.remove();imgState=null;};
   bg.querySelector("#imCancel").onclick=close;
   bg.querySelector("#imDel").onclick=()=>{p.img="";saveProduct(p);close();render();toast("이미지 삭제됨 / Removed");};
-  bg.querySelector("#imSave").onclick=()=>{p.img=imgState.pending||"";saveProduct(p);close();render();toast(NET.on?"이미지 저장·동기화됨 / Saved":"이미지 저장됨(로컬) / Saved");};
+  bg.querySelector("#imSave").onclick=async()=>{const _b=bg.querySelector("#imSave");p.img=imgState.pending||"";if(NET.on&&/^data:/.test(p.img)){_b.disabled=true;_b.textContent="업로드 중… / Uploading…";await promoteProductImg(p);}saveProduct(p);close();render();toast(NET.on?"이미지 저장·동기화됨 / Saved":"이미지 저장됨(로컬) / Saved");};
   bg.addEventListener("click",ev=>{if(ev.target===bg)close();});
 }
 
 /* 클립보드 → Image */
 function loadImageFromBlob(blob){return new Promise((res,rej)=>{const url=URL.createObjectURL(blob);const img=new Image();img.onload=()=>{URL.revokeObjectURL(url);res(img);};img.onerror=e=>{URL.revokeObjectURL(url);rej(e);};img.src=url;});}
+
+/* 캔버스 인코딩: WebP 우선(알파 지원·PNG 대비 약 1/10) → 미지원 시 PNG/JPEG */
+const _WEBP_OK=(()=>{try{return document.createElement("canvas").toDataURL("image/webp").indexOf("data:image/webp")===0;}catch(e){return false;}})();
+function _encodeCanvas(cv,alpha){
+  if(_WEBP_OK) return cv.toDataURL("image/webp",0.85);
+  return alpha ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg",0.85);
+}
 
 /* 자동 누끼: 테두리 시드 flood-fill 배경제거 → 크롭·패딩 */
 function autoCutout(img,{removeBg=true,maxSize=640}={}){
@@ -1613,7 +1690,7 @@ function autoCutout(img,{removeBg=true,maxSize=640}={}){
   const sc=Math.min(1,maxSize/Math.max(w,h));w=Math.max(1,Math.round(w*sc));h=Math.max(1,Math.round(h*sc));
   const cv=document.createElement("canvas");cv.width=w;cv.height=h;
   const ctx=cv.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,w,h);
-  if(!removeBg)return {dataUrl:cv.toDataURL("image/jpeg",0.85),removed:false};
+  if(!removeBg)return {dataUrl:_encodeCanvas(cv,false),removed:false};
   const id=ctx.getImageData(0,0,w,h),d=id.data;
   // 배경색 = 테두리 평균
   let br=0,bg=0,bb=0,n=0;const samp=(x,y)=>{const i=(y*w+x)*4;br+=d[i];bg+=d[i+1];bb+=d[i+2];n++;};
@@ -1638,12 +1715,12 @@ function autoCutout(img,{removeBg=true,maxSize=640}={}){
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(d[(y*w+x)*4+3]>18){cnt++;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}}
   if(cnt<w*h*0.012){ // 제거 실패 → 원본
     const o=document.createElement("canvas");o.width=w;o.height=h;o.getContext("2d").drawImage(img,0,0,w,h);
-    return {dataUrl:o.toDataURL("image/jpeg",0.85),removed:false};
+    return {dataUrl:_encodeCanvas(o,false),removed:false};
   }
   const cw=maxX-minX+1,ch=maxY-minY+1,pad=Math.round(Math.max(cw,ch)*0.08);
   const out=document.createElement("canvas");out.width=cw+pad*2;out.height=ch+pad*2;
   out.getContext("2d").drawImage(cv,minX,minY,cw,ch,pad,pad,cw,ch);
-  return {dataUrl:out.toDataURL("image/png"),removed:true};
+  return {dataUrl:_encodeCanvas(out,true),removed:true};
 }
 
 /* PIN 모달 */
