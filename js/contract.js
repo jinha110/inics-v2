@@ -503,7 +503,7 @@ async function downloadContractPDF(){
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
 }
 
-async function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); try{ var _qs=_projQuotesC(p); var _q=o.quoteId?_qs.find(function(x){return x.id===o.quoteId;}):_qs[0]; if(typeof _quoteResolveImgs==='function') await _quoteResolveImgs(_q); }catch(_){} var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>Contract</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700&display=swap" rel="stylesheet"><style>@page{margin:16mm 8mm 12mm}body{font-family:\'Be Vietnam Pro\',\'Noto Sans\',Arial,sans-serif}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}.ct-page{break-before:page;page-break-before:always}</style></head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); setTimeout(function(){ w.print(); },700); }
+async function printContract(){ var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p)return; var o=_readContractOpts(); saveBuyerToDB(p.client,_buyerOf(o)); saveState(); try{ var _qs=_projQuotesC(p); var _q=o.quoteId?_qs.find(function(x){return x.id===o.quoteId;}):_qs[0]; if(typeof _quoteResolveImgs==='function') await _quoteResolveImgs(_q); }catch(_){} var _html=_ctHasCustom(p)?p.contractCustomHtml:buildContractHtml(p,o,false); var w=window.open('','_blank'); var _head=(typeof _printHead==='function')?_printHead('Contract','@page{margin:16mm 8mm 12mm}'):'<meta charset="utf-8"><title>Contract</title>'; w.document.write('<html><head>'+_head+'</head><body style="margin:0">'+_html+'</body></html>'); w.document.close(); if(typeof _printWhenReady==='function'){ _printWhenReady(w); } else { setTimeout(function(){ w.print(); },700); } }
 
 function openContractTpl(){
   var t=getContractTpl();
@@ -595,7 +595,8 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   function _whenTxt(r,lang){ return H(_atL(r.at,r.net,lang)); }
   function _payLine(lang){ return trows.map(function(r,i){ var seg=_ordL(i,lang)+' — '+H(r.pct+'%')+' ('+H(M(r.amt))+'), '+_whenTxt(r,lang); if(i===0&&_tcnt>1){ if(lang==='vi')seg+='. Thời gian sản xuất và giao hàng (Lead Time) được tính từ ngày khoản này được ghi có đầy đủ vào tài khoản của Nhà Cung Cấp'; else if(lang==='en')seg+='. The production and delivery lead time shall be counted from the date this payment is fully credited to the Supplier\u2019s account'; else seg+='. 생산·인도 리드타임은 본 회차가 공급자 계좌에 완전히 입금된 날로부터 기산한다'; } return seg+'.'; }).join(' '); }
   var payVi=_payLine('vi'), payEn=_payLine('en'), payKo=_payLine('ko');
-  var baseVars={ no:o.contractNo||'', date:o.date||'', deliveryDate:o.deliveryDate||(review?'(미정)':'………'), deliveryPlace:p.deliveryPlace||(review?'(미입력)':'………'), total:M(total), paymentDays:payDays, warrantyYears:o.warrantyYears||'', cureDays:'' };
+  var _D=function(v){ return (typeof _dmy==='function')?_dmy(v||''):(v||''); };
+  var baseVars={ no:o.contractNo||'', date:_D(o.date), deliveryDate:_D(o.deliveryDate)||(review?'(미정)':'………'), deliveryPlace:p.deliveryPlace||(review?'(미입력)':'………'), total:M(total), paymentDays:payDays, warrantyYears:o.warrantyYears||'', cureDays:'' };
   var varsVi=Object.assign({},baseVars,{paymentClause:payVi});
   var varsEn=Object.assign({},baseVars,{paymentClause:payEn});
   var varsKo=Object.assign({},baseVars,{paymentClause:payKo});
@@ -633,15 +634,15 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   }).join(''):'<tr><td colspan="11" style="border:1px solid #999;padding:10px;text-align:center;color:#b91c1c">'+(review?'연결된 견적이 없습니다 — 견적서를 먼저 작성/연결하세요':'')+'</td></tr>';
 
   return ''
-  +'<div style="width:754px;margin:0 auto;padding:24px 24px 34px;background:#fff;color:#111;font-family:\'Be Vietnam Pro\',\'Noto Sans\',Arial,sans-serif;box-sizing:border-box">'
+  +'<div style="width:754px;margin:0 auto;padding:24px 24px 34px;background:#fff;color:#111;font-family:\'Be Vietnam Pro\',\'Segoe UI\',\'Noto Sans\',Tahoma,Arial,sans-serif;box-sizing:border-box;font-synthesis:none">'
   +'<div style="padding:4px 0 12px"><img src="'+INICS_LOGO_CT+'" alt="INICS" style="height:52px;width:auto;object-fit:contain;display:block"></div>'
   +'<hr style="border:none;border-top:2px solid #111;margin:0 0 18px">'
   +(isKo
     ? '<div style="text-align:center"><div style="font-size:16px;font-weight:800">가구 공급 계약서 · Furniture Supply Contract</div><div style="font-size:13px;font-weight:700;color:#333;margin-top:2px">SUPPLY CONTRACT · 한국어 참고본</div><div style="font-size:11px;margin-top:4px">계약번호 / No.: '+H(o.contractNo||'')+'</div></div>'
-    : '<div style="text-align:center"><div style="font-size:16px;font-weight:800;letter-spacing:.3px">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:13px;font-weight:700;color:#333;margin-top:2px">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:11px;color:#1d4ed8;margin-top:1px">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:11px;margin-top:4px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
+    : '<div style="text-align:center"><div class="vn-h" style="font-size:16px;font-weight:700;line-height:1.5;padding:2px 0">HỢP ĐỒNG CUNG CẤP HÀNG HÓA</div><div style="font-size:13px;font-weight:700;color:#333;margin-top:2px">SUPPLY CONTRACT</div>'+(review?'<div style="font-size:11px;color:#1d4ed8;margin-top:1px">가구 공급 계약서 · Furniture Supply Contract</div>':'')+'<div style="font-size:11px;margin-top:4px">Số / No.: '+H(o.contractNo||'')+'</div></div>')
   +(isKo
-    ? '<div style="font-size:12px;margin-top:22px">본 계약은 '+H(o.date||'')+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
-    : '<div style="font-size:12px;margin-top:22px">Hợp đồng này được lập và ký vào ngày '+H(o.date||'')+', bởi và giữa: / This Contract is made on '+H(o.date||'')+', by and between:</div>')
+    ? '<div style="font-size:12px;margin-top:22px">본 계약은 '+H(_D(o.date))+'에 다음 양 당사자 간에 작성·체결되었다:</div>'
+    : '<div style="font-size:12px;margin-top:22px">Hợp đồng này được lập và ký vào ngày '+H(_D(o.date))+', bởi và giữa: / This Contract is made on '+H(_D(o.date))+', by and between:</div>')
 
   // Bên A 공급자 / Bên B 구매자
   +'<div style="display:flex;gap:12px;margin-top:8px;font-size:12px;line-height:1.5">'
@@ -662,10 +663,10 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   +'</div>'
   +(review?KO('공급자(Bên A)=INICS 고정, 구매자(Bên B) 정보는 옵션에서 입력 → 저장 시 거래처 DB 반영'):'')
 
-  +'<table class="ct-arts" style="width:100%;border-collapse:collapse;border:1.2px solid #333;font-size:12px;line-height:1.55;margin-top:16px">'
+  +'<table class="ct-arts" style="width:100%;border-collapse:collapse;border:1px solid #111;font-size:12px;line-height:1.55;margin-top:16px">'
   +art('Điều 1','MỤC ĐÍCH','Purpose','art1Vi','art1En','계약 목적')
   +art('Điều 2','SẢN PHẨM VÀ SỐ LƯỢNG','Product & Quantity','art2Vi','art2En','제품·수량 (부록1 견적 명세)')
-  +art('Điều 3','GIAO HÀNG','Delivery','art3Vi','art3En','납품: 납기 '+(o.deliveryDate||'미정')+', 장소 '+(p.deliveryPlace||'미입력'))
+  +art('Điều 3','GIAO HÀNG','Delivery','art3Vi','art3En','납품: 납기 '+(_D(o.deliveryDate)||'미정')+', 장소 '+(p.deliveryPlace||'미입력'))
   +art('Điều 4','ĐIỀU KHOẢN THANH TOÁN','Payment','art4Vi','art4En','결제: '+trows.map(function(r,i){return _ordL(i,'ko')+' '+r.pct+'% ('+_atL(r.at,r.net,'ko')+')';}).join(' / ')+', 총액 '+M(total))
   +art('Điều 5','CHẤM DỨT HỢP ĐỒNG','Termination','art5Vi','art5En','해지 조건')
   +art('Điều 6','QUYỀN & NGHĨA VỤ BÊN MUA','Buyer','art6Vi','art6En','구매자 권리·의무')
@@ -690,7 +691,7 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
   +'</div>'
 
   // APPENDIX 1 견적 품목표
-  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:16px;font-weight:800">PHỤ LỤC 1 – MÔ TẢ THÔNG TIN ĐƠN HÀNG</div><div style="height:8px"></div><div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:10px">APPENDIX 1 – DESCRIPTION OF ORDER INFORMATION</div>'
+  +'<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div class="vn-h" style="text-align:center;font-size:16px;font-weight:700;line-height:1.5;padding:2px 0">PHỤ LỤC 1 – MÔ TẢ THÔNG TIN ĐƠN HÀNG</div><div style="height:8px"></div><div class="vn-h" style="text-align:center;font-size:16px;font-weight:700;line-height:1.5;padding:2px 0;margin-bottom:10px">APPENDIX 1 – DESCRIPTION OF ORDER INFORMATION</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:10.2px">'
       +'<thead><tr style="background:#f1f5f9">'
         +['No','Category','Product Name','Image','Size (WxDxH)','Code','Color','Qty','Unit Price<br>(Excl.VAT)','Amount<br>(Excl.VAT)','Remark'].map(function(h){return '<th style="border:1px solid #999;padding:4px">'+h+'</th>';}).join('')
@@ -703,8 +704,8 @@ function buildContractHtml(p,o,review,tplOverride,sampleQuote,lang){
       +'</tfoot></table>'
   +'</div>'
 
-  +((true)?('<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div style="text-align:center;font-size:16px;font-weight:800">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH</div><div style="height:8px"></div><div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:3px">APPENDIX 2 \u2013 WARRANTY LETTER</div>'
-    +'<div style="text-align:center;font-size:10.8px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(o.date):'') + '</div>'
+  +((true)?('<div class="ct-blk ct-page" style="margin-top:26px;page-break-before:always"><div class="vn-h" style="text-align:center;font-size:16px;font-weight:700;line-height:1.5;padding:2px 0">PHỤ LỤC 2 \u2013 THƯ BẢO HÀNH</div><div style="height:8px"></div><div class="vn-h" style="text-align:center;font-size:16px;font-weight:700;line-height:1.5;padding:2px 0;margin-bottom:3px">APPENDIX 2 \u2013 WARRANTY LETTER</div>'
+    +'<div style="text-align:center;font-size:10.8px;color:#666;margin-bottom:10px">INICS VINA CO., LTD' + (o.date?' \u00b7 '+H(_D(o.date)):'') + '</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:10.8px;line-height:1.55">'
       +'<tr style="background:#f1f5f9;vertical-align:top"><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">TIẾNG VIỆT</th><th style="width:50%;border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:10.2px">ENGLISH</th></tr>'
       +'<tr class="ct-soft" style="vertical-align:top">'
