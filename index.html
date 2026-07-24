@@ -6521,7 +6521,7 @@ var projectAppOpen = false;
 var INICS_INFO = {
   nameVi:'CÔNG TY TNHH INICS VINA', nameEn:'INICS VINA CO., LTD',
   rep:'LEE JINHA', repTitleVi:'Pháp nhân giám đốc', repTitleEn:'Legal Representative',
-  addr:'Tầng 3 của tòa nhà (QA4), Số 28 Đường Đặng Hữu Phổ, P. An Khánh, TP. HCM / 3rd floor (QA4), 28 Dang Huu Pho Street, An Khanh Ward, Ho Chi Minh City',
+  addr:'Số 28 Đường Đặng Hữu Phổ, P. An Khánh, TP. HCM / 28 Dang Huu Pho Street, An Khanh Ward, Ho Chi Minh City',
   tel:'0347973470', mst:'0319562684'
 };
 // 서명란 표시용: 성(첫 단어)을 제외한 이름만 반환 (예: 'LEE JINHA' → 'JINHA')
@@ -7129,7 +7129,7 @@ function renderPRHistory(){
         +'<span style="font-family:var(--mono);font-weight:700;flex:1;min-width:0">'+(r.prNo||'')+'</span>'
         +'<span style="color:var(--text-2)">'+_prKindLabel(r.kind,true)+'</span>'
         +'<span style="font-weight:600">'+(r.currency||'')+' '+fmtN(r.amount||0)+'</span>'
-        +'<span style="color:var(--text-3)">'+(r.date||'')+'</span>'
+        +'<span style="color:var(--text-3)">'+_dmy(r.date||'')+'</span>'
         +'<label style="display:inline-flex;align-items:center;gap:3px;cursor:pointer;'+(paid?'color:#15803d;font-weight:700':'color:var(--text-3)')+'" title="대금 입금 여부 · Payment received"><input type="checkbox" '+(paid?'checked':'')+' onchange="togglePrPaid(\''+r.id+'\',this.checked)" style="width:auto;margin:0">'+(paid?'입금완료·Paid':'미입금·Unpaid')+'</label>'
         +'<a href="javascript:void(0)" onclick="reprintPaymentRequest(\''+r.id+'\')" style="color:#4338ca;text-decoration:none" title="다시 인쇄 · Reprint"><i class="ti ti-printer"></i></a>'
         +'<a href="javascript:void(0)" onclick="deletePaymentRequest(\''+r.id+'\')" style="color:var(--danger);text-decoration:none" title="삭제 · Delete"><i class="ti ti-trash"></i></a>'
@@ -7177,8 +7177,8 @@ function reprintPaymentRequest(id){
 function printPaymentRequest(){ var d=_prContractData(); if(!d)return; _printHtmlDoc(buildPaymentRequestHtml(d.p,d.o,_readPR()),'PaymentRequest'); }
 function _printHtmlDoc(htmlBody,title){
   var w=window.open('','_blank');
-  w.document.write('<html><head><meta charset="utf-8"><title>'+title+'</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700&display=swap" rel="stylesheet"><style>@page{margin:10mm}body{font-family:\'Be Vietnam Pro\',\'Noto Sans\',Arial,sans-serif}.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}</style></head><body style="margin:0">'+htmlBody+'</body></html>');
-  w.document.close(); setTimeout(function(){ w.print(); },400);
+  w.document.write('<html><head>'+_printHead(title,'@page{margin:10mm}')+'</head><body style="margin:0">'+htmlBody+'</body></html>');
+  w.document.close(); _printWhenReady(w);
 }
 function downloadPaymentRequestPDF(){
   if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
@@ -7256,7 +7256,7 @@ function buildPaymentRequestHtml(p,o,pr){
   var itemVi=esc(pr.item||''), itemEn=esc(pr.itemEn||'');
   var inicsVi=esc(INICS_INFO.nameVi||'CÔNG TY TNHH INICS VINA');
   var inicsEn=esc(INICS_INFO.nameEn||'INICS VINA CO., LTD');
-  var H='<div style="width:794px;max-width:100%;margin:0 auto;background:#fff;color:#111;font-family:Arial,\'Helvetica Neue\',sans-serif;padding:30px 34px;box-sizing:border-box;font-size:11px;line-height:1.55">';
+  var H='<div style="width:794px;max-width:100%;margin:0 auto;background:#fff;color:#111;font-family:\'Be Vietnam Pro\',\'Segoe UI\',Arial,\'Helvetica Neue\',sans-serif;padding:30px 34px;box-sizing:border-box;font-size:11px;line-height:1.55">';
   // header
   H+='<div class="ct-blk" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid #111;padding-bottom:10px">'
     +'<div style="max-width:58%">'
@@ -7268,7 +7268,7 @@ function buildPaymentRequestHtml(p,o,pr){
       +'<div style="font-size:16px;font-weight:800;letter-spacing:.02em">GIẤY ĐỀ NGHỊ THANH TOÁN</div>'
       +'<div style="font-size:11px;font-weight:700;color:#333">PAYMENT REQUEST</div>'
       +'<div style="font-size:10px;margin-top:4px">Số / No.: <b>'+esc(pr.prNo||'')+'</b></div>'
-      +'<div style="font-size:10px">Ngày / Date: '+esc(pr.date||'')+'</div>'
+      +'<div style="font-size:10px">Ngày / Date: '+esc(_dmy(pr.date||''))+'</div>'
     +'</div>'
   +'</div>';
   // to / contract boxes
@@ -7282,7 +7282,7 @@ function buildPaymentRequestHtml(p,o,pr){
     +'<div style="flex:1;border:1px solid #999;padding:8px 10px">'
       +'<div style="font-weight:700;font-size:10px">Hợp đồng / Contract</div>'
       +'<div style="font-weight:700;margin-top:2px;font-family:monospace">'+hd+'</div>'
-      +'<div style="font-size:9.5px;color:#444">Ngày HĐ / Contract date: '+esc(o.date||'')+'</div>'
+      +'<div style="font-size:9.5px;color:#444">Ngày HĐ / Contract date: '+esc(_dmy(o.date||''))+'</div>'
     +'</div>'
   +'</div>';
   // intro
@@ -7320,7 +7320,7 @@ function buildPaymentRequestHtml(p,o,pr){
       +'<div>Ngân hàng / Bank: <b>'+esc(pr.bank||'Shinhan Bank Vietnam')+'</b></div>'
       +'<div>Số TK / Account No.: <b>'+esc(pr.acct||'')+'</b></div>'
       +'<div style="grid-column:span 2">Chủ TK / Account holder: <b>'+esc(pr.holder||inicsVi)+'</b></div>'
-      +'<div>Hạn thanh toán / Due date: <b>'+(pr.due?esc(pr.due):'………')+'</b></div>'
+      +'<div>Hạn thanh toán / Due date: <b>'+(pr.due?esc(_dmy(pr.due)):'………')+'</b></div>'
       +'<div>Số tiền / Amount: <b>'+amtStr+'</b>'+(_vr>0?' <span style="color:#555;font-weight:400">(đã gồm VAT · incl. VAT '+_vr+'%)</span>':'')+'</div>'
       +(_vr>0?'<div style="grid-column:span 2;color:#555">Trong đó / Of which — Chưa VAT · pre-VAT: <b>'+netStr+'</b> · Thuế GTGT · VAT '+_vr+'%: <b>'+vatStr+'</b></div>':'')
     +'</div>'
@@ -7347,6 +7347,47 @@ var _ctTplLang='vnen', _ctTplZoom=100, _ctTplSample=null;
 
 function projStage(key){ for(var i=0;i<PROJ_STAGES.length;i++){ if(PROJ_STAGES[i].key===key) return PROJ_STAGES[i]; } return PROJ_STAGES[0]; }
 function projTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+/* ── DATE 표기 통일: 저장은 ISO(YYYY-MM-DD), 출력은 DD-MM-YYYY ── */
+function _dmy(v){ var s=String(v==null?'':v).trim(); if(!s) return '';
+  var m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return String(m[3]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0')+'-'+m[1];
+  var m2=s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/); if(m2) return String(m2[3]).padStart(2,'0')+'-'+String(m2[2]).padStart(2,'0')+'-'+m2[1];
+  return s; }
+window._dmy=_dmy;
+/* ── 인쇄창 공통 <head> : 베트남어 성조 + 하프톤(도트) 대책 ── */
+var PRINT_FONT_STACK="'Be Vietnam Pro','Segoe UI','Noto Sans',Tahoma,Arial,sans-serif";
+function _printHead(title,pageCss){
+  return '<meta charset="utf-8"><title>'+(title||'')+'</title>'
+   +'<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+   +'<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=block" rel="stylesheet">'
+   +'<style>'
+   +(pageCss||'@page{margin:10mm}')
+   +'html,body{-webkit-print-color-adjust:economy;print-color-adjust:economy}'
+   +'body{font-family:'+PRINT_FONT_STACK+';font-synthesis:none;font-synthesis-weight:none;text-rendering:geometricPrecision}'
+   +'.vn-h{line-height:1.5;padding:1px 0;font-feature-settings:"kern" 1;font-synthesis:none}'
+   +'.ct-blk,.ct-soft{break-inside:avoid;page-break-inside:avoid}'
+   +'.ct-page{break-before:page;page-break-before:always}'
+   +'@media print{'
+     +'.ct-arts{border-width:1px !important;border-color:#111 !important}'
+     +'table,tr,td,th{box-shadow:none !important}'
+     +'[style*="background:#fbfbfb"],[style*="background:#f8fafc"],[style*="background:#fafafa"],[style*="background:#fcfcfc"]{background:#ffffff !important}'
+   +'}'
+   +'</style>';
+}
+/* 웹폰트 로드 완료 후 인쇄 (미로드 상태로 인쇄하면 성조 글리프가 깨짐) */
+function _printWhenReady(w){
+  var done=false;
+  var go=function(){ if(done) return; done=true; try{ w.focus(); }catch(_){} try{ w.print(); }catch(_){} };
+  try{
+    var fs=w.document.fonts;
+    if(fs && fs.load){
+      Promise.all([fs.load('400 12px "Be Vietnam Pro"'),fs.load('700 13px "Be Vietnam Pro"'),fs.load('800 16px "Be Vietnam Pro"')])
+        .then(function(){ return fs.ready; })
+        .then(function(){ setTimeout(go,180); })
+        .catch(function(){ setTimeout(go,180); });
+      setTimeout(go,5000);
+    } else { setTimeout(go,900); }
+  }catch(_){ setTimeout(go,900); }
+}
 // ═══════════ TASK MANAGEMENT (업무 관리) ═══════════
 var TASK_TYPES_DEFAULT=[{k:'meeting',l:'고객상담/미팅 · Meeting'},{k:'networking',l:'네트워킹/영업개발 · Networking'},{k:'design',l:'도면/디자인 · Design'},{k:'quote',l:'견적/서류 · Quote/Docs'},{k:'logistics',l:'발주/물류 · Order/Logistics'},{k:'mxsupport',l:'MX 지원 · MX Support'},{k:'site',l:'현장시공/감리 · Site'},{k:'etc',l:'기타 · Etc'}];
 var TASK_TYPES=TASK_TYPES_DEFAULT;   // legacy alias
