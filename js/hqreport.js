@@ -253,8 +253,8 @@
     var holdN = projects.filter(function (p) { return p.stage === "hold"; }).length, lostN = projects.filter(function (p) { return p.stage === "lost"; }).length;
     h += '<div style="font-size:11px;color:var(--text-3);margin-bottom:16px">보류 · On-hold ' + holdN + '건 · 드롭 · Lost ' + lostN + '건 (합계 제외)</div>';
 
-    // (3) 단계 변경 상세 — 보고월 내 stageHistory 이벤트 전체 (전 단계 · 신규등록 포함)
-    var _rMon = _dOnly(wr.mon), _rmStart = new Date(_rMon.getFullYear(), _rMon.getMonth(), 1), _rmEnd = new Date(_rMon.getFullYear(), _rMon.getMonth() + 1, 0), _rmLbl = (_rMon.getMonth() + 1) + "월";
+    // (3) 단계 변경 상세 — 보고주(월~일) 내 stageHistory 이벤트 (전 단계 · 신규등록 포함)
+    var _rmStart = _dOnly(wr.mon), _rmEnd = _dOnly(wr.sun), _rmLbl = (_rmStart.getMonth() + 1) + "/" + _rmStart.getDate() + "~" + (_rmEnd.getMonth() + 1) + "/" + _rmEnd.getDate();
     var _EXTRA = [["delivered", "납품완료 · Delivered", "#15803d"], ["hold", "보류 · Hold", "#6b7280"], ["lost", "드롭 · Lost", "#b91c1c"]];
     var _detStages = PSTAGES.concat(_EXTRA);
     // 프로젝트당 1건 — 보고기간 내 마지막 이동만 표기 (중간 경유 단계는 표시 안 함)
@@ -270,10 +270,20 @@
         if (last && last.d > d) return;
         last = { p: p, d: d, stage: x.stage, first: !!x.first };
       });
-      // stageHistory 자체가 없는 레거시·임포트 건은 등록일 기준으로 현 단계 1건 보정
-      if (!hist.length && _evtByStage[p.stage]) {
-        var rd = _parseAt(p.regDate) || _parseAt(p.createdAt);
-        if (rd && _inRange(rd, _rmStart, _rmEnd)) { last = { p: p, d: rd, stage: p.stage, first: true, legacy: true }; nMoves = 1; }
+      // [보정 A] 기간 내 이벤트는 있으나 현재 단계와 불일치 — 이력 미기록 이동(임포트·구버전 드래그). 현재 단계 섹션으로 재배치
+      if (last && last.stage !== p.stage && _evtByStage[p.stage]) {
+        var _ud = _parseAt(p.updatedAt);
+        if (_ud && _inRange(_ud, _rmStart, _rmEnd) && _ud >= last.d) last.d = _ud;
+        last.stage = p.stage; last.fixed = true;
+      }
+      // [보정 B] 기간 내 이벤트가 아예 없음 — 이력 없음(레거시) 또는 마지막 이력≠현재 단계면 updatedAt/등록일 기준 1건 보정
+      if (!last && _evtByStage[p.stage]) {
+        var _hl = hist.length ? hist[hist.length - 1] : null;
+        if (!_hl || _hl.stage !== p.stage) {
+          var rd = _hl ? (_parseAt(p.updatedAt) || _parseAt(p.regDate) || _parseAt(p.createdAt))
+                       : (_parseAt(p.regDate) || _parseAt(p.createdAt));
+          if (rd && _inRange(rd, _rmStart, _rmEnd)) { last = { p: p, d: rd, stage: p.stage, first: !_hl, legacy: true, fixed: !!_hl }; nMoves = 1; }
+        }
       }
       if (last) { last.moves = nMoves; _evtByStage[last.stage].push(last); }
     });
@@ -291,6 +301,7 @@
           var p = x.p, cur = (p.stage === st[0]);
           var kind = x.first ? '<span style="color:#0891b2">신규등록</span>' : '<span style="color:var(--text-2)">단계이동</span>';
           if (x.moves > 1) kind += ' <span style="font-size:9px;color:var(--text-3)">(' + x.moves + '회 중 최종)</span>';
+          if (x.fixed) kind += ' <span style="font-size:9px;color:#b45309">(이력 보정)</span>';
           if (!cur) kind += ' <span style="font-size:9px;color:var(--text-3)">→ ' + E((PSTAGES.concat(_EXTRA).filter(function (s3) { return s3[0] === p.stage; })[0] || ["", p.stage])[1]) + '</span>';
           return '<tr><td style="padding:5px 10px">' + E(p.client || "—") + '</td><td style="padding:5px 10px;color:var(--text-2)">' + E(p.type || p.note || "—") + '</td><td style="padding:5px 10px;color:var(--text-3)">' + E(p.region || "") + '</td><td style="text-align:right;padding:5px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td><td style="padding:5px 10px;font-size:10px">' + kind + '</td><td style="text-align:right;padding:5px 10px;color:var(--text-2)">' + _iso(x.d) + '</td></tr>';
         }).join("");
