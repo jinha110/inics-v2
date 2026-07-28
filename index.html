@@ -5495,6 +5495,9 @@ var QUOTE_PRODUCT_NAMES=[];
 function qEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
 
 function qNum(v){ return parseFloat(String(v==null?'':v).replace(/,/g,''))||0; }
+// ── Ex-VAT 환산: subtotal 있으면 그대로, 없으면 총액/(1+VAT%) ──
+function _exVatN(tot,vatPct){ var t=qNum(tot), r=qNum(vatPct)/100; return r>0?(t/(1+r)):t; }
+function _exVatOf(tot,sub,vatPct){ var v=qNum(sub); return v>0?v:_exVatN(tot,vatPct); }
 function fmtN(n){ n=Math.round(qNum(n)); return isNaN(n)?'':n.toLocaleString('en-US'); }
 function imgToWhiteSquare(img, size){
   size=size||500;
@@ -6817,9 +6820,21 @@ function renderPurchaseInvoiceLink(){
   var sel=document.getElementById('purchaseInvoiceSel'); if(!sel) return;
   if(typeof window.chasanCogsVendorsReady==='function' && !window.chasanCogsVendorsReady() && typeof window.chasanCogsVendorsLoad==='function'){ window.chasanCogsVendorsLoad().then(function(){ if(document.getElementById('purchaseInvoiceSel')) renderPurchaseInvoiceLink(); }).catch(function(){}); }
   var ids=_projIdList('purchaseInvoiceId');
+  // ── 고아 흡수: invoice.projectId 가 이 프로젝트인데 invoiceIds 에 없는 매입 인보이스를 자동 편입 ──
+  if(_editingProjId){
+    var _seen={}; ids.forEach(function(x){ _seen[String(x)]=1; });
+    var _added=0;
+    (state.invoices||[]).forEach(function(v){
+      if(String(v.dir||'')!=='received') return;
+      if(String(v.projectId||'')!==String(_editingProjId)) return;
+      if(_seen[String(v.id)]) return;
+      ids.push(String(v.id)); _seen[String(v.id)]=1; _added++;
+    });
+    if(_added) _projSetIdList('purchaseInvoiceId', ids);
+  }
   var pool=_receivedInvoices().filter(function(v){
     if(ids.indexOf(String(v.id))>=0) return false;     // 이미 이 프로젝트에 연결됨 → 리스트에 표시
-    if(v.projectId) return false;                        // 타 프로젝트 연결 제거
+    if(v.projectId && String(v.projectId)!==String(_editingProjId)) return false;   // 타 프로젝트만 제외
     return _invIsCogsVendor(v);                           // 채산 매출원가 등록 업체만
   });
   var opts='<option value="">＋ 매입 인보이스 추가 · Add invoice…</option>';
@@ -6833,6 +6848,7 @@ function renderPurchaseInvoiceLink(){
   var linked=_projInvsByIds(ids);
   if(linked.length){
     _purchaseDeriveFromInvoices();
+    if(typeof projMarginRefresh==='function') projMarginRefresh();   // 파생값 반영 (매입 0 표시 버그 수정)
     var rows=linked.map(function(v){
       var amt=(typeof _invFmt==='function')?_invFmt(v.total,v.currency||''):((v.currency||'')+' '+(v.total||''));
       return '<div style="display:flex;align-items:center;gap:7px;background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius);padding:5px 9px;font-size:11px;flex-wrap:wrap;margin-top:4px">'
@@ -8639,12 +8655,19 @@ function projMarginRefresh(){
   var sCur=(document.getElementById('salesCurrency')||{}).value||'VND';
   var pCur=(document.getElementById('purchaseCurrency')||{}).value||'VND';
   var sTot=_pfV('salesTotal'); var pTot=_pfV('purchaseTotal');
+  var sSub=_pfV('salesSubtotal')||_exVatN(sTot,(document.getElementById('salesVat')||{}).value);
+  var pSub=_pfV('purchaseSubtotal')||_exVatN(pTot,(document.getElementById('purchaseVat')||{}).value);
   var invIssued=(document.getElementById('salesInvoiceIssued')||{}).checked;
   var invAmt=_pfV('salesInvoiceAmount');
   var issued=invIssued?(invAmt||sTot):0; if(issued>sTot) issued=sTot;
   var uninv=sTot-issued;
   var invLine='<div style="margin-top:4px;font-size:11px">인보이스 발행 '+sCur+' '+fmtN(issued)+(uninv>0?(' · <span style="color:var(--danger)">미발행 '+fmtN(uninv)+'</span>'):' · <span style="color:#15803d">전액 발행 · Issue Full</span>')+'</div>';
-  if(sCur===pCur){ var m=sTot-pTot; prev.innerHTML='마진 · Margin: <b style="color:'+(m>=0?'#15803d':'var(--danger)')+'">'+sCur+' '+fmtN(m)+'</b>  (매출 '+fmtN(sTot)+' − 매입 '+fmtN(pTot)+')'+invLine; }
+  if(sCur===pCur){
+    var m=sSub-pSub, rate=sSub>0?(m/sSub*100):0;
+    prev.innerHTML='마진 · Margin <span style="font-size:10px;font-weight:700;color:#b45309">Ex-VAT</span>: <b style="color:'+(m>=0?'#15803d':'var(--danger)')+'">'+sCur+' '+fmtN(m)+'</b> <b style="color:'+(m>=0?'#15803d':'var(--danger)')+'">'+rate.toFixed(1)+'%</b>'
+      +'<div style="margin-top:3px;font-size:11px;color:var(--text-2)">공급가 매출 '+fmtN(sSub)+' − 매입 '+fmtN(pSub)+'</div>'
+      +'<div style="font-size:10px;color:var(--text-3)">VAT포함 매출 '+fmtN(sTot)+' · 매입 '+fmtN(pTot)+'</div>'+invLine;
+  }
   else { prev.innerHTML='매출 '+sCur+' '+fmtN(sTot)+' · 매입 '+pCur+' '+fmtN(pTot)+' <span style="color:var(--text-3)">(통화 상이 — 마진 미산출)</span>'+invLine; }
 }
 
@@ -9155,20 +9178,25 @@ function closeFinanceApp(){ financeAppOpen=false; var app=document.getElementByI
 
 function finCalc(p, cur){
   var s=p.sales||{}, pu=p.purchase||{};
-  var r={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, hasS:false, hasP:false };
+  var r={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, sSub:0, pSub:0, sInvSub:0, hasS:false, hasP:false };
   if((s.currency||'VND')===cur){
     var sd=qNum(s.deposit), sb=qNum(s.balance);
     r.sTotal=qNum(s.total)||(sd+sb); r.sRecv=(s.depositPaid?sd:0)+(s.balancePaid?sb:0); r.sOut=r.sTotal-r.sRecv;
     var iss = s.invoiceIssued ? (qNum(s.invoiceAmount)||r.sTotal) : 0; if(iss>r.sTotal) iss=r.sTotal;
     r.sInvoiced=iss; r.sUninvoiced=r.sTotal-iss;
+    r.sSub=_exVatOf(r.sTotal, s.subtotal, s.vat);                          // 매출 공급가 (Ex-VAT)
+    r.sInvSub=(r.sTotal>0)?(r.sSub*(r.sInvoiced/r.sTotal)):0;              // 발행분 공급가 환산
     r.hasS = r.sTotal>0;
   }
   if((pu.currency||'VND')===cur){
     var pd=qNum(pu.deposit), pb=qNum(pu.balance);
     r.pTotal=qNum(pu.total)||(pd+pb); r.pPaid=(pu.depositPaid?(qNum(pu.total)||pd):0); r.pOut=r.pTotal-r.pPaid;
+    r.pSub=_exVatOf(r.pTotal, pu.subtotal, pu.vat);                        // 매입 공급가 (Ex-VAT)
     r.hasP = r.pTotal>0;
   }
-  r.margin = r.sTotal - r.pTotal;
+  r.margin = r.sSub - r.pSub;                                              // 마진 = Ex-VAT 차액
+  r.marginRate = (r.sSub>0)?(r.margin/r.sSub*100):0;
+  r.marginIncVat = r.sTotal - r.pTotal;                                    // 참고용 (표시 안 함)
   return r;
 }
 
@@ -9181,7 +9209,7 @@ function renderFinanceDashboard(){
     if(ow && String(p.ownerId)!==String(ow)) return false;
     return true;
   });
-  var tot={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0 };
+  var tot={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, sSub:0, pSub:0, sInvSub:0 };
   var rows=[];
   list.forEach(function(p){
     var c=finCalc(p,cur);
@@ -9190,9 +9218,10 @@ function renderFinanceDashboard(){
     tot.sTotal+=c.sTotal; tot.sRecv+=c.sRecv; tot.sOut+=c.sOut;
     tot.sInvoiced+=c.sInvoiced; tot.sUninvoiced+=c.sUninvoiced;
     tot.pTotal+=c.pTotal; tot.pPaid+=c.pPaid; tot.pOut+=c.pOut;
+    tot.sSub+=c.sSub; tot.pSub+=c.pSub; tot.sInvSub+=c.sInvSub;
     rows.push({p:p, c:c});
   });
-  var margin=tot.sTotal-tot.pTotal;
+  var margin=tot.sSub-tot.pSub;
 
   function kpi(label, val, color, sub){
     return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px 15px">'
@@ -9202,20 +9231,21 @@ function renderFinanceDashboard(){
   }
   function grpLabel(t){ return '<div style="font-size:10px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;display:flex;align-items:center;gap:8px"><span>'+t+'</span><span style="flex:1;height:1px;background:var(--border)"></span></div>'; }
   function grid(cards){ return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'+cards+'</div>'; }
-  var m1=tot.sTotal-tot.pTotal;
-  var m2=tot.sInvoiced-tot.pTotal;
+  var m1=tot.sSub-tot.pSub;                    // Ex-VAT 차액
+  var m2=tot.sInvSub-tot.pSub;                 // 발행분 Ex-VAT 차액
+  var _pct=function(m,base){ return base>0?(' · 마진율 '+(m/base*100).toFixed(1)+'%'):''; };
   document.getElementById('finKpis').innerHTML =
     grpLabel('① 전체 · 인보이스 미발행 포함')
     + grid(
         kpi('매출 · Sales', tot.sTotal, '#15803d', '미발행 인보이스 포함')
         + kpi('매입 · Purchase', tot.pTotal, '#b45309')
-        + kpi('마진 · Margin', m1, m1>=0?'#1d4ed8':'var(--danger)', tot.sTotal?'마진율 '+Math.round(m1/tot.sTotal*100)+'%':'')
+        + kpi('마진 · Margin (Ex-VAT)', m1, m1>=0?'#1d4ed8':'var(--danger)', '공급가 기준'+_pct(m1,tot.sSub))
       )
     + grpLabel('② 인보이스 발행 기준')
     + grid(
         kpi('매출 · Sales (발행분)', tot.sInvoiced, '#0e7490', tot.sUninvoiced>0?'미발행 '+fmtN(tot.sUninvoiced):'전액 발행')
         + kpi('매입 · Purchase', tot.pTotal, '#b45309')
-        + kpi('마진 · Margin', m2, m2>=0?'#1d4ed8':'var(--danger)', tot.sInvoiced?'마진율 '+Math.round(m2/tot.sInvoiced*100)+'%':'발행 기준')
+        + kpi('마진 · Margin (Ex-VAT)', m2, m2>=0?'#1d4ed8':'var(--danger)', '발행분 공급가 기준'+_pct(m2,tot.sInvSub))
       )
     + grpLabel('③ 미수금 · 미지급금')
     + grid(
@@ -9247,7 +9277,7 @@ function renderFinanceDashboard(){
     +'<thead><tr><th style="'+thl+'">고객사 · Client</th><th style="'+thl+'">단계</th>'
     +'<th style="'+th+'">매출총액</th><th style="'+th+'">인보이스</th><th style="'+th+'">매출입금</th>'
     +'<th style="'+thc+'">매입총액</th><th style="'+thc+'">매입지급</th>'
-    +'<th style="'+th+'">마진 · 율</th></tr></thead><tbody>'
+    +'<th style="'+th+'">마진 · 율 <span style="color:#b45309">(Ex-VAT)</span></th></tr></thead><tbody>'
     + rows.map(function(r){
         var s=projStage(r.p.stage);
         return '<tr style="cursor:pointer" onclick="showProjectAppToEdit('+r.p.id+')">'
@@ -9258,7 +9288,7 @@ function renderFinanceDashboard(){
           +'<td style="'+td+'">'+payTag(r.c.sOut,r.c.sTotal,'s')+'</td>'
           +'<td style="'+tdc+'">'+fmtN(r.c.pTotal)+'</td>'
           +'<td style="'+tdc+'">'+payTag(r.c.pOut,r.c.pTotal,'p')+'</td>'
-          +'<td style="'+td+';font-weight:700;color:'+(r.c.margin>=0?'#1d4ed8':'var(--danger)')+'">'+fmtN(r.c.margin)+(r.c.sTotal>0?' <span style="font-size:9px;color:var(--text-3);font-weight:600">'+Math.round(r.c.margin/r.c.sTotal*100)+'%</span>':'')+'</td>'
+          +'<td style="'+td+';font-weight:700;color:'+(r.c.margin>=0?'#1d4ed8':'var(--danger)')+'" title="Ex-VAT: 공급가 매출 '+fmtN(r.c.sSub)+' \u2212 매입 '+fmtN(r.c.pSub)+'">'+fmtN(r.c.margin)+(r.c.sSub>0?' <span style="font-size:9px;color:var(--text-3);font-weight:600">'+r.c.marginRate.toFixed(1)+'%</span>':'')+'</td>'
           +'</tr>';
       }).join('')
     +'</tbody></table>';
