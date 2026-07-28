@@ -325,6 +325,54 @@
       + _kpi("올해 건수 · YTD " + now.getFullYear(), _ytdInv.length, "#111827")
       + _kpi("올해 금액 · Amount", null, "#111827", _invSumD(_ytdInv))
       + '</div>';
+
+    // ── (6) 정체 프로젝트 · Stalled — 30일 이상 단계 변경 없음 (진행중 단계만) ──
+    function _lastStageAt(p) {
+      var ds = (p.stageHistory || []).map(function (x) { return _parseAt(x && x.at); }).filter(Boolean);
+      if (ds.length) return new Date(Math.max.apply(null, ds.map(function (d) { return d.getTime(); })));
+      return _parseAt(p.updatedAt) || _parseAt(p.regDate) || _parseAt(p.createdAt) || null;
+    }
+    var _tdy = _dOnly(now);
+    var _stale = projects.filter(function (p) { return PSTAGES.some(function (s2) { return s2[0] === p.stage; }); })
+      .map(function (p) {
+        var d = _lastStageAt(p); if (!d) return null;
+        var days = Math.floor((_tdy.getTime() - _dOnly(d).getTime()) / 86400000);
+        return days >= 30 ? { p: p, d: d, days: days } : null;
+      }).filter(Boolean).sort(function (a, b) { return b.days - a.days; });
+    var _sevC = function (n) { return n >= 90 ? "#b91c1c" : (n >= 60 ? "#c2410c" : "#b45309"); };
+    var _sevL = function (n) { return n >= 90 ? "위험" : (n >= 60 ? "경고" : "주의"); };
+    h += '<div style="font-size:13px;font-weight:700;margin:16px 0 6px">정체 프로젝트 · Stalled <span style="font-size:11px;color:var(--text-3);font-weight:400">(30일 이상 단계 변경 없음 · 진행중 ' + _stale.length + '건)</span></div>';
+    if (_stale.length) {
+      var _sc = { a: 0, b: 0, c: 0 };
+      _stale.forEach(function (x) { if (x.days >= 90) _sc.c++; else if (x.days >= 60) _sc.b++; else _sc.a++; });
+      h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px">'
+        + _kpi("30~59일 · 주의", _sc.a, "#b45309")
+        + _kpi("60~89일 · 경고", _sc.b, "#c2410c")
+        + _kpi("90일+ · 위험", _sc.c, "#b91c1c")
+        + _kpi("정체 금액 합계", null, "#111827", _dispSum(_stale.map(function (x) { return x.p; })))
+        + '</div>';
+      var _srw = _stale.map(function (x) {
+        var p = x.p, st = PSTAGES.filter(function (s3) { return s3[0] === p.stage; })[0] || ["", p.stage, "#64748b"];
+        var own = ""; try { own = (typeof memberName === "function") ? (memberName(p.ownerId) || "") : ""; } catch (e) { own = ""; }
+        return '<tr><td style="padding:5px 10px">' + E(p.client || "—") + (p.projName ? '<div style="font-size:10px;color:var(--text-3)">' + E(p.projName) + '</div>' : '') + '</td>'
+          + '<td style="padding:5px 10px"><span style="font-size:10px;color:#fff;background:' + st[2] + ';padding:2px 7px;border-radius:8px;white-space:nowrap">' + E(st[1]) + '</span></td>'
+          + '<td style="padding:5px 10px;color:var(--text-3)">' + E(own || p.region || "") + '</td>'
+          + '<td style="text-align:right;padding:5px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td>'
+          + '<td style="text-align:right;padding:5px 10px;color:var(--text-2)">' + _iso(x.d) + '</td>'
+          + '<td style="text-align:right;padding:5px 10px;font-weight:700;color:' + _sevC(x.days) + ';white-space:nowrap">' + x.days + '일 <span style="font-size:9px;font-weight:600">' + _sevL(x.days) + '</span></td></tr>';
+      }).join("");
+      h += '<div style="overflow-x:auto;margin-bottom:6px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">'
+        + '<th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th>'
+        + '<th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">단계 · Stage</th>'
+        + '<th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">담당 · Owner</th>'
+        + '<th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th>'
+        + '<th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">최종 변경 · Last</th>'
+        + '<th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">경과 · Days</th>'
+        + '</tr></thead><tbody>' + _srw + '</tbody></table></div>';
+    } else {
+      h += '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">30일 이상 정체된 진행중 프로젝트 없음 · None stalled</div>';
+    }
+
     return h;
   }
 
