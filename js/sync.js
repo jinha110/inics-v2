@@ -289,7 +289,7 @@
       body:JSON.stringify({_ts:ts,_at:new Date(ts).toISOString(),data:tree}) });
     try{
       var bl=await (await fetch(BASE+ROOT+"/backups.json?shallow=true",{cache:"no-cache"})).json();
-      if(bl){ var ks=Object.keys(bl).sort(); while(ks.length>30){ var old=ks.shift(); try{ await fetch(BASE+ROOT+"/backups/"+old+".json",{method:"DELETE"}); }catch(_){ } } }
+      if(bl){ var ks=Object.keys(bl).sort(); while(ks.length>10){ var old=ks.shift(); try{ await fetch(BASE+ROOT+"/backups/"+old+".json",{method:"DELETE"}); }catch(_){ } } }
     }catch(_){}
   }
   async function _maybeBackup(state){
