@@ -14,6 +14,9 @@
 
   var _weekMon = null, _usd = false, _rate = 0, _mxText = "";
   var _types = { chasan: true, project: true, task: true, mx: true };
+  var _basis = "invoice";                    // 채산 귀속기준 · 'invoice' | 'project'
+  window.hqrSetBasis = function (v) { _basis = (v === "project") ? "project" : "invoice"; _regen(); };
+  window.hqrGetBasis = function () { return _basis; };
 
   function _mondayOf(d) { d = new Date(d); var k = (d.getDay() + 6) % 7; d.setDate(d.getDate() - k); d.setHours(0, 0, 0, 0); return d; }
   function _iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -83,6 +86,11 @@
       + '<div style="margin-bottom:14px"><label style="font-size:12px;color:var(--text-3);display:block;margin-bottom:5px">멕시코 법인 도움 요청 · Requests to MX <span style="color:var(--text-3)">(한 줄에 하나씩 · one per line)</span></label>'
       +   '<textarea id="hqrMx" oninput="hqrMxInput(this.value)" placeholder="예: MX 재고 현황 공유 요청&#10;제품 X 리드타임 확인 요청" style="width:100%;box-sizing:border-box;min-height:70px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--sans);resize:vertical">' + E(_mxText) + '</textarea></div>'
       + '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+      +   '<label style="font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:6px">채산 기준 · Basis'
+      +     '<select id="hqrBasis" onchange="hqrSetBasis(this.value)" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;background:var(--surface);color:var(--text)">'
+      +       '<option value="invoice"' + (_basis === "invoice" ? " selected" : "") + '>인보이스 발행 · Invoice date</option>'
+      +       '<option value="project"' + (_basis === "project" ? " selected" : "") + '>매출 발생 귀속 · Revenue-matched</option>'
+      +     '</select></label>'
       +   '<label style="font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:6px"><input type="checkbox" id="hqrUsd" ' + (_usd ? "checked" : "") + ' onchange="hqrSetUsd(this.checked)"> USD 환산 · Convert</label>'
       +   '<input id="hqrRate" type="number" placeholder="VND/USD 환율" value="' + (_rate || "") + '" onchange="hqrSetRate(this.value)" style="width:140px;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px">'
       + '</div>'
@@ -146,6 +154,12 @@
   // ── 채산 ──
   async function _sectionChasan() {
     var all = await window.chasanLoadAll();
+    // 확정 스냅샷을 선택한 귀속기준으로 해석 (byBasis 미보유 구버전은 원본 유지)
+    var _miss = [];
+    if (typeof window.chasanResolveBasis === "function") {
+      all = window.chasanResolveBasis(all, _basis);
+      _miss = all.__missing || [];
+    }
     var fin = Object.keys(all).filter(function (k) { return /^\d{4}-\d{2}$/.test(k) && all[k] && all[k].finalizedAt && all[k].byDept && all[k].totals; }).sort();
     if (!fin.length) return _sectionTitle("채산 · Departmental P&L", "#7c3aed") + '<div style="font-size:12px;color:var(--text-3);padding:12px">확정된 월별 채산이 없습니다. 채산 모듈에서 월 확정 후 반영됩니다.</div>';
     var ym = fin[fin.length - 1], snap = all[ym], year = ym.slice(0, 4);
@@ -161,7 +175,10 @@
       if (typeof chasanLwLoad === "function") await chasanLwLoad();
       if (typeof chasanCogsVendorsLoad === "function") await chasanCogsVendorsLoad();
       if (typeof chasanExtraLoad === "function") await chasanExtraLoad(ym);
+      var _keep = (typeof window.chasanGetBasis === "function") ? window.chasanGetBasis() : null;
+      if (typeof window.chasanSetBasisSilent === "function") window.chasanSetBasisSilent(_basis);
       var r = await window.chasanCompute(ym); fc = window.chasanForecast(ym, r);
+      if (_keep && typeof window.chasanSetBasisSilent === "function") window.chasanSetBasisSilent(_keep);
     } catch (e) { fc = null; }
 
     var LINES = [["매출 · Revenue", "revenue", 0], ["(−) 매입원가 · COGS", "cogs", 0], ["= 매출총이익 · Gross Profit", "gross", 1], ["(−) 인건비 · Labor", "labor", 0], ["(−) 판관비 · OpEx", "opex", 0], ["(−) EXTRA", "extra", 0], ["= 영업이익 · OP", "op", 2]];
@@ -178,6 +195,10 @@
     var opMargin = snap.totals.revenue ? (snap.totals.op / snap.totals.revenue * 100).toFixed(1) + "%" : "—";
 
     var h = _sectionTitle("채산 · Departmental P&L", "#7c3aed");
+    h += '<div style="font-size:11px;color:var(--text-3);margin:0 0 8px">기준 · Basis: <b style="color:' + (_basis === "project" ? "#1d4ed8" : "var(--text-2)") + '">'
+       + (_basis === "project" ? "매출 발생 귀속 · Revenue-matched (매입원가를 매출 인식월에 대응)" : "인보이스 발행 · Invoice date (VAT 신고 기준)")
+       + "</b></div>"
+       + (_miss.length ? '<div style="font-size:11px;color:#b45309;margin:0 0 8px">\u26A0 ' + _miss.join(", ") + " 는 인보이스 기준만 확정돼 있어 해당 월은 인보이스 기준 수치입니다. 채산 모듈에서 재확정하면 두 기준이 함께 저장됩니다.</div>" : "");
     h += '<div style="font-size:12px;color:var(--text-3);margin-bottom:8px">최근 확정월 · Latest finalized: <b style="color:var(--text-2)">' + E(ym) + '</b> · 영업이익률 ' + opMargin + ' · 단위 ' + _unitLabel() + '</div>';
     h += '<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
     h += '<div style="font-size:13px;font-weight:700;margin:12px 0 8px">연 누적 · YTD ' + year + ' <span style="font-size:11px;color:var(--text-3);font-weight:400">(확정월 합계, 전체)</span></div>';
