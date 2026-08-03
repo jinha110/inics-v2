@@ -148,12 +148,102 @@
     if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
   };
 
+  /* ── 귀속기준 엔진 · Recognition basis ──────────────────────────────
+     'invoice' = 인보이스 발행일 기준 (세무·VAT 신고 대사용 · 기존 동작)
+     'project' = 프로젝트 귀속 기준 (수익비용대응 · 경영판단용)
+       프로젝트의 인식월을 정하고, 그 프로젝트에 달린 매출·매입을 전부 그 달로 귀속.
+       인식월 폴백 체인: 최초 매출인보이스 발행일 → sales.invoiceDate
+                        → 납품완료 전환일 → PO완료 → 수주확정 → 납기 → 등록일   */
+  var _csBasis = "invoice", _recogCache = null;
+  window.chasanGetBasis = function () { return _csBasis; };
+  window.chasanSetBasis = function (b) {
+    _csBasis = (b === "project") ? "project" : "invoice"; _recogCache = null;
+    if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
+  };
+  // 렌더 없이 기준만 전환 (본사 주보 등 외부 모듈이 임시로 계산할 때 사용)
+  window.chasanSetBasisSilent = function (b) {
+    _csBasis = (b === "project") ? "project" : "invoice"; _recogCache = null;
+  };
+  // 확정 스냅샷을 선택 기준으로 해석 · byBasis 없으면 원본 그대로 (구버전 호환)
+  window.chasanResolveBasis = function (all, basis) {
+    var out = {}, missing = [];
+    Object.keys(all || {}).forEach(function (k) {
+      var s = all[k];
+      var b = s && s.byBasis && s.byBasis[basis];
+      if (b && b.byDept && b.totals) {
+        out[k] = Object.assign({}, s, {
+          byDept: b.byDept, totals: b.totals, headByDept: b.headByDept,
+          totHead: b.totHead, byDeptRaw: b.byDeptRaw, headByDeptRaw: b.headByDeptRaw, allocated: b.allocated
+        });
+      } else {
+        out[k] = s;
+        if (s && s.finalizedAt && basis === "project" && /^\d{4}-\d{2}$/.test(k)) missing.push(k);
+      }
+    });
+    out.__basis = basis; out.__missing = missing;
+    return out;
+  };
+  function _csStageYm(p, key) {
+    var h = (p && p.stageHistory) || [];
+    for (var i = 0; i < h.length; i++) { if (h[i] && h[i].stage === key && h[i].at) return _ym(h[i].at); }
+    return "";
+  }
+  // 날짜 정규화: '2026/6/5', '2026.06.05' 등 혼재 포맷을 'YYYY-MM-DD'로 → 문자열 비교 안전
+  function _csDateKey(d) {
+    var m = String(d || "").trim().match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+    if (m) return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2);
+    var m2 = String(d || "").trim().match(/(\d{4})[-\/.](\d{1,2})/);
+    return m2 ? (m2[1] + "-" + ("0" + m2[2]).slice(-2) + "-01") : "";
+  }
+  function _csRecogYm(projId) {
+    if (projId == null || projId === "") return "";
+    var k = String(projId);
+    _recogCache = _recogCache || {};
+    if (Object.prototype.hasOwnProperty.call(_recogCache, k)) return _recogCache[k];
+    var out = "";
+    var ps = (typeof state !== "undefined" && state && state.projects) || [];
+    var p = null; for (var i = 0; i < ps.length; i++) { if (String(ps[i].id) === k) { p = ps[i]; break; } }
+    if (p) {
+      // ── 1순위: 이 프로젝트의 매출 인보이스 중 '최초 발행일' ──
+      var invs = (typeof state !== "undefined" && state && state.invoices) || [], best = "";
+      var linkIds = {};
+      var _sl = (p.sales && (p.sales.invoiceLinkIds || (p.sales.invoiceLinkId ? [p.sales.invoiceLinkId] : []))) || [];
+      _sl.forEach(function (id) { if (id !== "" && id != null) linkIds[String(id)] = 1; });
+      invs.forEach(function (v) {
+        if (!v || v.dir !== "issued") return;
+        if (String(v.projectId || "") !== k && !linkIds[String(v.id)]) return;   // projectId 또는 명시 링크
+        var d = _csDateKey(v.date); if (!d) return;
+        if (!best || d < best) best = d;                                          // 복수면 최초(가장 이른) 발행일
+      });
+      if (best) out = _ym(best);
+      if (!out && p.sales && p.sales.invoiceDate) out = _ym(p.sales.invoiceDate);
+      if (!out) out = _csStageYm(p, "delivered");
+      if (!out && p.targetDate) out = _ym(p.targetDate);   // 매출 미발생 → 예상 납기월로 이연 (수익비용대응)
+      if (!out) out = _csStageYm(p, "po");
+      if (!out) out = _csStageYm(p, "won");
+      if (!out && p.regDate) out = _ym(p.regDate);
+    }
+    _recogCache[k] = out || "";
+    return _recogCache[k];
+  }
+  // 인보이스의 귀속월
+  //  · 매출(issued)  = 항상 자기 발행월 (후속 인보이스는 별건 매출로 각각 인식)
+  //  · 매입(received)= 해당 프로젝트의 '최초 매출 인보이스 월'로 귀속 (수익비용대응)
+  //  · 프로젝트 미연결이면 인보이스 발행일로 폴백
+  function _csEffYm(inv) {
+    if (_csBasis !== "project") return _ym(inv.date);
+    if (inv.dir === "issued") return _ym(inv.date);
+    return _csRecogYm(inv.projectId) || _ym(inv.date);
+  }
+  window.chasanEffYm = _csEffYm;
+
   window.chasanInvoiceAgg = function (ym) {
+    _recogCache = null;   // 렌더 단위 캐시 초기화
     var buckets = {}; DEPTS.forEach(function (t) { buckets[t] = { revenue: 0, cogs: 0 }; });
     var invs = (typeof state !== "undefined" && state && state.invoices) || [];
     var fxMiss = [], assetList = [], assetSum = 0, revCount = 0, cogsCount = 0;
     invs.forEach(function (inv) {
-      if (!inv || _ym(inv.date) !== ym) return;
+      if (!inv || _csEffYm(inv) !== ym) return;
       var net = invNet(inv); if (!net) return;
       if (inv.chasanClass === "asset") { assetList.push(inv); assetSum += net; return; }   // 자산 처리 → P&L(매출·원가) 제외
       var conv = invVnd(inv, net); if (!conv.ok) fxMiss.push(inv);
@@ -319,6 +409,23 @@
       dq: { uncat: bank.uncat, untagged: bank.untagged, unsplit: bank.unsplit, uncatList: bank.uncatList, untaggedList: bank.untaggedList, invFxMiss: inv.fxMissInv, invAsset: inv.assetInv, invAssetSum: inv.assetSum, revCount: inv.revCount, cogsCount: inv.cogsCount }, allocated: CHASAN_CFG.allocateCommon };
   };
 
+  /* 두 기준을 연속 계산 · 확정 스냅샷에 함께 보관 (렌더 없이 basis만 스위칭) */
+  window.chasanComputeBoth = async function (ym, opts) {
+    var keep = _csBasis, out = {};
+    try {
+      for (var i = 0; i < 2; i++) {
+        var b = i === 0 ? "invoice" : "project";
+        _csBasis = b; _recogCache = null;
+        var c = await chasanCompute(ym, opts || {});
+        out[b] = {
+          byDept: c.byDept, totals: c.totals, headByDept: c.headByDept, totHead: c.totHead,
+          byDeptRaw: c.byDeptRaw, headByDeptRaw: c.headByDeptRaw, allocated: c.allocated
+        };
+      }
+    } finally { _csBasis = keep; _recogCache = null; }
+    return out;
+  };
+
   window.chasanSaveSnapshot = async function (ym, data, finalize) {
     var meta = { ym: ym, savedAt: new Date().toISOString(), savedBy: (typeof hrActorName === "function" ? hrActorName() : "system") };
     if (finalize) { meta.finalizedAt = new Date().toISOString(); meta.finalizedBy = (typeof hrActorName === "function" ? hrActorName() : "system"); }
@@ -334,6 +441,80 @@
   window.chasanLoadAll = async function () {
     try { var r = await fetch(csUrl("/chasan"), { cache: "no-cache" }); return (r.ok && await r.json()) || {}; } catch (e) { return {}; }
   };
+  /* ── 과거 확정월 재기준화 · Rebaseline ────────────────────────────────
+     확정된 월을 두 기준(인보이스/프로젝트 귀속)으로 다시 확정한다.
+     · 원본 확정본은 _prior[] 에 append 보존 — 본사 보고분 추적 가능
+     · dryRun:true 면 저장하지 않고 차이만 반환 (반드시 먼저 실행할 것)   */
+  window.chasanRebaselineMonth = async function (ym, opts) {
+    opts = opts || {};
+    var snap = await chasanLoadSnapshot(ym);
+    if (!snap || !snap.finalizedAt) return { ym: ym, skipped: "확정본 없음" };
+
+    if (typeof chasanFcCfgLoad === "function") await chasanFcCfgLoad();
+    if (typeof chasanFixedLoad === "function") await chasanFixedLoad();
+    if (typeof chasanLwLoad === "function") await chasanLwLoad();
+    if (typeof chasanCogsVendorsLoad === "function") await chasanCogsVendorsLoad();
+    if (typeof chasanExtraLoad === "function") await chasanExtraLoad(ym);
+
+    var both = await chasanComputeBoth(ym, { fallbackLive: true });
+    var oldOp = (snap.totals && +snap.totals.op) || 0;
+    var newInvOp = (both.invoice && both.invoice.totals && +both.invoice.totals.op) || 0;
+    var newPrjOp = (both.project && both.project.totals && +both.project.totals.op) || 0;
+    var diff = {
+      ym: ym, hadBoth: !!snap.byBasis,
+      before: Math.round(oldOp),
+      afterInvoice: Math.round(newInvOp),
+      afterProject: Math.round(newPrjOp),
+      driftInvoice: Math.round(newInvOp - oldOp),
+      finalizedAt: snap.finalizedAt, finalizedBy: snap.finalizedBy || ""
+    };
+    if (opts.dryRun) return diff;
+
+    // 원본 보존 (최대 5세대)
+    var prior = Array.isArray(snap._prior) ? snap._prior.slice(-4) : [];
+    prior.push({
+      finalizedAt: snap.finalizedAt, finalizedBy: snap.finalizedBy || "",
+      basis: snap.basis || "invoice", byDept: snap.byDept, totals: snap.totals,
+      headByDept: snap.headByDept, totHead: snap.totHead,
+      rebaselinedAt: new Date().toISOString()
+    });
+
+    var base = both.invoice || {};
+    await chasanSaveSnapshot(ym, {
+      byDept: base.byDept, totals: base.totals, headByDept: base.headByDept, totHead: base.totHead,
+      byDeptRaw: base.byDeptRaw, headByDeptRaw: base.headByDeptRaw, allocated: base.allocated,
+      fx: snap.fx || null, basis: "both", viewBasis: snap.viewBasis || "invoice",
+      byBasis: both, laborFinalized: true, _prior: prior
+    }, true);
+    diff.saved = true;
+    return diff;
+  };
+
+  window.chasanRebaselineAll = async function (opts) {
+    opts = opts || {};
+    if (!opts.dryRun && !_csIsAdmin()) { alert("재확정은 관리자만 가능합니다."); return null; }
+    var all = await chasanLoadAll();
+    var months = Object.keys(all).filter(function (k) {
+      if (!/^\d{4}-\d{2}$/.test(k)) return false;
+      if (!(all[k] && all[k].finalizedAt)) return false;
+      if (opts.year && k.slice(0, 4) !== String(opts.year)) return false;
+      if (opts.onlyMissing && all[k].byBasis) return false;   // 이미 두 기준 보유 월은 건너뜀
+      return true;
+    }).sort();
+    var out = [];
+    for (var i = 0; i < months.length; i++) {
+      try { out.push(await chasanRebaselineMonth(months[i], opts)); }
+      catch (e) { out.push({ ym: months[i], error: e.message }); }
+    }
+    var F2 = function (n) { return (n == null ? "—" : Math.round(n).toLocaleString()); };
+    console.table(out.map(function (d) {
+      return { 월: d.ym, 기존영업이익: F2(d.before), "인보이스기준(신)": F2(d.afterInvoice),
+               "프로젝트기준(신)": F2(d.afterProject), 변동: F2(d.driftInvoice),
+               상태: d.error ? "오류:" + d.error : (d.saved ? "저장됨" : (opts.dryRun ? "미리보기" : (d.skipped || "—"))) };
+    }));
+    return out;
+  };
+
   window.chasanUnfinalize = async function (ym) {
     var r = await fetch(csUrl("/chasan/" + encodeURIComponent(ym)), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ finalizedAt: null, finalizedBy: null }) });
     if (!r.ok) throw new Error("해제 HTTP " + r.status);
@@ -604,6 +785,17 @@
 
     var _live = await chasanCompute(ym, { fallbackLive: opts.fallbackLive !== false });
     var _snap = await chasanLoadSnapshot(ym);
+    // 두 기준 확정본이 있으면 현재 토글에 맞는 쪽을 꺼내 쓴다 (구버전 스냅샷은 최상위 그대로)
+    var _snapBasisMissing = false;
+    if (_snap && _snap.byBasis) {
+      var _sb = _snap.byBasis[_csBasis];
+      if (_sb && _sb.byDept && _sb.totals) {
+        _snap = Object.assign({}, _snap, {
+          byDept: _sb.byDept, totals: _sb.totals, headByDept: _sb.headByDept, totHead: _sb.totHead,
+          byDeptRaw: _sb.byDeptRaw, headByDeptRaw: _sb.headByDeptRaw, allocated: _sb.allocated
+        });
+      } else if (_csBasis === "project") { _snapBasisMissing = true; }
+    } else if (_snap && _snap.finalizedAt && _csBasis === "project") { _snapBasisMissing = true; }
     var _final = !!(_snap && _snap.finalizedAt && _snap.byDept && _snap.totals);
     var _drift = _final ? Math.round(Math.abs((_live.totals.op || 0) - (_snap.totals.op || 0))) : 0;
     if (!_final) _csViewRaw = false;                                              // 배분 풀기는 확정 뷰 전용
@@ -621,6 +813,7 @@
     var r = _final
       ? { byDept: (_showRaw ? _rawByDept : _snap.byDept), totals: (_showRaw ? _rawTotals : _snap.totals), allocated: _showRaw ? false : !!_snap.allocated, laborFinalized: true, laborSource: "확정", laborRows: [], headByDept: (_showRaw ? _rawHead : (_snap.headByDept || _live.headByDept || {})), totHead: (_showRaw ? _rawTotHead : (_snap.totHead != null ? _snap.totHead : _live.totHead)), dq: { uncat: { count: 0, debit: 0, credit: 0 }, untagged: 0, unsplit: [], uncatList: [], untaggedList: [] } }
       : _live;
+    var _basisWarn = _snapBasisMissing ? '<div style="border:1px solid var(--warning);background:#fffbeb;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:11px;color:var(--warning)">⚠ 이 달 확정본은 <b>인보이스 기준</b>만 저장돼 있습니다 · 프로젝트 귀속 기준은 라이브 계산값입니다. 재확정하면 두 기준이 함께 저장됩니다.</div>' : "";
     var _rawWarn = _showRaw ? '<div style="border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:11px;color:var(--text-3)">🔓 배분 풀기(보기) — 확정본(배분 적용)은 이력 그대로 보존됩니다. 지금 표는 <b>배분 전 원본</b>(COMMON 원천 포함, 매출부서는 직접귀속만)입니다.' + (_rawFromLive ? ' <span style="color:var(--warning)">⚠ 이 월은 원본 미저장 → 라이브 배분전 기준(확정 시점과 다를 수 있음).</span>' : '') + '</div>' : "";
     var money = function (v) { return _usd && _rate ? (v / _rate).toLocaleString("en-US", { maximumFractionDigits: 0 }) : F(v); };
     var unit = _usd && _rate ? "USD" : "VND";
@@ -805,8 +998,8 @@
     }
 
     if (_final) { retag = ""; uncatPanel = ""; untagPanel = ""; lwEditor = ""; extraEditor = ""; cogsVendorEditor = ""; invDqPanel = ""; }
-    var _finBadge = _final ? '<span style="font-size:11px;color:var(--success);font-weight:700"> · ✓ 확정됨 · Finalized ' + E((_snap.finalizedAt || "").slice(0, 10)) + (_snap.finalizedBy ? " (" + E(_snap.finalizedBy) + ")" : "") + '</span>' : "";
-    var _driftWarn = (_final && _drift > 0) ? '<div style="border:1px solid var(--warning);background:#fffbeb;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:11px;color:var(--warning)">⚠ 확정 후 원천 변동 · Source changed after finalize — 라이브 영업이익이 확정본과 ' + F(_drift) + ' VND 차이. 재확정하면 현재값으로 갱신됩니다.</div>' : "";
+    var _finBadge = _final ? '<span style="font-size:11px;color:var(--success);font-weight:700"> · ✓ 확정됨 · Finalized ' + E((_snap.finalizedAt || "").slice(0, 10)) + (_snap.finalizedBy ? " (" + E(_snap.finalizedBy) + ")" : "") + (_snap.byBasis ? ' <span style="color:var(--text-3);font-weight:600">· 두 기준 저장</span>' : "") + '</span>' : "";
+    var _driftWarn = _basisWarn + ((_final && _drift > 0) ? '<div style="border:1px solid var(--warning);background:#fffbeb;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:11px;color:var(--warning)">⚠ 확정 후 원천 변동 · Source changed after finalize — 라이브 영업이익이 확정본과 ' + F(_drift) + ' VND 차이. 재확정하면 현재값으로 갱신됩니다.</div>' : "");
     var dq = r.dq, dqWarn = (dq.uncat.count || dq.untagged) ? '<span style="font-size:11px;color:var(--warning)"> · ⚠ 미분류 ' + dq.uncat.count + '건 · 부서미태깅 ' + dq.untagged + '건</span>' : "";
 
     window._csLastR = r; window._csLastYm = ym;
@@ -815,11 +1008,12 @@
       + '<div class="form-card" style="padding:0;overflow:hidden">'
       + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
       + '<div><div style="font-size:14px;font-weight:700">부서 채산 · Departmental P&L — ' + E(ym) + '</div>'
-      + '<div style="font-size:11px;color:var(--text-3)">매출·매입원가=인보이스 발생주의(매출 ' + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + ') · 기본부서 FUR VN · 판관비=현금주의 · 인건비=' + (r.laborFinalized ? "확정대장" : "라이브(" + r.laborSource + ")") + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
+      + '<div style="font-size:11px;color:var(--text-3)">' + (_csBasis === "project" ? '<b style="color:#1d4ed8">매출·매입원가=프로젝트 귀속(수익비용대응)</b>(매출 ' : '매출·매입원가=인보이스 발생주의(매출 ') + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + ') · 기본부서 FUR VN · 판관비=현금주의 · 인건비=' + (r.laborFinalized ? "확정대장" : "라이브(" + r.laborSource + ")") + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
       + (_final
           ? '<label style="font-size:11px;color:' + (_showRaw ? "var(--text)" : "var(--text-3)") + ';display:flex;align-items:center;gap:5px;font-weight:' + (_showRaw ? "600" : "400") + '" title="확정본은 그대로 두고 보기만 배분 해제"><input type="checkbox" id="csViewRaw"' + (_csViewRaw ? " checked" : "") + '> 배분 풀기(보기) · Unallocate view</label>'
           : '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csAlloc"' + (CHASAN_CFG.allocateCommon ? " checked" : "") + '> COMMON 배분 · Allocate</label>')
+      + '<select id="csBasis" title="매출·매입원가 귀속기준" style="border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:11px;background:var(--surface);color:var(--text)' + (_csBasis === "project" ? ';font-weight:700;border-color:#1d4ed8;color:#1d4ed8' : '') + '"><option value="invoice"' + (_csBasis === "invoice" ? " selected" : "") + '>인보이스 기준 · Invoice date</option><option value="project"' + (_csBasis === "project" ? " selected" : "") + '>프로젝트 귀속 · Project</option></select>'
       + '<label style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"><input type="checkbox" id="csUsd"' + (_usd ? " checked" : "") + '> USD</label>'
       + '<input id="csRate" type="number" placeholder="VND/USD" value="' + (_rate || "") + '" style="width:100px;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px">'
       + '<button id="csXlsx" style="border:1px solid var(--border);background:none;color:var(--text-2);font-size:11px;cursor:pointer;padding:6px 11px;border-radius:7px">⬇ Excel</button>'
@@ -847,17 +1041,31 @@
       + '<p style="font-size:11px;color:var(--text-3);padding:8px 16px;line-height:1.6">매출·매입원가=인보이스 발생주의(매출=발행 인보이스 / 매입원가=지정 업체 수취 인보이스, 모두 공급가액·VAT 제외) · 판관비=현금주의(뱅크) · 인건비=확정대장 tc 인원별 가중치 4부서 분배. <b>부서 기본값=FUR VN</b> — 매출/매입원가 셀을 클릭하면 인보이스별 드롭다운으로 FUR MX·SOURCING 등으로 변경, 또는 <b>「자산·Asset(제외)」</b>로 지정하면 매출원가에서 빠집니다(자본적 지출·자산 취득분). COMMON은 배분 ON 시 FUR VN/FUR MX/SOURCING에 3:3:1 완전분배.</p></div>';
 
     var usdEl = host.querySelector("#csUsd"), rateEl = host.querySelector("#csRate"), allocEl = host.querySelector("#csAlloc");
+    var basisEl = document.getElementById("csBasis");
+    if (basisEl) basisEl.onchange = function () { chasanSetBasis(basisEl.value); };
     if (usdEl) usdEl.onchange = function () { _usd = usdEl.checked; if (_usd && !(+rateEl.value)) { alert("월 환율(VND/USD)을 입력하세요."); _usd = false; usdEl.checked = false; return; } renderChasan(ym, host, opts); };
     if (rateEl) rateEl.onchange = function () { _rate = +rateEl.value || 0; if (_usd) renderChasan(ym, host, opts); };
     if (allocEl) allocEl.onchange = function () { CHASAN_CFG.allocateCommon = allocEl.checked; renderChasan(ym, host, opts); };
     var viewRawEl = host.querySelector("#csViewRaw"); if (viewRawEl) viewRawEl.onchange = function () { _csViewRaw = viewRawEl.checked; renderChasan(ym, host, opts); };
-    var _payload = function () { return { byDept: _live.byDept, totals: _live.totals, fx: { usd: _usd, vndPerUsd: _rate }, laborFinalized: _live.laborFinalized, allocated: _live.allocated, headByDept: _live.headByDept, totHead: _live.totHead, byDeptRaw: _live.byDeptRaw, headByDeptRaw: _live.headByDeptRaw }; };
+    var _payload = function () { return { byDept: _live.byDept, totals: _live.totals, fx: { usd: _usd, vndPerUsd: _rate }, basis: _csBasis, laborFinalized: _live.laborFinalized, allocated: _live.allocated, headByDept: _live.headByDept, totHead: _live.totHead, byDeptRaw: _live.byDeptRaw, headByDeptRaw: _live.headByDeptRaw }; };
+    /* 확정용 페이로드 — 인보이스/프로젝트 두 기준을 함께 계산해 byBasis에 보관.
+       최상위 byDept/totals 는 하위호환을 위해 '인보이스 기준'으로 고정한다. */
+    var _payloadBoth = async function () {
+      var both = await chasanComputeBoth(ym, { fallbackLive: opts.fallbackLive !== false });
+      var base = both.invoice || {};
+      return {
+        byDept: base.byDept, totals: base.totals, headByDept: base.headByDept, totHead: base.totHead,
+        byDeptRaw: base.byDeptRaw, headByDeptRaw: base.headByDeptRaw, allocated: base.allocated,
+        fx: { usd: _usd, vndPerUsd: _rate }, basis: "both", viewBasis: _csBasis,
+        byBasis: both, laborFinalized: _live.laborFinalized
+      };
+    };
     var _bind = function (id, fn) { var el = host.querySelector(id); if (el) el.onclick = fn; };
     var _csArchive = async function () { try { if (typeof XLSX === "undefined") return false; var all = await chasanLoadAll(); var bytes = chasanBuildWorkbook(ym, _live, _lw, _extra[ym], _live.laborRows, all); return await chasanArchiveXlsx(ym, chasanXlsxBlob(bytes)); } catch (e) { return false; } };
     _bind("#csXlsx", function () { chasanDownloadXlsx(ym); });
     _bind("#csSaveDraft", async function () { try { await chasanSaveSnapshot(ym, _payload(), false); if (typeof showToast === "function") showToast(ym + " 임시 저장 · Saved ✓"); } catch (e) { if (typeof showToast === "function") showToast("저장 실패: " + e.message); } });
-    _bind("#csFinal", async function () { if (!confirm(ym + " 채산을 확정합니다. 확정 후 이 달 값이 동결되고 Storage에 Excel이 저장됩니다. 진행할까요?")) return; try { await chasanSaveSnapshot(ym, _payload(), true); var _ok = await _csArchive(); if (typeof showToast === "function") showToast(ym + " 채산 확정 · Finalized ✓" + (_ok ? " · Storage Excel saved" : " · (엑셀 저장 실패)")); renderChasan(ym, host, opts); } catch (e) { if (typeof showToast === "function") showToast("확정 실패: " + e.message); } });
-    _bind("#csRefinal", async function () { if (!_csIsAdmin()) { alert("재확정은 관리자만 가능합니다."); return; } if (!confirm(ym + " 채산을 현재 라이브값으로 재확정합니다. 진행할까요?")) return; try { await chasanSaveSnapshot(ym, _payload(), true); var _ok = await _csArchive(); if (typeof showToast === "function") showToast(ym + " 재확정 · Re-finalized ✓" + (_ok ? " · Storage Excel saved" : "")); renderChasan(ym, host, opts); } catch (e) { if (typeof showToast === "function") showToast("재확정 실패: " + e.message); } });
+    _bind("#csFinal", async function () { if (!confirm(ym + " 채산을 확정합니다.\n\n인보이스 기준 + 프로젝트 귀속 기준 두 가지가 함께 확정됩니다.\n확정 후 이 달 값이 동결되고 Storage에 Excel이 저장됩니다. 진행할까요?")) return; try { await chasanSaveSnapshot(ym, await _payloadBoth(), true); var _ok = await _csArchive(); if (typeof showToast === "function") showToast(ym + " 채산 확정 · Finalized ✓" + (_ok ? " · Storage Excel saved" : " · (엑셀 저장 실패)")); renderChasan(ym, host, opts); } catch (e) { if (typeof showToast === "function") showToast("확정 실패: " + e.message); } });
+    _bind("#csRefinal", async function () { if (!_csIsAdmin()) { alert("재확정은 관리자만 가능합니다."); return; } if (!confirm(ym + " 채산을 현재 라이브값으로 재확정합니다.\n두 기준 모두 갱신됩니다. 진행할까요?")) return; try { await chasanSaveSnapshot(ym, await _payloadBoth(), true); var _ok = await _csArchive(); if (typeof showToast === "function") showToast(ym + " 재확정 · Re-finalized ✓" + (_ok ? " · Storage Excel saved" : "")); renderChasan(ym, host, opts); } catch (e) { if (typeof showToast === "function") showToast("재확정 실패: " + e.message); } });
     _bind("#csUnfinal", async function () { if (!_csIsAdmin()) { alert("확정 해제는 관리자만 가능합니다."); return; } if (!confirm(ym + " 채산 확정을 해제합니다. 다시 편집 가능해집니다. 진행할까요?")) return; try { await chasanUnfinalize(ym); if (typeof showToast === "function") showToast(ym + " 확정 해제 · Unlocked ✓"); renderChasan(ym, host, opts); } catch (e) { if (typeof showToast === "function") showToast("해제 실패: " + e.message); } });
   };
 
@@ -886,7 +1094,7 @@
       var invs = (typeof state !== "undefined" && state && state.invoices) || [];
       var irows = [];
       invs.forEach(function (inv) {
-        if (!inv || _ym(inv.date) !== ym) return;
+        if (!inv || _csEffYm(inv) !== ym) return;
         if (key === "revenue" && inv.dir !== "issued") return;
         if (key === "cogs" && !(inv.dir === "received" && isCogsVendor(inv))) return;
         if (invDept(inv) !== dept) return;
