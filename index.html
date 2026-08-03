@@ -37,9 +37,9 @@
 <script src="js/hr-con.js?v=9" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/quote.js?v=6"></script>
 <script src="js/contract.js?v=1"></script>
-<script src="js/chasan.js?v=2"></script>
+<script src="js/chasan.js?v=3"></script>
 <script src="js/export.js?v=1"></script>
-<script src="js/hqreport.js?v=5"></script>
+<script src="js/hqreport.js?v=6"></script>
 <script>
 (function() {
   if (typeof renderHrCon === "function" && window._hrConLoaded) {
@@ -7002,7 +7002,17 @@ function _salesDeriveFromInvoices(){
   var sum=0; invs.forEach(function(v){ sum+=qNum(v.total); });
   if(amEl){ amEl.value=String(Math.round(sum)); if(typeof fmtAmtInput==='function') fmtAmtInput(amEl); }
   var dts=invs.map(function(v){return v.date||'';}).filter(Boolean).sort();
-  if(dtEl) dtEl.value=dts.length?dts[dts.length-1]:'';
+  if(dtEl) dtEl.value=dts.length?dts[0]:'';   // 복수 발행 시 최초 발행일 (채산 귀속기준과 일치)
+  // ── 매출 공급가/총액이 비어 있으면 연결 인보이스에서 자동 채움 (수동 입력값은 보존) ──
+  var _stEl=document.getElementById('salesTotal'), _ssEl=document.getElementById('salesSubtotal');
+  if(_stEl && qNum(_stEl.value)<=0){
+    var _subSum=0; invs.forEach(function(v){ _subSum+=((v.subtotal!=null&&v.subtotal!=='')?qNum(v.subtotal):_exVatN(qNum(v.total), v.vatPct)); });
+    var _vsel=document.getElementById('salesVat'); if(_vsel && invs[0].vatPct!=null && invs[0].vatPct!=='') _vsel.value=invs[0].vatPct;
+    _stEl.value=String(Math.round(sum)); if(typeof fmtAmtInput==='function') fmtAmtInput(_stEl);
+    if(_ssEl){ _ssEl.value=String(Math.round(_subSum)); if(typeof fmtAmtInput==='function') fmtAmtInput(_ssEl); }
+    var _vaEl=document.getElementById('salesVatAmt'); if(_vaEl){ var _va=sum-_subSum; _vaEl.value=fmtN(_va>0?_va:0); }
+    if(typeof recalcProjFinance==='function') try{ recalcProjFinance(''); }catch(e){}
+  }
   if(iss){ iss.checked=true; iss.disabled=true; }
   _setSalesInvoiceFieldsLocked(true);
 }
@@ -8718,7 +8728,7 @@ function renderSalesTerms(){
   var t=_salesTerms, cur=(document.getElementById('salesCurrency')||{}).value||'VND';
   var atLbl=function(at,net){ return (typeof termAtLabel==='function')?termAtLabel(at,net,'ko'):at; };
   // 연결된 매출 인보이스의 은행 대사액 — 있으면 이쪽이 1순위 (금액 완전일치 스캔보다 신뢰)
-  var _lin=_projInvsByIds(_projIdList('salesInvoiceId')).filter(function(v){ return (v.currency||'VND')===cur; });
+  var _lin=_projInvsByIds(_projIdList('salesInvoiceId')).filter(function(v){ return _finCur(v.currency)===_finCur(cur); });
   var _linSettle=0, _linDate='';
   _lin.forEach(function(v){
     _linSettle+=(typeof _finSettled==='function')?_finSettled(v):0;
@@ -9299,6 +9309,15 @@ function showFinanceApp(){
 function closeFinanceApp(){ financeAppOpen=false; var app=document.getElementById('financeApp'); if(app) app.style.display='none'; if(typeof showHub==='function') showHub(); }
 
 // ── 인보이스 발행일 → YYYY-MM ──
+// 자산 인보이스 판정 · 채산(chasanClassify)과 동일 기준. 자본적 지출은 매출원가가 아니다.
+function _finIsAsset(v){
+  if(!v) return false;
+  if(String(v.chasanClass||'')==='asset') return true;
+  try{ if(window.chasanClassify && window.chasanClassify(v)==='asset') return true; }catch(e){}
+  return false;
+}
+// 통화 코드 정규화 · ' vnd ' → 'VND'. 공백·대소문자 때문에 행이 통째로 누락되던 문제 방지
+function _finCur(c){ var v=String(c==null?'':c).trim().toUpperCase(); return v||'VND'; }
 function _finYm(d){ var m=String(d||'').match(/(\d{4})[-\/.](\d{1,2})/); return m?(m[1]+'-'+('0'+m[2]).slice(-2)):''; }
 function _finSettled(v){ try{ if(typeof _invSettledCents==='function') return _invSettledCents(v)/100;
   return (typeof _invIsPaid==='function' && _invIsPaid(v))?qNum(v.total):0; }catch(e){ return 0; } }
@@ -9324,7 +9343,7 @@ function _finLinkedInvs(p, dir, explicitIds){
 function _finRecon(invs, cur){
   var st=0, amt=0, n=0;
   (invs||[]).forEach(function(v){
-    if((v.currency||'VND')!==cur) return;
+    if(_finCur(v.currency)!==_finCur(cur)) return;
     n++; amt+=qNum(v.total); st+=_finSettled(v);
   });
   return { n:n, amt:amt, settled:st };
@@ -9338,12 +9357,21 @@ function finCalc(p, cur, ym){
   var s=p.sales||{}, pu=p.purchase||{};
   if(ym) return _finCalcMonth(p, cur, ym);
   var r={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, sSub:0, pSub:0, sInvSub:0, hasS:false, hasP:false };
-  if((s.currency||'VND')===cur){
+  if(_finCur(s.currency)===_finCur(cur)){
     var sd=qNum(s.deposit), sb=qNum(s.balance);
     r.sTotal=qNum(s.total)||(sd+sb); r.sRecv=(s.depositPaid?sd:0)+(s.balancePaid?sb:0); r.sOut=r.sTotal-r.sRecv;
-    var iss = s.invoiceIssued ? (qNum(s.invoiceAmount)||r.sTotal) : 0; if(iss>r.sTotal) iss=r.sTotal;
+    // ── 폴백: 프로젝트 매출 총액 미입력인데 매출 인보이스가 연결된 경우 인보이스에서 역산 ──
+    if(r.sTotal<=0){
+      var _sfbT=0,_sfbS=0;
+      _finLinkedInvs(p,'issued',_finSalesIds(s)).forEach(function(v){
+        if(!v || _finCur(v.currency)!==_finCur(cur)) return;
+        _sfbT+=qNum(v.total); _sfbS+=_exVatOf(qNum(v.total), v.subtotal, v.vatPct);
+      });
+      if(_sfbT>0){ r.sTotal=_sfbT; r.sSubFB=_sfbS; r.sFromInv=true; }
+    }
+    var iss = (s.invoiceIssued||r.sFromInv) ? (qNum(s.invoiceAmount)||r.sTotal) : 0; if(iss>r.sTotal) iss=r.sTotal;
     r.sInvoiced=iss; r.sUninvoiced=r.sTotal-iss;
-    r.sSub=_exVatOf(r.sTotal, s.subtotal, s.vat);                          // 매출 공급가 (Ex-VAT)
+    r.sSub=r.sFromInv?r.sSubFB:_exVatOf(r.sTotal, s.subtotal, s.vat);      // 매출 공급가 (Ex-VAT)
     r.sInvSub=(r.sTotal>0)?(r.sSub*(r.sInvoiced/r.sTotal)):0;              // 발행분 공급가 환산
     // 입금: 연결 인보이스가 있으면 은행 대사 결과가 우선 (체크박스 스냅샷보다 신뢰)
     var _sRec=_finRecon(_finLinkedInvs(p,'issued',_finSalesIds(s)), cur);
@@ -9351,18 +9379,38 @@ function finCalc(p, cur, ym){
     r.sOut=r.sTotal-r.sRecv;
     r.hasS = r.sTotal>0;
   }
-  if((pu.currency||'VND')===cur){
+  if(_finCur(pu.currency)===_finCur(cur)){
     var pd=qNum(pu.deposit), pb=qNum(pu.balance);
     r.pTotal=qNum(pu.total)||(pd+pb); r.pPaid=(pu.depositPaid?(qNum(pu.total)||pd):0); r.pOut=r.pTotal-r.pPaid;
     r.pSub=_exVatOf(r.pTotal, pu.subtotal, pu.vat);                        // 매입 공급가 (Ex-VAT)
+    // ── 자산분 분리: 연결 매입 인보이스 중 class:asset 은 매출원가에서 제외 ──
+    var _pAll=_finLinkedInvs(p,'received',_finPurchIds(pu));
+    if(_pAll.length){
+      var _aT=0,_aS=0;
+      _pAll.forEach(function(v){
+        if(!v || _finCur(v.currency)!==_finCur(cur) || !_finIsAsset(v)) return;
+        _aT+=qNum(v.total); _aS+=_exVatOf(qNum(v.total), v.subtotal, v.vatPct);
+      });
+      if(_aT>0){
+        r.pAssetTotal=_aT; r.pAssetSub=_aS;
+        r.pSub=Math.max(0, r.pSub-_aS);                                    // 원가에서 자산분 차감
+        r.allAsset=(_aT>=r.pTotal-1);                                      // 전액 자산 프로젝트
+      }
+    }
     // 지급: 연결 인보이스가 있으면 은행 대사 결과가 우선
     var _pRec=_finRecon(_finLinkedInvs(p,'received',_finPurchIds(pu)), cur);
     if(_pRec.n>0){ r.pPaid=Math.min(r.pTotal, _pRec.settled); r.pReconP=true; }
     r.pOut=r.pTotal-r.pPaid;
     r.hasP = r.pTotal>0;
   }
-  r.margin = r.sSub - r.pSub;                                              // 마진 = Ex-VAT 차액
-  r.marginRate = (r.sSub>0)?(r.margin/r.sSub*100):0;
+  // ── 통화 불일치 가드: 한쪽만 필터에 걸려 유령 적자/흑자가 나는 것을 차단 ──
+  r.sCur=_finCur(s.currency); r.pCur=pu.currency?_finCur(pu.currency):r.sCur;
+  var _sAmt=qNum(s.total)||qNum(s.deposit)||qNum(s.subtotal)||_finLinkedInvs(p,'issued',_finSalesIds(s)).length;
+  var _pAmt=qNum(pu.total)||qNum(pu.deposit)||qNum(pu.subtotal)||_finLinkedInvs(p,'received',_finPurchIds(pu)).length;
+  r.curMix = (r.sCur!==r.pCur) && !!_sAmt && !!_pAmt;
+  if(r.allAsset && r.sSub<=0) r.curMix=false;                              // 통화가드보다 자산표기 우선
+  r.margin = (r.curMix || (r.allAsset && r.sSub<=0)) ? null : (r.sSub - r.pSub);   // 마진 = Ex-VAT 차액
+  r.marginRate = (r.margin!=null && r.sSub>0)?(r.margin/r.sSub*100):0;
   r.marginIncVat = r.sTotal - r.pTotal;                                    // 참고용 (표시 안 함)
   return r;
 }
@@ -9372,10 +9420,10 @@ function _finCalcMonth(p, cur, ym){
   var s=p.sales||{}, pu=p.purchase||{};
   var r={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, sSub:0, pSub:0, sInvSub:0, hasS:false, hasP:false, monthly:true };
   var pick=function(ids){ return _projInvsByIds(ids||[]).filter(function(v){
-    return v && (v.currency||'VND')===cur && _finYm(v.date)===ym; }); };
+    return v && _finCur(v.currency)===_finCur(cur) && _finYm(v.date)===ym; }); };
   var sInv=pick(_finSalesIds(s)), pInv=pick(_finPurchIds(pu));
   // 레거시 폴백: 매출 인보이스 링크가 전혀 없고 발행일만 기록된 경우
-  if(!sInv.length && !_finSalesIds(s).length && s.invoiceIssued && (s.currency||'VND')===cur && _finYm(s.invoiceDate)===ym){
+  if(!sInv.length && !_finSalesIds(s).length && s.invoiceIssued && _finCur(s.currency)===_finCur(cur) && _finYm(s.invoiceDate)===ym){
     r.sTotal=qNum(s.total)||0;
     r.sSub=_exVatOf(r.sTotal, s.subtotal, s.vat);
     r.sRecv=(s.depositPaid?qNum(s.deposit):0)+(s.balancePaid?qNum(s.balance):0);
@@ -9387,8 +9435,10 @@ function _finCalcMonth(p, cur, ym){
   r.sOut=r.sTotal-r.sRecv; r.pOut=r.pTotal-r.pPaid;
   r.sReconS=sInv.length>0; r.pReconP=pInv.length>0;
   r.hasS=r.sTotal>0; r.hasP=r.pTotal>0;
-  r.margin=r.sSub-r.pSub;
-  r.marginRate=(r.sSub>0)?(r.margin/r.sSub*100):0;
+  r.sCur=_finCur(s.currency); r.pCur=pu.currency?_finCur(pu.currency):r.sCur;
+  r.curMix=(r.sCur!==r.pCur) && sInv.length>0 && pInv.length>0;
+  r.margin=r.curMix?null:(r.sSub-r.pSub);
+  r.marginRate=(!r.curMix && r.sSub>0)?(r.margin/r.sSub*100):0;
   r.marginIncVat=r.sTotal-r.pTotal;
   return r;
 }
@@ -9417,7 +9467,9 @@ function renderFinanceDashboard(){
     tot.sTotal+=c.sTotal; tot.sRecv+=c.sRecv; tot.sOut+=c.sOut;
     tot.sInvoiced+=c.sInvoiced; tot.sUninvoiced+=c.sUninvoiced;
     tot.pTotal+=c.pTotal; tot.pPaid+=c.pPaid; tot.pOut+=c.pOut;
-    tot.sSub+=c.sSub; tot.pSub+=c.pSub; tot.sInvSub+=c.sInvSub;
+    if(c.margin==null){ tot.mixN=(tot.mixN||0)+1; }
+    else { tot.sSub+=c.sSub; tot.pSub+=c.pSub; tot.sInvSub+=c.sInvSub; }
+    if(c.pAssetTotal) tot.pAsset=(tot.pAsset||0)+c.pAssetTotal;
     rows.push({p:p, c:c});
   });
   var margin=tot.sSub-tot.pSub;
@@ -9468,7 +9520,7 @@ function renderFinanceDashboard(){
 
   var el=document.getElementById('finTable');
   if(!rows.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-cash-off"></i><p>'+cur+(ym?(' '+ym+' 발행 인보이스 없음'):(uninvOnly?' 미발행 인보이스 없음':' 정산 데이터 없음 · 프로젝트 폼에서 매출/매입 입력'))+'</p></div>'; return; }
-  rows.sort(function(a,b){ return b.c.sUninvoiced-a.c.sUninvoiced || b.c.margin-a.c.margin; });
+  rows.sort(function(a,b){ return b.c.sUninvoiced-a.c.sUninvoiced || ((b.c.margin==null?-Infinity:b.c.margin)-(a.c.margin==null?-Infinity:a.c.margin)); });
   var th='padding:5px 6px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.02em;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap';
   var thl=th+';text-align:left';
   var td='padding:6px 6px;font-size:11px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap';
@@ -9501,7 +9553,11 @@ function renderFinanceDashboard(){
           +'<td style="'+td+'">'+payTag(r.c.sOut,r.c.sTotal,'s')+'</td>'
           +'<td style="'+tdc+'">'+_fm(r.c.pTotal)+'</td>'
           +'<td style="'+tdc+'">'+payTag(r.c.pOut,r.c.pTotal,'p')+'</td>'
-          +'<td style="'+td+';font-weight:700;color:'+(r.c.margin>=0?'#1d4ed8':'var(--danger)')+'" title="Ex-VAT: 공급가 매출 '+_fm(r.c.sSub)+' \u2212 매입 '+_fm(r.c.pSub)+'">'+_fm(r.c.margin)+(r.c.sSub>0?' <span style="font-size:9px;color:var(--text-3);font-weight:600">'+r.c.marginRate.toFixed(1)+'%</span>':'')+'</td>'
+          +((r.c.allAsset && r.c.sSub<=0)
+            ?'<td style="'+td+';font-weight:700;color:var(--text-3)" title="자본적 지출 · 자산 취득분 '+_fm(r.c.pAssetTotal)+' \u2014 매출원가가 아니므로 마진 산출 대상이 아닙니다.">\u2014 <span style="font-size:9px;color:var(--text-3);font-weight:600">자산 · Asset</span></td>'
+            :r.c.curMix
+            ?'<td style="'+td+';font-weight:700;color:#b45309" title="매출 '+r.c.sCur+' / 매입 '+r.c.pCur+' \u2014 통화가 달라 마진 산출 불가. 통화 필터를 바꿔 각각 확인하세요.">\u26A0 '+r.c.sCur+'/'+r.c.pCur+' <span style="font-size:9px;color:var(--text-3);font-weight:600">통화상이</span></td>'
+            :'<td style="'+td+';font-weight:700;color:'+(r.c.margin>=0?'#1d4ed8':'var(--danger)')+'" title="Ex-VAT: 공급가 매출 '+_fm(r.c.sSub)+' \u2212 매입 '+_fm(r.c.pSub)+'">'+_fm(r.c.margin)+(r.c.sSub>0?' <span style="font-size:9px;color:var(--text-3);font-weight:600">'+r.c.marginRate.toFixed(1)+'%</span>':'')+'</td>')
           +'</tr>';
       }).join('')
     +'</tbody></table>';
