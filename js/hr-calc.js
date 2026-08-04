@@ -144,11 +144,17 @@
   window.hrSplitTest = function() {
     window.hrState = window.hrState || {};
     window.hrState.settings = window.hrState.settings || {};
-    window.hrState.attendance = { E03: { "2026-07": { days: { 17: "A" } } } };   // 7/17 결근 1일
-    var e = { id: "E03", nameVi: "Khanh", salaryType: "Gross", salary: 16000000, dependents: 0, si: false,
+    /* 실제 출결 데이터를 보존한다 — 테스트용 가상 사번(__TEST__)만 주입 후 원상복구 */
+    var _prevAtt = window.hrState.attendance;
+    var _testId = "__SPLITTEST__";
+    window.hrState.attendance = Object.assign({}, _prevAtt || {});
+    window.hrState.attendance[_testId] = { "2026-07": { days: { 17: "A" } } };   // 7/17 결근 1일
+    var e = { id: _testId, nameVi: "Khanh", salaryType: "Gross", salary: 16000000, dependents: 0, si: false,
               pitMethod: "10%", probPct: 0.85, probStart: "2026-05-18", probEnd: "2026-07-17",
               joinDate: "2026-05-18", hrManaged: true };
-    var c = hrCalcRow(e, "2026-07-31");
+    var c;
+    try { c = hrCalcRow(e, "2026-07-31"); }
+    finally { window.hrState.attendance = _prevAtt; }   // 원본 복구 (예외 시에도)
     var exp = { probPay: 7095652, offPay: 6956522, applied: 14052174, pit: 709565.2, net: 13342608.8 };
     var chk = [["probPay", c.probPay, exp.probPay], ["offPay", c.offPay, exp.offPay],
                ["applied", c.applied, exp.applied], ["pit", Math.round(c.pit * 100) / 100, exp.pit],
