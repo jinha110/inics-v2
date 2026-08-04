@@ -9,7 +9,11 @@
     personalDed: 15500000, dependentDed: 6200000,
     empRate: { si: 0.08, hi: 0.015, ui: 0.01 },
     comRate: { si: 0.17, hi: 0.03, ai: 0.005, ui: 0.01 },
-    capSIHI: 46800000, capUI: 106200000
+    capSIHI: 46800000, capUI: 106200000,
+    /* 수습→정식 전환월 PIT 처리:
+       "split"     = 수습분 10% 정률 + 정식분 누진(공제 전액)  ← 회계법인 현행 방식 / 엑셀 대장 일치
+       "aggregate" = 월 전액 누진(공제 전액)                  ← TT111 제25조1항b.1 + 국세청 공문 해석 */
+    probPitMode: "split"
   };
 
   window.hrPayrollSettings = function() {
@@ -43,7 +47,9 @@
     var join = e.joinDate || null;
     var end = e.endDate || e.resignDate || e.leaveDate || null;
     var pad = function(n) { return (n < 10 ? "0" : "") + n; };
+    var pEnd = e.probEnd || null;
     var std = 0, unpaid = 0, leave = 0, hol = 0, preHire = 0;
+    var probStd = 0, offStd = 0, probPaid = 0, offPaid = 0;
     for (var d = 1; d <= dim; d++) {
       var wd = new Date(y, m - 1, d).getDay();
       if (wd === 0 || wd === 6) continue;
@@ -53,11 +59,15 @@
       var s = rec.st[d] || rec.st[String(d)] || "P";
       if (s === "H") { hol++; continue; }
       std++;
-      if (s === "A") unpaid++;
+      var isProb = !!(pEnd && iso <= pEnd);   // 해당 일자가 수습기간에 속하는지 (일 단위 판정)
+      if (isProb) probStd++; else offStd++;
+      if (s === "A") { unpaid++; }
+      else { if (isProb) probPaid++; else offPaid++; }
       if (s === "L") leave++;
     }
     var factor = std ? (std - unpaid) / std : 1;
-    return { dim: dim, std: std, unpaid: unpaid, leave: leave, hol: hol, preHire: preHire, ot: rec.ot || 0, factor: factor };
+    return { dim: dim, std: std, unpaid: unpaid, leave: leave, hol: hol, preHire: preHire, ot: rec.ot || 0, factor: factor,
+             probStd: probStd, offStd: offStd, probPaid: probPaid, offPaid: offPaid };
   };
 
   window.hrLeaveUsed = function(e, year) {
@@ -82,24 +92,73 @@
     var prog = function(t) { return t <= 0 ? 0 : t <= 1e7 ? t * .05 : t <= 3e7 ? t * .1 - 5e5 : t <= 6e7 ? t * .2 - 35e5 : t <= 1e8 ? t * .3 - 95e5 : t * .35 - 145e5; };
     var n2g = function(q) { return q <= 0 ? 0 : q <= 9500000 ? q / .95 : q <= 27500000 ? (q - 5e5) / .9 : q <= 51500000 ? (q - 35e5) / .8 : q <= 79500000 ? (q - 95e5) / .7 : (q - 145e5) / .65; };
     var pa = hrProbActiveOn(e, asof);
-    var baseApplied = pa ? Math.round(e.salary * e.probPct) : e.salary;
     var at = hrAttStats(e, hrYmOf(asof));
-    var applied = Math.round(baseApplied * at.factor);
+
+    /* ── 수습/정식 구간 분리 일할계산 ──
+       수습분 = 수습기준급 × 수습근무일/소정일,  정식분 = 정규급 × 정식근무일/소정일
+       (구간별 반올림 — 급여대장 엑셀과 동일) */
+    var probBase = Math.round(e.salary * (e.probPct == null ? 1 : e.probPct));
+    var offBase = e.salary;
+    var probPay = at.std ? Math.round(probBase * at.probPaid / at.std) : 0;
+    var offPay = at.std ? Math.round(offBase * at.offPaid / at.std) : 0;
+    var split = at.probStd > 0 && at.offStd > 0;          // 전환월 여부
+    var applied = probPay + offPay;
+
+    /* OT 단가 = 해당 월 구간가중 평균 기준급 (비전환월이면 종전과 동일) */
+    var effDen = at.probStd + at.offStd;
+    var baseApplied = effDen ? Math.round((probBase * at.probStd + offBase * at.offStd) / effDen)
+                             : (pa ? probBase : offBase);
     var hourly = at.std ? baseApplied / (at.std * 8) : 0;
     var otPay = Math.round(at.ot * hourly * 1.5);
     var ded = SETTINGS.personalDed + e.dependents * SETTINGS.dependentDed;
     var ib = e.si ? applied : 0;
     var ei = cS(ib) * (SETTINGS.empRate.si + SETTINGS.empRate.hi) + cU(ib) * SETTINGS.empRate.ui;
     var ci = cS(ib) * (SETTINGS.comRate.si + SETTINGS.comRate.hi + SETTINGS.comRate.ai) + cU(ib) * SETTINGS.comRate.ui;
-    var tax = 0, pit = 0, net = 0, tc = 0;
+    var mode = SETTINGS.probPitMode || "split";
+    var tax = 0, pit = 0, net = 0, tc = 0, pitProb = 0, pitOff = 0, pitMode = "";
     if (e.salaryType === "NET") {
       var q = Math.max(0, applied - ded); tax = n2g(q); pit = prog(tax); net = applied + otPay; tc = applied + ei + pit + ci + otPay;
+      pitMode = "net-gross-up";
     } else {
-      if (e.pitMethod === "10%") { pit = applied >= 2e6 ? applied * .1 : 0; }
-      else { tax = Math.max(0, applied - ei - ded); pit = prog(tax); }
+      if (split && mode === "aggregate") {
+        /* 전환월 · 전액 누진 — 수습분 포함 월 전체를 누진 적용 */
+        tax = Math.max(0, applied - ei - ded); pit = prog(tax); pitOff = pit; pitMode = "aggregate";
+      } else if (split && e.pitMethod === "10%") {
+        /* 전환월 · 분리 — 수습분 10% 정률(공제 미적용) + 정식분 누진(공제 전액) */
+        pitProb = probPay >= 2e6 ? probPay * .1 : 0;
+        tax = Math.max(0, offPay - ei - ded); pitOff = prog(tax);
+        pit = pitProb + pitOff; pitMode = "split";
+      } else if (e.pitMethod === "10%") {
+        pit = applied >= 2e6 ? applied * .1 : 0; pitProb = pit; pitMode = "10%";
+      } else {
+        tax = Math.max(0, applied - ei - ded); pit = prog(tax); pitOff = pit; pitMode = "prog";
+      }
       net = applied - ei - pit + otPay; tc = applied + ci + otPay;
     }
-    return { pa: pa, applied: applied, baseApplied: baseApplied, otPay: otPay, ib: ib, ei: ei, ci: ci, tax: tax, pit: pit, net: net, tc: tc, at: at };
+    return { pa: pa, applied: applied, baseApplied: baseApplied, otPay: otPay, ib: ib, ei: ei, ci: ci, tax: tax, pit: pit, net: net, tc: tc, at: at,
+             split: split, probBase: probBase, offBase: offBase, probPay: probPay, offPay: offPay,
+             pitProb: pitProb, pitOff: pitOff, pitMode: pitMode };
+  };
+
+  /** 전환월(수습→정식) 검증 — 2026-07 급여대장 엑셀 대조 */
+  window.hrSplitTest = function() {
+    window.hrState = window.hrState || {};
+    window.hrState.settings = window.hrState.settings || {};
+    window.hrState.attendance = { E03: { "2026-07": { days: { 17: "A" } } } };   // 7/17 결근 1일
+    var e = { id: "E03", nameVi: "Khanh", salaryType: "Gross", salary: 16000000, dependents: 0, si: false,
+              pitMethod: "10%", probPct: 0.85, probStart: "2026-05-18", probEnd: "2026-07-17",
+              joinDate: "2026-05-18", hrManaged: true };
+    var c = hrCalcRow(e, "2026-07-31");
+    var exp = { probPay: 7095652, offPay: 6956522, applied: 14052174, pit: 709565.2, net: 13342608.8 };
+    var chk = [["probPay", c.probPay, exp.probPay], ["offPay", c.offPay, exp.offPay],
+               ["applied", c.applied, exp.applied], ["pit", Math.round(c.pit * 100) / 100, exp.pit],
+               ["net", Math.round(c.net * 100) / 100, exp.net]];
+    var pass = chk.every(function(r) { return r[1] === r[2]; });
+    console.log("=== INICS HR Split Test (2026-07, Khanh 수습→정식 전환월) ===");
+    console.log(" 소정 " + c.at.std + "일 · 수습 " + c.at.probPaid + "/" + c.at.probStd + "일 · 정식 " + c.at.offPaid + "/" + c.at.offStd + "일 · PIT모드 " + c.pitMode);
+    chk.forEach(function(r) { console.log(" " + r[0] + ": " + r[1] + " (기대 " + r[2] + ") " + (r[1] === r[2] ? "\u2713" : "\u2717 FAIL")); });
+    console.log(pass ? "\u2705 SPLIT TEST PASS (급여대장 엑셀 일치)" : "\u274c SPLIT TEST FAIL");
+    return { pass: pass, calc: c };
   };
 
   window.hrWorkdaysOf = function(ym) {
