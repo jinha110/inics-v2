@@ -62,7 +62,10 @@
       + '<div class="form-card" style="padding:0;overflow:hidden">'
       + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
       + '<div style="font-size:13px;font-weight:600">급여대장 — ' + hrEsc(asof.slice(0, 7)) + '</div>'
-      + '<span style="font-size:11px;color:var(--text-3)">기준일 ' + hrEsc(asof) + ' · 출결·OT 자동 반영 · 수습→정식 자동</span></div>'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      + '<span style="font-size:11px;color:var(--text-3)">기준일 ' + hrEsc(asof) + ' · 출결·OT 자동 반영 · 수습→정식 자동</span>'
+      + '<button id="hrPayslipAllBtn" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--text);color:#fff;font-size:11px;cursor:pointer">급여명세서 전체 PDF</button>'
+      + '</div></div>'
       + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       + '<thead><tr style="background:var(--surface-2);border-bottom:1px solid var(--border)">'
       + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">직원</th>'
@@ -76,6 +79,7 @@
       + '<th style="text-align:right;padding:10px 12px;font-size:10px;color:var(--text-3)">실수령 / Net</th>'
       + '<th style="text-align:right;padding:10px 12px;font-size:10px;color:var(--text-3)">회사보험 / Employer Ins.</th>'
       + '<th style="text-align:right;padding:10px 12px;font-size:10px;color:var(--text-3)">총비용 / Total Cost</th>'
+      + '<th style="text-align:center;padding:10px 12px;font-size:10px;color:var(--text-3)">명세서</th>'
       + '</tr></thead><tbody>'
       + rows.map(function(rc) {
         var e = rc.e, c = rc.c;
@@ -83,17 +87,26 @@
           + '<td style="padding:11px 12px"><div style="font-weight:600;font-size:13px">' + hrEsc(e.nameVi) + '</div>'
           + '<div style="font-size:11px;color:var(--text-3)">' + hrEsc(e.positionKo) + " · " + hrEsc(e.dept) + '</div></td>'
           + '<td style="padding:11px 12px"><span class="badge ' + (e.salaryType === "NET" ? "b-done" : "b-p1") + '" style="font-size:10px">' + hrEsc(e.salaryType) + '</span>'
-          + (c.pa ? ' <span class="badge b-payment" style="font-size:10px">수습 ' + Math.round(e.probPct * 100) + "%</span>" : "") + '</td>'
+          + (c.split
+              ? ' <span class="badge b-payment" style="font-size:10px">전환월 수습' + c.at.probPaid + "일+정식" + c.at.offPaid + "일</span>"
+              : (c.at.probStd > 0 ? ' <span class="badge b-payment" style="font-size:10px">수습 ' + Math.round((e.probPct == null ? 1 : e.probPct) * 100) + "%</span>" : "")) + '</td>'
           + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + hrFmt(c.applied)
+          + (c.split ? '<br><span style="color:var(--text-3);font-size:10px">수습 ' + hrFmt(c.probPay) + ' + 정식 ' + hrFmt(c.offPay) + '</span>' : "")
           + (c.at.unpaid ? '<br><span style="color:var(--danger);font-size:10px">결근 ' + c.at.unpaid + "일</span>" : "") + '</td>'
           + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + (c.otPay ? hrFmt(c.otPay) + '<br><span style="color:var(--text-3);font-size:10px">' + c.at.ot + "h</span>" : '<span style="color:var(--text-3)">—</span>') + '</td>'
           + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + (c.ib ? hrFmt(c.ib) : '<span style="color:var(--text-3)">—</span>') + '</td>'
           + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + (c.ei ? hrFmt(c.ei) : '<span style="color:var(--text-3)">—</span>') + '</td>'
           + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + (c.tax ? hrFmt(c.tax) : '<span style="color:var(--text-3)">—</span>') + '</td>'
-          + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + hrFmt(c.pit) + ' <span style="color:var(--text-3);font-size:10px">' + (e.pitMethod === "10%" && e.salaryType === "Gross" ? "10%" : "누진") + '</span></td>'
+          + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + hrFmt(c.pit)
+          + ' <span style="color:var(--text-3);font-size:10px">' + ({ "split": "분리", "aggregate": "전액누진", "10%": "10%", "prog": "누진", "net-gross-up": "누진" }[c.pitMode] || "누진") + '</span>'
+          + (c.pitMode === "split" ? '<br><span style="color:var(--text-3);font-size:10px">10% ' + hrFmt(c.pitProb) + ' + 누진 ' + hrFmt(c.pitOff) + '</span>' : "") + '</td>'
           + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono);font-weight:600">' + hrFmt(c.net) + '</td>'
           + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono)">' + (c.ci ? hrFmt(c.ci) : '<span style="color:var(--text-3)">—</span>') + '</td>'
-          + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono);font-weight:600">' + hrFmt(c.tc) + '</td></tr>';
+          + '<td style="padding:11px 12px;text-align:right;font-family:var(--mono);font-weight:600">' + hrFmt(c.tc) + '</td>'
+          + '<td style="padding:11px 8px;text-align:center;white-space:nowrap">'
+          + '<button class="hr-ps-btn" data-id="' + hrEsc(e.id) + '" data-act="view" title="미리보기" style="padding:4px 8px;margin-right:3px;border:1px solid var(--border);border-radius:5px;background:var(--surface);font-size:10px;cursor:pointer">보기</button>'
+          + '<button class="hr-ps-btn" data-id="' + hrEsc(e.id) + '" data-act="pdf" title="PDF 다운로드" style="padding:4px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);font-size:10px;cursor:pointer">PDF</button>'
+          + '</td></tr>';
       }).join("")
       + '<tr style="background:var(--surface-2);font-weight:600;border-top:2px solid var(--text)">'
       + '<td style="padding:12px">합계 (' + rows.length + ")</td><td></td>"
@@ -103,11 +116,27 @@
       + '<td style="padding:12px;text-align:right;font-family:var(--mono)">' + hrFmt(A.pit) + '</td>'
       + '<td style="padding:12px;text-align:right;font-family:var(--mono)">' + hrFmt(A.net) + '</td>'
       + '<td style="padding:12px;text-align:right;font-family:var(--mono)">' + hrFmt(A.ci) + '</td>'
-      + '<td style="padding:12px;text-align:right;font-family:var(--mono)">' + hrFmt(A.tc) + '</td></tr>'
+      + '<td style="padding:12px;text-align:right;font-family:var(--mono)">' + hrFmt(A.tc) + '</td><td></td></tr>'
       + '</tbody></table></div></div>'
       + '<p style="font-size:11px;color:var(--text-3);margin-top:10px;line-height:1.6">'
       + (anyAtt ? "<b>출결 반영됨</b> — 무급결근은 적용급여에서 일할 차감, OT는 평일 150%로 가산. " : "")
-      + "직원 행 클릭 → 인적사항. 출결·휴가는 출결·휴가 탭에서 입력.</p>";
+      + "직원 행 클릭 → 인적사항. 출결·휴가는 출결·휴가 탭에서 입력. 명세서 열의 [보기]/[PDF]로 개별 급여명세서를 출력할 수 있습니다.</p>";
+
+    /* 급여명세서 버튼 — 행 클릭(인적사항)과 충돌 방지 위해 stopPropagation */
+    root.querySelectorAll(".hr-ps-btn").forEach(function(b) {
+      b.onclick = function(ev) {
+        ev.stopPropagation(); ev.preventDefault();
+        var id = b.getAttribute("data-id");
+        if (typeof hrPayslipPDF !== "function") { if (typeof showToast === "function") showToast("명세서 모듈 로딩 중입니다. 잠시 후 다시 시도하세요."); return; }
+        if (b.getAttribute("data-act") === "pdf") hrPayslipPDF(id, asof); else hrPayslipPreview(id, asof);
+      };
+    });
+    var allBtn = document.getElementById("hrPayslipAllBtn");
+    if (allBtn) allBtn.onclick = function(ev) {
+      ev.stopPropagation();
+      if (typeof hrPayslipPDFAll !== "function") { if (typeof showToast === "function") showToast("명세서 모듈 로딩 중입니다. 잠시 후 다시 시도하세요."); return; }
+      hrPayslipPDFAll(asof);
+    };
 
     root.querySelectorAll(".hr-pay-row").forEach(function(r) {
       r.onclick = function() {

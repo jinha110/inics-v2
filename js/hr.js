@@ -572,7 +572,7 @@
 /* payroll-history + chasan 자가 로드 (body 준비 후) */
 (function(){
   function _hrLoadExtra(){
-    ['hr-payroll-history.js'].forEach(function(f){
+    ['hr-payroll-history.js','hr-payslip.js'].forEach(function(f){
       var s=document.createElement('script');
       s.src='js/'+f+'?v='+Date.now();
       (document.body||document.head||document.documentElement).appendChild(s);
