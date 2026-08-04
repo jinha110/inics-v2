@@ -193,6 +193,20 @@
       return '<tr style="' + rst + '"><td style="padding:7px 10px' + lc + '">' + lbl + '</td>' + cells + tc + '</tr>';
     }).join("");
     var opMargin = snap.totals.revenue ? (snap.totals.op / snap.totals.revenue * 100).toFixed(1) + "%" : "—";
+    var _hqR = function (o, key) { var rv = +(o || {}).revenue || 0; if (!rv) return "\u2014"; return (((+(o || {})[key] || 0) / rv) * 100).toFixed(1) + "%"; };
+    var _hqRatioRow = function (label, key, neg) {
+      var cells = DEPTS.map(function (d) {
+        var b = snap.byDept[d] || {}; var col = (neg && (+b.revenue || 0) && (+b[key] || 0) < 0) ? ";color:var(--danger)" : "";
+        return '<td style="text-align:right;padding:4px 10px;font-size:11px;color:var(--text-3)' + col + '">' + _hqR(b, key) + '</td>';
+      }).join("");
+      var tcol = (neg && (+snap.totals.revenue || 0) && (+snap.totals[key] || 0) < 0) ? ";color:var(--danger)" : "";
+      return '<tr style="background:var(--surface-2)"><td style="padding:4px 10px;font-size:11px;color:var(--text-3)">' + label + '</td>' + cells
+        + '<td style="text-align:right;padding:4px 10px;font-size:11px;font-weight:700;color:var(--text-3);border-left:2px solid var(--text-3)' + tcol + '">' + _hqR(snap.totals, key) + '</td></tr>';
+    };
+    var ratioRows = '<tr style="background:var(--surface-2);border-top:1px solid var(--border)"><td colspan="' + (DEPTS.length + 2) + '" style="padding:4px 10px;font-size:10px;color:var(--text-3)">\uAD6C\uC131\uBE44 \u00B7 Ratios (\u00F7 \uB9E4\uCD9C)</td></tr>'
+      + _hqRatioRow("\uB9E4\uCD9C\uC6D0\uAC00\uC728 \u00B7 COGS%", "cogs", false)
+      + _hqRatioRow("\uB9E4\uCD9C\uCD1D\uC774\uC775\uB960 \u00B7 GP%", "gross", false)
+      + _hqRatioRow("\uC601\uC5C5\uC774\uC775\uB960 \u00B7 OP%", "op", true);
 
     var h = _sectionTitle("채산 · Departmental P&L", "#7c3aed");
     h += '<div style="font-size:11px;color:var(--text-3);margin:0 0 8px">기준 · Basis: <b style="color:' + (_basis === "project" ? "#1d4ed8" : "var(--text-2)") + '">'
@@ -200,13 +214,14 @@
        + "</b></div>"
        + (_miss.length ? '<div style="font-size:11px;color:#b45309;margin:0 0 8px">\u26A0 ' + _miss.join(", ") + " 는 인보이스 기준만 확정돼 있어 해당 월은 인보이스 기준 수치입니다. 채산 모듈에서 재확정하면 두 기준이 함께 저장됩니다.</div>" : "");
     h += '<div style="font-size:12px;color:var(--text-3);margin-bottom:8px">최근 확정월 · Latest finalized: <b style="color:var(--text-2)">' + E(ym) + '</b> · 영업이익률 ' + opMargin + ' · 단위 ' + _unitLabel() + '</div>';
-    h += '<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    h += '<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">' + th + '</tr></thead><tbody>' + rows + ratioRows + '</tbody></table></div>';
     h += '<div style="font-size:13px;font-weight:700;margin:12px 0 8px">연 누적 · YTD ' + year + ' <span style="font-size:11px;color:var(--text-3);font-weight:400">(확정월 합계, 전체)</span></div>';
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px">'
       + _kpi("매출 · Revenue", null, "#111827", MV(ytd.revenue))
       + _kpi("매출총이익 · Gross", null, "#1d4ed8", MV(ytd.gross))
       + _kpi("영업이익 · OP", null, ytd.op < 0 ? "#dc2626" : "#15803d", MV(ytd.op))
-      + _kpi("영업이익률 · OP%", null, "#6b7280", ytd.revenue ? (ytd.op / ytd.revenue * 100).toFixed(1) + "%" : "—")
+      + _kpi("매출원가율 · COGS%", null, "#6b7280", ytd.revenue ? (ytd.cogs / ytd.revenue * 100).toFixed(1) + "%" : "—")
+      + _kpi("영업이익률 · OP%", null, ytd.revenue && ytd.op < 0 ? "#dc2626" : "#6b7280", ytd.revenue ? (ytd.op / ytd.revenue * 100).toFixed(1) + "%" : "—")
       + '</div>';
     h += '<div style="font-size:13px;font-weight:700;margin:14px 0 8px">\uD83D\uDCD1 \uBD80\uC11C\uBCC4 \uC190\uC775 \u00B7 \uC6D4\uBCC4 & \uB204\uC801 \u00B7 Monthly & YTD (' + ((_usd && _rate) ? 'USD' : 'VND') + ' \u00B7 COMMON \uBC30\uBD84)</div>';
     h += (typeof window.chasanBuildYtdFsTable === 'function' ? window.chasanBuildYtdFsTable(year, { usd: _usd, rate: _rate, all: all }) : '') + '<div style="height:6px"></div>';

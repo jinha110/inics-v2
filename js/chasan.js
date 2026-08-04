@@ -841,10 +841,23 @@
       }
       return main;
     };
+    var rpct = function (num, den) { return den ? ((num / den) * 100).toFixed(1) + "%" : "\u2014"; };
+    var _ratioRow = function (label, key, neg) {
+      var cells = T.map(function (t) {
+        var b = r.byDept[t] || {}, rv = +b.revenue || 0, v = +b[key] || 0;
+        var col = (neg && rv && v < 0) ? "var(--danger)" : "var(--text-3)";
+        return '<td style="padding:4px 12px;text-align:right;font-size:11px;color:' + col + '">' + rpct(v, rv) + '</td>';
+      }).join("");
+      var trv = +r.totals.revenue || 0, tv = +r.totals[key] || 0;
+      var tcol = (neg && trv && tv < 0) ? "var(--danger)" : "var(--text-3)";
+      return '<tr style="background:var(--surface-2)"><td style="padding:4px 12px;text-align:left;font-size:11px;color:var(--text-3)">' + label + '</td>' + cells
+        + '<td style="padding:4px 12px;text-align:right;font-size:11px;font-weight:600;color:' + tcol + '">' + rpct(tv, trv) + '</td></tr>';
+    };
     var mline = function () {
-      return '<tr><td style="padding:6px 12px;text-align:left;color:var(--text-3)">영업이익률 / Margin</td>'
-        + T.map(function (t) { return '<td style="padding:6px 12px;text-align:right;color:var(--text-3)">' + pct(r.byDept[t].margin) + '</td>'; }).join("")
-        + '<td style="padding:6px 12px;text-align:right;color:var(--text-3);font-weight:600">' + pct(r.totals.margin) + '</td></tr>';
+      return '<tr style="background:var(--surface-2);border-top:1px solid var(--border)"><td colspan="' + (T.length + 2) + '" style="padding:4px 12px;font-size:10px;color:var(--text-3)">\uAD6C\uC131\uBE44 \u00B7 Ratios (\u00F7 \uB9E4\uCD9C)</td></tr>'
+        + _ratioRow("\uB9E4\uCD9C\uC6D0\uAC00\uC728 \u00B7 COGS%", "cogs", false)
+        + _ratioRow("\uB9E4\uCD9C\uCD1D\uC774\uC775\uB960 \u00B7 GP%", "gross", false)
+        + _ratioRow("\uC601\uC5C5\uC774\uC775\uB960 \u00B7 OP%", "op", true);
     };
     var HRS = Math.round(40 * 4.345);   // 월 근무시간: 주5일×8h(40h/주) × 4.345주 ≈ 174h
     var hc = function (h) { return h > 0 ? (Math.round(h * 10) / 10) : 0; };
@@ -1236,7 +1249,19 @@
         var rowStyle = isTot ? ' style="border-top:2px solid var(--text)"' : (isSub ? ' style="border-top:1px solid var(--border);background:var(--surface-2)"' : "");
         return '<tr' + rowStyle + '><td style="padding:5px 9px' + fw + subColor + '">' + lbl + '</td>' + cells + cumCell + '</tr>';
       }).join("");
-      var mgRow = '<tr style="color:var(--text-3)"><td style="padding:4px 9px;font-size:10px">\uC601\uC5C5\uC774\uC775\uB960 \u00B7 OP%</td>' + mvals.map(function (v) { return '<td style="padding:4px 9px;text-align:right;font-size:10px">' + (v.revenue ? ((v.op / v.revenue) * 100).toFixed(1) + "%" : "\u2014") + '</td>'; }).join("") + '<td style="padding:4px 9px;text-align:right;font-size:10px;border-left:2px solid var(--text-3)">' + (cum.revenue ? ((cum.op / cum.revenue) * 100).toFixed(1) + "%" : "\u2014") + '</td></tr>';
+      var _rrow = function (label, key, neg) {
+        var cells = mvals.map(function (v) {
+          var col = (neg && v.revenue && v[key] < 0) ? ";color:var(--danger)" : "";
+          return '<td style="padding:4px 9px;text-align:right;font-size:10px' + col + '">' + (v.revenue ? ((v[key] / v.revenue) * 100).toFixed(1) + "%" : "\u2014") + '</td>';
+        }).join("");
+        var ccol = (neg && cum.revenue && cum[key] < 0) ? ";color:var(--danger)" : "";
+        return '<tr style="color:var(--text-3);background:var(--surface-2)"><td style="padding:4px 9px;font-size:10px">' + label + '</td>' + cells
+          + '<td style="padding:4px 9px;text-align:right;font-size:10px;font-weight:700;border-left:2px solid var(--text-3)' + ccol + '">' + (cum.revenue ? ((cum[key] / cum.revenue) * 100).toFixed(1) + "%" : "\u2014") + '</td></tr>';
+      };
+      var mgRow = '<tr style="background:var(--surface-2);border-top:1px solid var(--border)"><td colspan="' + (_fsMonths.length + 2) + '" style="padding:4px 9px;font-size:10px;color:var(--text-3)">\uAD6C\uC131\uBE44 \u00B7 Ratios (\u00F7 \uB9E4\uCD9C)</td></tr>'
+        + _rrow("\uB9E4\uCD9C\uC6D0\uAC00\uC728 \u00B7 COGS%", "cogs", false)
+        + _rrow("\uB9E4\uCD9C\uCD1D\uC774\uC775\uB960 \u00B7 GP%", "gross", false)
+        + _rrow("\uC601\uC5C5\uC774\uC775\uB960 \u00B7 OP%", "op", true);
       fsHtml += '<div class="form-card" style="padding:0;overflow:hidden;margin-bottom:12px"><div style="padding:8px 14px;font-size:12px;font-weight:700;border-bottom:1px solid var(--border);border-left:4px solid ' + color + '">' + title + '</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="background:var(--surface-2)">' + th + '</tr></thead><tbody>' + rows + mgRow + '</tbody></table></div></div>';
     });
     return fsHtml;
@@ -1285,12 +1310,15 @@
   window.chasanBuildWorkbook = function (ym, r, lw, extra, laborRows, allSnaps) {
     var wb = XLSX.utils.book_new(), D = DEPTS;
     var rowF = function (label, key) { return [label].concat(D.map(function (d) { return r.byDept[d][key]; })).concat([r.totals[key]]); };
+    var _gr = function (o) { return (+(o || {}).revenue || 0) - (+(o || {}).cogs || 0); };
+    var _rt = function (o, key) { var rv = +(o || {}).revenue || 0; if (!rv) return ""; var v = (key === "gross") ? _gr(o) : (+(o || {})[key] || 0); return Math.round((v / rv) * 1000) / 10; };
+    var rowP = function (label, key) { return [label].concat(D.map(function (d) { return _rt(r.byDept[d], key); })).concat([_rt(r.totals, key)]); };
     var m1 = [
       ["부서 채산 · " + ym, "", "", "", "", ""],
       ["항목"].concat(D).concat(["합계"]),
       rowF("매출 Revenue", "revenue"), rowF("(-) 매입원가 COGS", "cogs"), rowF("(-) 인건비 Labor", "labor"),
       rowF("(-) 판관비 OpEx", "opex"), rowF("(-) EXTRA(타법인)", "extra"), rowF("영업이익 OP", "op"),
-      ["영업이익률(%)"].concat(D.map(function (d) { return _fmtPct(r.byDept[d].margin); })).concat([_fmtPct(r.totals.margin)])
+      rowP("매출원가율(%)", "cogs"), rowP("매출총이익률(%)", "gross"), rowP("영업이익률(%)", "op")
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(m1), "채산_" + ym);
     var w2 = [["이름", "부서", "tc(회사비용)", "FUR VN %", "FUR MX %", "SOURCING %", "COMMON %"]];
@@ -1313,7 +1341,10 @@
       var tt = { revenue: 0, cogs: 0, labor: 0, opex: 0, extra: 0, op: 0 };
       months.forEach(function (mm) { var sp = allSnaps[mm]; if (!(sp && sp.finalizedAt && sp.byDept)) return; D.forEach(function (d) { var b = sp.byDept[d] || {}; ["revenue", "cogs", "labor", "opex", "extra", "op"].forEach(function (k) { ytd[d][k] += (+b[k] || 0); tt[k] += (+b[k] || 0); }); }); });
       var yr = function (label, key) { return [label].concat(D.map(function (d) { return ytd[d][key]; })).concat([tt[key]]); };
-      var h5 = [["YTD 누적 · " + year, "", "", "", "", ""], ["항목"].concat(D).concat(["합계"]), yr("매출", "revenue"), yr("(-)COGS", "cogs"), yr("(-)인건비", "labor"), yr("(-)판관비", "opex"), yr("(-)EXTRA", "extra"), yr("영업이익", "op")];
+      var h5 = [["YTD 누적 · " + year, "", "", "", "", ""], ["항목"].concat(D).concat(["합계"]), yr("매출", "revenue"), yr("(-)COGS", "cogs"), yr("(-)인건비", "labor"), yr("(-)판관비", "opex"), yr("(-)EXTRA", "extra"), yr("영업이익", "op"),
+        ["매출원가율(%)"].concat(D.map(function (d) { return _rt(ytd[d], "cogs"); })).concat([_rt(tt, "cogs")]),
+        ["매출총이익률(%)"].concat(D.map(function (d) { return _rt(ytd[d], "gross"); })).concat([_rt(tt, "gross")]),
+        ["영업이익률(%)"].concat(D.map(function (d) { return _rt(ytd[d], "op"); })).concat([_rt(tt, "op")])];
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(h5), "History_YTD_" + year);
     }
     return XLSX.write(wb, { type: "array", bookType: "xlsx" });
