@@ -269,7 +269,7 @@ function recalcQuote(){
   var cur=(document.getElementById('qCurrency')||{}).value||'VND';
   var sub=0, costTot=0, cbmTot=0;
   quoteLines.forEach(function(l,i){
-    var u=lineUnit(l), qty=qNum(l.qty||0), amt=u*qty;
+    var u=lineUnit(l), qty=qNum(l.qty||0), amt=Math.round(u*qty);
     sub+=amt; costTot+=qNum(l.cost)*qty; cbmTot+=qNum(l.cbm)*qty;
     var us=document.getElementById('qunit-'+i); if(us) us.textContent=fmtN(u);
     var mu=document.getElementById('qmodeunit-'+i); if(mu) mu.textContent=fmtN(u);
@@ -277,7 +277,7 @@ function recalcQuote(){
   });
   var vraw=(document.getElementById('qVat')||{}).value||'8';
   var exempt=(vraw==='exempt'), vat=exempt?0:qNum(vraw);
-  var vatAmt=exempt?0:sub*vat/100, total=sub+vatAmt, margin=sub-costTot, mpct=sub>0?(margin/sub*100):0;
+  var vatAmt=exempt?0:INICSAmount.q(sub*vat/100,cur), total=sub+vatAmt, margin=sub-costTot, mpct=sub>0?(margin/sub*100):0;
   var el=document.getElementById('quoteTotals'); if(!el) return;
   el.innerHTML='<div style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;background:var(--surface)">'
     +'<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span style="color:var(--text-2)">TOTAL (Excl. VAT)</span><span style="font-weight:700">'+cur+' '+fmtN(sub)+'</span></div>'
@@ -311,6 +311,7 @@ function saveQuote(){
   if(!q.lines.length || !q.lines.some(function(l){ return l.name||l.code; })){ showToast('품목을 입력하세요 · Enter item'); return; }
   if(!state.quotes) state.quotes=[];
   var u=cardCurrentUser(); q.preparedBy=u?u.name:'';
+  INICSAmount.freeze(q, true);   // 금액 확정 — 이후 계약서/PR/인보이스는 이 값을 승계만 한다
   // 자동 DB화: 제품 → 제품 DB, 고객사 → 거래처 DB
   q.lines.forEach(function(l){ upsertProductFromLine(l, q.currency); });
   ensureVendor(q.client);
@@ -330,8 +331,8 @@ function renderSavedQuotes(){
   var th='font-size:11px;color:var(--text-3);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
   var td='font-size:12px;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle';
   var rows=list.map(function(x){
-    var tot=(x.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
-    var vatLbl=(x.vat==='exempt')?'면세':(x.vat!=null?('VAT '+x.vat+'%'):'');
+    var tot=INICSAmount.of(x).total;
+    var vatLbl=(x.vat==='exempt')?'면세':(x.vat!=null?('VAT '+x.vat+'% 포함'):'');
     return '<tr>'
       +'<td style="'+td+';white-space:nowrap;color:var(--text-2)">'+(x.date||'—')+'</td>'
       +'<td style="'+td+';font-family:var(--mono);white-space:nowrap">'+(x.quoteNo||'—')+'</td>'
@@ -379,9 +380,8 @@ function deleteQuote(id){ if(!confirm('견적을 삭제할까요? · Delete this
 
 function buildQuoteHtml(q){
   var cur=q.currency||'VND';
-  var sub=(q.lines||[]).reduce(function(s,l){ return s+qNum(l.amount); },0);
-  var qExempt=(q.vat==='exempt'); var qVatPct=qExempt?0:qNum(q.vat);
-  var vatAmt=qExempt?0:sub*qVatPct/100, total=sub+vatAmt;
+  var _A=INICSAmount.of(q);
+  var sub=_A.sub, qExempt=_A.exempt, qVatPct=_A.vatRate, vatAmt=_A.vatAmt, total=_A.total;
   var showCbm=!!q.showCbm;
   var cbmTot=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.cbm)*qNum(l.qty); },0);
   var TDB='border:1px solid #ccc;padding:5px 4px;vertical-align:middle';
@@ -544,9 +544,8 @@ async function exportQuoteExcel(q){
 }
 async function _buildQuoteXlsx(q){
   var cur=q.currency||'VND', showCbm=!!q.showCbm;
-  var sub=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.amount); },0);
-  var qExempt=(q.vat==='exempt'), vatPct=qExempt?0:qNum(q.vat);
-  var vatAmt=qExempt?0:sub*vatPct/100, total=sub+vatAmt;
+  var _A=INICSAmount.of(q);
+  var sub=_A.sub, qExempt=_A.exempt, vatPct=_A.vatRate, vatAmt=_A.vatAmt, total=_A.total;
   var cbmTot=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.cbm)*qNum(l.qty); },0);
 
   // 이미지 포인터(§f§) → dataURL 복원 + 원본 비율 확보
@@ -777,9 +776,8 @@ function exportQuoteExcelPlain(q){
   // 서식/이미지 없이 값만 저장하는 백업 경로
   var cur=q.currency||'VND';
   var showCbm=!!q.showCbm;
-  var sub=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.amount); },0);
-  var qExempt=(q.vat==='exempt'), vatPct=qExempt?0:qNum(q.vat);
-  var vatAmt=qExempt?0:sub*vatPct/100, total=sub+vatAmt;
+  var _A=INICSAmount.of(q);
+  var sub=_A.sub, qExempt=_A.exempt, vatPct=_A.vatRate, vatAmt=_A.vatAmt, total=_A.total;
   var cbmTot=(q.lines||[]).reduce(function(a,l){ return a+qNum(l.cbm)*qNum(l.qty); },0);
 
   var head=['No','Category','Product Name','Size (WxDxH)','Product Code','Color CODE','Qty']
