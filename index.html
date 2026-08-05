@@ -37,7 +37,8 @@
 <script src="js/hr-con.js?v=9" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/amount.js?v=1"></script>
 <script src="js/quote.js?v=7"></script>
-<script src="js/contract.js?v=3"></script>
+<script src="js/contract.js?v=4"></script>
+<script src="js/qlock.js?v=1"></script>
 <script src="js/chasan.js?v=4"></script>
 <script src="js/export.js?v=1"></script>
 <script src="js/hqreport.js?v=7"></script>
@@ -1023,7 +1024,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       </div>
     </div>
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px 8px">
         <div class="fg" style="margin:0"><label style="font-size:10px">계약번호 · No.</label><input type="text" id="ctNo" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">계약일 · Date</label><input type="date" id="ctDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">연결 견적 · Quote → APPENDIX 1</label><select id="ctQuote" onchange="renderContractPreview()" style="font-size:12px;padding:5px 8px"></select></div>
@@ -1031,7 +1032,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fg" style="margin:0"><label style="font-size:10px">보증 · Warranty (년)</label><input type="text" id="ctWarranty" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">통화 · Currency</label><select id="ctCurrency" onchange="renderContractPreview()" style="font-size:12px;padding:5px 8px"><option value="VND">VND</option><option value="USD">USD</option><option value="MXN">MXN</option></select></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">납기일 · Delivery Date</label><input type="date" id="ctDeliveryDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0;grid-column:1/-1"><label style="font-size:10px">대금 지급 조건 · Payment Schedule <span style="color:var(--text-3)">차수 · % · 시점</span></label><div id="ctTermsEditor" style="margin-top:3px"></div></div>
+        <div class="fg" style="margin:0;grid-column:1/-1;display:flex;align-items:center;gap:8px"><label style="font-size:10px;margin:0;flex:0 0 auto;white-space:nowrap" title="차수 · % · 시점">대금 지급 · Payment</label><div id="ctTermsEditor" style="flex:1 1 auto;min-width:0"></div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
         <div class="fg" style="margin:0"><label style="font-size:10px">구매자 대표 · Buyer Rep.</label><input type="text" id="ctBuyerRep" oninput="renderContractPreview()" placeholder="이름만 입력 (Ông/Bà 자동)" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
@@ -1040,9 +1041,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">구매자 주소 · Buyer Address</label><input type="text" id="ctBuyerAddr" oninput="renderContractPreview()" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
         <div class="fg" style="margin:0"><label style="font-size:10px">세금코드 · Tax (MST)</label><input type="text" id="ctBuyerTax" oninput="renderContractPreview()" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
       </div>
-      <div style="font-size:10px;color:var(--text-3);margin-top:5px">구매자 정보는 거래처 DB·프로젝트에서 자동 채워지고, 저장 시 DB에 반영됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정.</div>
-      <div style="font-size:11px;color:var(--text-3);margin-top:6px">납품 장소 · Delivery Place: <span id="ctDeliveryPlace"></span></div>
-      <div id="contractScansBar" style="margin-top:8px"></div>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px;color:var(--text-3);margin-top:6px"><span>납품 장소 · Delivery: <span id="ctDeliveryPlace"></span></span><span style="opacity:.45">/</span><span id="contractScansBar" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap"></span><span style="opacity:.45">/</span><span title="구매자 정보는 거래처 DB·프로젝트에서 자동 채워지고, 저장 시 DB에 반영됩니다. 조항 문구는 관리자 패널 → 계약서 템플릿에서 수정." style="cursor:help"><i class="ti ti-info-circle"></i> 구매자 정보 자동 채움</span></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
       <span style="font-size:11px;color:var(--text-3);font-weight:600">미리보기 · Preview</span>
