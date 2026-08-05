@@ -37,7 +37,7 @@
 <script src="js/hr-con.js?v=9" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/amount.js?v=1"></script>
 <script src="js/quote.js?v=7"></script>
-<script src="js/contract.js?v=4"></script>
+<script src="js/contract.js?v=5"></script>
 <script src="js/qlock.js?v=2"></script>
 <script src="js/chasan.js?v=4"></script>
 <script src="js/export.js?v=1"></script>
@@ -1011,16 +1011,17 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2">
       <div style="font-size:15px;font-weight:700"><i class="ti ti-file-text"></i> 가구 공급 계약서 · Supply Contract</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-outline" onclick="saveContractOpts()" style="font-size:11px;padding:5px 10px"><i class="ti ti-device-floppy"></i> 설정 저장 · Save Settings</button>
-        <button class="btn btn-outline" onclick="openPaymentRequest()" style="font-size:11px;padding:5px 10px"><i class="ti ti-cash"></i> 대금지급요청서 · Payment Request</button>
-        <button class="btn btn-outline" onclick="document.getElementById(&#39;contractScanInput&#39;).click()" style="font-size:11px;padding:5px 10px"><i class="ti ti-paperclip"></i> 스캔본 업로드 · Upload Scan</button>
-        <button class="btn btn-dark" id="ctConfirmBtn" onclick="toggleContractConfirm()" style="font-size:11px;padding:5px 10px"><i class="ti ti-circle-check"></i> 계약 확정 · Confirm Contract</button>
-        <button class="btn btn-outline" id="ctEditBtn" onclick="toggleContractEdit()" style="font-size:11px;padding:5px 10px;border-color:#4338ca;color:#4338ca"><i class="ti ti-edit"></i> 전체 편집 · Edit All</button>
-        <button class="btn btn-outline" id="ctEditCancelBtn" onclick="cancelContractEdit()" style="font-size:11px;padding:5px 10px;display:none"><i class="ti ti-x"></i> 편집 취소 · Cancel</button>
-        <button class="btn btn-outline" id="ctEditResetBtn" onclick="resetContractCustom()" style="font-size:11px;padding:5px 10px;display:none;border-color:#b45309;color:#b45309"><i class="ti ti-refresh"></i> 자동 생성 복원 · Reset</button>
-        <button class="btn btn-outline" onclick="printContract()" style="font-size:11px;padding:5px 10px"><i class="ti ti-printer"></i> 인쇄 · Print</button>
-        <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 10px"><i class="ti ti-download"></i> PDF</button>
-        <button class="btn btn-outline" onclick="closeContractModal()" style="font-size:11px;padding:5px 10px">닫기 · Close</button>
+        <button class="btn btn-outline" onclick="saveContractOpts()" title="설정 저장" style="font-size:11px;padding:5px 9px"><i class="ti ti-device-floppy"></i> Save</button>
+        <button class="btn btn-outline" onclick="openPaymentRequest()" title="대금지급요청서" style="font-size:11px;padding:5px 9px"><i class="ti ti-cash"></i> Payment Request</button>
+        <button class="btn btn-outline" onclick="document.getElementById(&#39;contractScanInput&#39;).click()" title="스캔본 업로드" style="font-size:11px;padding:5px 9px"><i class="ti ti-paperclip"></i> Upload Scan</button>
+        <button class="btn btn-dark" id="ctConfirmBtn" onclick="toggleContractConfirm()" title="계약 확정" style="font-size:11px;padding:5px 9px"><i class="ti ti-circle-check"></i> Confirm</button>
+        <button class="btn btn-outline" id="ctEditBtn" onclick="toggleContractEdit()" title="전체 편집" style="font-size:11px;padding:5px 9px;border-color:#4338ca;color:#4338ca"><i class="ti ti-edit"></i> Edit All</button>
+        <button class="btn btn-outline" id="ctEditCancelBtn" onclick="cancelContractEdit()" title="편집 취소" style="font-size:11px;padding:5px 9px;display:none"><i class="ti ti-x"></i> Cancel</button>
+        <button class="btn btn-outline" id="ctEditResetBtn" onclick="resetContractCustom()" title="자동 생성 복원" style="font-size:11px;padding:5px 9px;display:none;border-color:#b45309;color:#b45309"><i class="ti ti-refresh"></i> Reset</button>
+        <button class="btn btn-outline" onclick="printContract()" title="인쇄" style="font-size:11px;padding:5px 9px"><i class="ti ti-printer"></i> Print</button>
+        <button class="btn btn-dark" onclick="downloadContractPDF()" style="font-size:11px;padding:5px 9px"><i class="ti ti-download"></i> PDF</button>
+        <span style="width:1px;align-self:stretch;background:var(--border);margin:0 2px"></span>
+        <button class="btn btn-outline" onclick="closeContractModal()" title="닫기 · Esc" style="font-size:11px;padding:5px 9px"><i class="ti ti-x"></i> Close</button>
       </div>
     </div>
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
@@ -1032,7 +1033,9 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fg" style="margin:0;grid-column:span 1"><label style="font-size:10px" title="보증 · Warranty (년)">보증(년)</label><input type="text" id="ctWarranty" oninput="renderContractPreview()" style="font-size:12px;padding:5px 6px;text-align:right"></div>
         <div class="fg" style="margin:0;grid-column:span 1"><label style="font-size:10px" title="통화 · Currency">통화</label><select id="ctCurrency" onchange="renderContractPreview()" style="font-size:12px;padding:5px 4px"><option value="VND">VND</option><option value="USD">USD</option><option value="MXN">MXN</option></select></div>
         <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">납기일 · Delivery</label><input type="date" id="ctDeliveryDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0;grid-column:1/-1;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px"><label style="font-size:10px;margin:0;flex:0 0 auto;white-space:nowrap" title="차수 · % · 시점">대금 지급 · Payment</label><div id="ctTermsEditor" style="flex:1 1 auto;min-width:0;display:flex;justify-content:flex-start"></div></div>
+        <div class="fg" style="margin:0;grid-column:span 3"><label style="font-size:10px" title="차수 · % · 시점">대금 지급 · Payment</label><div id="ctTermsCountWrap"></div></div>
+        <div style="grid-column:span 9;display:flex;align-items:flex-end;padding-bottom:5px"><span id="ctTermsSum" style="font-size:10px"></span></div>
+        <div style="grid-column:1/-1;border-top:1px dashed var(--border);padding-top:8px;margin-top:1px"><div id="ctTermsEditor"></div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
         <div class="fg" style="margin:0"><label style="font-size:10px">구매자 대표 · Buyer Rep.</label><input type="text" id="ctBuyerRep" oninput="renderContractPreview()" placeholder="이름만 입력 (Ông/Bà 자동)" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
@@ -11387,6 +11390,17 @@ function toggleBankType() {
     var over=['contractModal','prModal','invoiceModal','projImportModal'];
     for(var i=0;i<over.length;i++){ var t=document.getElementById(over[i]); if(t && t.style.display && t.style.display!=='none') return; }
     if(typeof closeProjectForm==='function') closeProjectForm();
+  });
+  // ESC → 계약서 창 닫기 (위에 자식 모달이 없을 때만) · Close contract modal on Esc
+  document.addEventListener('keydown', function(e){
+    if(e.key!=='Escape' && e.keyCode!==27) return;
+    var cm=document.getElementById('contractModal');
+    if(!cm || !cm.style.display || cm.style.display==='none') return;
+    var over=['prModal','invoiceModal','ctTplPreviewModal','projImportModal'];
+    for(var i=0;i<over.length;i++){ var t=document.getElementById(over[i]); if(t && t.style.display && t.style.display!=='none') return; }
+    if(_isEditable(e.target)) return;
+    e.preventDefault();
+    if(typeof closeContractModal==='function') closeContractModal();
   });
 })();
 </script>
