@@ -135,7 +135,7 @@ function ctRenderTermsEditor(){
   /* 1행 압축 레이아웃 — 세로 4단 → 가로 1행 (미리보기 영역 확보) */
   var cur=(document.getElementById('ctCurrency')||{}).value||'VND';
   var html='<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
-    +'<select onchange="ctTermCount(this.value)" title="연결 견적 총액 기준 · 마지막 차수 자동보정" style="'+inp+';flex:0 0 auto">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>';
+    +'<select onchange="ctTermCount(this.value)" title="연결 견적 총액 기준 · 마지막 차수 자동보정" style="'+inp+';padding:3px 4px;width:118px;flex:0 0 auto">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>';
   for(var i=0;i<t.count;i++){ var r=t.rows[i]; var a=amts[i]; var last=(i===t.count-1);
     html+='<div style="display:flex;align-items:center;gap:4px;flex:1 1 250px;min-width:215px;border:1px solid var(--border);border-radius:var(--radius);padding:3px 7px;background:var(--surface-2)">'
       +'<span style="font-size:11px;font-weight:700;color:var(--text-2);flex:0 0 auto">'+(i+1)+'차</span>'
@@ -241,15 +241,16 @@ function renderContractScans(){
   var box=document.getElementById('contractScansBar'); if(!box) return;
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
   var scans=(p&&p.contractScans)||[];
-  var head='<div style="font-size:10px;color:var(--text-3);font-weight:700;margin-bottom:4px">스캔본 · Signed scans ('+scans.length+')</div>';
-  if(!scans.length){ box.innerHTML=head+'<div style="font-size:11px;color:var(--text-3)">업로드된 스캔본 없음 — 「스캔본 업로드」로 서명·날인본을 첨부하세요 · No scan uploaded.</div>'; return; }
-  box.innerHTML=head+'<div style="display:flex;gap:6px;flex-wrap:wrap">'+scans.map(function(s,i){
+  /* 인라인 압축 — 납품장소 줄에 ' / ' 로 이어 붙는다 */
+  var head='<span style="font-weight:700">스캔본 · Scans ('+scans.length+')</span>';
+  if(!scans.length){ box.innerHTML=head+'<span style="margin-left:5px">— 없음, 「스캔본 업로드」로 첨부 · none</span>'; return; }
+  box.innerHTML=head+scans.map(function(s,i){
     var isImg=/^data:image\//.test(s.data||'');
-    var thumb=isImg?'<img src="'+s.data+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">':'<i class="ti ti-file-type-pdf" style="font-size:22px;color:#b91c1c"></i>';
-    return '<div style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--surface)">'
-      +'<a href="javascript:void(0)" onclick="viewContractScan('+i+')" title="열기 · Open" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text)">'+thumb+'<span style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(s.name||('scan-'+(i+1)))+'</span></a>'
-      +'<a href="javascript:void(0)" onclick="deleteContractScan('+i+')" title="삭제 · Delete" style="color:var(--danger);text-decoration:none"><i class="ti ti-x"></i></a></div>';
-  }).join('')+'</div>';
+    var thumb=isImg?'<img src="'+s.data+'" style="width:18px;height:18px;object-fit:cover;border-radius:3px;border:1px solid var(--border)">':'<i class="ti ti-file-type-pdf" style="font-size:14px;color:#b91c1c"></i>';
+    return '<span style="display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:5px;padding:1px 5px;background:var(--surface);margin-left:4px">'
+      +'<a href="javascript:void(0)" onclick="viewContractScan('+i+')" title="열기 · Open" style="display:inline-flex;align-items:center;gap:4px;text-decoration:none;color:var(--text)">'+thumb+'<span style="font-size:10.5px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(s.name||('scan-'+(i+1)))+'</span></a>'
+      +'<a href="javascript:void(0)" onclick="deleteContractScan('+i+')" title="삭제 · Delete" style="color:var(--danger);text-decoration:none;font-size:11px"><i class="ti ti-x"></i></a></span>';
+  }).join('');
 }
 
 function handleContractScan(files){
