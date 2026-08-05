@@ -132,21 +132,35 @@ function ctRenderTermsEditor(){
   var inp='font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)';
   var atOpts=function(sel){ return [['po','PO 발행 시'],['ship','출고 시'],['delivery','납품 후']].map(function(o){return '<option value="'+o[0]+'"'+(sel===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join(''); };
   var netOpts=function(sel){ return [0,7,14].map(function(nn){return '<option value="'+nn+'"'+(((parseInt(sel,10)||0)===nn)?' selected':'')+'>'+(nn===0?'즉시':('+'+nn+'일'))+'</option>';}).join(''); };
-  /* 1행 압축 레이아웃 — 세로 4단 → 가로 1행 (미리보기 영역 확보) */
-  var cur=(document.getElementById('ctCurrency')||{}).value||'VND';
-  var html='<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
-    +'<select onchange="ctTermCount(this.value)" title="연결 견적 총액 기준 · 마지막 차수 자동보정" style="'+inp+';padding:3px 4px;width:118px;flex:0 0 auto">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>';
+  /* 차수 선택은 그리드 안(ctTermsCountWrap), 합계는 ctTermsSum, 상세 카드는 전폭(ctTermsEditor) */
+  var cw=document.getElementById('ctTermsCountWrap');
+  if(cw) cw.innerHTML='<select onchange="ctTermCount(this.value)" style="'+inp+';width:100%">'
+    +[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>';
+
+  var sm=document.getElementById('ctTermsSum');
+  if(sm){ sm.style.color=(pctSum===100?'#15803d':'var(--danger)');
+    sm.innerHTML=(pctSum===100?'<i class="ti ti-check"></i> ':'<i class="ti ti-alert-triangle"></i> ')
+      +'합계 '+pctSum+'%'+(pctSum!==100?' · <b>100% 아님</b>':'')
+      +' <span style="color:var(--text-3)">· 연결 견적 총액 기준, 마지막 차수 자동보정</span>'; }
+
+  var CARD='border:1px solid var(--border);border-radius:var(--radius);padding:7px 9px;background:var(--surface-2);min-height:78px;display:flex;flex-direction:column;justify-content:space-between;gap:5px;min-width:0';
+  var html='<div style="display:grid;grid-template-columns:repeat('+t.count+',minmax(0,1fr));gap:8px">';
   for(var i=0;i<t.count;i++){ var r=t.rows[i]; var a=amts[i]; var last=(i===t.count-1);
-    html+='<div style="display:flex;align-items:center;gap:4px;flex:1 1 250px;min-width:215px;border:1px solid var(--border);border-radius:var(--radius);padding:3px 7px;background:var(--surface-2)">'
-      +'<span style="font-size:11px;font-weight:700;color:var(--text-2);flex:0 0 auto">'+(i+1)+'차</span>'
-      +(last?'<input type="text" value="'+a.pct+'" readonly title="자동 보정" style="'+inp+';width:44px;padding:3px 4px;text-align:right;background:var(--surface);color:var(--text-2);flex:0 0 auto">':'<input type="text" inputmode="decimal" value="'+a.pct+'" onchange="ctTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:44px;padding:3px 4px;text-align:right;flex:0 0 auto">')
-      +'<span style="font-size:10px;color:var(--text-3);flex:0 0 auto">%</span>'
-      +'<span title="'+cur+' '+fmtN(a.amt)+'" style="font-size:11px;color:var(--text-2);font-family:var(--mono);text-align:right;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+fmtN(a.amt)+'</span>'
-      +'<select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+';padding:3px 4px;flex:0 0 auto;max-width:106px">'+atOpts(r.at)+'</select>'
-      +(r.at==='delivery'?('<select onchange="ctTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+';padding:3px 4px;flex:0 0 auto;max-width:74px">'+netOpts(r.net)+'</select>'):'')
+    var pctIn = last
+      ? '<input type="text" value="'+a.pct+'" readonly title="마지막 차수 — 자동 보정" style="'+inp+';width:46px;padding:3px 5px;text-align:right;background:var(--surface);color:var(--text-2)">'
+      : '<input type="text" inputmode="decimal" value="'+a.pct+'" onchange="ctTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:46px;padding:3px 5px;text-align:right">';
+    var atSel = (r.at==='delivery')
+      ? '<div style="display:flex;gap:4px"><select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+';padding:3px 4px;flex:1 1 auto;min-width:0">'+atOpts(r.at)+'</select><select onchange="ctTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+';padding:3px 4px;flex:0 0 64px">'+netOpts(r.net)+'</select></div>'
+      : '<select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+';padding:3px 4px;width:100%">'+atOpts(r.at)+'</select>';
+    html+='<div style="'+CARD+'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
+        +'<span style="font-size:11px;font-weight:700">'+(i+1)+'차'+(last?' <span style="font-size:9px;font-weight:400;color:var(--text-3)">자동</span>':'')+'</span>'
+        +'<span style="display:flex;align-items:center;gap:3px;flex:0 0 auto">'+pctIn+'<span style="font-size:10px;color:var(--text-3)">%</span></span>'
+      +'</div>'
+      +'<div style="font-family:var(--mono);font-size:13px;font-weight:700;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+fmtN(a.amt)+'</div>'
+      +atSel
       +'</div>';
   }
-  html+='<span title="입금추적은 프로젝트 → 매출 정산" style="font-size:10px;flex:0 0 auto;white-space:nowrap;color:'+(pctSum===100?'#15803d':'var(--danger)')+'">합계 '+pctSum+'%'+(pctSum!==100?' <b>(100% 아님)</b>':'')+'</span>';
   html+='</div>';
   box.innerHTML=html;
 }
@@ -210,8 +224,8 @@ function openContractModal(projId){
 function updateContractConfirmBtn(){
   var btn=document.getElementById('ctConfirmBtn'); if(!btn) return;
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);});
-  if(p&&p.contractConfirmed){ btn.className='btn btn-outline'; btn.innerHTML='<i class="ti ti-circle-check-filled"></i> 확정됨 · Confirmed (취소)'; btn.style.color='#15803d'; }
-  else { btn.className='btn btn-dark'; btn.innerHTML='<i class="ti ti-circle-check"></i> 계약 확정 · Confirm'; btn.style.color=''; }
+  if(p&&p.contractConfirmed){ btn.className='btn btn-outline'; btn.title='확정됨 — 다시 누르면 확정 취소'; btn.innerHTML='<i class="ti ti-circle-check-filled"></i> Confirmed'; btn.style.color='#15803d'; }
+  else { btn.className='btn btn-dark'; btn.title='계약 확정'; btn.innerHTML='<i class="ti ti-circle-check"></i> Confirm'; btn.style.color=''; }
 }
 
 function toggleContractConfirm(){
