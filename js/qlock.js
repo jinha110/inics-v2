@@ -22,6 +22,14 @@
 
   var FIELDS = ['qClient', 'qProject', 'qDate', 'qValid', 'qCurrency', 'qVat', 'qNotes', 'qShowCbm'];
 
+  /* ★ state / editingQuoteId 는 index.html 에서 `let` 으로 선언되어 window 프로퍼티가 아니다.
+     반드시 맨 식별자로 스코프 체인을 타고 읽어야 한다. (window.state 는 undefined) */
+  function ST() { try { return (typeof state !== 'undefined') ? state : null; } catch (_) { return null; } }
+  function QS() { var s = ST(); if (!s) return []; s.quotes = s.quotes || []; return s.quotes; }
+  function PS() { var s = ST(); return (s && s.projects) || []; }
+  function curId() { try { return (typeof editingQuoteId !== 'undefined') ? editingQuoteId : null; } catch (_) { return null; } }
+  function persist() { try { if (typeof saveState === 'function') saveState(); } catch (e) { console.warn('[qlock] saveState', e); } }
+
   function N(v) { return (typeof qNum === 'function') ? qNum(v) : (parseFloat(v) || 0); }
   function now() { return (typeof nowStr === 'function') ? nowStr() : new Date().toISOString(); }
   function me() { var u = (typeof cardCurrentUser === 'function') ? cardCurrentUser() : null; return u ? u.name : ''; }
@@ -32,7 +40,7 @@
   /** 이 견적이 확정된 계약에 연결되어 있는가 */
   function linkedConfirmed(q) {
     if (!q) return null;
-    var ps = (W.state && state.projects) || [];
+    var ps = PS();
     for (var i = 0; i < ps.length; i++) {
       var p = ps[i];
       if (!p.contractConfirmed) continue;
@@ -63,8 +71,9 @@
   }
 
   function curQuote() {
-    if (!W.editingQuoteId) return null;
-    return ((W.state && state.quotes) || []).find(function (x) { return x.id === editingQuoteId; }) || null;
+    var id = curId();
+    if (id == null || id === '') return null;
+    return QS().find(function (x) { return String(x.id) === String(id); }) || null;
   }
   function curLock() { return lockInfo(curQuote()); }
 
@@ -76,7 +85,7 @@
     if (!confirm('견적 ' + (q.quoteNo || '') + ' 을 발행하고 잠글까요?\n\n· 이후 편집이 차단됩니다\n· 수정이 필요하면 「사본 생성」으로 리비전을 만드세요\n\nIssue and lock this quote?')) return;
     q.status = 'issued'; q.issuedAt = now(); q.issuedBy = me();
     if (typeof INICSAmount !== 'undefined') INICSAmount.freeze(q, true);
-    saveState(); refresh(); toast('발행 완료 · 편집 잠김 · Issued & locked');
+    persist(); refresh(); toast('발행 완료 · 편집 잠김 · Issued & locked');
   }
 
   function unlockQuote() {
@@ -92,14 +101,14 @@
     q.status = 'draft';
     q.unlockLog = q.unlockLog || [];
     q.unlockLog.push({ at: now(), by: me(), why: String(why).trim() });
-    saveState(); refresh(); toast('잠금 해제 · 이력 기록됨 · Unlocked');
+    persist(); refresh(); toast('잠금 해제 · 이력 기록됨 · Unlocked');
   }
 
   /** 다음 리비전 번호: Q-...-026 → Q-...-026-R1 → -R2 */
   function nextRevNo(baseNo) {
     var root = String(baseNo || '').replace(/-R\d+$/, '');
     var max = 0;
-    ((W.state && state.quotes) || []).forEach(function (x) {
+    QS().forEach(function (x) {
       var m = String(x.quoteNo || '').match(new RegExp('^' + root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-R(\\d+)$'));
       if (m) max = Math.max(max, parseInt(m[1], 10) || 0);
     });
@@ -107,20 +116,21 @@
   }
 
   function reviseQuote(id) {
-    var src = ((W.state && state.quotes) || []).find(function (x) { return x.id === (id != null ? id : editingQuoteId); });
+    var want = (id != null ? id : curId());
+    var src = QS().find(function (x) { return String(x.id) === String(want); });
     if (!src) { toast('견적을 찾을 수 없습니다'); return; }
     var no = nextRevNo(src.quoteNo);
     if (!confirm('사본을 만듭니다.\n\n원본: ' + (src.quoteNo || '') + ' (보존)\n사본: ' + no + ' (편집 가능)\n\nCreate a revision?')) return;
     var cp = JSON.parse(JSON.stringify(src));
-    cp.id = (state.quoteSeq = (state.quoteSeq || 0) + 1);
+    var S = ST(); cp.id = (S.quoteSeq = (S.quoteSeq || 0) + 1);
     cp.quoteNo = no;
     cp.status = 'draft';
     cp.issuedAt = ''; cp.issuedBy = ''; cp.unlockLog = [];
     cp.revisionOf = src.id; cp.revisionOfNo = src.quoteNo || '';
     cp.createdAt = now(); cp.updatedAt = '';
     cp.date = (typeof projTodayISO === 'function') ? projTodayISO() : cp.date;
-    state.quotes.push(cp);
-    saveState();
+    QS().push(cp);
+    persist();
     if (typeof loadQuote === 'function') loadQuote(cp.id);
     refresh();
     toast('사본 생성 · ' + no);
@@ -169,7 +179,7 @@
       btn.onclick = issueQuote;
       btn.style.color = '#15803d'; btn.style.borderColor = '#86efac';
     }
-    btn.style.display = W.editingQuoteId ? '' : 'none';
+    btn.style.display = (curId() != null && curId() !== '') ? '' : 'none';
     save.disabled = !!L.locked;
     save.style.opacity = L.locked ? '.45' : '';
     save.style.cursor = L.locked ? 'not-allowed' : '';
@@ -244,7 +254,7 @@
       el.querySelectorAll('button[onclick^="loadQuote("]').forEach(function (b) {
         var m = String(b.getAttribute('onclick') || '').match(/loadQuote\((\d+)\)/);
         if (!m) return;
-        var q = ((W.state && state.quotes) || []).find(function (x) { return String(x.id) === m[1]; });
+        var q = QS().find(function (x) { return String(x.id) === m[1]; });
         if (!q) return;
         var L = lockInfo(q);
         var tr = b.closest('tr'); if (!tr || tr.querySelector('.qlock-badge')) return;
