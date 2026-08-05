@@ -132,23 +132,22 @@ function ctRenderTermsEditor(){
   var inp='font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)';
   var atOpts=function(sel){ return [['po','PO 발행 시'],['ship','출고 시'],['delivery','납품 후']].map(function(o){return '<option value="'+o[0]+'"'+(sel===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join(''); };
   var netOpts=function(sel){ return [0,7,14].map(function(nn){return '<option value="'+nn+'"'+(((parseInt(sel,10)||0)===nn)?' selected':'')+'>'+(nn===0?'즉시':('+'+nn+'일'))+'</option>';}).join(''); };
-  var html='<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">'
-    +'<select onchange="ctTermCount(this.value)" style="'+inp+'">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>'
-    +'<span style="font-size:10px;color:var(--text-3)">연결 견적 총액 기준 · 마지막 차수 자동보정</span></div>';
-  html+='<div style="display:flex;gap:8px;align-items:stretch">';
+  /* 1행 압축 레이아웃 — 세로 4단 → 가로 1행 (미리보기 영역 확보) */
+  var cur=(document.getElementById('ctCurrency')||{}).value||'VND';
+  var html='<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
+    +'<select onchange="ctTermCount(this.value)" title="연결 견적 총액 기준 · 마지막 차수 자동보정" style="'+inp+';flex:0 0 auto">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(t.count===n?' selected':'')+'>'+n+'차'+(n===1?' (일시불)':'')+'</option>';}).join('')+'</select>';
   for(var i=0;i<t.count;i++){ var r=t.rows[i]; var a=amts[i]; var last=(i===t.count-1);
-    html+='<div style="flex:1;min-width:0;border:1px solid var(--border);border-radius:var(--radius);padding:7px 8px;background:var(--surface-2)">'
-      +'<div style="font-weight:700;font-size:12px;margin-bottom:5px">'+(i+1)+'차</div>'
-      +'<div style="display:flex;align-items:center;gap:3px;margin-bottom:5px">'
-        +(last?'<input type="text" value="'+a.pct+'" readonly title="자동 보정" style="'+inp+';width:100%;text-align:right;background:var(--surface);color:var(--text-2)">':'<input type="text" inputmode="decimal" value="'+a.pct+'" onchange="ctTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:100%;text-align:right">')
-        +'<span style="font-size:11px;color:var(--text-3)">%</span></div>'
-      +'<div style="font-size:11px;color:var(--text-2);text-align:right;margin-bottom:5px">'+fmtN(a.amt)+'</div>'
-      +'<select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+';width:100%'+(r.at==='delivery'?';margin-bottom:4px':'')+'">'+atOpts(r.at)+'</select>'
-      +(r.at==='delivery'?('<select onchange="ctTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+';width:100%">'+netOpts(r.net)+'</select>'):'')
+    html+='<div style="display:flex;align-items:center;gap:4px;flex:1 1 250px;min-width:215px;border:1px solid var(--border);border-radius:var(--radius);padding:3px 7px;background:var(--surface-2)">'
+      +'<span style="font-size:11px;font-weight:700;color:var(--text-2);flex:0 0 auto">'+(i+1)+'차</span>'
+      +(last?'<input type="text" value="'+a.pct+'" readonly title="자동 보정" style="'+inp+';width:44px;padding:3px 4px;text-align:right;background:var(--surface);color:var(--text-2);flex:0 0 auto">':'<input type="text" inputmode="decimal" value="'+a.pct+'" onchange="ctTermField('+i+',&#39;pct&#39;,this.value)" style="'+inp+';width:44px;padding:3px 4px;text-align:right;flex:0 0 auto">')
+      +'<span style="font-size:10px;color:var(--text-3);flex:0 0 auto">%</span>'
+      +'<span title="'+cur+' '+fmtN(a.amt)+'" style="font-size:11px;color:var(--text-2);font-family:var(--mono);text-align:right;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+fmtN(a.amt)+'</span>'
+      +'<select onchange="ctTermField('+i+',&#39;at&#39;,this.value)" style="'+inp+';padding:3px 4px;flex:0 0 auto;max-width:106px">'+atOpts(r.at)+'</select>'
+      +(r.at==='delivery'?('<select onchange="ctTermField('+i+',&#39;net&#39;,this.value)" style="'+inp+';padding:3px 4px;flex:0 0 auto;max-width:74px">'+netOpts(r.net)+'</select>'):'')
       +'</div>';
   }
+  html+='<span title="입금추적은 프로젝트 → 매출 정산" style="font-size:10px;flex:0 0 auto;white-space:nowrap;color:'+(pctSum===100?'#15803d':'var(--danger)')+'">합계 '+pctSum+'%'+(pctSum!==100?' <b>(100% 아님)</b>':'')+'</span>';
   html+='</div>';
-  html+='<div style="font-size:10px;margin-top:6px;color:'+(pctSum===100?'#15803d':'var(--danger)')+'">합계 '+pctSum+'%'+(pctSum!==100?' · <b>100% 아님</b>':'')+' · 입금추적은 프로젝트 → 매출 정산</div>';
   box.innerHTML=html;
 }
 function _ctTermsSave(){ if(typeof saveState==='function') saveState(); ctRenderTermsEditor(); if(typeof renderContractPreview==='function') renderContractPreview(); }
