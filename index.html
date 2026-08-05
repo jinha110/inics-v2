@@ -38,7 +38,7 @@
 <script src="js/amount.js?v=1"></script>
 <script src="js/quote.js?v=7"></script>
 <script src="js/contract.js?v=4"></script>
-<script src="js/qlock.js?v=1"></script>
+<script src="js/qlock.js?v=2"></script>
 <script src="js/chasan.js?v=4"></script>
 <script src="js/export.js?v=1"></script>
 <script src="js/hqreport.js?v=7"></script>
@@ -1024,15 +1024,15 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       </div>
     </div>
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px 8px">
-        <div class="fg" style="margin:0"><label style="font-size:10px">계약번호 · No.</label><input type="text" id="ctNo" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">계약일 · Date</label><input type="date" id="ctDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">연결 견적 · Quote → APPENDIX 1</label><select id="ctQuote" onchange="renderContractPreview()" style="font-size:12px;padding:5px 8px"></select></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">VAT %</label><input type="text" id="ctVat" inputmode="decimal" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">보증 · Warranty (년)</label><input type="text" id="ctWarranty" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">통화 · Currency</label><select id="ctCurrency" onchange="renderContractPreview()" style="font-size:12px;padding:5px 8px"><option value="VND">VND</option><option value="USD">USD</option><option value="MXN">MXN</option></select></div>
-        <div class="fg" style="margin:0"><label style="font-size:10px">납기일 · Delivery Date</label><input type="date" id="ctDeliveryDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
-        <div class="fg" style="margin:0;grid-column:1/-1;display:flex;align-items:center;gap:8px"><label style="font-size:10px;margin:0;flex:0 0 auto;white-space:nowrap" title="차수 · % · 시점">대금 지급 · Payment</label><div id="ctTermsEditor" style="flex:1 1 auto;min-width:0"></div></div>
+      <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px 8px">
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">계약번호 · No.</label><input type="text" id="ctNo" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">계약일 · Date</label><input type="date" id="ctDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:span 3"><label style="font-size:10px">연결 견적 · Quote → APPENDIX 1</label><select id="ctQuote" onchange="renderContractPreview()" style="font-size:12px;padding:5px 8px"></select></div>
+        <div class="fg" style="margin:0;grid-column:span 1"><label style="font-size:10px" title="VAT %">VAT %</label><input type="text" id="ctVat" inputmode="decimal" oninput="renderContractPreview()" style="font-size:12px;padding:5px 6px;text-align:right"></div>
+        <div class="fg" style="margin:0;grid-column:span 1"><label style="font-size:10px" title="보증 · Warranty (년)">보증(년)</label><input type="text" id="ctWarranty" oninput="renderContractPreview()" style="font-size:12px;padding:5px 6px;text-align:right"></div>
+        <div class="fg" style="margin:0;grid-column:span 1"><label style="font-size:10px" title="통화 · Currency">통화</label><select id="ctCurrency" onchange="renderContractPreview()" style="font-size:12px;padding:5px 4px"><option value="VND">VND</option><option value="USD">USD</option><option value="MXN">MXN</option></select></div>
+        <div class="fg" style="margin:0;grid-column:span 2"><label style="font-size:10px">납기일 · Delivery</label><input type="date" id="ctDeliveryDate" oninput="renderContractPreview()" style="font-size:12px;padding:5px 8px"></div>
+        <div class="fg" style="margin:0;grid-column:1/-1;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px"><label style="font-size:10px;margin:0;flex:0 0 auto;white-space:nowrap" title="차수 · % · 시점">대금 지급 · Payment</label><div id="ctTermsEditor" style="flex:1 1 auto;min-width:0;display:flex;justify-content:flex-start"></div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
         <div class="fg" style="margin:0"><label style="font-size:10px">구매자 대표 · Buyer Rep.</label><input type="text" id="ctBuyerRep" oninput="renderContractPreview()" placeholder="이름만 입력 (Ông/Bà 자동)" autocomplete="off" style="font-size:12px;padding:5px 8px"></div>
