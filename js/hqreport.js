@@ -376,9 +376,13 @@
       if (last) { last.moves = nMoves; _evtByStage[last.stage].push(last); }
     });
     var _evtTot = _detStages.reduce(function (n, st) { return n + _evtByStage[st[0]].length; }, 0);
+    var _TERM = { delivered: 1, hold: 1, lost: 1 };   // 누적 단계 — 당월 진입 건만 표시
+    var _mmStart = new Date(_asOf.getFullYear(), _asOf.getMonth(), 1);
+    var _mmEnd = new Date(_asOf.getFullYear(), _asOf.getMonth() + 1, 0);
+    var _mmLbl = (_asOf.getMonth() + 1) + '월';
     var _snapDate = _asOfPast ? _asOf : _dOnly(new Date());
     var _snapLbl = (_snapDate.getMonth() + 1) + '/' + _snapDate.getDate();
-    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 6px">단계별 현황 · Pipeline Detail <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + _snapLbl + ' 기준 · ' + _rmLbl + ' 주간 이동 ' + _evtTot + '건 <span style="color:#0891b2;font-weight:700">(이동)</span> 표기)</span></div>';
+    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 6px">단계별 현황 · Pipeline Detail <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + _snapLbl + ' 기준 · ' + _rmLbl + ' 주간 이동 ' + _evtTot + '건 <span style="color:#0891b2;font-weight:700">(이동)</span> 표기 · 납품완료·보류·드롭은 ' + _mmLbl + ' 진입 건만)</span></div>';
     _detStages.forEach(function (st) {
       var evs = _evtByStage[st[0]].slice().sort(function (a, b) { return b.d - a.d; });
       var inStage = projects.filter(function (p) { return SA(p) === st[0]; });
@@ -386,9 +390,19 @@
       var _stays = inStage.filter(function (p) { return !chIds[p.id]; })
         .map(function (p) { return { p: p, d: _stageEntryAt(p, st[0]) }; })
         .sort(function (a, b) { return (b.d ? b.d.getTime() : 0) - (a.d ? a.d.getTime() : 0); });
+      var _hid = 0;
+      if (_TERM[st[0]]) {   // 납품완료·보류·드롭은 계속 쌓이므로 당월 진입 건만 노출
+        var _n0 = _stays.length;
+        _stays = _stays.filter(function (y) { return y.d && _inRange(y.d, _mmStart, _mmEnd); });
+        _hid = _n0 - _stays.length;
+      }
       var etcN = _stays.length;
-      if (!evs.length && !inStage.length) return;
-      h += '<div style="font-size:12px;font-weight:700;margin:8px 0 4px;color:' + st[2] + '">' + st[1] + ' <span style="font-weight:400;color:var(--text-3)">(' + _snapLbl + ' 기준 ' + (evs.length + etcN) + '건' + (evs.length > 0 ? (' · 주간 이동 ' + evs.length + '건') : '') + ')</span></div>';
+      if (!evs.length && !_stays.length) return;
+      h += '<div style="font-size:12px;font-weight:700;margin:8px 0 4px;color:' + st[2] + '">' + st[1] + ' <span style="font-weight:400;color:var(--text-3)">('
+        + (_TERM[st[0]]
+            ? (_mmLbl + ' ' + (evs.length + etcN) + '건' + (evs.length > 0 ? (' · 주간 이동 ' + evs.length + '건') : '') + (_hid > 0 ? (' · 이전 누적 ' + _hid + '건 생략') : ''))
+            : (_snapLbl + ' 기준 ' + (evs.length + etcN) + '건' + (evs.length > 0 ? (' · 주간 이동 ' + evs.length + '건') : '')))
+        + ')</span></div>';
       if (evs.length || _stays.length) {
         var _rws = evs.map(function (x) {
           var p = x.p, cur = (SA(p) === st[0]);
@@ -406,7 +420,7 @@
           return '<tr style="opacity:.72"><td style="padding:5px 10px"><span style="font-size:10px;margin-right:4px;visibility:hidden">(이동)</span>' + E(p.client || "\u2014") + '</td><td style="padding:5px 10px;color:var(--text-2)">' + E(p.type || p.note || "\u2014") + '</td><td style="padding:5px 10px;color:var(--text-3)">' + E(p.region || "") + '</td><td style="text-align:right;padding:5px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td><td style="padding:5px 10px;font-size:10px">' + kind + '</td><td style="text-align:right;padding:5px 10px;color:var(--text-3)">' + (y.d ? _iso(y.d) : "\u2014") + (y.d && _entryApprox(p, st[0]) ? _APX : '') + '</td></tr>';
         }).join("");
         h += '<div style="overflow-x:auto;margin-bottom:4px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">프로젝트 · Type</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">지역</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">구분</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">단계 진입일 · Since</th></tr></thead><tbody>' + _rws + '</tbody></table></div>';
-      } else { h += '<div style="font-size:11px;color:var(--text-3);padding:2px 0 4px">' + _snapLbl + ' 기준 해당 없음</div>'; }
+      } else { h += '<div style="font-size:11px;color:var(--text-3);padding:2px 0 4px">' + (_TERM[st[0]] ? (_mmLbl + ' 진입 건 없음') : (_snapLbl + ' 기준 해당 없음')) + '</div>'; }
     });
 
     var _unk = projects.filter(function (p) { return SA(p) === "__unknown__"; });
