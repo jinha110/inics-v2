@@ -271,7 +271,30 @@
   function _sectionProject() {
     var projects = (typeof state !== "undefined" && state && state.projects) || [];
     var wr = _weekRange(); var mon = _dOnly(wr.mon), sun = _dOnly(wr.sun);
-    var now = new Date(); var yStart = new Date(now.getFullYear(), 0, 1), yEnd = new Date(now.getFullYear(), 11, 31);
+    var now = new Date();
+    // ── [AS-OF] 보고주 종료일 시점의 단계 복원 (과거 보고서 재현성) ──
+    var _asOf = sun, _asOfPast = (_dOnly(now) > _asOf), _saCache = {};
+    function _stageAsOfCalc(p) {
+      if (!_asOfPast) return p.stage;
+      var ud = _parseAt(p.updatedAt);
+      if (ud && _dOnly(ud) <= _asOf) return p.stage;            // 기준일 이후 무변경 → 현재 단계 = 당시 단계
+      var hist = (p.stageHistory || []).filter(function (x) { return x && x.stage && _parseAt(x.at); })
+        .sort(function (a, b) { return _parseAt(a.at) - _parseAt(b.at); });
+      var st = null, seen = false;
+      hist.forEach(function (x) { if (_dOnly(_parseAt(x.at)) <= _asOf) { st = x.stage; seen = true; } });
+      if (seen) return st;                                       // 기준일 이전 마지막 기록 단계
+      if (hist.length) return hist[0].first ? null : hist[0].stage; // 기준일엔 미등록 / 최초기록 단계로 추정
+      var rg = _parseAt(p.regDate) || _parseAt(p.createdAt);
+      if (rg && _dOnly(rg) > _asOf) return null;                 // 기준일엔 존재하지 않음
+      return p.stage;                                            // 레거시(이력 없음) → 현재 단계 근사
+    }
+    function SA(p) {
+      if (!p) return null;
+      var k = p.id; if (k == null) return _stageAsOfCalc(p);
+      if (!(k in _saCache)) _saCache[k] = _stageAsOfCalc(p);
+      return _saCache[k];
+    }
+    function SAdiff(p) { return _asOfPast && SA(p) !== p.stage; } var yStart = new Date(now.getFullYear(), 0, 1), yEnd = new Date(now.getFullYear(), 11, 31);
     var mStart = new Date(now.getFullYear(), now.getMonth(), 1), mEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     var delivered = projects.map(function (p) { return { p: p, d: _deliveredDate(p) }; }).filter(function (o) { return o.d; });
     var wkDeliv = delivered.filter(function (o) { return _inRange(o.d, mon, sun); }).sort(function (a, b) { return b.d - a.d; });
@@ -280,13 +303,13 @@
 
     var h = _sectionTitle("프로젝트 · Projects", "#0891b2");
     h += '<div style="font-size:13px;font-weight:700;margin:6px 0 8px">진행 파이프라인 · Active Pipeline <span style="font-size:11px;color:var(--text-3);font-weight:400">(올해 ' + now.getFullYear() + ' · 단계별 건수·금액)</span></div>';
-    var prows = PSTAGES.map(function (st) { var arr = projects.filter(function (p) { return p.stage === st[0]; });
+    var prows = PSTAGES.map(function (st) { var arr = projects.filter(function (p) { return SA(p) === st[0]; });
       return '<tr><td style="padding:6px 10px"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' + st[2] + ';margin-right:7px"></span>' + st[1] + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + arr.length + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + _dispSum(arr) + '</td></tr>';
     }).join("");
-    var activeAll = projects.filter(function (p) { return PSTAGES.some(function (s2) { return s2[0] === p.stage; }); });
+    var activeAll = projects.filter(function (p) { return PSTAGES.some(function (s2) { return s2[0] === SA(p); }); });
     prows += '<tr style="border-top:2px solid var(--text);font-weight:700"><td style="padding:6px 10px">진행중 합계 · Total in progress</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + activeAll.length + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + _dispSum(activeAll) + '</td></tr>';
     h += '<div style="overflow-x:auto;margin-bottom:6px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="text-align:left;padding:6px 10px;font-size:10px;color:var(--text-3)">단계 · Stage</th><th style="text-align:right;padding:6px 10px;font-size:10px;color:var(--text-3)">건수 · Count</th><th style="text-align:right;padding:6px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th></tr></thead><tbody>' + prows + '</tbody></table></div>';
-    var holdN = projects.filter(function (p) { return p.stage === "hold"; }).length, lostN = projects.filter(function (p) { return p.stage === "lost"; }).length;
+    var holdN = projects.filter(function (p) { return SA(p) === "hold"; }).length, lostN = projects.filter(function (p) { return SA(p) === "lost"; }).length;
     h += '<div style="font-size:11px;color:var(--text-3);margin-bottom:16px">보류 · On-hold ' + holdN + '건 · 드롭 · Lost ' + lostN + '건 (합계 제외)</div>';
 
     // (3) 단계 변경 상세 — 보고주(월~일) 내 stageHistory 이벤트 (전 단계 · 신규등록 포함)
@@ -306,39 +329,41 @@
         if (last && last.d > d) return;
         last = { p: p, d: d, stage: x.stage, first: !!x.first };
       });
-      // [보정 A] 기간 내 이벤트는 있으나 현재 단계와 불일치 — 이력 미기록 이동(임포트·구버전 드래그). 현재 단계 섹션으로 재배치
-      if (last && last.stage !== p.stage && _evtByStage[p.stage]) {
+      var _cs = SA(p);   // 기준일(보고주 종료일) 시점 단계 — 이후 변경에 오염되지 않음
+      // [보정 A] 기간 내 이벤트는 있으나 기준일 단계와 불일치 — 이력 미기록 이동(임포트·구버전 드래그). 기준일 단계 섹션으로 재배치
+      if (last && _cs && last.stage !== _cs && _evtByStage[_cs]) {
         var _ud = _parseAt(p.updatedAt);
         if (_ud && _inRange(_ud, _rmStart, _rmEnd) && _ud >= last.d) last.d = _ud;
-        last.stage = p.stage; last.fixed = true;
+        last.stage = _cs; last.fixed = true;
       }
-      // [보정 B] 기간 내 이벤트가 아예 없음 — 이력 없음(레거시) 또는 마지막 이력≠현재 단계면 updatedAt/등록일 기준 1건 보정
-      if (!last && _evtByStage[p.stage]) {
-        var _hl = hist.length ? hist[hist.length - 1] : null;
-        if (!_hl || _hl.stage !== p.stage) {
+      // [보정 B] 기간 내 이벤트가 아예 없음 — 이력 없음(레거시) 또는 마지막 이력≠기준일 단계면 updatedAt/등록일 기준 1건 보정
+      if (!last && _cs && _evtByStage[_cs]) {
+        var _hl = null;
+        hist.forEach(function (x) { var _d = _parseAt(x.at); if (_d && _dOnly(_d) <= _asOf) _hl = x; });
+        if (!_hl || _hl.stage !== _cs) {
           var rd = _hl ? (_parseAt(p.updatedAt) || _parseAt(p.regDate) || _parseAt(p.createdAt))
                        : (_parseAt(p.regDate) || _parseAt(p.createdAt));
-          if (rd && _inRange(rd, _rmStart, _rmEnd)) { last = { p: p, d: rd, stage: p.stage, first: !_hl, legacy: true, fixed: !!_hl }; nMoves = 1; }
+          if (rd && _inRange(rd, _rmStart, _rmEnd)) { last = { p: p, d: rd, stage: _cs, first: !_hl, legacy: true, fixed: !!_hl }; nMoves = 1; }
         }
       }
       if (last) { last.moves = nMoves; _evtByStage[last.stage].push(last); }
     });
     var _evtTot = _detStages.reduce(function (n, st) { return n + _evtByStage[st[0]].length; }, 0);
-    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 6px">단계 변경 상세 · Stage Changes <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + _rmLbl + ' 변경 ' + _evtTot + '건 · 프로젝트당 최종 이동 1건 · 신규등록 포함)</span></div>';
+    h += '<div style="font-size:13px;font-weight:700;margin:14px 0 6px">단계 변경 상세 · Stage Changes <span style="font-size:11px;color:var(--text-3);font-weight:400">(' + _rmLbl + ' 변경 ' + _evtTot + '건 · 프로젝트당 최종 이동 1건 · 신규등록 포함' + (_asOfPast ? (' · ' + (_asOf.getMonth()+1) + '/' + _asOf.getDate() + ' 시점 단계 기준') : '') + ')</span></div>';
     _detStages.forEach(function (st) {
       var evs = _evtByStage[st[0]].slice().sort(function (a, b) { return b.d - a.d; });
-      var inStage = projects.filter(function (p) { return p.stage === st[0]; });
+      var inStage = projects.filter(function (p) { return SA(p) === st[0]; });
       var chIds = {}; evs.forEach(function (x) { chIds[x.p.id] = 1; });
       var etcN = inStage.filter(function (p) { return !chIds[p.id]; }).length;
       if (!evs.length && !inStage.length) return;
       h += '<div style="font-size:12px;font-weight:700;margin:8px 0 4px;color:' + st[2] + '">' + st[1] + ' <span style="font-weight:400;color:var(--text-3)">(' + _rmLbl + ' 변경 ' + evs.length + '건' + (etcN > 0 ? (' · 기타 ' + etcN + '건') : '') + ')</span></div>';
       if (evs.length) {
         var _rws = evs.map(function (x) {
-          var p = x.p, cur = (p.stage === st[0]);
+          var p = x.p, cur = (SA(p) === st[0]);
           var kind = x.first ? '<span style="color:#0891b2">신규등록</span>' : '<span style="color:var(--text-2)">단계이동</span>';
           if (x.moves > 1) kind += ' <span style="font-size:9px;color:var(--text-3)">(' + x.moves + '회 중 최종)</span>';
           if (x.fixed) kind += ' <span style="font-size:9px;color:#b45309">(이력 보정)</span>';
-          if (!cur) kind += ' <span style="font-size:9px;color:var(--text-3)">→ ' + E((PSTAGES.concat(_EXTRA).filter(function (s3) { return s3[0] === p.stage; })[0] || ["", p.stage])[1]) + '</span>';
+          if (!cur || SAdiff(p)) kind += ' <span style="font-size:9px;color:var(--text-3)">→ 현재 ' + E((PSTAGES.concat(_EXTRA).filter(function (s3) { return s3[0] === p.stage; })[0] || ["", p.stage])[1]) + '</span>';
           return '<tr><td style="padding:5px 10px">' + E(p.client || "—") + '</td><td style="padding:5px 10px;color:var(--text-2)">' + E(p.type || p.note || "—") + '</td><td style="padding:5px 10px;color:var(--text-3)">' + E(p.region || "") + '</td><td style="text-align:right;padding:5px 10px;font-family:var(--mono)">' + _dispAmt(p) + '</td><td style="padding:5px 10px;font-size:10px">' + kind + '</td><td style="text-align:right;padding:5px 10px;color:var(--text-2)">' + _iso(x.d) + '</td></tr>';
         }).join("");
         h += '<div style="overflow-x:auto;margin-bottom:4px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)"><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">프로젝트 · Type</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">지역</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th><th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">구분</th><th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">변경일 · Date</th></tr></thead><tbody>' + _rws + '</tbody></table></div>';
@@ -364,12 +389,13 @@
 
     // ── (6) 정체 프로젝트 · Stalled — 30일 이상 단계 변경 없음 (진행중 단계만) ──
     function _lastStageAt(p) {
-      var ds = (p.stageHistory || []).map(function (x) { return _parseAt(x && x.at); }).filter(Boolean);
+      var ds = (p.stageHistory || []).map(function (x) { return _parseAt(x && x.at); }).filter(Boolean)
+        .filter(function (d) { return !_asOfPast || _dOnly(d) <= _asOf; });
       if (ds.length) return new Date(Math.max.apply(null, ds.map(function (d) { return d.getTime(); })));
       return _parseAt(p.updatedAt) || _parseAt(p.regDate) || _parseAt(p.createdAt) || null;
     }
-    var _tdy = _dOnly(now);
-    var _stale = projects.filter(function (p) { return PSTAGES.some(function (s2) { return s2[0] === p.stage; }); })
+    var _tdy = _asOfPast ? _asOf : _dOnly(now);
+    var _stale = projects.filter(function (p) { return PSTAGES.some(function (s2) { return s2[0] === SA(p); }); })
       .map(function (p) {
         var d = _lastStageAt(p); if (!d) return null;
         var days = Math.floor((_tdy.getTime() - _dOnly(d).getTime()) / 86400000);
@@ -388,7 +414,7 @@
         + _kpi("정체 금액 합계", null, "#111827", _dispSum(_stale.map(function (x) { return x.p; })))
         + '</div>';
       var _srw = _stale.map(function (x) {
-        var p = x.p, st = PSTAGES.filter(function (s3) { return s3[0] === p.stage; })[0] || ["", p.stage, "#64748b"];
+        var p = x.p, _ss = SA(p) || p.stage, st = PSTAGES.filter(function (s3) { return s3[0] === _ss; })[0] || ["", _ss, "#64748b"];
         var own = ""; try { own = (typeof memberName === "function") ? (memberName(p.ownerId) || "") : ""; } catch (e) { own = ""; }
         return '<tr><td style="padding:5px 10px">' + E(p.client || "—") + (p.projName ? '<div style="font-size:10px;color:var(--text-3)">' + E(p.projName) + '</div>' : '') + '</td>'
           + '<td style="padding:5px 10px"><span style="font-size:10px;color:#fff;background:' + st[2] + ';padding:2px 7px;border-radius:8px;white-space:nowrap">' + E(st[1]) + '</span></td>'
