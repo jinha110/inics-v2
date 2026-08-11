@@ -250,8 +250,30 @@
   }
 
   // ── 프로젝트 ──
-  function _amt(p) { return Math.round(parseFloat(String(p.amount == null ? "" : p.amount).replace(/[^0-9.\-]/g, "")) || 0); }
-  function _cur(p) { return p.currency || "VND"; }
+  function _n(x) { return parseFloat(String(x == null ? "" : x).replace(/[^0-9.\-]/g, "")) || 0; }
+  var _VAT_DEF = 8;                       // 베트남 표준세율 — 예상금액 역산용 기본값
+  // 파이프라인 금액 = VAT 제외(공급가) 기준. 확정매출 > 예상금액 순으로 폴백.
+  function _amt(p) {
+    var s = p.sales || {};
+    var v = _n(s.subtotal); if (v > 0) return Math.round(v);
+    var t = _n(s.total);
+    if (t > 0) { var r = _n(s.vat); return Math.round(r > 0 ? t / (1 + r / 100) : t); }
+    var ls = _n(p.salesSubtotal); if (ls > 0) return Math.round(ls);
+    var lt = _n(p.salesTotal);
+    if (lt > 0) { var lr = _n(p.salesVat); return Math.round(lr > 0 ? lt / (1 + lr / 100) : lt); }
+    var a = _n(p.amount);
+    if (a > 0 && p.vatApplied) { var ar = _n((p.sales || {}).vat) || _VAT_DEF; return Math.round(a / (1 + ar / 100)); }
+    return Math.round(a);
+  }
+  function _amtSrc(p) {
+    var s = p.sales || {};
+    return (_n(s.subtotal) > 0 || _n(s.total) > 0 || _n(p.salesSubtotal) > 0 || _n(p.salesTotal) > 0);
+  }
+  function _cur(p) {
+    var s = p.sales || {};
+    if ((_n(s.subtotal) > 0 || _n(s.total) > 0) && s.currency) return s.currency;
+    return p.currency || "VND";
+  }
   function _parseAt(x) { if (!x) return null; var m = String(x).match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/); if (!m) return null; var d = new Date(+m[1], +m[2] - 1, +m[3]); return isNaN(d.getTime()) ? null : d; }
   function _deliveredDate(p) {
     var hist = p.stageHistory || [];
@@ -327,7 +349,7 @@
     var moDeliv = delivered.filter(function (o) { return _inRange(o.d, mStart, mEnd); });
 
     var h = _sectionTitle("프로젝트 · Projects", "#0891b2");
-    h += '<div style="font-size:13px;font-weight:700;margin:6px 0 8px">진행 파이프라인 · Active Pipeline <span style="font-size:11px;color:var(--text-3);font-weight:400">(올해 ' + now.getFullYear() + ' · 단계별 건수·금액)</span></div>';
+    h += '<div style="font-size:13px;font-weight:700;margin:6px 0 8px">진행 파이프라인 · Active Pipeline <span style="font-size:11px;color:var(--text-3);font-weight:400">(올해 ' + now.getFullYear() + ' · 단계별 건수·금액 · Ex-VAT)</span></div>';
     var prows = PSTAGES.map(function (st) { var arr = projects.filter(function (p) { return SA(p) === st[0]; });
       return '<tr><td style="padding:6px 10px"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' + st[2] + ';margin-right:7px"></span>' + st[1] + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + arr.length + '</td><td style="text-align:right;padding:6px 10px;font-family:var(--mono)">' + _dispSum(arr) + '</td></tr>';
     }).join("");
@@ -489,7 +511,7 @@
         + '<th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">고객사 · Client</th>'
         + '<th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">단계 · Stage</th>'
         + '<th style="text-align:left;padding:5px 10px;font-size:10px;color:var(--text-3)">담당 · Owner</th>'
-        + '<th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount</th>'
+        + '<th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">금액 · Amount <span style="color:#b45309">(Ex-VAT)</span></th>'
         + '<th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">최종 변경 · Last</th>'
         + '<th style="text-align:right;padding:5px 10px;font-size:10px;color:var(--text-3)">경과 · Days</th>'
         + '</tr></thead><tbody>' + _srw + '</tbody></table></div>';
