@@ -252,6 +252,44 @@
   // ── 프로젝트 ──
   function _n(x) { return parseFloat(String(x == null ? "" : x).replace(/[^0-9.\-]/g, "")) || 0; }
   var _VAT_DEF = 8;                       // 베트남 표준세율 — 예상금액 역산용 기본값
+  // ── [QUOTE-FALLBACK] 연결 견적서 금액 승계 ─────────────────────────────
+  //  프로젝트에 매출/예상금액이 하나도 입력되지 않았지만 견적서가 연결돼 있으면
+  //  (quote.projectId === project.id) 그 견적 금액을 파이프라인 금액으로 쓴다.
+  //  기준은 이 섹션과 동일한 VAT 제외(공급가) = INICSAmount.of(q).sub.
+  //  amounts 스냅샷이 없는 구 견적도 INICSAmount.of() 가 자동 재계산한다.
+  var _QTAG = '<sup style="font-size:.68em;color:#4338ca;font-weight:700" title="\uc5f0\uacb0 \uacac\uc801\uc11c \uae30\uc900 \u00b7 from linked quote">Q</sup>';
+  var _qIdx = null;
+  function _quoteIndexReset() { _qIdx = null; }
+  function _quoteIndex() {
+    if (_qIdx) return _qIdx;
+    _qIdx = {};
+    var qs = (typeof state !== "undefined" && state && state.quotes) || [];
+    for (var i = 0; i < qs.length; i++) {
+      var q = qs[i];
+      if (!q || q.projectId == null || q.projectId === "") continue;
+      var k = String(q.projectId), cur = _qIdx[k];
+      if (!cur) { _qIdx[k] = q; continue; }
+      // 같은 프로젝트에 견적이 여러 건이면 최신(일자 → id) 1건만 사용
+      var a = String(q.date || q.createdAt || ""), b = String(cur.date || cur.createdAt || "");
+      if (a > b || (a === b && (+q.id || 0) > (+cur.id || 0))) _qIdx[k] = q;
+    }
+    return _qIdx;
+  }
+  /** 프로젝트 자체 금액이 전무할 때만 연결 견적 금액을 반환. 아니면 null. */
+  function _fromQuote(p) {
+    if (!p || p.id == null) return null;
+    var s = p.sales || {};
+    if (_n(s.subtotal) > 0 || _n(s.total) > 0) return null;
+    if (_n(p.salesSubtotal) > 0 || _n(p.salesTotal) > 0 || _n(p.amount) > 0) return null;
+    var q = _quoteIndex()[String(p.id)];
+    if (!q) return null;
+    if (typeof INICSAmount === "undefined" || !INICSAmount || typeof INICSAmount.of !== "function") return null;
+    var a;
+    try { a = INICSAmount.of(q); } catch (e) { return null; }
+    var sub = _n(a && a.sub);
+    if (!(sub > 0)) return null;
+    return { amt: Math.round(sub), cur: String((a && a.cur) || q.currency || "VND").toUpperCase(), no: q.quoteNo || "" };
+  }
   // 파이프라인 금액 = VAT 제외(공급가) 기준. 확정매출 > 예상금액 순으로 폴백.
   function _amt(p) {
     var s = p.sales || {};
@@ -263,7 +301,10 @@
     if (lt > 0) { var lr = _n(p.salesVat); return Math.round(lr > 0 ? lt / (1 + lr / 100) : lt); }
     var a = _n(p.amount);
     if (a > 0 && p.vatApplied) { var ar = _n((p.sales || {}).vat) || _VAT_DEF; return Math.round(a / (1 + ar / 100)); }
-    return Math.round(a);
+    if (a > 0) return Math.round(a);
+    var _fq = _fromQuote(p);                // ← 연결 견적서 폴백
+    if (_fq) return _fq.amt;
+    return 0;
   }
   function _amtSrc(p) {
     var s = p.sales || {};
@@ -272,6 +313,8 @@
   function _cur(p) {
     var s = p.sales || {};
     if ((_n(s.subtotal) > 0 || _n(s.total) > 0) && s.currency) return s.currency;
+    var _fq = _fromQuote(p);                // ← 연결 견적서 통화 승계
+    if (_fq) return _fq.cur;
     return p.currency || "VND";
   }
   function _parseAt(x) { if (!x) return null; var m = String(x).match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/); if (!m) return null; var d = new Date(+m[1], +m[2] - 1, +m[3]); return isNaN(d.getTime()) ? null : d; }
@@ -286,11 +329,12 @@
   function _sumCur(arr) { var m = {}; arr.forEach(function (p) { var c = _cur(p); m[c] = (m[c] || 0) + _amt(p); }); return m; }
   function _fmtCur(m) { var ks = Object.keys(m).filter(function (k) { return m[k]; }); if (!ks.length) return "0"; return ks.map(function (k) { return F(m[k]) + " " + k; }).join(" · "); }
   function _amtUSD(p) { var a = _amt(p); return _cur(p) === "USD" ? a : (_rate ? a / _rate : 0); }
-  function _dispAmt(p) { return (_usd && _rate) ? _fmtUSD(_amtUSD(p)) : (F(_amt(p)) + " " + _cur(p)); }
+  function _dispAmt(p) { var _t = _fromQuote(p) ? _QTAG : ""; return ((_usd && _rate) ? _fmtUSD(_amtUSD(p)) : (F(_amt(p)) + " " + _cur(p))) + _t; }
   function _dispSum(arr) { if (_usd && _rate) return _fmtUSD(arr.reduce(function (s, p) { return s + _amtUSD(p); }, 0)); return _fmtCur(_sumCur(arr)); }
   var PSTAGES = [["lead", "리드 · Lead", "#64748b"], ["contact", "컨택 · Contact", "#0891b2"], ["quote", "견적 · Quote", "#4338ca"], ["nego", "수주협의 · Nego", "#7c3aed"], ["won", "수주확정 · Won", "#1d4ed8"], ["po", "PO완료 · PO", "#b45309"]];
 
   function _sectionProject() {
+    _quoteIndexReset();                     // 견적 인덱스 갱신 (재생성 시 최신 state 반영)
     var projects = (typeof state !== "undefined" && state && state.projects) || [];
     var wr = _weekRange(); var mon = _dOnly(wr.mon), sun = _dOnly(wr.sun);
     var now = new Date();
