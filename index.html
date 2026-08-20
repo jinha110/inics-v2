@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<!-- saved from url=(0045)file:///C:/Users/jinha/Downloads/index_3.html -->
 <html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>INICS — Electronic Approval System 전자결재 시스템</title>
 <!-- PWA -->
-<link rel="manifest" href="file:///C:/Users/jinha/Downloads/manifest.webmanifest">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#1a1a18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="INICS">
-<link rel="apple-touch-icon" href="file:///C:/Users/jinha/Downloads/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="file:///C:/Users/jinha/Downloads/icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="./index_files/css2" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.35.0/tabler-icons.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -9685,7 +9685,7 @@ function renderFinanceDashboard(){
         var s=projStage(r.p.stage);
         return '<tr style="cursor:pointer" onclick="showProjectAppToEdit('+r.p.id+')">'
           +'<td style="'+tdl+';font-weight:600">'+(r.p.client||'—')+(r.p.custType?' <span style="font-size:9px;color:var(--text-3)">'+r.p.custType+'</span>':'')+(r.p.projName?'<div style="font-size:10px;font-weight:400;color:var(--text-3)">'+String(r.p.projName).replace(/</g,'&lt;')+'</div>':'')+'</td>'
-          +'<td style="'+tdl+'"><span style="font-size:10px;color:#fff;background:'+s.color+';padding:2px 7px;border-radius:8px">'+s.label+'</span></td>'
+          +'<td style="'+tdl+'"><span style="font-size:10px;color:#fff;background:'+s.color+';padding:2px 7px;border-radius:8px" title="'+s.label+'">'+sLbl+'</span></td>'
           +'<td style="'+td+'">'+_fm(r.c.sTotal)+'</td>'
           +'<td style="'+td+'">'+invTag(r.c)+'</td>'
           +'<td style="'+td+'">'+payTag(r.c.sOut,r.c.sTotal,'s')+'</td>'
@@ -9693,9 +9693,9 @@ function renderFinanceDashboard(){
           +'<td style="'+tdc+'">'+_fm(r.c.pTotal)+'</td>'
           +'<td style="'+tdc+'">'+payTag(r.c.pOut,r.c.pTotal,'p')+pInvTag(r.c)+'</td>'
           +((r.c.allAsset && r.c.sSub<=0)
-            ?'<td style="'+td+';font-weight:700;color:var(--text-3)" title="자본적 지출 · 자산 취득분 '+_fm(r.c.pAssetTotal)+' \u2014 매출원가가 아니므로 마진 산출 대상이 아닙니다.">\u2014 <span style="font-size:9px;color:var(--text-3);font-weight:600">자산 · Asset</span></td>'
+            ?'<td style="'+td+';font-weight:700;color:var(--text-3)" title="자본적 지출 · 자산 취득분 '+_fm(r.c.pAssetTotal)+' \u2014 매출원가가 아니므로 마진 산출 대상이 아닙니다.">\u2014 <span style="font-size:9px;color:var(--text-3);font-weight:600">Asset</span></td>'
             :r.c.curMix
-            ?'<td style="'+td+';font-weight:700;color:#b45309" title="매출 '+r.c.sCur+' / 매입 '+r.c.pCur+' \u2014 통화가 달라 마진 산출 불가. 통화 필터를 바꿔 각각 확인하세요.">\u26A0 '+r.c.sCur+'/'+r.c.pCur+' <span style="font-size:9px;color:var(--text-3);font-weight:600">통화상이 · FX mismatch</span></td>'
+            ?'<td style="'+td+';font-weight:700;color:#b45309" title="매출 '+r.c.sCur+' / 매입 '+r.c.pCur+' \u2014 통화가 달라 마진 산출 불가. 통화 필터를 바꿔 각각 확인하세요.">\u26A0 '+r.c.sCur+'/'+r.c.pCur+' <span style="font-size:9px;color:var(--text-3);font-weight:600">FX mismatch</span></td>'
             :'<td style="'+td+';font-weight:700;color:'+(r.c.margin>=0?'#1d4ed8':'var(--danger)')+'" title="Ex-VAT: 공급가 매출 '+_fm(r.c.sSub)+' \u2212 매입 '+_fm(r.c.pSub)+'">'+_fm(r.c.margin)+(r.c.sSub>0?' <span style="font-size:9px;color:var(--text-3);font-weight:600">'+r.c.marginRate.toFixed(1)+'%</span>':'')+'</td>')
           +'</tr>';
       }).join('')
