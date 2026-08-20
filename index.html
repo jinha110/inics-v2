@@ -1309,8 +1309,8 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
       <input type="text" id="finFx" inputmode="decimal" onchange="_finFxSave()" oninput="renderFinanceDashboard()" placeholder="환율 VND/USD" style="width:110px;font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--mono);text-align:right">
       <select id="finMonth" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">전체 기간 · All periods</option></select>
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer"><input type="checkbox" id="finUninvOnly" onchange="renderFinanceDashboard()" style="width:auto;margin:0"> 미발행 인보이스만 · Unissued only</label>
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap" title="① 납품완료 ② 매출 인보이스 발행률 100% ③ 입금률 100% ④ 매입 인보이스 발행률 100% ⑤ 매입 지급률 100% — 5개 조건을 모두 만족한 건만 제외합니다. 매입 인보이스가 발행되지 않은 건은 지급이 끝났어도 목록에 남습니다. 기본값 ON."><input type="checkbox" id="finHideDone" checked onchange="renderFinanceDashboard()" style="width:auto;margin:0"> 완결 건 제외 · Hide closed <span id="finDoneCnt" style="font-size:11px;color:var(--text-3);font-weight:600"></span></label>
-      <select id="finSort" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="due">정렬 · 미수율 높은 순</option><option value="unb">정렬 · 미발행율 높은 순</option><option value="amt">정렬 · 매출 큰 순</option><option value="mgn">정렬 · 마진율 낮은 순</option></select>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap" title="① 납품완료 ② 매출 인보이스 발행률 100% ③ 입금률 100% ④ 매입 인보이스 발행률 100% ⑤ 매입 지급률 100% — 5개 조건을 모두 만족한 건만 제외합니다. 매입 인보이스가 발행되지 않은 건은 지급이 끝났어도 목록에 남습니다. 기본값 ON."><input type="checkbox" id="finHideDone" checked onchange="renderFinanceDashboard()" style="width:auto;margin:0"> 완결 건 제외 · Hide closed deals <span id="finDoneCnt" style="font-size:11px;color:var(--text-3);font-weight:600"></span></label>
+      <select id="finSort" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="due">정렬 · 미수율 높은 순 · AR% desc</option><option value="unb">정렬 · 미발행율 높은 순 · Unbilled% desc</option><option value="amt">정렬 · 매출 큰 순 · Sales desc</option><option value="mgn">정렬 · 마진율 낮은 순 · Margin% asc</option></select>
       <span style="font-size:11px;color:var(--text-3)">선택 통화 기준 집계 (통화 혼합 없음)</span>
     </div>
 
@@ -9452,6 +9452,13 @@ function _finCalcMonth(p, cur, ym){
   return r;
 }
 
+// ── 자산 전용 프로젝트 판정 ─────────────────────────────────
+// 매출 0 + 매입 전액 자산(capex) = 매출원가도 마진도 없는 건.
+// 매출 회수 지표가 성립하지 않으므로 목록·집계에서 제외한다.
+function _finIsAssetOnly(c){
+  return !!(c && c.allAsset && qNum(c.sSub)<=0 && qNum(c.sTotal)<=0);
+}
+
 // ── 완결(Closed) 판정 ──────────────────────────────────────
 // 5개 조건 AND: ① 납품완료 ② 매출 인보이스 발행률 100% ③ 입금률 100%
 //               ④ 매입 인보이스 발행률 100% ⑤ 매입 지급률 100%  (매입 금액이 0이면 ④⑤ 면제)
@@ -9472,7 +9479,7 @@ function _finIsClosed(p, c){
 
 // ── 회수율 밴드 (발행률 · 입금률 · 미수율 · 미발행율) ───────
 function _finPct(a,b){ return b>0?(a/b*100):0; }
-function finRateBand(tot, dCur, _fm, ym, doneN, doneS){
+function finRateBand(tot, dCur, _fm, ym, doneN, doneS, assetN, assetP){
   var T=qNum(tot.sTotal); if(T<=0) return '';
   var inv=Math.min(qNum(tot.sInvoiced),T);
   var rec=Math.min(qNum(tot.sRecv),T);
@@ -9494,10 +9501,10 @@ function finRateBand(tot, dCur, _fm, ym, doneN, doneS){
     +'<span>④ 회수율 · Collection ratio '+(ym?'(당월 발행분 기준)':'(매출총액 기준)')+'</span>'
     +'<span style="flex:1;height:1px;background:var(--border)"></span></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">'
-    + card('인보이스 발행률', rInv, inv, '#0e7490', '발행액')
-    + card('입금률 · Collected', rRec, recI, '#15803d', '실입금')
-    + card('미수율 · Receivable', rDue, due, due>0?'var(--danger)':'var(--text)', '발행 후 미입금')
-    + card('미발행율 · Unbilled', rUnb, unb, unb>0?'#b45309':'var(--text)', '청구 잔량')
+    + card('인보이스 발행률 · Issued', rInv, inv, '#0e7490', '발행액 · issued amt')
+    + card('입금률 · Collected', rRec, recI, '#15803d', '실입금 · received')
+    + card('미수율 · Receivable', rDue, due, due>0?'var(--danger)':'var(--text)', '발행 후 미입금 · issued, unpaid')
+    + card('미발행율 · Unbilled', rUnb, unb, unb>0?'#b45309':'var(--text)', '청구 잔량 · not yet billed')
     +'</div>';
   h+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 15px;margin-bottom:16px">'
     +'<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text-3);margin-bottom:7px">'
@@ -9508,7 +9515,10 @@ function finRateBand(tot, dCur, _fm, ym, doneN, doneS){
       + seg(rRec,'#15803d') + seg(rDue,'#dc2626') + seg(rUnb,'#b45309') +'</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:10px;color:var(--text-3)">'
       + dot('#15803d','입금 '+rRec.toFixed(1)+'%') + dot('#dc2626','미수 '+rDue.toFixed(1)+'%') + dot('#b45309','미발행 '+rUnb.toFixed(1)+'%')
-      + (doneN>0?'<span style="margin-left:auto">완결 '+doneN+'건 · '+dCur+' '+_fm(doneS)+(_finHideDoneOn()?' <b style="color:#15803d">제외됨</b>':' <b style="color:#b45309">포함됨</b>')+'</span>':'')
+      + '<span style="margin-left:auto">'
+  + (doneN>0?'완결 · Closed '+doneN+'건 · '+dCur+' '+_fm(doneS)+(_finHideDoneOn()?' <b style="color:#15803d">제외 · excluded</b>':' <b style="color:#b45309">포함 · included</b>'):'')
+  + (qNum(assetN)>0?(doneN>0?' &nbsp;|&nbsp; ':'')+'자산 · Asset '+assetN+'건 · '+dCur+' '+_fm(assetP)+' <b style="color:#0e7490">제외 · excluded</b>':'')
+  + '</span>'
     +'</div></div>';
   return h;
 }
@@ -9549,10 +9559,12 @@ function renderFinanceDashboard(){
   var tot={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, sSub:0, pSub:0, sInvSub:0 };
   var rows=[];
   var doneN=0, doneS=0;                               // 완결 건 카운터
+  var assetN=0, assetP=0;                             // 자산 전용 건 카운터
   list.forEach(function(p){
     var c=finCalc(p,cur,ym);
     if(!c.hasS && !c.hasP) return;
     if(!ym && uninvOnly && c.sUninvoiced<=0) return;   // 월별 모드는 정의상 전부 발행분
+    if(_finIsAssetOnly(c)){ assetN++; assetP+=qNum(c.pTotal); return; }   // 자산 전용 — 정산 대상 아님
     if(_finIsClosed(p,c)){ doneN++; doneS+=qNum(c.sTotal); if(hideDone) return; }
     tot.sTotal+=c.sTotal; tot.sRecv+=c.sRecv; tot.sOut+=c.sOut;
     tot.sInvoiced+=c.sInvoiced; tot.sUninvoiced+=c.sUninvoiced;
@@ -9607,7 +9619,7 @@ function renderFinanceDashboard(){
         kpi('미수금 · Receivable', tot.sOut, tot.sOut>0?'var(--danger)':'var(--text)', '매출 미입금')
         + kpi('미지급금 · Payable', tot.pOut, tot.pOut>0?'var(--danger)':'var(--text)', '매입 미지급')
       ) );
-  _finKpiHtml += finRateBand(tot, dCur, _fm, ym, doneN, doneS);
+  _finKpiHtml += finRateBand(tot, dCur, _fm, ym, doneN, doneS, assetN, assetP);
   document.getElementById('finKpis').innerHTML = _finKpiHtml;
   var _dc=document.getElementById('finDoneCnt'); if(_dc) _dc.textContent = doneN>0 ? ('('+doneN+')') : '';
 
@@ -9631,9 +9643,9 @@ function renderFinanceDashboard(){
     if(total<=0) return '<span style="color:var(--text-3)">—</span>';
     var paid=Math.max(0,total-out), rp=_finPct(paid,total);
     var head = (out<=0)
-      ? '<span style="color:#15803d;font-weight:600">전액</span>'
-      : '<span style="color:var(--danger);font-weight:600">'+(kind==='s'?'미수 ':'미 ')+_fm(out)+'</span>';
-    return head + pctSub((kind==='s'?'입금 ':'지급 ')+rp.toFixed(1)+'%', rp>=99.95?'#15803d':'var(--text-3)');
+      ? '<span style="color:#15803d;font-weight:600">전액 <span style="font-weight:400">Full</span></span>'
+      : '<span style="color:var(--danger);font-weight:600">'+(kind==='s'?'미수 <span style="font-weight:400">AR</span> ':'미지급 <span style="font-weight:400">AP</span> ')+_fm(out)+'</span>';
+    return head + pctSub((kind==='s'?'입금률 · Collected ':'지급률 · Paid ')+rp.toFixed(1)+'%', rp>=99.95?'#15803d':'var(--text-3)');
   }
   // 매입 인보이스 발행 잔량 — 완결에서 걸리는 사유를 행에서 바로 보여준다
   function pInvTag(c){
@@ -9642,33 +9654,33 @@ function renderFinanceDashboard(){
     if(gap<=1) return '';
     return '<div style="font-size:9px;font-weight:700;color:#b45309;margin-top:1px" '
       +'title="매입 인보이스 미수취 '+_fm(gap)+' \u2014 매입세액 공제 근거 미확보. 지급이 끝나도 완결에서 제외되지 않습니다.">'
-      +'인보 미발행 '+_fm(gap)+'</div>';
+      +'인보 미발행 · No AP inv. '+_fm(gap)+'</div>';
   }
   // 회수 진행 게이지 · 입금(녹) / 미수(적) / 미발행(주)
   function rowBar(c){
     var x=_finRowStats(c);
     if(!(x.T>0)) return '<span style="color:var(--text-3)">—</span>';
     var sg=function(w,col){ return w>0.3?'<div style="width:'+w+'%;background:'+col+'"></div>':''; };
-    return '<div title="입금 '+x.rRec.toFixed(1)+'% · 미수 '+x.rDue.toFixed(1)+'% · 미발행 '+x.rUnb.toFixed(1)+'% \u2014 회수율(발행액 대비) '+x.rColl.toFixed(1)+'%" '
+    return '<div title="입금 Collected '+x.rRec.toFixed(1)+'% · 미수 AR '+x.rDue.toFixed(1)+'% · 미발행 Unbilled '+x.rUnb.toFixed(1)+'% \u2014 회수율 Collection rate (발행액 대비 · of issued) '+x.rColl.toFixed(1)+'%" '
       +'style="display:flex;height:7px;border-radius:4px;overflow:hidden;gap:1px;background:var(--border);min-width:62px">'
       + sg(x.rRec,'#15803d') + sg(x.rDue,'#dc2626') + sg(x.rUnb,'#b45309') + '</div>'
-      + '<div style="font-size:9px;font-weight:700;margin-top:2px;color:'+(x.rDue>0.05?'var(--danger)':'var(--text-3)')+'">미수 '+x.rDue.toFixed(1)+'%'
-      + (x.rUnb>0.05?' <span style="color:#b45309">· 미발행 '+x.rUnb.toFixed(1)+'%</span>':'')+'</div>';
+      + '<div style="font-size:9px;font-weight:700;margin-top:2px;color:'+(x.rDue>0.05?'var(--danger)':'var(--text-3)')+'">미수 <span style="font-weight:400">AR</span> '+x.rDue.toFixed(1)+'%'
+      + (x.rUnb>0.05?' <span style="color:#b45309">· 미발행 <span style="font-weight:400">Unbilled</span> '+x.rUnb.toFixed(1)+'%</span>':'')+'</div>';
   }
   function invTag(c){
     if(c.sTotal<=0) return '<span style="color:var(--text-3)">—</span>';
     var x=_finRowStats(c), head;
-    if(c.sUninvoiced<=0) head='<span style="color:#0e7490;font-weight:600">발행 '+_fm(x.inv)+'</span>';
-    else if(c.sInvoiced<=0) head='<span style="color:var(--danger);font-weight:600">미발행 '+_fm(c.sUninvoiced)+'</span>';
-    else head='<span style="color:#0e7490">발행 '+_fm(x.inv)+'</span> / <span style="color:var(--danger)">미 '+_fm(c.sUninvoiced)+'</span>';
-    return head + pctSub('발행률 '+x.rInv.toFixed(1)+'%', x.rInv>=99.95?'#0e7490':'var(--text-3)');
+    if(c.sUninvoiced<=0) head='<span style="color:#0e7490;font-weight:600">발행 <span style="font-weight:400">Issued</span> '+_fm(x.inv)+'</span>';
+    else if(c.sInvoiced<=0) head='<span style="color:var(--danger);font-weight:600">미발행 <span style="font-weight:400">Unbilled</span> '+_fm(c.sUninvoiced)+'</span>';
+    else head='<span style="color:#0e7490">발행 <span style="font-weight:400">Iss.</span> '+_fm(x.inv)+'</span> / <span style="color:var(--danger)">미발행 <span style="font-weight:400">Unb.</span> '+_fm(c.sUninvoiced)+'</span>';
+    return head + pctSub('발행률 · Issued '+x.rInv.toFixed(1)+'%', x.rInv>=99.95?'#0e7490':'var(--text-3)');
   }
   el.innerHTML='<table style="width:100%;border-collapse:collapse;table-layout:auto">'
-    +'<thead><tr><th style="'+thl+'">고객사 · Client</th><th style="'+thl+'">단계</th>'
-    +'<th style="'+th+'">매출총액</th><th style="'+th+'">인보이스 · 발행률</th><th style="'+th+'">매출입금 · 입금률</th>'
+    +'<thead><tr><th style="'+thl+'">고객사 · Client</th><th style="'+thl+'">단계 · Stage</th>'
+    +'<th style="'+th+'">매출총액 · Sales</th><th style="'+th+'">인보이스 · Issued</th><th style="'+th+'">매출입금 · Collected</th>'
     +'<th style="'+th+'">회수 진행 · Progress</th>'
-    +'<th style="'+thc+'">매입총액</th><th style="'+thc+'">매입지급</th>'
-    +'<th style="'+th+'">마진 · 율 <span style="color:#b45309">(Ex-VAT)</span></th></tr></thead><tbody>'
+    +'<th style="'+thc+'">매입총액 · Purchase</th><th style="'+thc+'">매입지급 · Paid</th>'
+    +'<th style="'+th+'">마진 · 율 · Margin <span style="color:#b45309">(Ex-VAT)</span></th></tr></thead><tbody>'
     + rows.map(function(r){
         var s=projStage(r.p.stage);
         return '<tr style="cursor:pointer" onclick="showProjectAppToEdit('+r.p.id+')">'
@@ -9683,7 +9695,7 @@ function renderFinanceDashboard(){
           +((r.c.allAsset && r.c.sSub<=0)
             ?'<td style="'+td+';font-weight:700;color:var(--text-3)" title="자본적 지출 · 자산 취득분 '+_fm(r.c.pAssetTotal)+' \u2014 매출원가가 아니므로 마진 산출 대상이 아닙니다.">\u2014 <span style="font-size:9px;color:var(--text-3);font-weight:600">자산 · Asset</span></td>'
             :r.c.curMix
-            ?'<td style="'+td+';font-weight:700;color:#b45309" title="매출 '+r.c.sCur+' / 매입 '+r.c.pCur+' \u2014 통화가 달라 마진 산출 불가. 통화 필터를 바꿔 각각 확인하세요.">\u26A0 '+r.c.sCur+'/'+r.c.pCur+' <span style="font-size:9px;color:var(--text-3);font-weight:600">통화상이</span></td>'
+            ?'<td style="'+td+';font-weight:700;color:#b45309" title="매출 '+r.c.sCur+' / 매입 '+r.c.pCur+' \u2014 통화가 달라 마진 산출 불가. 통화 필터를 바꿔 각각 확인하세요.">\u26A0 '+r.c.sCur+'/'+r.c.pCur+' <span style="font-size:9px;color:var(--text-3);font-weight:600">통화상이 · FX mismatch</span></td>'
             :'<td style="'+td+';font-weight:700;color:'+(r.c.margin>=0?'#1d4ed8':'var(--danger)')+'" title="Ex-VAT: 공급가 매출 '+_fm(r.c.sSub)+' \u2212 매입 '+_fm(r.c.pSub)+'">'+_fm(r.c.margin)+(r.c.sSub>0?' <span style="font-size:9px;color:var(--text-3);font-weight:600">'+r.c.marginRate.toFixed(1)+'%</span>':'')+'</td>')
           +'</tr>';
       }).join('')
