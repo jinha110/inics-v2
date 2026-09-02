@@ -29,7 +29,7 @@
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
 <script src="js/auth.js?v=1"></script>
-<script src="js/sync.js?v=12"></script>
+<script src="js/sync.js?v=13"></script>
 <script src="js/hr.js?v=11"></script>
 <script src="js/hr-calc.js?v=3"></script>
 <script src="js/hr-emp.js?v=4"></script>
@@ -2418,14 +2418,6 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
             <div class="admin-card-hdr"><i class="ti ti-eye-cog"></i> View Scope · 조회 범위 (전자결재·카드)</div>
             <div class="admin-card-body" id="adminViewScope"></div>
           </div>
-          <!-- Danger Zone -->
-          <div class="admin-card">
-            <div class="admin-card-hdr" style="color:var(--danger)"><i class="ti ti-alert-triangle"></i> Danger Zone · 주의</div>
-            <div class="admin-card-body">
-              <p style="font-size:12px;color:var(--text-2);margin-bottom:12px">Permanently delete all completed and rejected documents · 완료/반려 문서 일괄 삭제</p>
-              <button class="btn btn-danger" onclick="clearDone()"><i class="ti ti-trash"></i> Clear Done/Rejected · 완료·반려 삭제</button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -3524,11 +3516,9 @@ function renameMember(id){
   showToast('Renamed · 이름 변경: '+nv);
 }
 
-function clearDone(){
-  if(!confirm('Delete all Done and Rejected documents?\n완료·반려 문서를 모두 삭제할까요?'))return;
-  state.docs=state.docs.filter(d=>!['done','rejected'].includes(d.status));
-  saveState();render();renderAdmin();showToast('Cleared · 삭제 완료');
-}
+/* clearDone() — 제거됨 (2026-09). 완료·반려 문서 일괄 삭제는
+   회계 증빙 보존 의무와 충돌하므로 폐지. 개별 삭제는 deleteDoc() 사용. */
+function clearDone(){ showToast('폐지된 기능입니다 · Removed'); }
 
 // ── Vendor master & change requests (admin) ──
 function vendorBankSummary(v){
