@@ -27,6 +27,8 @@
   var _isColl = {}; COLLECTIONS.forEach(function(c){ _isColl[c]=1; });
   // 외부화 대상: 무거운 첨부를 가진 컬렉션만 (나머지 작은 것은 인라인 유지)
   var EXT = { docs:1, products:1, vendors:1, cardExpenses:1, assets:1 };
+  // 삭제 가드 임계값: 1회 저장에서 3건 초과 또는 컬렉션의 20% 초과 삭제 시 저장 중단
+  var DEL_MAX = 3, DEL_RATIO = 0.2;
   var FILES_V = 3;                  // 외부화 스키마 버전 (필드 추가 시 +1 → 백그라운드 재마이그레이션)
   var REF = "\u00A7f\u00A7";        // 포인터 접두사 (§f§)
   var PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="; // 1px 투명
@@ -167,7 +169,22 @@
           if(_lv && _lv!==_cv && typeof _lv==='object'){ _lv._rev=_nr; _lv._editedAt=_now; }
         }
         patch[k]=cur[k]; ch=true; if(perKeyFiles[k]) for(var fh in perKeyFiles[k]) fileUploads[fh]=perKeyFiles[k][fh]; } }
-      for(var k2 in old){ if(!(k2 in cur)){ patch[k2]=null; ch=true; } }
+      // ── 삭제 전파 가드 (2026-09) ─────────────────────────────────────────
+      //  이전 스냅샷에 있고 현재 state에 없는 키는 원격에서 삭제된다(PATCH null).
+      //  로드 실패·부분 동기화·키 불안정(_keyOf 해시 폴백)으로 로컬이 쪼그라든 채
+      //  저장이 돌면, 그 차이가 전원에게서 영구 삭제됐다. 대량 삭제는 정상 업무가
+      //  아니므로 여기서 저장 전체를 중단한다. 편집 1건을 잃는 게 문서 수십 건을
+      //  잃는 것보다 낫다.
+      var dels=[]; for(var k2 in old){ if(!(k2 in cur)) dels.push(k2); }
+      var oldN=0; for(var kc in old) oldN++;
+      if(dels.length > DEL_MAX || (oldN>=5 && dels.length/oldN > DEL_RATIO)){
+        console.error("⛔ INICS 삭제 가드 발동 — 저장 중단", {컬렉션:c, 삭제시도:dels.length,
+          기존:oldN, 키:dels.slice(0,30)});
+        setSyncStatus('error','⛔ 저장 차단 — 대량 삭제 감지 (관리자 문의)');
+        try{ alert('저장이 차단되었습니다.\n\n'+c+' 컬렉션에서 '+dels.length+'건이 사라진 상태로 저장이 시도되었습니다.\n데이터 보호를 위해 저장하지 않았습니다.\n\n이 탭에서 더 작업하지 마시고, 새로고침 후 데이터가 정상인지 확인하세요.\n계속 발생하면 관리자에게 알려주세요.'); }catch(_){}
+        return;
+      }
+      for(var di=0; di<dels.length; di++){ patch[dels[di]]=null; ch=true; }
       if(ch) writes.push({ url:V2URL("/"+c+".json"), body:patch });
     }
     var curMeta={}; for(var mk in state){ if(!_isColl[mk]) curMeta[mk]=state[mk]; }
