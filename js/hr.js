@@ -531,7 +531,7 @@
             ? "js/hr-con.js 를 서버에서 찾을 수 없습니다 (404). GitHub Pages에 js/hr-con.js 파일을 배포했는지 확인하세요."
             : "js/hr-con.js 가 로드되지 않았거나 실행 중 오류가 났습니다. F12 Console의 빨간 에러를 확인하세요.";
           conRoot.innerHTML = '<div class="form-card" style="padding:24px;color:var(--danger)">'
-            + '<b>계약서 모듈 로드 실패</b><br><span style="font-size:12px;color:var(--text-2)">'
+            + '<b>계약서 모듈 로드 실패 · Contract module failed to load</b><br><span style="font-size:12px;color:var(--text-2)">'
             + msg + '<br><br>Ctrl+F5 강력 새로고침 · 로컬이면 index.html과 같은 폴더에 js/hr-con.js(약 45KB)가 있어야 합니다.</span></div>';
         }
         console.error("renderHrCon is not defined — check Network: js/hr-con.js status (404?)");

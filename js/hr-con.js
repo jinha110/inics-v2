@@ -11,10 +11,10 @@
   };
 
   var TYPE_LABEL = {
-    probation: "수습계약 (HĐTV)",
-    labor_indef: "무기한 노동계약 (HĐLĐ)",
-    labor_fixed: "확정기간 노동계약 (HĐLĐ)",
-    other: "기타"
+    probation: "수습계약 (HĐTV) · Probation",
+    labor_indef: "무기한 노동계약 (HĐLĐ) · Indefinite-term",
+    labor_fixed: "확정기간 노동계약 (HĐLĐ) · Fixed-term",
+    other: "기타 · Other"
   };
 
   window._hrConTab = window._hrConTab || "gen";
@@ -100,11 +100,11 @@
 
   /** buildDoc — inics_hr_module.html 그대로 (calcRow→hrCalcRow, fmt→hrFmt, vnDate→hrVnDate) */
   window.hrBuildDoc = function(e, type, docNo) {
-    if (!e) return '<div class="doc hr-doc"><p class="blank">직원을 선택하세요.</p></div>';
+    if (!e) return '<div class="doc hr-doc"><p class="blank">직원을 선택하세요. · Select an employee.</p></div>';
     var asof = window.hrAsof || "2026-06-30";
     var c = typeof hrCalcRow === "function" ? hrCalcRow(e, asof) : { net: e.salary || 0 };
     var fill = function(val) {
-      return val ? '<span class="f">' + val + "</span>" : '<span class="blank">미입력</span>';
+      return val ? '<span class="f">' + val + "</span>" : '<span class="blank">미입력 · Not set</span>';
     };
     var DN = docNo || "0X-2026/HĐTV";
     var mr = e.gender === "F" ? ["Bà", "Ms."] : ["Ông", "Mr."];
@@ -118,7 +118,7 @@
       var noticeEn = indef ? "at least 45 days (Article 35)" : "at least 30 days (Article 35)";
       var flag = e.status === "probation"
         ? '<div style="background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:10px 12px;margin-top:12px;font-size:12px">'
-          + "<b>상태 불일치</b> — 현재 <b>수습</b> 상태입니다. 정식 계약은 통과(active) 후 체결하세요.</div>" : "";
+          + "<b>상태 불일치 · Status mismatch</b> — 현재 <b>수습 · Probation</b> 상태입니다. 정식 계약은 통과(active) 후 체결하세요 · Sign the official contract only after probation passes.</div>" : "";
       return '<div class="doc hr-doc">'
         + '<div class="ctr"><div class="nat">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="moto">Độc lập - Tự do - Hạnh phúc</div></div>'
         + '<h2 class="title">HỢP ĐỒNG LAO ĐỘNG</h2><div class="titleen">LABOR CONTRACT — '
@@ -148,8 +148,8 @@
         + '<div class="sig"><div><b>NGƯỜI LAO ĐỘNG</b><span class="en">Employee</span><div class="nm">' + (e.nameVi || "________") + '</div></div>'
         + '<div><b>NGƯỜI SỬ DỤNG LAO ĐỘNG</b><span class="en">Employer</span><div class="nm">' + HR_COMPANY.rep + "</div></div></div>"
         + flag + "</div>"
-        + '<div class="legend hr-doc"><span><span class="sw" style="background:#E7F1EF;border:1px solid #9FC9C0"></span>자동 채움</span>'
-        + '<span><span class="sw" style="background:#FBF4E6;border:1px solid #D9A93C"></span>미입력</span></div>';
+        + '<div class="legend hr-doc"><span><span class="sw" style="background:#E7F1EF;border:1px solid #9FC9C0"></span>자동 채움 · Auto-filled</span>'
+        + '<span><span class="sw" style="background:#FBF4E6;border:1px solid #D9A93C"></span>미입력 · Not set</span></div>';
     }
 
     return '<div class="doc hr-doc">'
@@ -209,8 +209,8 @@
       + '<div class="sig"><div><b>NGƯỜI LAO ĐỘNG</b><span class="en">Employee</span><div class="nm">' + (e.nameVi || "________") + '</div></div>'
       + '<div><b>NGƯỜI SỬ DỤNG LAO ĐỘNG</b><span class="en">Employer</span><div class="nm">' + HR_COMPANY.rep + "</div></div></div>"
       + "</div>"
-      + '<div class="legend hr-doc"><span><span class="sw" style="background:#E7F1EF;border:1px solid #9FC9C0"></span>인적사항에서 자동 채움</span>'
-      + '<span><span class="sw" style="background:#FBF4E6;border:1px solid #D9A93C"></span>미입력 — 카드에서 보완</span></div>';
+      + '<div class="legend hr-doc"><span><span class="sw" style="background:#E7F1EF;border:1px solid #9FC9C0"></span>인적사항에서 자동 채움 · Auto-filled from profile</span>'
+      + '<span><span class="sw" style="background:#FBF4E6;border:1px solid #D9A93C"></span>미입력 · Not set — complete in the profile card</span></div>';
   };
 
   window.hrWrapDocHtml = function(r, forWord) {
@@ -233,13 +233,13 @@
 
   function hrStatusBadge(rec) {
     var st = contractStatus(rec);
-    if (st === "concluded") return '<span class="badge b-done" style="font-size:10px">체결완료</span>';
-    return '<span class="badge b-payment" style="font-size:10px">서명대기</span>';
+    if (st === "concluded") return '<span class="badge b-done" style="font-size:10px">체결완료 · Concluded</span>';
+    return '<span class="badge b-payment" style="font-size:10px">서명대기 · Awaiting signature</span>';
   }
 
   function hrSourceBadge(rec) {
-    if (rec.source === "uploaded") return '<span class="badge b-p1" style="font-size:10px">업로드</span>';
-    return '<span class="badge b-done" style="font-size:10px">생성</span>';
+    if (rec.source === "uploaded") return '<span class="badge b-p1" style="font-size:10px">업로드 · Uploaded</span>';
+    return '<span class="badge b-done" style="font-size:10px">생성 · Generated</span>';
   }
 
   function hrDocPaper(html) {
@@ -251,7 +251,7 @@
     var r = hrGetContract(id);
     if (!r || !r.snapshot) return;
     var w = window.open("", "_blank");
-    if (!w) { alert("팝업이 차단되었습니다. 팝업을 허용해 주세요."); return; }
+    if (!w) { alert("팝업이 차단되었습니다. 팝업을 허용해 주세요. · Popup blocked — please allow popups."); return; }
     w.document.write(hrWrapDocHtml(r, false));
     w.document.close();
     setTimeout(function() { w.print(); }, 350);
@@ -403,7 +403,7 @@
         return;
       }
       if (!url) {
-        host.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3)">파일 경로 없음</div>';
+        host.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3)">파일 경로 없음 · No file path</div>';
         return;
       }
       var mime = rec.fileMime || rec.mime || "";
@@ -422,7 +422,7 @@
       var scanUrl = hrContractStorageUrl(rec, "scan");
       var scanBlock = document.createElement("div");
       scanBlock.style.cssText = "margin-top:16px";
-      scanBlock.innerHTML = '<div style="font-size:12px;font-weight:600;margin-bottom:8px">서명·날인 스캔본</div>';
+      scanBlock.innerHTML = '<div style="font-size:12px;font-weight:600;margin-bottom:8px">서명·날인 스캔본 · Signed & sealed scan</div>';
       if ((rec.scanMime || "").indexOf("pdf") >= 0) {
         scanBlock.innerHTML += '<embed src="' + hrEsc(scanUrl) + '" type="application/pdf" style="width:100%;height:400px;border:1px solid var(--border);border-radius:var(--radius)">';
       } else {
@@ -437,7 +437,7 @@
     if (!host) return;
     var managed = hrManagedEmps();
     if (!managed.length) {
-      host.innerHTML = '<div class="form-card" style="padding:32px;text-align:center;color:var(--text-3)">관리 대상 직원이 없습니다. 직원 인적사항 탭에서 직원을 등록하세요.</div>';
+      host.innerHTML = '<div class="form-card" style="padding:32px;text-align:center;color:var(--text-3)">관리 대상 직원이 없습니다. 직원 인적사항 탭에서 직원을 등록하세요. · No HR-managed employees. Add one in the Employees tab.</div>';
       return;
     }
     var e = (window.hrState && window.hrState.employees || {})[window._hrConEmp] || managed[0];
@@ -447,21 +447,21 @@
     host.innerHTML =
       '<div style="display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:16px;align-items:start">'
       + '<div class="form-card" style="padding:18px 20px">'
-      + '<div class="form-group"><label class="form-label">직원 (인적사항에서 끌어옴)</label>'
+      + '<div class="form-group"><label class="form-label">직원 (인적사항에서 끌어옴) · Employee (from profile)</label>'
       + '<select id="hrConEmpSel" class="form-input">' + managed.map(function(x) {
         return '<option value="' + hrEsc(x.id) + '"' + (x.id === window._hrConEmp ? " selected" : "") + ">"
           + hrEsc(x.nameVi) + " (" + hrEsc(x.positionKo) + ")</option>";
       }).join("") + "</select></div>"
-      + '<div class="form-group"><label class="form-label">계약 종류</label><select id="hrConTypeSel" class="form-input">'
-      + '<option value="probation"' + (window._hrConType === "probation" ? " selected" : "") + ">수습계약서 (Thử việc)</option>"
-      + '<option value="labor_indef"' + (window._hrConType === "labor_indef" ? " selected" : "") + ">무기한 노동계약</option>"
-      + '<option value="labor_fixed"' + (window._hrConType === "labor_fixed" ? " selected" : "") + ">확정기간 노동계약</option>"
+      + '<div class="form-group"><label class="form-label">계약 종류 · Contract type</label><select id="hrConTypeSel" class="form-input">'
+      + '<option value="probation"' + (window._hrConType === "probation" ? " selected" : "") + ">수습계약서 (Thử việc) · Probation Contract</option>"
+      + '<option value="labor_indef"' + (window._hrConType === "labor_indef" ? " selected" : "") + ">무기한 노동계약 · Indefinite-term</option>"
+      + '<option value="labor_fixed"' + (window._hrConType === "labor_fixed" ? " selected" : "") + ">확정기간 노동계약 · Fixed-term</option>"
       + "</select></div>"
-      + '<div class="form-group"><label class="form-label">문서번호 (자동)</label><input class="form-input" style="font-family:var(--mono)" value="' + hrEsc(docNo) + '" disabled></div>'
-      + '<button class="btn btn-dark" id="hrConGenBtn" style="width:100%;margin-top:8px">계약서 생성 및 저장 →</button>'
+      + '<div class="form-group"><label class="form-label">문서번호 (자동) · Doc No. (auto)</label><input class="form-input" style="font-family:var(--mono)" value="' + hrEsc(docNo) + '" disabled></div>'
+      + '<button class="btn btn-dark" id="hrConGenBtn" style="width:100%;margin-top:8px">계약서 생성 및 저장 · Generate & Save →</button>'
       + (miss.length ? '<div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,.1);border:1px solid var(--warning);border-radius:var(--radius);font-size:12px">'
-        + "<b>정보 미비</b> — " + hrEsc(miss.join(", ")) + ". 생성은 되지만 빈칸으로 저장됩니다.</div>" : "")
-      + '<button class="btn btn-outline" id="hrConToCard" style="width:100%;margin-top:10px;font-size:12px">← 이 직원 인적사항 카드</button>'
+        + "<b>정보 미비 · Incomplete</b> — " + hrEsc(miss.join(", ")) + ". 생성은 되지만 빈칸으로 저장됩니다. · It will still be generated, with blanks.</div>" : "")
+      + '<button class="btn btn-outline" id="hrConToCard" style="width:100%;margin-top:10px;font-size:12px">← 이 직원 인적사항 카드 · Profile card</button>'
       + "</div>"
       + '<div id="hrConDocPreview">' + hrDocPaper(hrBuildDoc(e, window._hrConType, docNo)) + "</div>"
       + "</div>";
@@ -488,24 +488,24 @@
     var managed = hrManagedEmps();
     host.innerHTML =
       '<div class="form-card" style="max-width:640px;padding:20px 22px">'
-      + '<div style="font-size:14px;font-weight:600;margin-bottom:4px">기존 계약서 업로드</div>'
+      + '<div style="font-size:14px;font-weight:600;margin-bottom:4px">기존 계약서 업로드 · Upload existing contract</div>'
       + '<div style="font-size:11px;color:var(--text-3);margin-bottom:16px">.docx · .pdf · 이미지 · 외부 서명본</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-      + '<div class="form-group"><label class="form-label">직원 연결 (선택)</label><select id="hrUpEmp" class="form-input">'
-      + '<option value="">— 연결 안 함 —</option>' + managed.map(function(x) {
+      + '<div class="form-group"><label class="form-label">직원 연결 (선택) · Link employee (optional)</label><select id="hrUpEmp" class="form-input">'
+      + '<option value="">— 연결 안 함 · None —</option>' + managed.map(function(x) {
         return '<option value="' + hrEsc(x.id) + '">' + hrEsc(x.nameVi) + " (" + hrEsc(x.positionKo) + ")</option>";
       }).join("") + "</select></div>"
-      + '<div class="form-group"><label class="form-label">계약 종류</label><select id="hrUpType" class="form-input">'
-      + '<option value="probation">수습계약 (HĐTV)</option><option value="labor_indef">무기한 노동계약</option>'
-      + '<option value="labor_fixed">확정기간 노동계약</option><option value="other">기타</option></select></div>'
-      + '<div class="form-group"><label class="form-label">문서번호 (선택)</label><input class="form-input" id="hrUpNo" placeholder="예: 03-2026/HĐTV" style="font-family:var(--mono)"></div>'
-      + '<div class="form-group"><label class="form-label">비고 (선택)</label><input class="form-input" id="hrUpMemo" placeholder="예: 서명본 스캔"></div>'
+      + '<div class="form-group"><label class="form-label">계약 종류 · Contract type</label><select id="hrUpType" class="form-input">'
+      + '<option value="probation">수습계약 (HĐTV) · Probation</option><option value="labor_indef">무기한 노동계약 · Indefinite-term</option>'
+      + '<option value="labor_fixed">확정기간 노동계약 · Fixed-term</option><option value="other">기타 · Other</option></select></div>'
+      + '<div class="form-group"><label class="form-label">문서번호 (선택) · Doc No. (optional)</label><input class="form-input" id="hrUpNo" placeholder="예: 03-2026/HĐTV" style="font-family:var(--mono)"></div>'
+      + '<div class="form-group"><label class="form-label">비고 (선택) · Memo (optional)</label><input class="form-input" id="hrUpMemo" placeholder="예: 서명본 스캔"></div>'
       + "</div>"
-      + '<div class="form-group" style="margin-top:14px"><label class="form-label">계약서 파일</label>'
+      + '<div class="form-group" style="margin-top:14px"><label class="form-label">계약서 파일 · Contract file</label>'
       + '<input type="file" id="hrUpFile" class="form-input" accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div>'
       + '<div id="hrUpInfo" style="font-size:12px;color:var(--text-3);margin-top:8px"></div>'
-      + '<button class="btn btn-dark" id="hrUpSave" style="margin-top:14px;width:100%" disabled>업로드 저장 →</button>'
-      + '<p style="font-size:11px;color:var(--text-3);margin-top:12px;line-height:1.6">업로드본은 <b>체결완료</b> 상태로 대장에 보관됩니다. 파일은 Firebase Storage <code>hr/contracts/{id}/</code>에 저장됩니다.</p>'
+      + '<button class="btn btn-dark" id="hrUpSave" style="margin-top:14px;width:100%" disabled>업로드 저장 · Save upload →</button>'
+      + '<p style="font-size:11px;color:var(--text-3);margin-top:12px;line-height:1.6">업로드본은 <b>체결완료 · Concluded</b> 상태로 대장에 보관됩니다 · Uploads are registered as concluded. 파일은 Firebase Storage <code>hr/contracts/{id}/</code>에 저장됩니다 · files are stored there.</p>'
       + "</div>";
     var body = host;
     var picked = null;
@@ -518,7 +518,7 @@
       picked = f;
       saveEl.disabled = false;
       var mb = (f.size / 1048576).toFixed(2);
-      info.innerHTML = "선택됨: <b>" + hrEsc(f.name) + "</b> · " + mb + " MB"
+      info.innerHTML = "선택됨 · Selected: <b>" + hrEsc(f.name) + "</b> · " + mb + " MB"
         + (f.size > 32 * 1048576 ? ' <span style="color:var(--danger)">⚠ 32MB 초과 — 업로드 불가</span>'
           : f.size > 10 * 1048576 ? ' <span style="color:var(--text-3)">대용량 PDF — Storage resumable 업로드</span>' : "");
     };
@@ -534,10 +534,10 @@
           source: "uploaded",
           status: "concluded",
           empId: empId || "",
-          empName: emp ? emp.nameVi : "(미연결)",
+          empName: emp ? emp.nameVi : "(미연결 · unlinked)",
           empPos: emp ? emp.positionKo : "",
           type: body.querySelector("#hrUpType").value,
-          docNo: body.querySelector("#hrUpNo").value || "(업로드)",
+          docNo: body.querySelector("#hrUpNo").value || "(업로드 · uploaded)",
           memo: body.querySelector("#hrUpMemo").value || "",
           fileName: picked.name,
           fileMime: up.mime,
@@ -567,8 +567,8 @@
     var list = listContracts();
     if (!list.length) {
       body.innerHTML = '<div class="form-card" style="padding:40px 24px;text-align:center;color:var(--text-3)">'
-        + '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">저장된 계약서가 없습니다</div>'
-        + '<div style="font-size:13px">\u201c계약서 생성\u201d 또는 \u201c계약서 업로드\u201d 탭에서 추가하세요.</div></div>';
+        + '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">저장된 계약서가 없습니다 · No saved contracts</div>'
+        + '<div style="font-size:13px">\u201c계약서 생성\u201d 또는 \u201c계약서 업로드\u201d 탭에서 추가하세요. · Add one from the Generate or Upload tab.</div></div>';
       return;
     }
     var rec = window._hrConViewId ? hrGetContract(window._hrConViewId) : null;
@@ -576,13 +576,13 @@
     var isDraft = rec && contractStatus(rec) === "draft";
     var detailHtml;
     if (!rec) {
-      detailHtml = '<div class="form-card" style="padding:32px;text-align:center;color:var(--text-3)">왼쪽에서 계약서를 선택하세요.</div>';
+      detailHtml = '<div class="form-card" style="padding:32px;text-align:center;color:var(--text-3)">왼쪽에서 계약서를 선택하세요. · Select a contract on the left.</div>';
     } else if (isUp) {
       detailHtml =
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">'
         + '<div><b style="font-family:var(--mono)">' + hrEsc(rec.docNo) + "</b> · "
         + '<span style="font-size:12px;color:var(--text-3)">' + hrEsc(rec.empName) + " · " + hrEsc(TYPE_LABEL[rec.type] || rec.type) + "</span></div>"
-        + '<button class="btn btn-dark" id="hrConDlOrig" style="font-size:11px">원본 다운로드</button></div>'
+        + '<button class="btn btn-dark" id="hrConDlOrig" style="font-size:11px">원본 다운로드 · Download original</button></div>'
         + '<div class="form-card" style="padding:14px 18px;margin-bottom:14px;font-size:13px">'
         + hrSourceBadge(rec) + " " + hrStatusBadge(rec)
         + '<div style="margin-top:8px"><b>' + hrEsc(rec.fileName) + '</b></div>'
@@ -595,40 +595,40 @@
         + '<div><b style="font-family:var(--mono)">' + hrEsc(rec.docNo) + "</b> · "
         + '<span style="font-size:12px;color:var(--text-3)">' + hrEsc(rec.empName) + " · " + hrEsc(TYPE_LABEL[rec.type] || rec.type) + "</span></div>"
         + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
-        + (isDraft ? '<label class="btn btn-dark" style="font-size:11px;cursor:pointer;margin:0">서명·날인 스캔 업로드<input type="file" id="hrConScanIn" accept=".pdf,.png,.jpg,.jpeg,application/pdf" style="display:none"></label>' : "")
-        + (rec.scanPath ? '<button class="btn btn-outline" id="hrConDlScan" style="font-size:11px">스캔 다운로드</button>' : "")
+        + (isDraft ? '<label class="btn btn-dark" style="font-size:11px;cursor:pointer;margin:0">서명·날인 스캔 업로드 · Upload signed scan<input type="file" id="hrConScanIn" accept=".pdf,.png,.jpg,.jpeg,application/pdf" style="display:none"></label>' : "")
+        + (rec.scanPath ? '<button class="btn btn-outline" id="hrConDlScan" style="font-size:11px">스캔 다운로드 · Download scan</button>' : "")
         + '<button class="btn btn-outline" id="hrConPrint" style="font-size:11px">인쇄 / PDF</button>'
-        + '<button class="btn btn-dark" id="hrConDlDoc" style="font-size:11px">Word(.doc) 다운로드</button>'
+        + '<button class="btn btn-dark" id="hrConDlDoc" style="font-size:11px">Word(.doc) 다운로드 · Download</button>'
         + "</div></div>"
         + '<div style="margin-bottom:10px">' + hrSourceBadge(rec) + " " + hrStatusBadge(rec) + "</div>"
         + '<div id="hrConPreviewHost"></div>'
-        + (isDraft ? '<p style="font-size:11px;color:var(--text-3);margin-top:10px">서명·날인 스캔본을 업로드하면 <b>체결완료</b>로 전환됩니다.</p>' : "");
+        + (isDraft ? '<p style="font-size:11px;color:var(--text-3);margin-top:10px">서명·날인 스캔본을 업로드하면 <b>체결완료 · Concluded</b>로 전환됩니다. · Uploading the signed scan marks the contract as concluded.</p>' : "");
     }
 
     body.innerHTML =
       '<div style="display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:16px;align-items:start">'
       + '<div class="form-card" style="padding:0;overflow:hidden">'
       + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
-      + '<div style="font-size:13px;font-weight:600">계약 대장</div><span style="font-size:11px;color:var(--text-3)">' + list.length + "건</span></div>"
+      + '<div style="font-size:13px;font-weight:600">계약 대장 · Contract Register</div><span style="font-size:11px;color:var(--text-3)">' + list.length + "건 · records</span></div>"
       + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       + '<thead><tr style="background:var(--surface-2);border-bottom:1px solid var(--border)">'
-      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">문서번호</th>'
-      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">직원</th>'
-      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">구분</th>'
-      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">상태</th>'
+      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">문서번호 / Doc No.</th>'
+      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">직원 / Employee</th>'
+      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">구분 / Type</th>'
+      + '<th style="text-align:left;padding:10px 12px;font-size:10px;color:var(--text-3)">상태 / Status</th>'
       + '<th style="padding:10px 8px"></th></tr></thead><tbody>'
       + list.map(function(r) {
         var sel = r.id === window._hrConViewId;
         return '<tr class="hr-con-row" data-id="' + hrEsc(r.id) + '" style="cursor:pointer;border-bottom:1px solid var(--border)' + (sel ? ";background:var(--surface-2)" : "") + '">'
           + '<td style="padding:10px 12px;font-family:var(--mono);font-size:11px">' + hrEsc(r.docNo)
-          + (r.missing && r.missing.length ? ' <span class="badge b-payment" style="font-size:9px">미비</span>' : "") + "</td>"
+          + (r.missing && r.missing.length ? ' <span class="badge b-payment" style="font-size:9px">미비 · Incomplete</span>' : "") + "</td>"
           + '<td style="padding:10px 12px"><div style="font-weight:600;font-size:12px">' + hrEsc(r.empName) + '</div>'
           + '<div style="font-size:10px;color:var(--text-3)">' + hrEsc(r.empPos || "") + "</div></td>"
           + '<td style="padding:10px 12px">' + hrSourceBadge(r) + '<br><span style="font-size:10px;color:var(--text-3)">'
           + hrEsc((TYPE_LABEL[r.type] || r.type || "").split(" ")[0]) + "</span></td>"
           + '<td style="padding:10px 12px">' + hrStatusBadge(r) + '<br><span style="font-size:10px;color:var(--text-3);font-family:var(--mono)">'
           + hrEsc((r.createdAt || "").slice(0, 10)) + "</span></td>"
-          + '<td style="padding:10px 8px"><button class="btn btn-outline hr-con-del" data-id="' + hrEsc(r.id) + '" style="font-size:10px;padding:4px 8px;color:var(--danger)">삭제</button></td></tr>';
+          + '<td style="padding:10px 8px"><button class="btn btn-outline hr-con-del" data-id="' + hrEsc(r.id) + '" style="font-size:10px;padding:4px 8px;color:var(--danger)">삭제 · Delete</button></td></tr>';
       }).join("")
       + "</tbody></table></div></div>"
       + '<div id="hrConDetail">' + detailHtml
@@ -688,9 +688,9 @@
 
     root.innerHTML =
       '<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">'
-      + '<button type="button" class="btn ' + (tab === "gen" ? "btn-dark" : "btn-outline") + '" id="hrConTabGen" style="font-size:12px">계약서 생성</button>'
-      + '<button type="button" class="btn ' + (tab === "up" ? "btn-dark" : "btn-outline") + '" id="hrConTabUp" style="font-size:12px">계약서 업로드</button>'
-      + '<button type="button" class="btn ' + (tab === "reg" ? "btn-dark" : "btn-outline") + '" id="hrConTabReg" style="font-size:12px">저장된 계약 (' + n + ")</button>"
+      + '<button type="button" class="btn ' + (tab === "gen" ? "btn-dark" : "btn-outline") + '" id="hrConTabGen" style="font-size:12px">계약서 생성 · Generate</button>'
+      + '<button type="button" class="btn ' + (tab === "up" ? "btn-dark" : "btn-outline") + '" id="hrConTabUp" style="font-size:12px">계약서 업로드 · Upload</button>'
+      + '<button type="button" class="btn ' + (tab === "reg" ? "btn-dark" : "btn-outline") + '" id="hrConTabReg" style="font-size:12px">저장된 계약 · Saved (' + n + ")</button>"
       + '</div><div id="hrConBody"></div>';
 
     var genBtn = root.querySelector("#hrConTabGen");
