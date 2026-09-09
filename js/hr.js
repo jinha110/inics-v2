@@ -71,9 +71,11 @@
   window.hrEditMode = false;
 
   window.hrModuleAllowed = function(u) {
+    var explicit = !!u;                     // 관리자 권한표에서 특정 사용자를 직접 질의하는 경우
     u = u || (typeof cardCurrentUser === "function" ? cardCurrentUser() : null);
     if (!u) return false;
-    if (u.isAdmin || (typeof sessionIsAdmin !== "undefined" && sessionIsAdmin)) return true;
+    if (u.isAdmin) return true;
+    if (!explicit && typeof sessionIsAdmin !== "undefined" && sessionIsAdmin) return true;
     if (typeof state === "undefined" || !state || !state.modulePerms) return false;
     var pk = typeof _mpk === "function" ? _mpk(u.id) : ("u" + u.id);
     return !!(state.modulePerms[pk] && state.modulePerms[pk].hr === true);
