@@ -36,7 +36,7 @@
 <script src="js/hr-pay-att.js?v=4"></script>
 <script src="js/hr-con.js?v=10" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/amount.js?v=1"></script>
-<script src="js/quote.js?v=7"></script>
+<script src="js/quote.js?v=8"></script>
 <script src="js/contract.js?v=5"></script>
 <script src="js/qlock.js?v=2"></script>
 <script src="js/chasan.js?v=4"></script>
@@ -7420,9 +7420,11 @@ function deletePaymentRequest(id){
 function reprintPaymentRequest(id){
   var rec=(state.paymentRequests||[]).find(function(r){return String(r.id)===String(id);}); if(!rec)return;
   var d=_prContractData(); if(!d)return;
-  _printHtmlDoc(buildPaymentRequestHtml(d.p,d.o,rec),'PaymentRequest');
+  _prQrReady(d.p,d.o,rec).then(function(){ _printHtmlDoc(buildPaymentRequestHtml(d.p,d.o,rec),'PaymentRequest'); });
 }
-function printPaymentRequest(){ var d=_prContractData(); if(!d)return; _printHtmlDoc(buildPaymentRequestHtml(d.p,d.o,_readPR()),'PaymentRequest'); }
+function printPaymentRequest(){ var d=_prContractData(); if(!d)return; var pr=_readPR();
+  _prQrReady(d.p,d.o,pr).then(function(){ _printHtmlDoc(buildPaymentRequestHtml(d.p,d.o,pr),'PaymentRequest'); });
+}
 function _printHtmlDoc(htmlBody,title){
   var w=window.open('','_blank');
   w.document.write('<html><head>'+_printHead(title,'@page{margin:10mm}')+'</head><body style="margin:0">'+htmlBody+'</body></html>');
@@ -7431,9 +7433,10 @@ function _printHtmlDoc(htmlBody,title){
 function downloadPaymentRequestPDF(){
   if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('PDF 모듈 로드 실패(네트워크 확인)'); return; }
   var d=_prContractData(); if(!d)return; var pr=_readPR();
+  showToast('PDF 생성 중...');
+  _prQrReady(d.p,d.o,pr).then(function(){
   var wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff';
   wrap.innerHTML=buildPaymentRequestHtml(d.p,d.o,pr); document.body.appendChild(wrap);
-  showToast('PDF 생성 중...');
   html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
     var pdf=new window.jspdf.jsPDF('p','mm','a4');
     var W=wrap.offsetWidth||794, mmPerCss=210/W, marginMm=8, usableMm=297-marginMm*2;
@@ -7448,6 +7451,7 @@ function downloadPaymentRequestPDF(){
     }
     pdf.save((pr.prNo||'PaymentRequest').replace(/[^a-zA-Z0-9_-]/g,'_')+'.pdf'); document.body.removeChild(wrap);
   }).catch(function(){ if(wrap.parentNode)document.body.removeChild(wrap); showToast('PDF 실패'); });
+  });
 }
 function numToWordsEn(num){
   num=Math.round(Math.abs(num||0)); if(num===0) return 'Zero';
@@ -7482,6 +7486,62 @@ function _prDescLabel(pr,pct){
   if(k==='full') return {vi:'Thanh toán toàn bộ (100%)', en:'Full Payment (100%)', ko:'100% 전액 ('+(timing==='after'?'후금':'선금')+')'};
   return {vi:pct+'% giá trị hợp đồng', en:'Payment ('+pct+'%)', ko:pct+'%'};
 }
+/* ── VietQR (Shinhan Bank Vietnam) ─────────────────────────────
+   결제요청서 금액·문서번호를 QR에 담아 고객이 스캔만 하면
+   금액/계좌/송금메모가 자동 입력되게 한다. 입금 대사 자동매칭용. */
+var PR_QR_BANK = { bin:'970424', acct:'700041302704', name:'CONG TY TNHH INICS VINA' };
+var _PR_QR_CACHE = {};   /* url -> dataURI */
+var _PR_QR_BAD   = {};   /* url -> true (실패한 URL 재시도 방지) */
+
+function _prQrRef(s){
+  return String(s==null?'':s).normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/\u0110/g,'D').replace(/\u0111/g,'d')
+    .replace(/[^A-Za-z0-9]/g,'').slice(0,25);
+}
+function _prQrUrl(amt,ref,cur){
+  if((cur||'VND')!=='VND') return '';          /* VietQR은 VND 전용 */
+  var a=Math.round(Number(amt)||0); if(a<=0) return '';
+  return 'https://img.vietqr.io/image/'+PR_QR_BANK.bin+'-'+PR_QR_BANK.acct+'-compact2.png'
+    +'?amount='+a
+    +'&addInfo='+encodeURIComponent(_prQrRef(ref))
+    +'&accountName='+encodeURIComponent(PR_QR_BANK.name);
+}
+/* html2canvas(PDF)는 외부 이미지가 있으면 canvas가 오염돼 toDataURL이 실패한다.
+   반드시 base64로 미리 변환해 캐시에 넣어두고 그 값을 렌더링에 쓴다. */
+function _prQrEnsure(url){
+  if(!url) return Promise.resolve('');
+  if(_PR_QR_CACHE[url]) return Promise.resolve(_PR_QR_CACHE[url]);
+  if(_PR_QR_BAD[url])   return Promise.resolve('');
+  return fetch(url).then(function(r){ if(!r.ok) throw 0; return r.blob(); })
+    .then(function(b){ return new Promise(function(res,rej){
+      var fr=new FileReader(); fr.onload=function(){res(fr.result);}; fr.onerror=rej; fr.readAsDataURL(b);
+    }); })
+    .then(function(u){ _PR_QR_CACHE[url]=u; return u; })
+    .catch(function(){ _PR_QR_BAD[url]=true; return ''; });
+}
+/* 인쇄/PDF 직전에 호출 — QR 준비가 끝난 뒤 진행 */
+function _prQrReady(p,o,pr){
+  try{ return _prQrEnsure(_prQrUrl(Math.round(pr.amount||0), pr.prNo||'', pr.currency||'VND')); }
+  catch(e){ return Promise.resolve(''); }
+}
+function _prQrBlock(amt,ref,cur){
+  var url=_prQrUrl(amt,ref,cur);
+  if(!url) return '';
+  var src=_PR_QR_CACHE[url];
+  if(!src){
+    if(!_PR_QR_BAD[url]){ _prQrEnsure(url).then(function(u){
+      if(u && typeof renderPRPreview==='function'){ try{ renderPRPreview(); }catch(_){} }
+    }); }
+    return '';                                  /* 준비 전에는 렌더링하지 않음 */
+  }
+  return '<div style="width:118px;flex:0 0 118px;text-align:center">'
+    +'<img src="'+src+'" alt="VietQR" style="width:106px;height:106px;display:block;margin:0 auto;border:1px solid #ddd">'
+    +'<div style="font-size:9px;font-weight:700;margin-top:3px">Qu\u00E9t m\u00E3 \u0111\u1EC3 thanh to\u00E1n</div>'
+    +'<div style="font-size:8.5px;color:#555">Scan to pay</div>'
+  +'</div>';
+}
+
 function buildPaymentRequestHtml(p,o,pr){
   function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   var cur=pr.currency||'VND';
@@ -7562,8 +7622,11 @@ function buildPaymentRequestHtml(p,o,pr){
         : '<tr style="background:#eef2ff"><td colspan="2" style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">TỔNG / TOTAL</td><td style="border:1px solid #999;padding:6px;text-align:right;font-weight:800">'+amtStr+'</td></tr>')
     +'</tfoot></table>';
   // payment info
+  var _qrB=_prQrBlock(amt, pr.prNo||'', cur);
   H+='<div class="ct-blk" style="margin-top:12px;border:1px solid #999;padding:9px 11px;background:#fbfbfb">'
     +'<div style="font-weight:700;font-size:10px;margin-bottom:4px">Thông tin thanh toán / Payment Details</div>'
+    +'<div style="display:flex;gap:14px;align-items:flex-start">'
+    +'<div style="flex:1;min-width:0">'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:10px">'
       +'<div>Ngân hàng / Bank: <b>'+esc(pr.bank||'Shinhan Bank Vietnam')+'</b></div>'
       +'<div>Số TK / Account No.: <b>'+esc(pr.acct||'')+'</b></div>'
@@ -7571,6 +7634,10 @@ function buildPaymentRequestHtml(p,o,pr){
       +'<div>Hạn thanh toán / Due date: <b>'+(pr.due?esc(_dmy(pr.due)):'………')+'</b></div>'
       +'<div>Số tiền / Amount: <b>'+amtStr+'</b>'+(_vr>0?' <span style="color:#555;font-weight:400">(đã gồm VAT · incl. VAT '+_vr+'%)</span>':'')+'</div>'
       +(_vr>0?'<div style="grid-column:span 2;color:#555">Trong đó / Of which — Chưa VAT · pre-VAT: <b>'+netStr+'</b> · Thuế GTGT · VAT '+_vr+'%: <b>'+vatStr+'</b></div>':'')
+      +(_qrB?'<div style="grid-column:span 2;color:#555">Nội dung CK / Transfer reference: <b>'+esc(_prQrRef(pr.prNo||''))+'</b></div>':'')
+    +'</div>'
+    +'</div>'
+    +_qrB
     +'</div>'
   +'</div>';
   if(pr.note){ H+='<div class="ct-blk" style="margin-top:8px;font-size:10px;color:#444">Ghi chú / Note: '+esc(pr.note)+'</div>'; }
