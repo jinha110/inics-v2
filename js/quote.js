@@ -113,7 +113,7 @@ function newQuote(){
   document.getElementById('qCurrency').value='VND';
   document.getElementById('qVat').value='8';
   var _sc0=document.getElementById('qShowCbm'); if(_sc0) _sc0.checked=false;
-  document.getElementById('qNotes').value='Estimated lead time: 7-14 days for Vietnam manufactured products and approximately 30 days for imported items.\nAll prices are exclusive of taxes.\nPrices quoted include delivery and installation fee.';
+  document.getElementById('qNotes').value='Lead Time: Approx. 4 weeks for Vietnam-made products and 8 weeks for imported products, excluding possible customs delays of 1-2 weeks.\nDelivery & Installation: Included in the quoted prices.\nExtra Installation Fee: Applies to night or weekend installation at the client\'s request.\nCustom Orders: Non-standard sizes or colors may incur an additional 10-20% charge.';
   populateQuoteProductCodes();
   addQuoteLine();
 }
@@ -409,7 +409,13 @@ function buildQuoteHtml(q){
   }).join('');
   var CS=showCbm?10:9;                                   // tfoot colspan (CBM 컬럼 유무)
   var th='padding:5px 4px;border:1px solid #bbb;background:#f3f4f6;font-size:8.5px;font-weight:700;color:#333';
-  var notesHtml=(q.notes||'').split(/\n/).map(function(n){ return n.trim()?'<div>'+n+'</div>':''; }).join('');
+  var notesHtml=(q.notes||'').split(/\n/).map(function(n){
+    var t=n.trim(); if(!t) return '';
+    var m=t.match(/^([^:]{1,40}):\s*([\s\S]*)$/);
+    return m ? '<div style="margin-bottom:2px"><b>'+m[1]+':</b> '+m[2]+'</div>'
+             : '<div style="margin-bottom:2px">'+t+'</div>';
+  }).join('');
+  if(notesHtml) notesHtml='<div style="font-weight:700;color:#333;margin-bottom:3px">NOTES</div>'+notesHtml;
   return '<div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a18;padding:22px 20px">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;border:1px solid #999;padding:10px 12px">'
       +(_qLogo()?'<img src="'+_qLogo()+'" style="height:34px;object-fit:contain;display:block">':'<div style="display:flex;align-items:center;gap:9px">'+'<div style="width:6px;height:34px;background:#1d4ed8;border-radius:2px"></div>'+'<div><div style="font-size:22px;font-weight:800;letter-spacing:1.5px;color:#1a1a18;line-height:1">INICS</div>'+'<div style="font-size:7.5px;color:#666;letter-spacing:.5px;margin-top:3px">VINA · Authorized FURSYS Dealer</div></div>'+'</div>')
