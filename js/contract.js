@@ -3,6 +3,23 @@
    47개 함수 자동 추출 · 공용 헬퍼(qNum·fmtN·_money·state·saveState·
    showToast·getAvatar·getBuyerFromDB 등)는 index.html에 남아 전역 참조
    ════════════════════════════════════════════════════════════ */
+/* 첨부 종류 판별 — data:URL / Storage URL / 외부화 포인터(§f§) 모두 지원.
+   base64 접두사만 보던 기존 방식은 Storage 이관 후 오판하므로 mime·파일명을 우선한다. */
+function _scanIsImg(o){
+  if(!o) return false;
+  if(/^image\//i.test(o.type||'')) return true;
+  if(/\.(png|jpe?g|gif|webp|bmp)$/i.test(o.name||'')) return true;
+  if(/pdf/i.test(o.type||'') || /\.pdf$/i.test(o.name||'')) return false;
+  return /^data:image\//.test(o.data||'');
+}
+/* 썸네일 src — 포인터면 window._img 가 지연 로딩으로 채워준다 */
+function _scanThumbSrc(o, style){
+  var v=(o&&o.data)||'';
+  if(typeof v==='string' && v.slice(0,3)==='§f§' && typeof window._img==='function')
+    return window._img(v, 'style="'+style+'"');
+  return '<img src="'+v+'" style="'+style+'">';
+}
+
 function triggerContractFile(){document.getElementById('contractAttInput').click();}
 
 function handleContractAtt(e){
@@ -21,8 +38,8 @@ function renderContractAttList(){
   var el=document.getElementById('contractAttList'); if(!el) return;
   if(!contractAtts.length){ el.innerHTML='<div class="upload-zone" onclick="triggerContractFile()"><i class="ti ti-file-certificate" style="font-size:22px;display:block;margin-bottom:6px;color:#4338ca"></i><strong style="display:block;margin-bottom:2px;color:var(--text-2)">계약서 · Signed Contract (PDF · Image · Word)</strong><span style="font-size:11px">계약서 모듈 연동 대상 · Linked to Contracts module</span></div>'; return; }
   el.innerHTML=contractAtts.map(function(a,i){
-    var isImg=/^data:image\//.test(a.data||'');
-    var thumb=isImg?'<img src="'+a.data+'" onclick="viewImageLightbox(this.src)" style="width:30px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in">':'<i class="ti ti-file-certificate" style="font-size:20px;color:#4338ca"></i>';
+    var isImg=_scanIsImg(a);
+    var thumb=isImg?_scanThumbSrc(a,'width:30px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in'):'<i class="ti ti-file-certificate" style="font-size:20px;color:#4338ca"></i>';
     return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;margin-bottom:6px">'+thumb+'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.name||'contract')+'</span><span style="font-size:10px;color:var(--text-3)">'+(a.size||'')+'</span><button class="btn btn-outline" style="font-size:10px;padding:3px 7px;color:var(--danger)" onclick="removeContractAtt('+i+')"><i class="ti ti-x"></i></button></div>';
   }).join('');
 }
@@ -259,8 +276,8 @@ function renderContractScans(){
   var head='<span style="font-weight:700">스캔본 · Scans ('+scans.length+')</span>';
   if(!scans.length){ box.innerHTML=head+'<span style="margin-left:5px">— 없음, 「스캔본 업로드」로 첨부 · none</span>'; return; }
   box.innerHTML=head+scans.map(function(s,i){
-    var isImg=/^data:image\//.test(s.data||'');
-    var thumb=isImg?'<img src="'+s.data+'" style="width:18px;height:18px;object-fit:cover;border-radius:3px;border:1px solid var(--border)">':'<i class="ti ti-file-type-pdf" style="font-size:14px;color:#b91c1c"></i>';
+    var isImg=_scanIsImg(s);
+    var thumb=isImg?_scanThumbSrc(s,'width:18px;height:18px;object-fit:cover;border-radius:3px;border:1px solid var(--border)'):'<i class="ti ti-file-type-pdf" style="font-size:14px;color:#b91c1c"></i>';
     return '<span style="display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:5px;padding:1px 5px;background:var(--surface);margin-left:4px">'
       +'<a href="javascript:void(0)" onclick="viewContractScan('+i+')" title="열기 · Open" style="display:inline-flex;align-items:center;gap:4px;text-decoration:none;color:var(--text)">'+thumb+'<span style="font-size:10.5px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(s.name||('scan-'+(i+1)))+'</span></a>'
       +'<a href="javascript:void(0)" onclick="deleteContractScan('+i+')" title="삭제 · Delete" style="color:var(--danger);text-decoration:none;font-size:11px"><i class="ti ti-x"></i></a></span>';
@@ -282,7 +299,7 @@ function handleContractScan(files){
 
 function viewContractScan(idx){
   var p=(state.projects||[]).find(function(x){return String(x.id)===String(_contractProjId);}); if(!p||!p.contractScans) return;
-  var s=p.contractScans[idx]; if(!s) return; viewImageLightbox(s.data);
+  var s=p.contractScans[idx]; if(!s) return; viewImageLightbox(s.data, s.type||s.name);
 }
 
 function deleteContractScan(idx){
@@ -345,8 +362,8 @@ function renderContractApp(){
       var statusBadge=p.contractConfirmed?'<span class="badge b-done" style="font-size:10px"><i class="ti ti-circle-check"></i> 확정 · Confirmed</span>':'<span class="badge b-draft" style="font-size:10px">미확정·Draft</span>';
       var scans=(p.contractScans||[]);
       var scanCell=scans.length?scans.map(function(s,i){
-        var isImg=/^data:image\//.test(s.data||'');
-        var thumb=isImg?'<img src="'+s.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle">':'<i class="ti ti-file-type-pdf" style="font-size:16px;color:#b91c1c;vertical-align:middle"></i>';
+        var isImg=_scanIsImg(s);
+        var thumb=isImg?_scanThumbSrc(s,'width:24px;height:24px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle'):'<i class="ti ti-file-type-pdf" style="font-size:16px;color:#b91c1c;vertical-align:middle"></i>';
         return '<a href="javascript:void(0)" onclick="viewProjScan('+p.id+','+i+')" title="'+(s.name||'').replace(/"/g,'&quot;')+'" style="display:inline-block;margin-right:3px">'+thumb+'</a>';
       }).join(''):'<span style="font-size:11px;color:#b91c1c">없음·none</span>';
       return '<tr>'
