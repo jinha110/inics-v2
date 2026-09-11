@@ -6748,7 +6748,7 @@ function renderInvoiceApp(){
   var td='padding:7px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle';
   var rows=list.map(function(v){
     var dirBadge=v.dir==='issued'?'<span class="badge b-done" style="font-size:10px">발행·Issued</span>':'<span class="badge b-payment" style="font-size:10px">수취·Received</span>';
-    var fileCell=v.fileData?('<a href="javascript:void(0)" onclick="viewInvoiceFile(\''+v.id+'\')" title="'+(v.fileName||'').replace(/"/g,'&quot;')+'"><i class="ti '+(/^data:image\//.test(v.fileData)?'ti-photo':'ti-file-type-pdf')+'" style="font-size:18px;color:#0e7490"></i></a>'):'<span style="color:var(--text-3)">—</span>';
+    var fileCell=v.fileData?('<a href="javascript:void(0)" onclick="viewInvoiceFile(\''+v.id+'\')" title="'+(v.fileName||'').replace(/"/g,'&quot;')+'"><i class="ti '+(/^image\//.test(v.fileType||'')||/^data:image\//.test(v.fileData)?'ti-photo':'ti-file-type-pdf')+'" style="font-size:18px;color:#0e7490"></i></a>'):'<span style="color:var(--text-3)">—</span>';
     return '<tr>'
       +'<td style="'+td+'">'+dirBadge+'</td>'
       +'<td style="'+td+';font-family:var(--mono);font-weight:600;white-space:nowrap">'+(v.invoiceNo||'—')+'</td>'
@@ -10767,6 +10767,15 @@ function _bankDocCell(t){
 // 공용 이미지 라이트박스 (영수증/스캔본)
 function viewImageLightbox(src){
   if(!src) return;
+  // 외부화 포인터(\u00A7f\u00A7...)면 원본을 먼저 로드한 뒤 다시 호출
+  if(typeof src==='string' && src.slice(0,3)==='\u00A7f\u00A7' && typeof window._resolveRef==='function'){
+    if(typeof showToast==='function') showToast('원본 로딩 중 · Loading…');
+    window._resolveRef(src).then(function(d){
+      if(d) viewImageLightbox(d);
+      else if(typeof showToast==='function') showToast('원본을 불러오지 못했습니다 · Failed to load');
+    });
+    return;
+  }
   var ov=document.getElementById('cardLightbox');
   if(!ov){ ov=document.createElement('div'); ov.id='cardLightbox';
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out';
