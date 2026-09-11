@@ -26,10 +26,10 @@
                      "assets"];
   var _isColl = {}; COLLECTIONS.forEach(function(c){ _isColl[c]=1; });
   // 외부화 대상: 무거운 첨부를 가진 컬렉션만 (나머지 작은 것은 인라인 유지)
-  var EXT = { docs:1, products:1, vendors:1, cardExpenses:1, assets:1 };
+  var EXT = { docs:1, products:1, vendors:1, cardExpenses:1, assets:1, projects:1, invoices:1, quotes:1 };
   // 삭제 가드 임계값: 1회 저장에서 3건 초과 또는 컬렉션의 20% 초과 삭제 시 저장 중단
   var DEL_MAX = 3, DEL_RATIO = 0.2;
-  var FILES_V = 3;                  // 외부화 스키마 버전 (필드 추가 시 +1 → 백그라운드 재마이그레이션)
+  var FILES_V = 4;                  // 외부화 스키마 버전 (필드 추가 시 +1 → 백그라운드 재마이그레이션)
   var REF = "\u00A7f\u00A7";        // 포인터 접두사 (§f§)
   var PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="; // 1px 투명
 
@@ -73,6 +73,16 @@
       if(_isDataUrl(it.receipt)) it.receipt=ext(it.receipt);
     } else if(coll==="assets"){
       if(_isDataUrl(it.data)) it.data=ext(it.data);
+    } else if(coll==="projects"){
+      // 계약서 스캔본
+      if(Array.isArray(it.contractScans)) it.contractScans.forEach(function(a){ if(a && _isDataUrl(a.data)) a.data=ext(a.data); });
+      // 계약 스냅샷에 복사된 견적 라인 이미지
+      if(it.contractOpts && it.contractOpts.quoteSnap && Array.isArray(it.contractOpts.quoteSnap.lines))
+        it.contractOpts.quoteSnap.lines.forEach(function(l){ if(l && _isDataUrl(l.image)) l.image=ext(l.image); });
+    } else if(coll==="invoices"){
+      if(_isDataUrl(it.fileData)) it.fileData=ext(it.fileData);
+    } else if(coll==="quotes"){
+      if(Array.isArray(it.lines)) it.lines.forEach(function(l){ if(l && _isDataUrl(l.image)) l.image=ext(l.image); });
     }
     return it;
   }
