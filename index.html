@@ -39,7 +39,7 @@
 <script src="js/quote.js?v=8"></script>
 <script src="js/contract.js?v=5"></script>
 <script src="js/qlock.js?v=2"></script>
-<script src="js/chasan.js?v=4"></script>
+<script src="js/chasan.js?v=5"></script>
 <script src="js/export.js?v=1"></script>
 <script src="js/hqreport.js?v=13"></script>
 <script>
@@ -8512,7 +8512,6 @@ function renderProjPayProgress(){
     +'</div>';
   }
 
-  // 통화별 그룹 — 미수 큰 통화 먼저, 그룹 내에서는 입금률 낮은 순
   var curs={}; rows.forEach(function(b){ (curs[b.cur]=curs[b.cur]||[]).push(b); });
   var body=Object.keys(curs).sort(function(a,c){
     var sa=curs[a].reduce(function(x,b){return x+(b.total-b.recv);},0);
