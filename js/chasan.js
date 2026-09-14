@@ -1140,10 +1140,14 @@
           currency: inv.currency || "VND", fxOk: conv.ok, dir: inv.dir, asset: isAsset, defer: isDefer, note: (inv.note || inv.category || "").trim(), amt: conv.v,
           projectName: _csProjName(inv.projectId) });
       });
+      var _igk = (key === "cogs") ? "project" : "vendor";                 // 매입원가 → 프로젝트별
       var igroups = {};
-      irows.forEach(function (r) { var g = r.vendor || "(미지정)"; (igroups[g] = igroups[g] || { sum: 0, items: [] }); igroups[g].sum += (r.asset || r.defer) ? 0 : r.amt; igroups[g].items.push(r); });
+      irows.forEach(function (r) {
+        var g = (_igk === "project") ? (r.projectName || "(프로젝트 미연결)") : (r.vendor || "(미지정)");
+        (igroups[g] = igroups[g] || { sum: 0, items: [] }); igroups[g].sum += (r.asset || r.defer) ? 0 : r.amt; igroups[g].items.push(r);
+      });
       var ilist = Object.keys(igroups).map(function (g) { return { name: g, sum: igroups[g].sum, items: igroups[g].items.sort(function (a, b) { return b.amt - a.amt; }) }; }).sort(function (a, b) { return b.sum - a.sum; });
-      return { groupKey: "vendor", isInv: true, groups: ilist, total: irows.reduce(function (a, r) { return a + ((r.asset || r.defer) ? 0 : r.amt); }, 0), count: irows.length, assetCount: irows.filter(function (r) { return r.asset; }).length, deferCount: irows.filter(function (r) { return r.defer; }).length };
+      return { groupKey: _igk, isInv: true, groups: ilist, total: irows.reduce(function (a, r) { return a + ((r.asset || r.defer) ? 0 : r.amt); }, 0), count: irows.length, assetCount: irows.filter(function (r) { return r.asset; }).length, deferCount: irows.filter(function (r) { return r.defer; }).length };
     }
     var txns = (typeof state !== "undefined" && state && state.bankTxns) || [];
     var rows = [];
@@ -1172,7 +1176,7 @@
     var el = document.getElementById(id); if (!el) return;
     if (el.getAttribute("data-open") === "1") { el.innerHTML = ""; el.setAttribute("data-open", "0"); return; }
     var d = chasanLineDetail(ym, dept, key);
-    var glabel = d.groupKey === "category" ? "카테고리 · Category" : "거래처 · Vendor";
+    var glabel = d.groupKey === "category" ? "카테고리 · Category" : (d.groupKey === "project" ? "프로젝트 · Project" : "거래처 · Vendor");
     var _an = "";
     if (_csViewRaw) { _an = ' · 배분 풀림(원본) · unallocated view'; } else if (CHASAN_CFG.allocateCommon) { _an = (dept === "COMMON") ? ' · 배분 전 원천 · pre-alloc pool' : ' · 직접귀속만(배분분 제외) · direct only'; }
     var html = '<div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:2px 0 6px;min-width:260px">'
@@ -1193,7 +1197,7 @@
               + '<div style="display:flex;gap:8px;font-size:11px;align-items:center">'
               + '<span style="color:var(--text-3);flex-shrink:0">' + E(it.date) + '</span>'
               + '<span style="font-family:var(--mono);color:var(--text-3);flex-shrink:0;font-size:10px">' + E(it.invoiceNo || "—") + '</span>'
-              + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E((it.projectName?("["+it.projectName+"] "):"")+(it.note||"")).replace(/"/g, "&quot;") + '">' + (it.asset ? '<span style="color:#7c3aed;font-weight:600">[자산] </span>' : '') + (it.defer ? '<span style="color:#c2410c;font-weight:600">[이연] </span>' : '') + (it.projectName ? '<span style="font-weight:600">'+E(it.projectName)+'</span>' : E(it.note || "—")) + '</span>'
+              + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E((d.groupKey === "project" ? (it.vendor?(it.vendor+" · "):"") : (it.projectName?("["+it.projectName+"] "):""))+(it.note||"")).replace(/"/g, "&quot;") + '">' + (it.asset ? '<span style="color:#7c3aed;font-weight:600">[자산] </span>' : '') + (it.defer ? '<span style="color:#c2410c;font-weight:600">[이연] </span>' : '') + (d.groupKey === "project" ? '<span style="font-weight:600">'+E(it.vendor || "(미지정)")+'</span>'+(it.note ? ' <span style="color:var(--text-3)">· '+E(it.note)+'</span>' : '') : (it.projectName ? '<span style="font-weight:600">'+E(it.projectName)+'</span>' : E(it.note || "—"))) + '</span>'
               + '<span style="font-family:var(--mono);flex-shrink:0;' + (it.asset ? "text-decoration:line-through;color:var(--text-3)" : (it.amt < 0 ? "color:var(--danger)" : "")) + '">' + money(it.amt) + _cur + '</span></div>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">' + _depSelI + _clsSelI + '</div></div>';
           }
