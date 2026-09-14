@@ -1178,8 +1178,8 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <select id="projBoardRegion" onchange="renderProjectBoard()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">지역 전체 · All Regions</option></select>
         <span style="font-size:11px;color:var(--text-3)">카드를 드래그하거나 카드 하단 단계 선택으로 이동</span>
       </div>
-      <div id="projPayProgress" style="margin-bottom:14px"></div>
       <div id="projBoard" style="display:flex;gap:9px;overflow-x:auto;padding-bottom:14px;align-items:flex-start"></div>
+      <div id="projPayProgress" style="margin-top:6px"></div>
     </div>
 
     <div id="projListView" style="display:none">
@@ -7979,10 +7979,16 @@ function deleteTask(id){
   _tombAdd('tasks',id);
   saveState(); closeTaskForm(); renderTaskApp(); showToast('삭제됨 · Deleted');
 }
+function _healOpenTaskNotes(){
+  var n=0; (state.tasks||[]).forEach(function(t){ if(t.status!=='done' && t.doneNote){ t.doneNote=''; n++; } });
+  if(n){ try{ saveState(); }catch(e){} console.log('[heal] cleared stale doneNote on '+n+' open task(s)'); }
+  return n;
+}
 function completeTask(id){
   var t=(state.tasks||[]).find(function(x){return x.id===id;}); if(!t)return;
   if(!canEditTask(t)){ showToast('본인 업무만 완료할 수 있습니다 · No permission'); return; }
-  var note=prompt('완료 내용 (금일 진행 업무) · Done note:', t.doneNote||t.title); if(note===null)return;
+  var _defNote=(t.status==='done'&&t.doneNote)?t.doneNote:(t.title||'');
+  var note=prompt('완료 내용 (금일 진행 업무) · Done note:', _defNote); if(note===null)return;
   note=note.trim(); if(!note){ showToast('완료 내용을 입력하세요'); return; }
   var hrs=prompt('실제 소요 시간(h) · Hours:', t.estHours||''); if(hrs===null)return;
   t.status='done'; t.closedDate=projTodayISO(); t.doneNote=note; t.estHours=(hrs||'').replace(/[^0-9.]/g,'')||t.estHours; t.updatedAt=nowStr();
@@ -7992,7 +7998,7 @@ function completeTask(id){
 function reopenTask(id){
   var t=(state.tasks||[]).find(function(x){return x.id===id;}); if(!t)return;
   if(!canEditTask(t)){ showToast('본인 업무만 재개할 수 있습니다 · No permission'); return; }
-  t.status='open'; t.closedDate=''; t.updatedAt=nowStr();
+  t.status='open'; t.closedDate=''; t.doneNote=''; t.updatedAt=nowStr();
   (state.projects||[]).forEach(function(p){ if(p.logs)p.logs=p.logs.filter(function(l){return !(l.source==='task'&&l.taskId===id);}); });
   saveState(); renderTaskApp(); showToast('재개됨 · Reopened');
 }
@@ -8444,6 +8450,20 @@ function projFilteredList(){
 }
 
 // ═══ 업체별 계약금액 대비 입금 진행률 ═══
+var _projPayHideDone=false;
+function projPayToggleDone(){ _projPayHideDone=!_projPayHideDone; renderProjPayProgress(); }
+function _ppEsc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _ppShort(n){
+  n=Math.round(n||0); var a=Math.abs(n);
+  if(a>=1e9) return (n/1e9).toFixed(a>=1e10?1:2).replace(/\.?0+$/,'')+'B';
+  if(a>=1e6) return (n/1e6).toFixed(a>=1e8?0:1).replace(/\.0$/,'')+'M';
+  if(a>=1e3) return (n/1e3).toFixed(0)+'K';
+  return String(n);
+}
+function _ppChip(c,l){
+  return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text-2);white-space:nowrap">'
+    +'<span style="width:9px;height:9px;border-radius:2px;background:'+c+'"></span>'+l+'</span>';
+}
 function renderProjPayProgress(){
   var host=document.getElementById('projPayProgress'); if(!host) return;
   var byClient={};
@@ -8460,27 +8480,72 @@ function renderProjPayProgress(){
       b.recv+=qNum(fc.sRecv); b.inv+=qNum(fc.sInvoiced);
     }catch(e){}
   });
-  var rows=Object.keys(byClient).map(function(k){return byClient[k];})
-    .filter(function(b){ return b.total>0; })
-    .sort(function(a,b){ return (a.recv/a.total)-(b.recv/b.total); });
-  if(!rows.length){ host.innerHTML=''; return; }
+  var all=Object.keys(byClient).map(function(k){return byClient[k];}).filter(function(b){ return b.total>0; });
+  if(!all.length){ host.innerHTML=''; return; }
+  var nDone=all.filter(function(b){ return b.recv/b.total>=0.995; }).length;
+  var rows=_projPayHideDone ? all.filter(function(b){ return b.recv/b.total<0.995; }) : all;
+
   function bar(b){
     var rRec=b.total>0?Math.min(100,b.recv/b.total*100):0;
     var rInv=b.total>0?Math.min(100,b.inv/b.total*100):0;
     var rDue=Math.max(0,rInv-rRec);
     var rUnb=Math.max(0,100-rInv);
-    var sg=function(w,col){ return w>0.3?'<div style="width:'+w+'%;background:'+col+'"></div>':''; };
-    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--border)">'
-      +'<div style="width:150px;flex-shrink:0;font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+String(b.client).replace(/"/g,'&quot;')+'">'+b.client+' <span style="font-weight:400;color:var(--text-3)">'+b.n+'건</span></div>'
-      +'<div style="flex:1;min-width:90px"><div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:1px;background:var(--border)">'+sg(rRec,'#15803d')+sg(rDue,'#dc2626')+sg(rUnb,'#b45309')+'</div></div>'
-      +'<div style="width:64px;text-align:right;font-size:12px;font-weight:800;color:'+(rRec>=99.5?'#15803d':(rRec>0?'var(--text)':'var(--danger)'))+'">'+rRec.toFixed(1)+'%</div>'
-      +'<div style="width:190px;text-align:right;font-size:10px;color:var(--text-3);white-space:nowrap">입금 '+fmtN(Math.round(b.recv))+' / 계약 '+fmtN(Math.round(b.total))+' '+b.cur+'</div>'
-      +'</div>';
+    var ar=Math.max(0,b.total-b.recv);
+    var col=rRec>=99.5?'#15803d':(rRec>=50?'#b45309':'#dc2626');
+    var seg=function(w,c){ return w>0.4?'<div style="width:'+w+'%;background:'+c+'"></div>':''; };
+    var tip=b.client+' · '+b.n+'건\n계약 '+fmtN(Math.round(b.total))+' '+b.cur
+           +'\n입금 '+fmtN(Math.round(b.recv))+' ('+rRec.toFixed(1)+'%)'
+           +'\n미수 '+fmtN(Math.round(ar))
+           +'\n미발행 '+fmtN(Math.round(Math.max(0,b.total-b.inv)));
+    return '<div title="'+_ppEsc(tip)+'" style="display:grid;grid-template-columns:minmax(104px,1.5fr) minmax(80px,2.2fr) 46px 94px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--border)">'
+      +'<div style="min-width:0">'
+        +'<div style="font-size:12px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_ppEsc(b.client)+'</div>'
+        +'<div style="font-size:9px;color:var(--text-3)">'+b.n+'건 · 계약 '+_ppShort(b.total)+'</div>'
+      +'</div>'
+      +'<div style="display:flex;height:13px;border-radius:7px;overflow:hidden;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--border)">'
+        +seg(rRec,'#15803d')+seg(rDue,'#dc2626')+seg(rUnb,'#b45309')+'</div>'
+      +'<div style="text-align:right;font-size:13px;font-weight:800;color:'+col+'">'+rRec.toFixed(0)+'%</div>'
+      +'<div style="text-align:right;min-width:0">'
+        +'<div style="font-size:11px;font-weight:700;color:'+(ar>0?'#dc2626':'#15803d')+';white-space:nowrap">'+(ar>0?('미수 '+_ppShort(ar)):'완납 ✓')+'</div>'
+        +'<div style="font-size:9px;color:var(--text-3);white-space:nowrap">입금 '+_ppShort(b.recv)+'</div>'
+      +'</div>'
+    +'</div>';
   }
-  host.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:11px 13px">'
-    +'<div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:4px"><i class="ti ti-progress"></i> 업체별 입금 진행률 · Payment progress by client '
-    +'<span style="font-weight:400;color:var(--text-3)">— 계약금액(매출총액) 대비 입금 · 녹=입금 적=미수 주=미발행</span></div>'
-    + rows.map(bar).join('') + '</div>';
+
+  // 통화별 그룹 — 미수 큰 통화 먼저, 그룹 내에서는 입금률 낮은 순
+  var curs={}; rows.forEach(function(b){ (curs[b.cur]=curs[b.cur]||[]).push(b); });
+  var body=Object.keys(curs).sort(function(a,c){
+    var sa=curs[a].reduce(function(x,b){return x+(b.total-b.recv);},0);
+    var sc=curs[c].reduce(function(x,b){return x+(b.total-b.recv);},0);
+    return sc-sa;
+  }).map(function(cur){
+    var list=curs[cur].slice().sort(function(a,b){ return (a.recv/a.total)-(b.recv/b.total); });
+    var T=list.reduce(function(x,b){return x+b.total;},0);
+    var R=list.reduce(function(x,b){return x+b.recv;},0);
+    var pct=T>0?(R/T*100):0;
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin:12px 0 1px">'
+        +'<span style="font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--text-2)">'+_ppEsc(cur)+' <span style="font-weight:500;color:var(--text-3)">'+list.length+'개사</span></span>'
+        +'<span style="font-size:10px;color:var(--text-3);white-space:nowrap">계약 '+_ppShort(T)+' · 입금 '+_ppShort(R)
+          +' · <b style="color:'+(T-R>0?'#dc2626':'#15803d')+'">미수 '+_ppShort(T-R)+'</b>'
+          +' · <b style="color:var(--text-2)">'+pct.toFixed(0)+'%</b></span>'
+      +'</div>'
+      + list.map(bar).join('');
+  }).join('');
+
+  var toggle=nDone?('<button onclick="projPayToggleDone()" style="background:'+(_projPayHideDone?'var(--text)':'var(--surface-2)')
+      +';color:'+(_projPayHideDone?'#fff':'var(--text-2)')+';border:1px solid var(--border);border-radius:8px;font-size:10px;padding:3px 9px;cursor:pointer;font-family:var(--sans);white-space:nowrap">'
+      +(_projPayHideDone?'완납 표시 · Show paid':'완납 숨기기 · Hide paid')+' '+nDone+'</button>'):'';
+
+  host.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:8px">'
+      +'<div style="font-size:12px;font-weight:800"><i class="ti ti-progress"></i> 업체별 입금 진행률 · Payment progress by client</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+        +_ppChip('#15803d','입금 · Received')+_ppChip('#dc2626','미수 · Due')+_ppChip('#b45309','미발행 · Unbilled')
+        +toggle
+      +'</div>'
+    +'</div>'
+    + (rows.length?body:'<div style="font-size:11px;color:var(--text-3);padding:10px 0;text-align:center">전액 입금 완료 · All settled</div>')
+    +'</div>';
 }
 function renderProjectBoard(){
   var board=document.getElementById('projBoard'); if(!board) return;
