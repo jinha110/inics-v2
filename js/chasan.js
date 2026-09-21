@@ -121,7 +121,7 @@
   function _invNum2(v) { v = String(v == null ? "" : v).replace(/[,\s]/g, ""); var n = parseFloat(v); return isNaN(n) ? 0 : n; }
   function invVendorKey(inv) { var m = String(inv && inv.vendorMst || "").trim(); return m ? ("mst:" + m) : ("nm:" + _invNorm(inv && inv.vendor)); }   // 대표키: MST 우선
   function invNameKey(inv) { var nm = _invNorm(inv && inv.vendor); return nm ? ("nm:" + nm) : ""; }
-  function invNet(inv) { var sub = _invNum2(inv.subtotal); if (sub > 0) return sub; var tot = _invNum2(inv.total); if (tot <= 0) return 0; var vat = _invNum2(inv.vatPct); return vat > 0 ? tot / (1 + vat / 100) : tot; }   // 공급가액(VAT 제외)
+  function invNet(inv) { var sub = _invNum2(inv.subtotal); if (sub !== 0) return sub; var tot = _invNum2(inv.total); if (tot === 0) return 0; var vat = _invNum2(inv.vatPct); return vat > 0 ? tot / (1 + vat / 100) : tot; }   // 공급가액(VAT 제외)
   function invVnd(inv, amt) { var c = String(inv.currency || "VND").toUpperCase(); if (!c || c === "VND") return { v: amt, ok: true }; var fx = _invNum2(inv.fxRate || inv.rate); if (fx > 0) return { v: amt * fx, ok: true }; if (c === "USD" && _rate > 0) return { v: amt * _rate, ok: true }; return { v: amt, ok: false }; }
   function invDept(inv) { var d = inv.chasanDept; return (d && DEPTS.indexOf(d) >= 0) ? d : CHASAN_CFG.furnitureDefault; }   // 기본값: FUR VN (미지정 시)
   function isCogsVendor(inv) { var wl = _cogsVendors || [], nk = invNameKey(inv); return wl.indexOf(invVendorKey(inv)) >= 0 || (nk && wl.indexOf(nk) >= 0); }
