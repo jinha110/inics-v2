@@ -227,12 +227,14 @@
     return _recogCache[k];
   }
   // 인보이스의 귀속월
-  //  · 매출(issued)  = 항상 자기 발행월 (후속 인보이스는 별건 매출로 각각 인식)
+  //  · 매출(issued)  = 자기 발행월 (후속 인보이스는 별건 매출로 각각 인식)
+  //                    단, chasanClass='accrue'면 chasanAccrueYm(원가 인식월)에 미청구매출로 인식 → 발행월엔 상계
   //  · 매입(received)= 해당 프로젝트의 '최초 매출 인보이스 월'로 귀속 (수익비용대응)
   //  · 프로젝트 미연결이면 인보이스 발행일로 폴백
+  function _csIsAccrue(inv) { return !!(inv && inv.dir === "issued" && inv.chasanClass === "accrue" && /^\d{4}-\d{2}$/.test(inv.chasanAccrueYm || "")); }
   function _csEffYm(inv) {
     if (_csBasis !== "project") return _ym(inv.date);
-    if (inv.dir === "issued") return _ym(inv.date);
+    if (inv.dir === "issued") return _csIsAccrue(inv) ? inv.chasanAccrueYm : _ym(inv.date);
     return _csRecogYm(inv.projectId) || _ym(inv.date);
   }
   window.chasanEffYm = _csEffYm;
@@ -242,6 +244,7 @@
     var buckets = {}; DEPTS.forEach(function (t) { buckets[t] = { revenue: 0, cogs: 0 }; });
     var invs = (typeof state !== "undefined" && state && state.invoices) || [];
     var fxMiss = [], assetList = [], assetSum = 0, revCount = 0, cogsCount = 0, deferList = [], deferSum = 0;
+    var accrueList = [], accrueSum = 0, offsetList = [], offsetSum = 0;   // 미청구매출(원가월 인식) · 발행월 상계
     invs.forEach(function (inv) {
       if (!inv || _csEffYm(inv) !== ym) return;
       var net = invNet(inv); if (!net) return;
@@ -249,10 +252,18 @@
       var conv = invVnd(inv, net); if (!conv.ok) fxMiss.push(inv);
       if (inv.chasanClass === "defer") { deferList.push(inv); deferSum += conv.v; return; }   // 이연 · 원가 미대응 매출 → 채산 제외
       var d = invDept(inv); var into = buckets[d] || buckets.COMMON;
-      if (inv.dir === "issued") { into.revenue += conv.v; revCount++; }
+      if (inv.dir === "issued") { into.revenue += conv.v; revCount++; if (_csBasis === "project" && _csIsAccrue(inv)) { accrueList.push(inv); accrueSum += conv.v; } }
       else if (inv.dir === "received") { if (isCogsVendor(inv)) { into.cogs += conv.v; cogsCount++; } }
     });
-    return { byDept: buckets, fxMissInv: fxMiss, assetInv: assetList, assetSum: assetSum, revCount: revCount, cogsCount: cogsCount, deferInv: deferList, deferSum: deferSum };
+    if (_csBasis === "project") {   // 발행월 상계: 매출 +X / 미청구 상계 −X → 순효과 0 (이미 원가월에 인식)
+      invs.forEach(function (inv) {
+        if (!_csIsAccrue(inv) || _ym(inv.date) !== ym || inv.chasanAccrueYm === ym) return;
+        var net = invNet(inv); if (!net) return;
+        offsetList.push(inv); offsetSum += invVnd(inv, net).v;
+      });
+    }
+    return { byDept: buckets, fxMissInv: fxMiss, assetInv: assetList, assetSum: assetSum, revCount: revCount, cogsCount: cogsCount, deferInv: deferList, deferSum: deferSum,
+      accrueInv: accrueList, accrueSum: accrueSum, offsetInv: offsetList, offsetSum: offsetSum };
   };
 
   /* ── 뱅크 집계 (판관비 전용 · 매출/매입원가는 인보이스 기준) ────── */
@@ -407,7 +418,7 @@
     tot.margin = tot.revenue ? tot.op / tot.revenue : 0;
     var totHead = DEPTS.reduce(function (a, t) { return a + (headByDept[t] || 0); }, 0);
     return { ym: ym, byDept: byDept, totals: tot, headByDept: headByDept, totHead: totHead, byDeptRaw: byDeptRaw, headByDeptRaw: headByDeptRaw, laborSource: lab.source, laborFinalized: lab.finalized, laborRows: lab.rows,
-      dq: { uncat: bank.uncat, untagged: bank.untagged, unsplit: bank.unsplit, uncatList: bank.uncatList, untaggedList: bank.untaggedList, invFxMiss: inv.fxMissInv, invAsset: inv.assetInv, invAssetSum: inv.assetSum, invDefer: inv.deferInv, invDeferSum: inv.deferSum, revCount: inv.revCount, cogsCount: inv.cogsCount }, allocated: CHASAN_CFG.allocateCommon };
+      dq: { uncat: bank.uncat, untagged: bank.untagged, unsplit: bank.unsplit, uncatList: bank.uncatList, untaggedList: bank.untaggedList, invFxMiss: inv.fxMissInv, invAsset: inv.assetInv, invAssetSum: inv.assetSum, invDefer: inv.deferInv, invDeferSum: inv.deferSum, invAccrue: inv.accrueInv, invAccrueSum: inv.accrueSum, invOffset: inv.offsetInv, invOffsetSum: inv.offsetSum, revCount: inv.revCount, cogsCount: inv.cogsCount }, allocated: CHASAN_CFG.allocateCommon };
   };
 
   /* 두 기준을 연속 계산 · 확정 스냅샷에 함께 보관 (렌더 없이 basis만 스위칭) */
@@ -1000,7 +1011,7 @@
 
     // 인보이스 데이터품질: 환율 미입력 · 자산 처리 요약
     var invDqPanel = "";
-    if (!_final && ((r.dq.invFxMiss && r.dq.invFxMiss.length) || (r.dq.invAsset && r.dq.invAsset.length) || (r.dq.invDefer && r.dq.invDefer.length))) {
+    if (!_final && ((r.dq.invFxMiss && r.dq.invFxMiss.length) || (r.dq.invAsset && r.dq.invAsset.length) || (r.dq.invDefer && r.dq.invDefer.length) || (r.dq.invAccrue && r.dq.invAccrue.length) || (r.dq.invOffset && r.dq.invOffset.length))) {
       invDqPanel = '<div style="border:1px solid var(--border);background:var(--surface-2);border-radius:10px;padding:10px 14px;margin:12px 16px;font-size:11px;line-height:1.7">';
       if (r.dq.invAsset && r.dq.invAsset.length) {
         invDqPanel += '<div style="color:#7c3aed"><b>🏦 자산 처리(원가 제외)</b> · ' + r.dq.invAsset.length + '건 · ' + F(r.dq.invAssetSum || 0) + ' VND — 매출원가에서 제외됨. 되돌리려면 매입원가 셀 클릭 → 해당 인보이스 드롭다운에서 원가로 변경.</div>';
@@ -1019,6 +1030,22 @@
             + '</div>';
         }).join("");
       }
+      var _acRow = function (iv, tail) {
+        return '<div style="display:flex;gap:8px;align-items:center;padding:3px 0 3px 14px;font-size:10.5px">'
+          + '<span style="color:var(--text-3);flex-shrink:0">' + E(iv.date || "") + '</span>'
+          + '<span style="font-family:var(--mono);color:var(--text-3);flex-shrink:0">' + E(iv.invoiceNo || "—") + '</span>'
+          + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + E(_csProjName(iv.projectId) || iv.vendor || "—") + '</span>'
+          + '<span style="font-family:var(--mono);flex-shrink:0">' + F(invVnd(iv, invNet(iv)).v) + '</span>'
+          + '<span style="color:var(--text-3);flex-shrink:0">' + tail + '</span></div>';
+      };
+      if (r.dq.invAccrue && r.dq.invAccrue.length) {
+        invDqPanel += '<div style="color:#1d4ed8"><b>📌 미청구매출 인식(원가월 대응)</b> · ' + r.dq.invAccrue.length + '건 · ' + F(r.dq.invAccrueSum || 0) + ' VND — 매출에 포함됨. 후속 인보이스 발행월에 상계됩니다.</div>';
+        invDqPanel += r.dq.invAccrue.map(function (iv) { return _acRow(iv, "→ " + E(_ym(iv.date)) + " 발행 시 상계"); }).join("");
+      }
+      if (r.dq.invOffset && r.dq.invOffset.length) {
+        invDqPanel += '<div style="color:#1d4ed8"><b>↺ 미청구매출 상계</b> · ' + r.dq.invOffset.length + '건 · 발행 +' + F(r.dq.invOffsetSum || 0) + ' / 상계 −' + F(r.dq.invOffsetSum || 0) + ' = 0 VND — 이미 원가월에 인식된 매출이라 이 달 매출에서 제외됨.</div>';
+        invDqPanel += r.dq.invOffset.map(function (iv) { return _acRow(iv, "← " + E(iv.chasanAccrueYm) + " 인식분"); }).join("");
+      }
       if (r.dq.invFxMiss && r.dq.invFxMiss.length) {
         invDqPanel += '<div style="color:var(--warning)">⚠ 환율 미입력 외화 인보이스 ' + r.dq.invFxMiss.length + '건 — 원금액 그대로 반영됨. 인보이스 fxRate 입력 또는 상단 USD 환율 설정 필요.</div>';
       }
@@ -1036,7 +1063,7 @@
       + '<div class="form-card" style="padding:0;overflow:hidden">'
       + '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
       + '<div><div style="font-size:14px;font-weight:700">부서 채산 · Departmental P&L — ' + E(ym) + '</div>'
-      + '<div style="font-size:11px;color:var(--text-3)">' + (_csBasis === "project" ? '<b style="color:#1d4ed8">매출·매입원가=프로젝트 귀속(수익비용대응)</b>(매출 ' : '매출·매입원가=인보이스 발생주의(매출 ') + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + (r.dq.invDefer && r.dq.invDefer.length ? ' · <b style="color:#c2410c">이연제외 ' + r.dq.invDefer.length + '</b>' : '') + ') · 기본부서 FUR VN · 판관비=현금주의 · 인건비=' + (r.laborFinalized ? "확정대장" : "라이브(" + r.laborSource + ")") + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
+      + '<div style="font-size:11px;color:var(--text-3)">' + (_csBasis === "project" ? '<b style="color:#1d4ed8">매출·매입원가=프로젝트 귀속(수익비용대응)</b>(매출 ' : '매출·매입원가=인보이스 발생주의(매출 ') + (r.dq.revCount || 0) + ' · 매입원가 ' + (r.dq.cogsCount || 0) + '건' + (r.dq.invAsset && r.dq.invAsset.length ? ' · 자산제외 ' + r.dq.invAsset.length : '') + (r.dq.invDefer && r.dq.invDefer.length ? ' · <b style="color:#c2410c">이연제외 ' + r.dq.invDefer.length + '</b>' : '') + (r.dq.invAccrue && r.dq.invAccrue.length ? ' · <b style="color:#1d4ed8">미청구 ' + r.dq.invAccrue.length + '</b>' : '') + (r.dq.invOffset && r.dq.invOffset.length ? ' · <b style="color:#1d4ed8">상계 ' + r.dq.invOffset.length + '</b>' : '') + ') · 기본부서 FUR VN · 판관비=현금주의 · 인건비=' + (r.laborFinalized ? "확정대장" : "라이브(" + r.laborSource + ")") + (r.allocated ? " · COMMON 배분" : "") + dqWarn + _finBadge + '</div></div>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
       + (_final
           ? '<label style="font-size:11px;color:' + (_showRaw ? "var(--text)" : "var(--text-3)") + ';display:flex;align-items:center;gap:5px;font-weight:' + (_showRaw ? "600" : "400") + '" title="확정본은 그대로 두고 보기만 배분 해제"><input type="checkbox" id="csViewRaw"' + (_csViewRaw ? " checked" : "") + '> 배분 풀기(보기) · Unallocate view</label>'
@@ -1107,14 +1134,38 @@
     if (typeof saveState === "function") saveState();
     if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
   };
-  window.chasanSetInvClass = function (id, cls) {   // 'asset' = 자산(P&L 제외) · 'defer' = 이연(원가 미대응 매출, P&L 제외) · 그 외 = 일반
+  window.chasanSetInvClass = async function (id, cls) {   // 'asset' = 자산(P&L 제외) · 'defer' = 이연(원가 미대응 매출, P&L 제외) · 'accrue' = 미청구매출(원가월 인식→발행월 상계) · 그 외 = 일반
     var inv = (typeof state !== "undefined" && state.invoices || []).find(function (x) { return String(x.id) === String(id); });
     if (!inv) return;
-    if (cls === "asset" || cls === "defer") { inv.chasanClass = cls; if (cls === "defer") inv.chasanDeferAt = new Date().toISOString().slice(0, 10); }
-    else { delete inv.chasanClass; delete inv.chasanDeferAt; }
+    var _rr = function () { if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts); };
+    if (cls === "accrue") {
+      if (inv.dir !== "issued") { alert("미청구매출은 매출(발행) 인보이스만 지정할 수 있습니다."); return _rr(); }
+      if (inv.projectId == null || inv.projectId === "") { alert("프로젝트에 연결된 인보이스만 지정할 수 있습니다.\n(원가 인식월을 프로젝트에서 가져옵니다)"); return _rr(); }
+      _recogCache = null;
+      var _own = _ym(inv.date), _rec = _csRecogYm(inv.projectId);
+      if (!_rec || !(_rec < _own)) { alert("대상 아님: 프로젝트 원가 인식월(" + (_rec || "없음") + ")이 이 인보이스 발행월(" + _own + ")보다 앞서지 않습니다."); return _rr(); }
+      var _snap = null; try { _snap = await chasanLoadSnapshot(_rec); } catch (e) {}
+      var _msg = "[" + (inv.invoiceNo || inv.id) + "] 공급가 " + F(invVnd(inv, invNet(inv)).v) + " VND\n\n"
+        + "· " + _rec + " : 미청구매출로 인식 (원가와 대응)\n"
+        + "· " + _own + " : 인보이스 발행분 상계 (+X / −X = 0)\n"
+        + "· 인보이스 기준(세무·VAT 대사)은 변동 없음\n";
+      if (_snap && _snap.finalizedAt) _msg += "\n⚠ " + _rec + " 채산은 확정 상태입니다. 반영하려면 관리자 재확정이 필요합니다.\n";
+      if (!confirm(_msg + "\n진행할까요?")) return _rr();
+      inv.chasanClass = "accrue"; inv.chasanAccrueYm = _rec;
+      inv.chasanAccrueAt = new Date().toISOString().slice(0, 10);
+      inv.chasanAccrueBy = (typeof hrActorName === "function" ? hrActorName() : "");
+      delete inv.chasanDeferAt;
+    } else if (cls === "asset" || cls === "defer") {
+      inv.chasanClass = cls; if (cls === "defer") inv.chasanDeferAt = new Date().toISOString().slice(0, 10);
+      delete inv.chasanAccrueYm; delete inv.chasanAccrueAt; delete inv.chasanAccrueBy;
+    } else {
+      if (inv.chasanClass === "accrue" && !confirm("미청구매출 지정을 해제합니다.\n매출이 발행월(" + _ym(inv.date) + ")로 돌아갑니다. 진행할까요?")) return _rr();
+      delete inv.chasanClass; delete inv.chasanDeferAt; delete inv.chasanAccrueYm; delete inv.chasanAccrueAt; delete inv.chasanAccrueBy;
+    }
+    _recogCache = null;
     if (typeof _stampEdit === "function") _stampEdit(inv);
     if (typeof saveState === "function") saveState();
-    if (_lastYm && _lastHost) renderChasan(_lastYm, _lastHost, _lastOpts);
+    _rr();
   };
   /* 이연 매출에 대응 원가(수취·COGS인정 인보이스)가 등록됐는지 — 등록됐으면 이연 해제 대상 */
   window.chasanDeferCovered = function (inv) {
@@ -1137,7 +1188,7 @@
         var isAsset = inv.chasanClass === "asset", isDefer = inv.chasanClass === "defer";
         var conv = invVnd(inv, invNet(inv));
         irows.push({ id: inv.id, date: inv.date || "", vendor: (inv.vendor || "").trim() || "(미지정)", invoiceNo: inv.invoiceNo || "",
-          currency: inv.currency || "VND", fxOk: conv.ok, dir: inv.dir, asset: isAsset, defer: isDefer, note: (inv.note || inv.category || "").trim(), amt: conv.v,
+          currency: inv.currency || "VND", fxOk: conv.ok, dir: inv.dir, asset: isAsset, defer: isDefer, accrue: _csBasis === "project" && _csIsAccrue(inv), accrueFrom: _ym(inv.date), note: (inv.note || inv.category || "").trim(), amt: conv.v,
           projectName: _csProjName(inv.projectId) });
       });
       var _igk = (key === "cogs") ? "project" : "vendor";                 // 매입원가 → 프로젝트별
@@ -1190,14 +1241,14 @@
           if (d.isInv) {   // 인보이스 행: 부서 태깅 + 원가/자산 분류
             var _idE = String(it.id).replace(/\x27/g, "\\\x27");
             var _depSelI = '<select onchange="chasanRetagInv(\'' + _idE + '\',this.value)" title="부서 · Dept" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px">' + DEPTS.map(function (dd) { return '<option' + (dd === dept ? " selected" : "") + '>' + E(dd) + '</option>'; }).join("") + '</select>';
-            var _clsCol = it.asset ? ';color:#7c3aed;font-weight:600' : (it.defer ? ';color:#c2410c;font-weight:600' : '');
-            var _clsSelI = '<select onchange="chasanSetInvClass(\'' + _idE + '\',this.value)" title="원가/자산/이연 · Class" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px' + _clsCol + '"><option value="cogs"' + ((it.asset || it.defer) ? "" : " selected") + '>' + (it.dir === "issued" ? "매출·Rev" : "원가·COGS") + '</option><option value="asset"' + (it.asset ? " selected" : "") + '>자산·Asset(제외)</option>' + (it.dir === "issued" ? '<option value="defer"' + (it.defer ? " selected" : "") + '>이연·Defer(원가 미대응)</option>' : '') + '</select>';
+            var _clsCol = it.asset ? ';color:#7c3aed;font-weight:600' : (it.defer ? ';color:#c2410c;font-weight:600' : (it.accrue ? ';color:#1d4ed8;font-weight:600' : ''));
+            var _clsSelI = '<select onchange="chasanSetInvClass(\'' + _idE + '\',this.value)" title="원가/자산/이연 · Class" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:5px' + _clsCol + '"><option value="cogs"' + ((it.asset || it.defer || it.accrue) ? "" : " selected") + '>' + (it.dir === "issued" ? "매출·Rev" : "원가·COGS") + '</option><option value="asset"' + (it.asset ? " selected" : "") + '>자산·Asset(제외)</option>' + (it.dir === "issued" ? '<option value="defer"' + (it.defer ? " selected" : "") + '>이연·Defer(원가 미대응)</option>' : '') + ((it.dir === "issued" && _csBasis === "project") ? '<option value="accrue"' + (it.accrue ? " selected" : "") + '>미청구·Accrued(원가월 인식)</option>' : '') + '</select>';
             var _cur = (it.currency && it.currency !== "VND") ? (' <span style="color:var(--text-3);font-size:9px">' + E(it.currency) + (it.fxOk ? "" : " ⚠환율") + '</span>') : "";
             return '<div style="padding:4px 0;border-top:1px solid var(--border)' + ((it.asset || it.defer) ? ";opacity:.55" : "") + '">'
               + '<div style="display:flex;gap:8px;font-size:11px;align-items:center">'
               + '<span style="color:var(--text-3);flex-shrink:0">' + E(it.date) + '</span>'
               + '<span style="font-family:var(--mono);color:var(--text-3);flex-shrink:0;font-size:10px">' + E(it.invoiceNo || "—") + '</span>'
-              + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E((d.groupKey === "project" ? (it.vendor?(it.vendor+" · "):"") : (it.projectName?("["+it.projectName+"] "):""))+(it.note||"")).replace(/"/g, "&quot;") + '">' + (it.asset ? '<span style="color:#7c3aed;font-weight:600">[자산] </span>' : '') + (it.defer ? '<span style="color:#c2410c;font-weight:600">[이연] </span>' : '') + (d.groupKey === "project" ? '<span style="font-weight:600">'+E(it.vendor || "(미지정)")+'</span>'+(it.note ? ' <span style="color:var(--text-3)">· '+E(it.note)+'</span>' : '') : (it.projectName ? '<span style="font-weight:600">'+E(it.projectName)+'</span>' : E(it.note || "—"))) + '</span>'
+              + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + E((d.groupKey === "project" ? (it.vendor?(it.vendor+" · "):"") : (it.projectName?("["+it.projectName+"] "):""))+(it.note||"")).replace(/"/g, "&quot;") + '">' + (it.asset ? '<span style="color:#7c3aed;font-weight:600">[자산] </span>' : '') + (it.defer ? '<span style="color:#c2410c;font-weight:600">[이연] </span>' : '') + (it.accrue ? '<span style="color:#1d4ed8;font-weight:600">[미청구 · ' + E(it.accrueFrom) + ' 발행분] </span>' : '') + (d.groupKey === "project" ? '<span style="font-weight:600">'+E(it.vendor || "(미지정)")+'</span>'+(it.note ? ' <span style="color:var(--text-3)">· '+E(it.note)+'</span>' : '') : (it.projectName ? '<span style="font-weight:600">'+E(it.projectName)+'</span>' : E(it.note || "—"))) + '</span>'
               + '<span style="font-family:var(--mono);flex-shrink:0;' + (it.asset ? "text-decoration:line-through;color:var(--text-3)" : (it.amt < 0 ? "color:var(--danger)" : "")) + '">' + money(it.amt) + _cur + '</span></div>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">' + _depSelI + _clsSelI + '</div></div>';
           }
