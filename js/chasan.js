@@ -1175,6 +1175,16 @@
   };
   window.chasanReleaseDefer = function (id) { chasanSetInvClass(id, "cogs"); };
   function _csProjName(pid){ if(pid==null||pid==="") return ""; var ps=(typeof state!=="undefined"&&state&&state.projects)||[]; var p=ps.find(function(x){return String(x.id)===String(pid);}); if(!p) return ""; var _b=(p.clientFull||p.client||p.name||("#"+pid)); return _b+(p.projName?(" · "+p.projName):""); }
+  /* 프로젝트 × 월 매입원가 — 채산 원가와 동일 규칙(귀속기준·원가거래처·자산/이연 제외), 부서 무관 */
+  function _csProjCogs(pid, ym) {
+    var s = 0, invs = (typeof state !== "undefined" && state && state.invoices) || [];
+    invs.forEach(function (x) {
+      if (!x || x.dir !== "received" || String(x.projectId == null ? "" : x.projectId) !== String(pid)) return;
+      if (x.chasanClass === "asset" || x.chasanClass === "defer" || !isCogsVendor(x) || _csEffYm(x) !== ym) return;
+      var n = invNet(x); if (n) s += invVnd(x, n).v;
+    });
+    return s;
+  }
   window.chasanLineDetail = function (ym, dept, key) {
     // 매출·매입원가 → 인보이스 발생기준 (자산 분류는 합계 제외, 행은 표시)
     if (key === "revenue" || key === "cogs") {
@@ -1189,15 +1199,20 @@
         var conv = invVnd(inv, invNet(inv));
         irows.push({ id: inv.id, date: inv.date || "", vendor: (inv.vendor || "").trim() || "(미지정)", invoiceNo: inv.invoiceNo || "",
           currency: inv.currency || "VND", fxOk: conv.ok, dir: inv.dir, asset: isAsset, defer: isDefer, accrue: _csBasis === "project" && _csIsAccrue(inv), accrueFrom: _ym(inv.date), note: (inv.note || inv.category || "").trim(), amt: conv.v,
-          projectName: _csProjName(inv.projectId) });
+          projectName: _csProjName(inv.projectId), pid: (inv.projectId == null ? "" : String(inv.projectId)) });
       });
-      var _igk = (key === "cogs") ? "project" : "vendor";                 // 매입원가 → 프로젝트별
+      var _igk = (key === "cogs" || key === "revenue") ? "project" : "vendor";   // 매출·매입원가 → 프로젝트별
       var igroups = {};
       irows.forEach(function (r) {
-        var g = (_igk === "project") ? (r.projectName || "(프로젝트 미연결)") : (r.vendor || "(미지정)");
-        (igroups[g] = igroups[g] || { sum: 0, items: [] }); igroups[g].sum += (r.asset || r.defer) ? 0 : r.amt; igroups[g].items.push(r);
+        var g = (_igk === "project") ? ("p:" + (r.pid || "_none")) : (r.vendor || "(미지정)");
+        var gn = (_igk === "project") ? (r.pid ? (r.projectName || ("#" + r.pid)) : "(프로젝트 미연결)") : g;
+        (igroups[g] = igroups[g] || { name: gn, pid: r.pid || "", sum: 0, items: [] }); igroups[g].sum += (r.asset || r.defer) ? 0 : r.amt; igroups[g].items.push(r);
       });
-      var ilist = Object.keys(igroups).map(function (g) { return { name: g, sum: igroups[g].sum, items: igroups[g].items.sort(function (a, b) { return b.amt - a.amt; }) }; }).sort(function (a, b) { return b.sum - a.sum; });
+      var ilist = Object.keys(igroups).map(function (g) {
+        var o = igroups[g], row = { name: o.name, pid: o.pid, sum: o.sum, items: o.items.sort(function (a, b) { return b.amt - a.amt; }) };
+        if (key === "revenue" && o.pid) { row.cogs = _csProjCogs(o.pid, ym); row.cogsRate = o.sum > 0 ? row.cogs / o.sum : null; }
+        return row;
+      }).sort(function (a, b) { return b.sum - a.sum; });
       return { groupKey: _igk, isInv: true, groups: ilist, total: irows.reduce(function (a, r) { return a + ((r.asset || r.defer) ? 0 : r.amt); }, 0), count: irows.length, assetCount: irows.filter(function (r) { return r.asset; }).length, deferCount: irows.filter(function (r) { return r.defer; }).length };
     }
     var txns = (typeof state !== "undefined" && state && state.bankTxns) || [];
@@ -1220,6 +1235,14 @@
     var list = Object.keys(groups).map(function (g) { return { name: g, sum: groups[g].sum, items: groups[g].items.sort(function (a, b) { return b.amt - a.amt; }) }; }).sort(function (a, b) { return b.sum - a.sum; });
     return { groupKey: groupKey, groups: list, total: rows.reduce(function (a, r) { return a + r.amt; }, 0), count: rows.length };
   };
+  function _csRateBadge(g, money) {
+    if (!("cogs" in g)) return "";
+    var st = "font-size:10px;padding:1px 6px;border-radius:5px;font-family:var(--mono);";
+    if (!g.cogs) return '<span style="' + st + 'color:var(--text-3);border:1px dashed var(--border)" title="이 달 귀속 매입원가 없음">원가 미등록</span>';
+    if (g.cogsRate == null) return "";
+    var p = g.cogsRate * 100, c = p >= 100 ? "background:#fee2e2;color:#b91c1c" : (p > 85 ? "background:#fef3c7;color:#b45309" : "background:#e0f2fe;color:#0369a1");
+    return '<span style="' + st + c + '" title="매입원가 ' + money(g.cogs) + ' · 매출총이익 ' + money(g.sum - g.cogs) + '">원가율 ' + p.toFixed(1) + '%</span>';
+  }
   window.chasanToggleDetail = function (ym, dept, key) {
     var money = function (v) { return (_usd && _rate) ? Math.round((v || 0) / _rate).toLocaleString("en-US") : F(v); };
     var _unit = (_usd && _rate) ? " USD" : "";
@@ -1228,6 +1251,7 @@
     if (el.getAttribute("data-open") === "1") { el.innerHTML = ""; el.setAttribute("data-open", "0"); return; }
     var d = chasanLineDetail(ym, dept, key);
     var glabel = d.groupKey === "category" ? "카테고리 · Category" : (d.groupKey === "project" ? "프로젝트 · Project" : "거래처 · Vendor");
+    if (key === "revenue" && _csBasis !== "project") glabel += " · 원가율은 동월 매입 기준(인보이스 기준은 월 불일치 가능 → 프로젝트 귀속 기준 권장)";
     var _an = "";
     if (_csViewRaw) { _an = ' · 배분 풀림(원본) · unallocated view'; } else if (CHASAN_CFG.allocateCommon) { _an = (dept === "COMMON") ? ' · 배분 전 원천 · pre-alloc pool' : ' · 직접귀속만(배분분 제외) · direct only'; }
     var html = '<div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:2px 0 6px;min-width:260px">'
@@ -1235,7 +1259,7 @@
     if (!d.groups.length) { var _m = "직접 귀속 거래 없음 · No direct txns"; if (CHASAN_CFG.allocateCommon && dept !== "COMMON") _m += " — 표시값은 COMMON 배분분입니다. COMMON 열을 클릭해 원천 확인"; html += '<div style="font-size:11px;color:var(--text-3)">' + _m + '</div>'; }
     d.groups.forEach(function (g) {
       html += '<details style="margin-bottom:3px"><summary style="cursor:pointer;font-size:12px;display:flex;justify-content:space-between;gap:10px;padding:3px 0">'
-        + '<span style="font-weight:600">' + E(g.name) + '</span><span style="font-family:var(--mono);' + (g.sum < 0 ? "color:var(--danger)" : "") + '">' + money(g.sum) + '</span></summary>'
+        + '<span style="font-weight:600">' + E(g.name) + '</span><span style="display:flex;gap:8px;align-items:center;flex-shrink:0">' + _csRateBadge(g, money) + '<span style="font-family:var(--mono);' + (g.sum < 0 ? "color:var(--danger)" : "") + '">' + money(g.sum) + '</span></span></summary>'
         + '<div style="padding:4px 0 6px 10px">'
         + g.items.map(function (it) {
           if (d.isInv) {   // 인보이스 행: 부서 태깅 + 원가/자산 분류
