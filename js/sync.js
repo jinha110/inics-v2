@@ -187,7 +187,10 @@
       //  잃는 것보다 낫다.
       var dels=[]; for(var k2 in old){ if(!(k2 in cur)) dels.push(k2); }
       var oldN=0; for(var kc in old) oldN++;
-      if(dels.length > DEL_MAX || (oldN>=5 && dels.length/oldN > DEL_RATIO)){
+      // 사용자가 확인창에서 승인한 '의도적 삭제'는 가드 계산에서 제외 (window._fbIntentDel[c])
+      var _intent=(window._fbIntentDel&&window._fbIntentDel[c])||null;
+      var _gDels=_intent?dels.filter(function(k){ return !_intent[String(k).replace(/~\d+$/,'')]; }):dels;
+      if(_gDels.length > DEL_MAX || (oldN>=5 && _gDels.length/oldN > DEL_RATIO)){
         console.error("⛔ INICS 삭제 가드 발동 — 저장 중단", {컬렉션:c, 삭제시도:dels.length,
           기존:oldN, 키:dels.slice(0,30)});
         setSyncStatus('error','⛔ 저장 차단 — 대량 삭제 감지 (관리자 문의)');
@@ -217,6 +220,7 @@
         if(!r.ok) throw new Error("HTTP "+r.status);
       }
       window._fbSnapshotFromState(state);
+      window._fbIntentDel={};                 // 의도적 삭제 반영 완료 → 등록 해제
       setSyncStatus('ok','Synced · 동기화 완료');
       _maybeBackup(state);
     }catch(e){
