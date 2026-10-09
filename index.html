@@ -29,7 +29,7 @@
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
 <script src="js/auth.js?v=1"></script>
-<script src="js/sync.js?v=13"></script>
+<script src="js/sync.js?v=14"></script>
 <script src="js/hr.js?v=12"></script>
 <script src="js/hr-calc.js?v=3"></script>
 <script src="js/hr-emp.js?v=5"></script>
@@ -10191,12 +10191,18 @@ function renderBankUploadBar(){
     +'<div style="font-size:10px;color:var(--text-3);margin-top:6px">Format · 인식 컬럼: <b>날짜 · 거래구분 · 출금 · 입금 · 잔액 · 참조번호 · 비고</b> (SHB export). Duplicate rows are skipped · 중복 자동 제외.</div>';
 }
 
+// ── 의도적 삭제 등록 (sync.js 대량삭제 가드 예외 + tombstone) ──
+function _bankIntentDel(ids){
+  window._fbIntentDel=window._fbIntentDel||{}; var m=window._fbIntentDel.bankTxns=window._fbIntentDel.bankTxns||{};
+  (ids||[]).forEach(function(id){ if(id==null) return; m[String(id).replace(/[.#$\[\]\/\s]/g,'_').slice(0,200)]=1; if(typeof _tombAdd==='function') _tombAdd('bankTxns',id); });
+}
 function bankClearAcct(acctNo){
   if(!confirm('Delete all imported transactions for '+acctNo+'?\n'+acctNo+' 거래내역을 모두 삭제할까요?')) return;
   var removedIds={}; (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acctNo && t.matchCardId!=null) removedIds[t.matchCardId]=true; });
   (state.cardExpenses||[]).forEach(function(c){ if(c.matchTxnId!=null && removedIds[c.id]){ c.matchTxnId=null; c.matchStatus=null; c.matchedAt=null; } });
   var removedDocIds={}; (state.bankTxns||[]).forEach(function(t){ if(t.acctNo===acctNo && t.matchDocId!=null) removedDocIds[t.matchDocId]=true; });
   (state.docs||[]).forEach(function(d){ if(d.matchTxnId!=null && removedDocIds[d.id]){ d.matchTxnId=null; d.matchStatus=null; d.matchedAt=null; } });
+  _bankIntentDel((state.bankTxns||[]).filter(function(t){return t.acctNo===acctNo && !bankIsLocked(t);}).map(function(t){return t.id;}));
   state.bankTxns=(state.bankTxns||[]).filter(function(t){return !(t.acctNo===acctNo && !bankIsLocked(t));});
   saveState(); renderBankApp(); showToast('Cleared · 초기화 완료 (마감분 제외 · closed periods kept)');
 }
@@ -10264,6 +10270,33 @@ function _bankLooksLikeTxnRow(r){
   var amt=String(r[2]==null?'':r[2])+String(r[3]==null?'':r[3])+String(r[4]==null?'':r[4]);
   return /\d/.test(amt);   // 출금·입금·잔액 중 숫자 존재
 }
+function _bankDigits(x){ return String(x||'').replace(/\D/g,''); }
+// 파일 상단(헤더 이전 + 앞쪽 15행)·시트명에서 계좌번호를 찾아 선택 계좌와 비교.
+// 번호가 없으면 거래 지문(날짜·출금·입금·잔액)이 다른 계좌의 기존 거래와 겹치는지 검사.
+function _bankFileAcctCheck(rows, start, acc, sheetName){
+  var cur=_bankDigits(acc.acctNo);
+  var accts=(state.bankAccounts||[]).map(function(a){ return {no:a.acctNo, d:_bankDigits(a.acctNo)}; }).filter(function(a){ return a.d.length>=8; });
+  var lim=Math.max(start, 15), txt=[String(sheetName||'')];
+  for(var i=0;i<Math.min(rows.length,lim);i++){ if(i>=start && _bankLooksLikeTxnRow(rows[i])) continue; txt.push((rows[i]||[]).join(' ')); }
+  var found={};
+  txt.join(' \n ').replace(/\d[\d\- .]{7,22}\d/g, function(m){ var d=_bankDigits(m); if(d.length>=9 && d.length<=16) found[d]=1; return m; });
+  var fl=Object.keys(found);
+  if(fl.some(function(d){ return d===cur; })) return {ok:true};
+  var other=accts.filter(function(a){ return a.d!==cur && found[a.d]; });
+  if(other.length) return {block:true, msg:'⛔ 계좌 불일치 · Account mismatch\n\n선택 계좌: '+acc.acctNo+'\n파일 계좌: '+other[0].no+'\n\n올바른 계좌를 선택한 뒤 다시 업로드하세요.\nSelect the correct account and upload again.'};
+  // 미등록 계좌번호로 보이는 숫자(계좌 형식 3-3-6 등)가 있으면 차단
+  var acctLike=[]; txt.join(' \n ').replace(/\b\d{3}-\d{3}-\d{6}\b/g, function(m){ acctLike.push(m); return m; });
+  if(acctLike.length) return {block:true, msg:'⛔ 계좌 불일치 · Account mismatch\n\n선택 계좌: '+acc.acctNo+'\n파일 계좌: '+acctLike[0]+'\n\n해당 계좌의 명세서가 아닙니다. · This statement is not for the selected account.'};
+  // 계좌번호 없음 → 지문 비교
+  var fp=function(date,dr,cr,bal){ return String(date).trim()+'|'+Math.round(dr*100)+'|'+Math.round(cr*100)+'|'+Math.round(bal*100); };
+  var otherFp={}, otherNo={};
+  (state.bankTxns||[]).forEach(function(t){ if(t.acctNo!==acc.acctNo){ var k=fp(t.date,t.debit||0,t.credit||0,t.balance||0); otherFp[k]=1; otherNo[k]=t.acctNo; } });
+  var n=0, hit=0, hitNo='';
+  for(var r=start;r<rows.length;r++){ var row=rows[r]||[]; if(!_bankLooksLikeTxnRow(row)) continue; n++;
+    var k=fp(row[0], bankParseNum(row[2]), bankParseNum(row[3]), bankParseNum(row[4])); if(otherFp[k]){ hit++; hitNo=otherNo[k]; } }
+  if(hit>=3 || (n && hit/n>=0.3)) return {block:true, msg:'⛔ 계좌 불일치 · Account mismatch\n\n이 파일의 거래 '+hit+'/'+n+'건이 이미 '+hitNo+' 계좌에 등록된 거래와 같습니다.\n선택 계좌('+acc.acctNo+')의 명세서가 아닌 것으로 보입니다.\n\nThis file matches transactions already in '+hitNo+'.'};
+  return {ask:'파일에서 계좌번호를 찾지 못했습니다.\nNo account number found in the file.\n\n'+acc.acctNo+' ('+acc.currency+') 계좌로 업로드할까요?\nImport into '+acc.acctNo+'?'};
+}
 function handleBankExcel(file){
   if(!file) return;
   if(typeof XLSX==='undefined'){ showToast('Excel 모듈 로드 실패 · reload'); return; }
@@ -10292,6 +10325,10 @@ function handleBankExcel(file){
         showToast('형식 불일치 · Wrong format — 업로드 취소 · nothing imported. 필요 컬럼: 날짜·거래구분·출금·입금·잔액·참조번호·비고 (SHB export)');
         return;
       }
+      // ── 계좌 검증 (Account check): 다른 계좌 명세서면 업로드 거부 ──
+      var _chk=_bankFileAcctCheck(rows, start, acc, wb.SheetNames[0]);
+      if(_chk.block){ alert(_chk.msg); showToast('계좌 불일치 · Account mismatch — 업로드 취소 · nothing imported'); return; }
+      if(_chk.ask && !confirm(_chk.ask)) { showToast('업로드 취소 · Cancelled'); return; }
       // existing dedup keys for this account
       var existing={};
       (state.bankTxns||[]).filter(function(t){return t.acctNo===acc.acctNo;}).forEach(function(t){ existing[bankTxnKey(t)]=true; });
@@ -11137,7 +11174,22 @@ function bankClosePeriodBtn(acctNo,ym){
   if(!bankIsAdmin()) return '';
   if(!ym) return '<span style="font-size:10px;color:var(--text-3)">← 월 선택 후 마감 · pick month to close</span>';
   if(bankIsMonthClosed(acctNo,ym)) return '<button class="btn btn-outline" style="font-size:11px;padding:5px 10px;color:#7c3aed;border-color:#c4b5fd" onclick="bankReopenPeriod(\''+acctNo+'\',\''+ym+'\')"><i class="ti ti-lock-open"></i> 마감해제 · Re-open '+ym+'</button>';
-  return '<button class="btn btn-outline" style="font-size:11px;padding:5px 10px;color:#7c3aed;border-color:#c4b5fd" onclick="bankClosePeriod(\''+acctNo+'\',\''+ym+'\')"><i class="ti ti-lock"></i> 이 기간 마감 · Close '+ym+'</button>';
+  return '<button class="btn btn-outline" style="font-size:11px;padding:5px 10px;color:#7c3aed;border-color:#c4b5fd" onclick="bankClosePeriod(\''+acctNo+'\',\''+ym+'\')"><i class="ti ti-lock"></i> 이 기간 마감 · Close '+ym+'</button>'
+    +'<button class="btn btn-outline" style="font-size:11px;padding:5px 10px;color:var(--danger);border-color:#fecaca" onclick="bankDeleteMonth(\''+acctNo+'\',\''+ym+'\')"><i class="ti ti-trash"></i> 이 기간 삭제 · Delete '+ym+'</button>';
+}
+// 미마감 월 전체 삭제 (마감된 월은 불가)
+function bankDeleteMonth(acctNo,ym){
+  if(!bankIsAdmin()){ showToast('권한 없음 · Admin only'); return; }
+  if(!ym) return;
+  if(bankIsMonthClosed(acctNo,ym)){ showToast('마감된 기간 · Closed period ('+ym+') — 삭제 불가 · cannot delete'); return; }
+  var del=(state.bankTxns||[]).filter(function(t){ return t.acctNo===acctNo && bankTxnMonth(t)===ym && !bankIsLocked(t); });
+  if(!del.length){ showToast('삭제할 거래 없음 · Nothing to delete ('+ym+')'); return; }
+  if(!confirm('Delete ALL '+del.length+' transactions of '+ym+' for '+acctNo+'?\n'+acctNo+' · '+ym+' 거래 '+del.length+'건을 모두 삭제할까요?')) return;
+  var delIds={}; del.forEach(function(t){ _bankUnlinkMatches(t); delIds[t.id]=true; });
+  _bankIntentDel(del.map(function(t){return t.id;}));
+  state.bankTxns=(state.bankTxns||[]).filter(function(t){return !delIds[t.id];});
+  window.bankSel={};
+  saveState(); renderBankApp(); showToast('삭제 · Deleted '+del.length+' ('+ym+')');
 }
 function bankClosedBanner(acctNo){
   var cp=state.bankClosedPeriods||{}; var pre=acctNo+'|';
@@ -11181,6 +11233,7 @@ function bankDeleteSelected(){
   if(!del.length){ showToast(lockedN?('선택 '+lockedN+'건 모두 마감 기간 · all in closed period'):'선택된 거래 없음 · None selected'); return; }
   if(!confirm('Delete '+del.length+' selected transaction(s)?'+(lockedN?(' ('+lockedN+' skipped · 마감기간 제외)'):'')+'\n선택한 '+del.length+'건을 삭제할까요?')) return;
   var delIds={}; del.forEach(function(t){ _bankUnlinkMatches(t); delIds[t.id]=true; });
+  _bankIntentDel(del.map(function(t){return t.id;}));
   state.bankTxns=(state.bankTxns||[]).filter(function(t){return !delIds[t.id];});
   window.bankSel={};
   saveState(); renderBankApp(); showToast('삭제 · Deleted '+del.length+(lockedN?(' · skipped '+lockedN):''));
@@ -11354,6 +11407,7 @@ function deleteBankTxn(id){
       _txnInvIds(_t).forEach(function(id){ var _iv=(state.invoices||[]).find(function(x){return String(x.id)===String(id);}); if(_iv){ _iv.matchTxnId=null; _iv.matchStatus=null; _iv.paidAt=null; } });
     }
   }
+  _bankIntentDel([id]);
   state.bankTxns=(state.bankTxns||[]).filter(function(x){return x.id!==id;});
   saveState(); renderBankApp(); showToast('Deleted · 삭제');
 }
