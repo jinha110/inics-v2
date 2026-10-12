@@ -579,6 +579,38 @@
   function _oGapC(g) { return g == null ? "var(--text-3)" : (g <= 0 ? "#15803d" : (g <= 8 ? "#b45309" : "#b91c1c")); }
   function _oGapT(g) { return g == null ? "" : (g > 0 ? "+" : "") + g.toFixed(1) + "%"; }
   function _oStage(s) { return s ? E(s.name) + (s.en ? ' <span style="color:var(--text-3)">· ' + E(s.en) + '</span>' : '') : "—"; }
+  // 업체별 현황 — 업체마다 현재 단계만 (단가·견적·대화 내용 없음). 탈락 업체는 프로젝트별 한 줄.
+  //   표(table) + 글자 막대(■□)로 그려서 PDF·Outlook 붙여넣기·평문 요약에서도 그대로 보이게 한다.
+  function _oChip(t, bg, fg) { return '<span style="display:inline-block;font-size:9.5px;font-weight:600;border-radius:6px;padding:1px 6px;background:' + bg + ';color:' + fg + ';white-space:nowrap">' + t + '</span>'; }
+  function _otherVendorStatus(ps) {
+    var withV = ps.filter(function (x) { return x.vendors && x.vendors.length; });
+    if (!withV.length) return '';
+    var h = '<div style="font-size:13px;font-weight:700;margin:4px 0 6px">업체별 현황 · Vendor status <span style="font-size:11px;color:var(--text-3);font-weight:400">현재 단계 기준 · current stage</span></div>';
+    withV.forEach(function (x) {
+      var st = x.stages || [], n = st.length || 1, party = x.cat.party || '업체';
+      var live = x.vendors.filter(function (v) { return v.status !== 'dropped'; }), dropped = x.vendors.filter(function (v) { return v.status === 'dropped'; });
+      var rows = live.map(function (v) {
+        var col = v.status === 'hold' ? '#b45309' : '#0f766e', cur = st[v.stage] || { name: '', en: '' };
+        var bar = '';
+        for (var i = 0; i < n; i++) bar += '<span style="color:' + (i <= v.stage ? col : '#d6d6d0') + (i < v.stage ? ';opacity:.45' : '') + '">' + (i <= v.stage ? '■' : '□') + '</span>';
+        var badge = v.isNew ? ' ' + _oChip('신규 · New', '#eff6ff', '#1d4ed8')
+          : (v.up ? ' ' + _oChip('▲ 이번 주 ' + (v.from ? E(v.from.name) + ' → ' : '') + E(cur.name), '#ecfdf5', '#15803d') : '');
+        return '<tr style="border-top:1px solid var(--border)">'
+          + '<td style="padding:6px 10px;white-space:nowrap"><b>' + E(v.name) + '</b>' + (v.country ? ' <span style="font-size:10px;color:var(--text-3)">' + E(v.country) + '</span>' : '') + (v.status === 'hold' ? ' ' + _oChip('보류 · Hold', '#fffbeb', '#b45309') : '') + '</td>'
+          + '<td style="padding:6px 10px;white-space:nowrap;font-size:14px;line-height:1;letter-spacing:1px">' + bar + '</td>'
+          + '<td style="padding:6px 10px"><b style="color:' + col + '">' + (v.stage + 1) + '/' + n + '</b> ' + E(cur.name) + (cur.en ? ' <span style="color:var(--text-3);font-size:10.5px">· ' + E(cur.en) + '</span>' : '') + badge + '</td></tr>';
+      }).join('');
+      if (!live.length) rows = '<tr style="border-top:1px solid var(--border)"><td colspan="3" style="padding:6px 10px;color:var(--text-3)">진행 중인 ' + E(party) + ' 없음</td></tr>';
+      if (dropped.length) rows += '<tr style="border-top:1px solid var(--border)"><td colspan="3" style="padding:6px 10px;font-size:11px;color:var(--text-3)">탈락 · Dropped: ' + dropped.map(function (v) { return E(v.name) + (v.dropReason ? ' (' + E(v.dropReason) + ')' : ''); }).join(', ') + '</td></tr>';
+      h += '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:10px"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+        + '<thead><tr style="background:var(--surface-2)"><th colspan="3" style="text-align:left;padding:7px 10px;font-weight:400">'
+        + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + E(x.cat.color) + ';margin-right:6px"></span><b style="font-size:12.5px">' + E(x.name) + '</b>'
+        + (x.client ? ' <span style="font-size:11px;color:var(--text-3)">' + E(x.client) + '</span>' : '')
+        + ' <span style="float:right;font-size:11px;color:var(--text-2)">' + E(party) + ' ' + live.length + '곳' + (dropped.length ? ' · 탈락 ' + dropped.length : '') + '</span></th></tr></thead>'
+        + '<tbody>' + rows + '</tbody></table></div>';
+    });
+    return h + '<div style="margin-bottom:12px"></div>';
+  }
   function _sectionOther() {
     var h = _sectionTitle("그 외 업무 · Other Projects", "#0f766e");
     if (typeof window.otherHqSummary !== "function") { h += '<div style="font-size:12px;color:var(--text-3);padding:8px 0">그 외 업무 모듈 미로드 (js/other.js)</div>'; return h; }
@@ -609,6 +641,7 @@
       + th("분류 · Category") + th("프로젝트 · Project") + th("수량 · Qty", 1) + th("타겟 단가 · Target", 1) + th("보고 단가 · Reported price", 1) + th("진행 단계 · Stage") + th("마감 · Due", 1)
       + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
     h += '<div style="font-size:10px;color:var(--text-3);margin:5px 0 12px">※ 보고 단가 = 프로젝트별 ‘본사 보고용 단가’ 입력값 (단위 단가 · 표시 통화/인코텀즈 기준). 업체 견적·네고 단가는 포함하지 않음 · Reported price is the HQ-report price set per project; vendor quotes and negotiating prices are not shown.</div>';
+    h += _otherVendorStatus(ps);
     // 이번 주 주요 내용
     var items = ps.map(function (x) {
       var bits = [];

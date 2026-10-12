@@ -792,6 +792,18 @@ window.otherHqSummary=function(mon,sun){
     var lastMove={}; moves.sort(function(x,y){ return x.date<y.date?-1:1; }).forEach(function(m){ lastMove[m.vendor]=m; });
     moves=Object.keys(lastMove).map(function(k){ return lastMove[k]; });
     var stageCounts=st.map(function(s,i){ return act.filter(function(v){ return v.stage===i; }).length; });
+    // 업체별 현황 — 현재 단계만 (단가·견적·대화 내용은 넣지 않는다)
+    var vRows=p.vendors.map(function(v){
+      var before=null, movedWk=false, firstD='';
+      v.logs.forEach(function(l){ if(l.date&&(!firstD||l.date<firstD)) firstD=l.date; if(l.stageTo==null) return; if(l.date<a) before=l.stageTo; else if(l.date<=b) movedWk=true; });
+      var created=v.createdAt||firstD, isNew=!!created&&created>=a&&created<=b;
+      var sv=Math.max(0,Math.min(+v.stage||0,st.length-1));
+      var up=!isNew&&movedWk&&(before==null||before<sv);
+      return {name:v.name, country:v.country&&v.country!=='-'?v.country:'', status:v.status, stage:sv,
+        isNew:isNew, up:up, from:up&&before!=null&&st[before]?{idx:before,name:st[before].name,en:st[before].en||''}:null, dropReason:v.dropReason||''};
+    });
+    var vOrd={active:0,hold:1,dropped:2};
+    vRows.sort(function(x,y){ return (vOrd[x.status]||0)-(vOrd[y.status]||0)||y.stage-x.stage||String(x.name).localeCompare(String(y.name)); });
     var hq=hasPrice(p.hqPrice)?num(p.hqPrice):null;
     out.push({id:p.id, cat:{id:cc.id,name:cc.name,color:cc.color,party:cc.partyLabel,partyEn:cc.partyEn},
       name:p.name, client:p.client, item:p.item, owner:p.owner, status:p.status, closedInWeek:!!closedInWeek,
@@ -799,7 +811,7 @@ window.otherHqSummary=function(mon,sun){
       hqPrice:hq, hqGap:gap(hq,num(p.target)||0), hqNote:p.hqNote||'', hqAt:p.hqAt||'',
       leadStage:lead>=0&&st[lead]?{idx:lead,total:st.length,name:st[lead].name,en:st[lead].en||''}:null,
       stageCounts:stageCounts, stages:st.map(function(s){ return {name:s.name,en:s.en||''}; }),
-      active:act.length, total:p.vendors.length, weekLogs:weekLogs, moves:moves, overdue:overdue, nextDue:nextDue, deadline:p.deadline||''});
+      vendors:vRows, active:act.length, total:p.vendors.length, weekLogs:weekLogs, moves:moves, overdue:overdue, nextDue:nextDue, deadline:p.deadline||''});
   });
   var order={}; cats.forEach(function(c,i){ order[c.id]=i; });
   out.sort(function(x,y){ return (order[x.cat.id]||0)-(order[y.cat.id]||0)||String(x.deadline||'9999').localeCompare(String(y.deadline||'9999')); });
