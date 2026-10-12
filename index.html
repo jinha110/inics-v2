@@ -29,19 +29,20 @@
      Replace the 7 values below with your Firebase project config
      ════════════════════════════════════════════════ -->
 <script src="js/auth.js?v=1"></script>
-<script src="js/sync.js?v=14"></script>
+<script src="js/sync.js?v=15"></script>
 <script src="js/hr.js?v=12"></script>
 <script src="js/hr-calc.js?v=3"></script>
 <script src="js/hr-emp.js?v=5"></script>
 <script src="js/hr-pay-att.js?v=4"></script>
 <script src="js/hr-con.js?v=10" onerror="window._hrConScriptFailed=true;console.error('[HR] hr-con.js script load failed (404 or network) — js/hr-con.js')"></script>
 <script src="js/amount.js?v=1"></script>
-<script src="js/quote.js?v=8"></script>
+<script src="js/quote.js?v=9"></script>
 <script src="js/contract.js?v=5"></script>
 <script src="js/qlock.js?v=2"></script>
 <script src="js/chasan.js?v=8"></script>
 <script src="js/export.js?v=1"></script>
-<script src="js/hqreport.js?v=13"></script>
+<script src="js/hqreport.js?v=15"></script>
+<script src="js/other.js?v=1"></script>
 <script>
 (function() {
   if (typeof renderHrCon === "function" && window._hrConLoaded) {
@@ -534,6 +535,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-icon" style="background:#eef2ff;color:#4338ca"><i class="ti ti-file-certificate"></i></div>
         <div class="hub-card-title">계약서 · Contracts</div>
         <div class="hub-card-desc">계약 정보 · 스캔본 보관<br>Contract Info · Signed Scans</div>
+      </div>
+
+      <div class="hub-card active-module" id="hubCard-other" onclick="enterModule(&#39;other&#39;)">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#15803d">New</div>
+        <div class="hub-card-icon" style="background:#f0fdf4;color:#15803d"><i class="ti ti-briefcase"></i></div>
+        <div class="hub-card-title">그 외 업무 · Other Projects</div>
+        <div class="hub-card-desc">소싱 · 행사 등 분류별 프로젝트<br>Sourcing · Events · Vendor log</div>
       </div>
 
     </div>
@@ -1207,8 +1215,11 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fg"><label>고객 타입 · Cust. Type</label><select id="projCustType" onchange="toggleEndCust()"><option>B2B</option><option>B2C</option><option>END USER</option></select></div>
         <div class="fg" id="projEndCustWrap" style="grid-column:1/-1;display:none;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);padding:10px"><label style="color:#b45309"><i class="ti ti-users"></i> 최종 고객 정보 · End Customer (B2B)</label><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px"><input type="text" id="projEndName" placeholder="최종 고객사명 · Name" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndRep" placeholder="담당/대표 · Rep." autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndAddr" placeholder="주소 · Address" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"><input type="text" id="projEndContact" placeholder="연락처 · Contact" autocomplete="off" style="width:100%;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);box-sizing:border-box"></div></div>
         <div class="fg"><label>단계 · Stage</label><select id="projStage" onchange="onProjStageChange()"></select></div>
-        <div class="fg"><label>예상금액 · Amount <span>부가세 포함 · Incl. VAT</span></label><input type="text" id="projAmount" placeholder="0" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this)"></div>
-        <div class="fg"><label>부가세 · VAT</label><label style="font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;display:flex;gap:6px;align-items:center;white-space:nowrap;margin-top:7px"><input type="checkbox" id="projVatApplied" checked="" style="width:auto;margin:0"> 적용됨 · Applied</label></div>
+        <div class="fg"><label>예상금액 · Amount <span>부가세 제외 · Excl. VAT</span></label><input type="text" id="projAmount" placeholder="0" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projAmtRecalc('net')"></div>
+        <div class="fg"><label>부가세율 · VAT %</label><select id="projVatRate" onchange="projAmtRecalc('rate')"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
+        <div class="fg"><label>부가세액 · VAT <span>자동계산·수정 가능</span></label><input type="text" id="projVatAmt" placeholder="0" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);projAmtRecalc('vat')"></div>
+        <div class="fg"><label>총금액 · Total <span>부가세 포함 · Incl. VAT</span></label><input type="text" id="projAmountTotal" readonly="" placeholder="0" style="background:var(--surface-2);font-weight:700"></div>
+        <div class="fg" id="projAmtQuoteHint" style="grid-column:1/-1;display:none;margin-top:-4px;font-size:11px;color:#4338ca"></div>
         <div class="fg"><label>통화 · Currency</label><select id="projCurrency"><option>VND</option><option>USD</option><option>MXN</option></select></div>
         <div class="fg"><label>등록일 · Reg. Date</label><input type="date" id="projRegDate"></div>
         <div class="fg"><label>예상 납기일 · Expected Delivery</label><input type="date" id="projTargetDate"></div>
@@ -2566,7 +2577,7 @@ async function saveState() {
 //   · 로컬에만 있는 신규(원격에 없음)로 최근 2분 내 편집분 → 유지
 // 3개 컬렉션만 보호하던 반창고를 전 컬렉션으로 확장 — projects 원상복구 버그의 근본 수정.
 var _MERGE_COLLS=['docs','vendors','vendorRequests','cardExpenses','cardMerchants',
-                  'products','quotes','projects','bankTxns','invoices','paymentRequests','tasks','exportProjects'];
+                  'products','quotes','projects','bankTxns','invoices','paymentRequests','tasks','exportProjects','otherProjects'];
 function _stampEdit(o){ if(o){ o._editedAt=Date.now(); o._rev=(o._rev||0)+1; } return o; }
 // ── 삭제 무덤 (tombstone) ──
 // 다른 탭/기기의 stale 스냅샷이 "삭제된 레코드"를 되살리는 문제(업무가 지워도 계속 생기는 현상)의 근본 차단.
@@ -2610,7 +2621,7 @@ function _mergeRecentLocalEdits(remote){
   // 보호를 못 받는다. 저장 시 찍은 _cfgRev 가 원격보다 최신이면 로컬 설정을 유지해,
   // 뒤늦게 도착한 stale 원격 스냅샷이 방금 저장한 권한을 되돌리지 못하게 한다.
   if((state._cfgRev||0) > (remote._cfgRev||0)){
-    ['modulePerms','viewScope','reportMembers','taskTypes','taskMembers'].forEach(function(k){ if(state[k]!==undefined) remote[k]=state[k]; });
+    ['modulePerms','viewScope','reportMembers','taskTypes','taskMembers','otherCats','projFxRates'].forEach(function(k){ if(state[k]!==undefined) remote[k]=state[k]; });
     remote._cfgRev=state._cfgRev;
   }
   _tombApply(remote);                        // 무덤에 있는 레코드는 원격에서 와도 제거
@@ -2655,6 +2666,7 @@ async function loadState() {
     if(!state.paymentRequests)state.paymentRequests=[];
     if(!state.invoices)state.invoices=[];
     if(state.invoiceSeq===undefined)state.invoiceSeq=0;
+    if(!Array.isArray(state.otherProjects))state.otherProjects=[];
     if(state.docTypes && state.docTypes.indexOf('계약체결 · Contract Signing')<0){
       var _io=state.docTypes.indexOf('기타 · Other');
       if(_io>=0) state.docTypes.splice(_io,0,'계약체결 · Contract Signing'); else state.docTypes.push('계약체결 · Contract Signing');
@@ -2680,10 +2692,11 @@ async function loadState() {
       if(!state.cardExpenses)state.cardExpenses=[]; if(state.cardSeq===undefined)state.cardSeq=0; if(!state.cardMerchants)state.cardMerchants=[]; if(!state.modulePerms)state.modulePerms={}; if(typeof _mpNormalize==='function') _mpNormalize(); if(!state.viewScope)state.viewScope={}; if(!state.products)state.products=[]; if(!state.quotes)state.quotes=[]; if(state.quoteSeq===undefined)state.quoteSeq=0;
       if(!state.projects)state.projects=[]; if(state.projectSeq===undefined)state.projectSeq=0;
       if(!state.bankTxns)state.bankTxns=[]; if(state.bankSeq===undefined)state.bankSeq=0; if(typeof bankSeedOnce==='function') bankSeedOnce();
+      if(!Array.isArray(state.otherProjects))state.otherProjects=[];
       if(state.memberPasswords){Object.entries(state.memberPasswords).forEach(([id,pw])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.pw=pw;});} if(state.memberNames){Object.entries(state.memberNames).forEach(([id,nm])=>{const m=MEMBERS.find(m=>m.id==id);if(m)m.name=nm;});}
       if(typeof projSeedOnce==='function') projSeedOnce(); if(typeof projMigrate==='function') projMigrate();
       if(typeof _syncExtraMembers==='function') _syncExtraMembers();
-      render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } if(typeof projectAppOpen!=='undefined' && projectAppOpen && typeof renderProjectBoard==='function'){ renderProjectBoard(); } setSyncStatus('ok','Live sync · 실시간 동기화');
+      render(); if(cardAppOpen){ if(typeof renderCard==='function') renderCard(); if(cardTab==='dash' && typeof renderCardDashboard==='function') renderCardDashboard(); } if(typeof projectAppOpen!=='undefined' && projectAppOpen && typeof renderProjectBoard==='function'){ renderProjectBoard(); } if(typeof otherOnRemote==='function'){ try{ otherOnRemote(); }catch(_){ } } setSyncStatus('ok','Live sync · 실시간 동기화');
       if(window._fbSnapshotFromState) window._fbSnapshotFromState(state); // diff 기준선 = 방금 받은 원격
     };
     window._pendingRemote=null;
@@ -4159,7 +4172,7 @@ function buildVendorMap(){
       var v=ensure(p.client);
       if(v){
         var sd=p.sales||{};
-        var sAmt=qNum(sd.invoiceAmount)||qNum(sd.total)||(qNum(sd.deposit)+qNum(sd.balance))||qNum(p.amount);
+        var sAmt=qNum(sd.invoiceAmount)||qNum(sd.total)||(qNum(sd.deposit)+qNum(sd.balance))||((_projAmtParts(p)||{}).total||0);
         var sCur=sd.currency||p.currency||'';
         v.srcs.project=true;
         v.docs.push({src:'project', no:'PJ-'+p.id, title:'프로젝트 · '+(projStage(p.stage).label), id:p.id, cur:sCur, amt:sAmt, date:p.regDate||''});
@@ -6068,6 +6081,7 @@ var MODULE_DEFS=[
   {key:'contract', label:'계약',     def:true,  card:'contract'},
   {key:'invoice',  label:'인보이스', def:true,  card:'invoice'},
   {key:'export',   label:'수출',     def:true,  card:'export'},
+  {key:'other',    label:'그 외',    def:true,  card:'other'},
   {key:'hr',       label:'인사',     def:false, special:'hr'},
   {key:'acctAdmin',label:'회계관리',  def:false, special:'acctAdmin'}
 ];
@@ -8572,7 +8586,8 @@ function renderProjectBoard(){
 
 function projCardHtml(p){
   var s=projStage(p.stage);
-  var amt = (p.amount!=null && p.amount!=='') ? (p.currency||'USD')+' '+fmtN(p.amount) : '';
+  var _ae = _projAmtEff(p);
+  var amt = _ae ? (_ae.src==='quote'&&!_projAmtParts(p)?'Q ':'')+_ae.cur+' '+fmtN(_ae.net) : '';
   var owner = projOwnerName(p.ownerId);
   var typeBadge = p.type ? '<span style="font-size:9px;font-weight:600;color:var(--text-2);background:var(--surface-2);padding:1px 6px;border-radius:8px">'+p.type+'</span>' : '';
   var custBadge = p.custType ? '<span style="font-size:9px;font-weight:700;color:#4338ca;background:#eef2ff;padding:1px 6px;border-radius:8px">'+p.custType+'</span>' : '';
@@ -8664,6 +8679,98 @@ function _projFxOf(cur){ if(cur==='USD') return 1; var r=parseFloat(_projFxRates
 function _toUSD(amt,cur){ if(cur==='USD') return amt; var r=_projFxOf(cur); return r>0?(amt/r):null; }
 function setProjFx(cur,v){ _projFxRates(); state.projFxRates[cur]=parseFloat(String(v).replace(/,/g,''))||0; if(typeof saveState==='function') saveState(); if(typeof renderProjectList==='function') renderProjectList(); }
 function _projNum(v){ return parseFloat(String(v==null?'':v).replace(/,/g,''))||0; }
+// ── 예상금액 모델 v2 ─────────────────────────────────────────────
+//  p.amount        = 공급가 (VAT 제외)   ← 항상 이 값
+//  p.amountVatRate = 부가세율 %,  p.amountVat = 부가세액,  p.amountTotal = 합계
+//  p.amountNet     = true (v2 표식. 없으면 레거시: vatApplied!==false 이면 amount 가 VAT 포함)
+//  p.amountSrc     = 'manual' | 'quote',  p.amountQuoteId = 견적 id
+function _projAmtParts(p){
+  if(!p) return null;
+  var a=_projNum(p.amount);
+  if(!(a>0)) return null;
+  var cur=p.currency||'VND';
+  if(p.amountNet){
+    var r=(p.amountVatRate==null||p.amountVatRate==='')?8:_projNum(p.amountVatRate);
+    var v=(p.amountVat!=null&&p.amountVat!=='')?_projNum(p.amountVat):Math.round(a*r/100);
+    return {net:a, vat:v, rate:r, total:a+v, cur:cur, src:p.amountSrc||'manual', quoteId:p.amountQuoteId||null, legacy:false};
+  }
+  if(p.vatApplied!==false){
+    var rr=_projNum((p.sales||{}).vat)||8, n=Math.round(a/(1+rr/100));
+    return {net:n, vat:a-n, rate:rr, total:a, cur:cur, src:'manual', quoteId:null, legacy:true};
+  }
+  return {net:a, vat:0, rate:0, total:a, cur:cur, src:'manual', quoteId:null, legacy:true};
+}
+// 프로젝트의 대표 견적서: projectId 연결 견적 중 최신. 없으면(레거시) 고객사명 매칭 — 단 그 고객사 프로젝트가 1건일 때만
+function _projQuoteFor(p){
+  if(!p||p.id==null) return null;
+  var qs=state.quotes||[], pid=String(p.id);
+  var linked=qs.filter(function(q){ return q&&q.projectId!=null&&q.projectId!==''&&String(q.projectId)===pid; });
+  if(!linked.length){
+    var cl=String(p.client||'').trim().toLowerCase();
+    var sib=(state.projects||[]).filter(function(x){ return String(x.client||'').trim().toLowerCase()===cl; }).length;
+    if(cl && sib===1) linked=qs.filter(function(q){ return q&&!q.projectId&&String(q.client||'').trim().toLowerCase()===cl; });
+  }
+  if(!linked.length) return null;
+  linked.sort(function(a,b){ var x=String(b.date||b.createdAt||''), y=String(a.date||a.createdAt||''); return x<y?-1:x>y?1:((+b.id||0)-(+a.id||0)); });
+  return linked[0];
+}
+function _projQuoteAmt(q){
+  if(!q||typeof INICSAmount==='undefined'||!INICSAmount||typeof INICSAmount.of!=='function') return null;
+  var a; try{ a=INICSAmount.of(q); }catch(e){ return null; }
+  var sub=Math.round(_projNum(a&&a.sub)); if(!(sub>0)) return null;
+  var vat=Math.round(_projNum(a.vatAmt));
+  return {net:sub, vat:vat, rate:(a.exempt?0:_projNum(a.vatRate)), total:sub+vat, cur:String(a.cur||q.currency||'VND').toUpperCase(), src:'quote', quoteId:q.id, quoteNo:q.quoteNo||('Q-'+q.id), legacy:false};
+}
+// 화면 표시용: 프로젝트 자체 금액 → 없으면 연결 견적서
+function _projAmtEff(p){ return _projAmtParts(p) || _projQuoteAmt(_projQuoteFor(p)); }
+// 견적서 금액을 프로젝트에 기록 (견적 저장 시 quote.js 에서 호출)
+function _projApplyQuoteAmt(p,q){
+  var qa=_projQuoteAmt(q); if(!p||!qa) return false;
+  p.amount=String(qa.net); p.amountNet=true; p.amountVatRate=qa.rate; p.amountVat=qa.vat; p.amountTotal=qa.total;
+  p.vatApplied=(qa.rate>0); p.currency=qa.cur; p.amountSrc='quote'; p.amountQuoteId=q.id;
+  return true;
+}
+// ── 폼 계산 ──
+var _projAmtFormSrc={src:'manual',quoteId:null};
+function projAmtRecalc(mode){
+  var nEl=document.getElementById('projAmount'), rEl=document.getElementById('projVatRate'), vEl=document.getElementById('projVatAmt'), tEl=document.getElementById('projAmountTotal');
+  if(!nEl||!rEl||!vEl||!tEl) return;
+  var net=_projNum(nEl.value), rate=_projNum(rEl.value), vat;
+  if(mode==='vat'){ vat=_projNum(vEl.value); }
+  else { vat=(rate>0&&net>0)?Math.round(net*rate/100):0; vEl.value=net>0?fmtN(vat):''; }
+  tEl.value=net>0?fmtN(net+vat):'';
+  if(mode==='net'||mode==='vat'||mode==='rate'){ _projAmtFormSrc={src:'manual',quoteId:null}; _projAmtHint(null); }
+}
+function _projAmtSetForm(parts){
+  var nEl=document.getElementById('projAmount'), rEl=document.getElementById('projVatRate'), vEl=document.getElementById('projVatAmt'), tEl=document.getElementById('projAmountTotal');
+  if(!parts){ nEl.value=''; rEl.value='8'; vEl.value=''; tEl.value=''; return; }
+  nEl.value=fmtN(parts.net);
+  var rs=String(parts.rate); if(!rEl.querySelector('option[value="'+rs+'"]')){ var o=document.createElement('option'); o.value=rs; o.textContent=rs+'%'; rEl.appendChild(o); }
+  rEl.value=rs; vEl.value=fmtN(parts.vat); tEl.value=fmtN(parts.net+parts.vat);
+  if(parts.cur){ var cEl=document.getElementById('projCurrency'); if(cEl){ if(!cEl.querySelector('option[value="'+parts.cur+'"]')&&!Array.prototype.some.call(cEl.options,function(o){return o.text===parts.cur;})){ var oc=document.createElement('option'); oc.textContent=parts.cur; cEl.appendChild(oc); } cEl.value=parts.cur; } }
+}
+function _projAmtHint(html){ var h=document.getElementById('projAmtQuoteHint'); if(!h) return; h.innerHTML=html||''; h.style.display=html?'block':'none'; }
+function _projAmtQuoteBtn(qa,auto){
+  return '<i class="ti ti-file-invoice"></i> '+(auto?'연결 견적서 <b>'+qa.quoteNo+'</b> 금액으로 자동 채움 (저장 시 반영) · Filled from linked quote'
+    :'연결 견적서 <b>'+qa.quoteNo+'</b> · 공급가 '+qa.cur+' '+fmtN(qa.net)+' <a href="javascript:void(0)" onclick="projAmtFromQuote()" style="margin-left:6px;color:#4338ca;font-weight:700">견적서 금액 불러오기 · Load from quote</a>');
+}
+function projAmtFromQuote(){
+  var p=_editingProjId?(state.projects||[]).find(function(x){ return x.id===_editingProjId; }):null;
+  var qa=_projQuoteAmt(_projQuoteFor(p)); if(!qa){ showToast('연결된 견적서가 없습니다 · No linked quote'); return; }
+  _projAmtSetForm(qa); _projAmtFormSrc={src:'quote',quoteId:qa.quoteId}; _projAmtHint(_projAmtQuoteBtn(qa,true));
+}
+// 폼 열 때: 저장된 금액 표시. 비어 있으면 연결 견적서로 자동 채움
+function _projAmtLoadForm(p){
+  _projAmtHint(null); _projAmtFormSrc={src:'manual',quoteId:null};
+  var parts=_projAmtParts(p);
+  var qa=p?_projQuoteAmt(_projQuoteFor(p)):null;
+  if(parts){
+    _projAmtSetForm(parts); _projAmtFormSrc={src:parts.src||'manual',quoteId:parts.quoteId||null};
+    if(qa && (qa.net!==parts.net || qa.cur!==parts.cur)) _projAmtHint(_projAmtQuoteBtn(qa,false));
+  } else if(qa){
+    _projAmtSetForm(qa); _projAmtFormSrc={src:'quote',quoteId:qa.quoteId}; _projAmtHint(_projAmtQuoteBtn(qa,true));
+  } else _projAmtSetForm(null);
+}
 function _projFin(p){
   var s=p.sales||{}, pu=p.purchase||{};
   var sCur=s.currency||p.currency||'VND', pCur=pu.currency||sCur;
@@ -8678,7 +8785,7 @@ function _projSortVal(p,key){
   if(key==='stage'){ for(var k=0;k<PROJ_STAGES.length;k++){ if(PROJ_STAGES[k].key===p.stage) return k; } return 99; }
   if(key==='owner') return projOwnerName(p.ownerId)||'';
   if(key==='region') return (p.region||'')+' '+(p.location||'');
-  if(key==='amount') return parseFloat(String(p.amount||'').replace(/,/g,''))||0;
+  if(key==='amount'){ var _ae=_projAmtEff(p); return _ae?_ae.net:0; }
   if(key==='salesTotal') return _projFin(p).sTot;
   if(key==='purchaseTotal') return _projFin(p).pTot;
   if(key==='margin'){ var _fm=_projFin(p); return _fm.margin==null?-1e18:_fm.margin; }
@@ -8706,7 +8813,8 @@ function renderProjectList(){
   var rows=list.map(function(p){
     var st=projStage(p.stage);
     var _f=_projFin(p);
-    var _amtStr=(p.amount!=null&&String(p.amount).trim()!=='')?((p.currency||'USD')+' '+fmtN(_projNum(p.amount))):'\u2014';
+    var _ae=_projAmtEff(p);
+    var _amtStr=_ae?('<span title="공급가(VAT 제외) · VAT '+_ae.rate+'% '+fmtN(_ae.vat)+' · 합계 '+fmtN(_ae.total)+(_ae.src==='quote'?(' · 견적서 '+(_ae.quoteNo||'')):'')+'">'+(_ae.src==='quote'&&!_projAmtParts(p)?'<sup style="font-size:.7em;color:#4338ca;font-weight:700">Q</sup> ':'')+_ae.cur+' '+fmtN(_ae.net)+'</span>'):'\u2014';
     var _sStr=_f.sTot>0?(_f.sCur+' '+fmtN(_f.sTot)):'\u2014';
     var _pStr=_f.pTot>0?(_f.pCur+' '+fmtN(_f.pTot)):'\u2014';
     var _mStr='\u2014', _mCol='var(--text-3)', _pctStr='\u2014', _pctCol='var(--text-3)';
@@ -8735,7 +8843,7 @@ function renderProjectList(){
     +'<span style="color:var(--text-3)">통화 다르면 마진·이윤%를 USD로 환산 표시</span>'
     +'</div>';
   el.innerHTML=_fxPanel+'<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;min-width:900px">'
-    +'<thead><tr>'+H('stage','단계')+H('client','고객사')+H('regDate','등록일')+H('amount','예상금액',';text-align:right')+H('salesTotal','확정매출',';text-align:right')+H('purchaseTotal','매입액',';text-align:right')+H('margin','마진금액',';text-align:right')+H('marginPct','이윤%',';text-align:right')+'</tr></thead>'
+    +'<thead><tr>'+H('stage','단계')+H('client','고객사')+H('regDate','등록일')+H('amount','예상금액 <span style="font-weight:400;font-size:9px">VAT제외</span>',';text-align:right')+H('salesTotal','확정매출',';text-align:right')+H('purchaseTotal','매입액',';text-align:right')+H('margin','마진금액',';text-align:right')+H('marginPct','이윤%',';text-align:right')+'</tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
 function allProjRegions(){ var base=PROJ_REGIONS.slice(); (state.projRegionsX||[]).forEach(function(r){ if(r&&base.indexOf(r)<0)base.push(r); }); return base; }
@@ -8818,9 +8926,8 @@ function _openProjectForm(id){
       document.getElementById('projType').value=p.type||PROJ_TYPES[0];
       document.getElementById('projCustType').value=p.custType||'B2B';
       document.getElementById('projStage').value=p.stage||'lead';
-      document.getElementById('projAmount').value=(p.amount!=null&&p.amount!=='')?fmtN(p.amount):'';
-      document.getElementById('projVatApplied').checked=(p.vatApplied!==false);
       document.getElementById('projCurrency').value=p.currency||'VND';
+      _projAmtLoadForm(p);
       document.getElementById('projRegDate').value=p.regDate||projTodayISO();
       document.getElementById('projTargetDate').value=p.targetDate||'';
       document.getElementById('projNote').value=p.note||'';
@@ -8844,9 +8951,8 @@ function _openProjectForm(id){
     document.getElementById('projType').value=PROJ_TYPES[0];
     document.getElementById('projCustType').value='B2B';
     document.getElementById('projStage').value='lead';
-    document.getElementById('projAmount').value='';
-    document.getElementById('projVatApplied').checked=true;
     document.getElementById('projCurrency').value='VND';
+    _projAmtLoadForm(null);
     document.getElementById('projRegDate').value=projTodayISO();
     document.getElementById('projTargetDate').value='';
     document.getElementById('projNote').value='';
@@ -8916,7 +9022,7 @@ function renderProjectHistory(id){
   var _sib=(state.projects||[]).filter(function(x){ return (x.client||'').toLowerCase()===_cl; });
   var _tS={}, _tP={}, _dts=[];
   _sib.forEach(function(x){
-    var sd=x.sales||{}; var sa=qNum(sd.invoiceAmount)||qNum(sd.total)||qNum(x.amount); var sc=sd.currency||x.currency||'';
+    var sd=x.sales||{}; var sa=qNum(sd.invoiceAmount)||qNum(sd.total)||((_projAmtParts(x)||{}).total||0); var sc=sd.currency||x.currency||'';
     if(sa) _tS[sc]=(_tS[sc]||0)+sa;
     var pu=x.purchase||{}; var pa=qNum(pu.total)||(qNum(pu.deposit)+qNum(pu.balance)); var pc=pu.currency||'';
     if(pa) _tP[pc]=(_tP[pc]||0)+pa;
@@ -9171,7 +9277,13 @@ function saveProject(){
     custType:document.getElementById('projCustType').value||'',
     stage:document.getElementById('projStage').value||'lead',
     amount:(document.getElementById('projAmount').value||'').replace(/,/g,'').trim(),
-    vatApplied:document.getElementById('projVatApplied').checked,
+    amountNet:true,
+    amountVatRate:_projNum(document.getElementById('projVatRate').value),
+    amountVat:_projNum(document.getElementById('projVatAmt').value),
+    amountTotal:_projNum(document.getElementById('projAmount').value)+_projNum(document.getElementById('projVatAmt').value),
+    vatApplied:_projNum(document.getElementById('projVatRate').value)>0,
+    amountSrc:_projAmtFormSrc.src||'manual',
+    amountQuoteId:_projAmtFormSrc.quoteId||null,
     currency:document.getElementById('projCurrency').value||'VND',
     regDate:document.getElementById('projRegDate').value||projTodayISO(),
     targetDate:document.getElementById('projTargetDate').value||'',
@@ -11506,6 +11618,8 @@ function enterModule(module) {
     showPage('chasan');
   } else if(module === 'hqreport') {
     showHqReportApp();
+  } else if(module === 'other') {
+    if(typeof showOtherApp==='function') showOtherApp(); else { showToast('그 외 업무 모듈 로드 실패 · js/other.js'); if(typeof showHub==='function') showHub(); }
   } else if(module === 'hr') {
     showHrApp();
   } else if(module === 'admin') {
