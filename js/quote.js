@@ -319,6 +319,11 @@ function saveQuote(){
   if(q.projectId){ var _lp=(state.projects||[]).find(function(x){ return String(x.id)===String(q.projectId); }); if(_lp && typeof _stampEdit==='function') _stampEdit(_lp); }
   if(editingQuoteId){ var idx=state.quotes.findIndex(function(x){ return x.id===editingQuoteId; }); if(idx>=0){ q.createdAt=state.quotes[idx].createdAt; q.updatedAt=nowStr(); state.quotes[idx]=q; } }
   else { q.id=(state.quoteSeq=(state.quoteSeq||0)+1); q.quoteNo=document.getElementById('qNo').value; q.createdAt=nowStr(); editingQuoteId=q.id; state.quotes.push(q); }
+  // 연결 프로젝트 예상금액 동기화 — 직접 입력한 금액은 덮어쓰지 않음
+  if(q.projectId && typeof _projApplyQuoteAmt==='function'){
+    var _sp=(state.projects||[]).find(function(x){ return String(x.id)===String(q.projectId); });
+    if(_sp && (!(_projNum(_sp.amount)>0) || _sp.amountSrc==='quote')) _projApplyQuoteAmt(_sp, q);
+  }
   saveState(); populateQuoteProductCodes(); showToast('견적 저장 · 제품/고객 DB 반영 완료'); renderSavedQuotes();
 }
 

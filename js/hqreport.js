@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    INICS 본사 주간 보고 모듈 · HQ Weekly Report  (Stage 1-4 통합)
-   섹션: 채산 / 프로젝트 / 업무  ·  USD 환산 · PDF · Outlook 이메일
+   섹션: 채산 / 프로젝트 / 그 외 업무 / 업무  ·  USD 환산 · PDF · Outlook 이메일
    재사용: window.chasanLoadAll / chasanCompute / chasanForecast · state.projects · state.tasks
    ═══════════════════════════════════════════════════════════════ */
 (function () {
@@ -13,7 +13,7 @@
   function E(s) { return (typeof hrEsc === "function") ? hrEsc(s) : String(s == null ? "" : s); }
 
   var _weekMon = null, _usd = false, _rate = 0, _mxText = "";
-  var _types = { chasan: true, project: true, task: true, mx: true };
+  var _types = { chasan: true, project: true, other: true, task: true, mx: true };
   var _basis = "invoice";                    // 채산 귀속기준 · 'invoice' | 'project'
   window.hqrSetBasis = function (v) { _basis = (v === "project") ? "project" : "invoice"; _regen(); };
   window.hqrGetBasis = function () { return _basis; };
@@ -81,7 +81,7 @@
       +   '<button onclick="hqrToday()" style="border:1px solid var(--border);background:none;color:var(--text-3);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:12px">이번 주</button>'
       + '</div>'
       + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
-      +   _chip("chasan", "채산 · P&L", "#7c3aed") + _chip("project", "프로젝트 · Projects", "#0891b2") + _chip("task", "업무 · Tasks", "#15803d") + _chip("mx", "멕시코 지원 · MX Support", "#ea580c")
+      +   _chip("chasan", "채산 · P&L", "#7c3aed") + _chip("project", "프로젝트 · Projects", "#0891b2") + _chip("other", "그 외 업무 · Other Projects", "#0f766e") + _chip("task", "업무 · Tasks", "#15803d") + _chip("mx", "멕시코 지원 · MX Support", "#ea580c")
       + '</div>'
       + '<div style="margin-bottom:14px"><label style="font-size:12px;color:var(--text-3);display:block;margin-bottom:5px">멕시코 법인 도움 요청 · Requests to MX <span style="color:var(--text-3)">(한 줄에 하나씩 · one per line)</span></label>'
       +   '<textarea id="hqrMx" oninput="hqrMxInput(this.value)" placeholder="예: MX 재고 현황 공유 요청&#10;제품 X 리드타임 확인 요청" style="width:100%;box-sizing:border-box;min-height:70px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--sans);resize:vertical">' + E(_mxText) + '</textarea></div>'
@@ -116,7 +116,7 @@
   }
   window.hqrGenerate = async function () {
     var out = document.getElementById("hqrOutput"); if (!out) return;
-    if (!_types.chasan && !_types.project && !_types.task && !_types.mx) { out.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:20px;text-align:center">항목을 하나 이상 선택하세요.</div>'; return; }
+    if (!_types.chasan && !_types.project && !_types.other && !_types.task && !_types.mx) { out.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:20px;text-align:center">항목을 하나 이상 선택하세요.</div>'; return; }
     var _mxEl = document.getElementById("hqrMx"); if (_mxEl) _mxText = _mxEl.value;
     if (_types.chasan) {
       var _fcf = await _hqrForeignConfirmed();
@@ -133,6 +133,7 @@
     try {
       if (_types.chasan) body += await _sectionChasan();
       if (_types.project) body += _sectionProject();
+      if (_types.other) body += _sectionOther();
       if (_types.task) body += _sectionTask();
       if (_types.mx) body += _sectionMx();
     } catch (e) { body += '<div style="color:var(--danger);padding:16px">섹션 로드 실패: ' + E(e && e.message) + '</div>'; }
@@ -300,7 +301,7 @@
     var lt = _n(p.salesTotal);
     if (lt > 0) { var lr = _n(p.salesVat); return Math.round(lr > 0 ? lt / (1 + lr / 100) : lt); }
     var a = _n(p.amount);
-    if (a > 0 && p.vatApplied) { var ar = _n((p.sales || {}).vat) || _VAT_DEF; return Math.round(a / (1 + ar / 100)); }
+    if (a > 0 && p.vatApplied && !p.amountNet) { var ar = _n((p.sales || {}).vat) || _VAT_DEF; return Math.round(a / (1 + ar / 100)); }
     if (a > 0) return Math.round(a);
     var _fq = _fromQuote(p);                // ← 연결 견적서 폴백
     if (_fq) return _fq.amt;
@@ -563,6 +564,64 @@
       h += '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">30일 이상 정체된 진행중 프로젝트 없음 · None stalled</div>';
     }
 
+    return h;
+  }
+
+  // ── 그 외 업무 · Other Projects (js/other.js 의 otherHqSummary) ──
+  //   단가는 프로젝트별 '본사 보고용 단가(hqPrice)'만 표시 — 네고 단가·업체 견적은 넣지 않는다.
+  function _oPrice(n, cur) {
+    if (n == null || !isFinite(n)) return "—";
+    var d = (cur === "VND" || cur === "KRW") ? 0 : 2;
+    var s = Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) + " " + E(cur || "");
+    if (_usd && _rate && cur === "VND") s += ' <span style="color:var(--text-3);font-size:10px">(≈' + _fmtUSD(n / _rate) + ')</span>';
+    return s;
+  }
+  function _oGapC(g) { return g == null ? "var(--text-3)" : (g <= 0 ? "#15803d" : (g <= 8 ? "#b45309" : "#b91c1c")); }
+  function _oGapT(g) { return g == null ? "" : (g > 0 ? "+" : "") + g.toFixed(1) + "%"; }
+  function _oStage(s) { return s ? E(s.name) + (s.en ? ' <span style="color:var(--text-3)">· ' + E(s.en) + '</span>' : '') : "—"; }
+  function _sectionOther() {
+    var h = _sectionTitle("그 외 업무 · Other Projects", "#0f766e");
+    if (typeof window.otherHqSummary !== "function") { h += '<div style="font-size:12px;color:var(--text-3);padding:8px 0">그 외 업무 모듈 미로드 (js/other.js)</div>'; return h; }
+    var wr = _weekRange(); var sm = window.otherHqSummary(_dOnly(wr.mon), _dOnly(wr.sun)); var ps = sm.projects || [];
+    if (!ps.length) { h += '<div style="font-size:12px;color:var(--text-3);padding:8px 0">보고 대상 프로젝트 없음 · No projects to report.</div>'; return h; }
+    var k = sm.kpi || {};
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">'
+      + _kpi("진행 프로젝트 · Active", k.projects, "#0f766e")
+      + _kpi("진행 업체 · Vendors in play", k.vendors, "#111827")
+      + _kpi("이번 주 연락 · Contacts this week", k.weekLogs, "#0891b2")
+      + _kpi("기한 지난 액션 · Overdue", k.overdue, k.overdue ? "#b91c1c" : "#15803d")
+      + '</div>';
+    var th = function (t, r) { return '<th style="text-align:' + (r ? 'right' : 'left') + ';padding:6px 10px;font-size:10px;color:var(--text-3);white-space:nowrap">' + t + '</th>'; };
+    var rows = ps.map(function (x) {
+      var tgt = x.target ? _oPrice(x.target, x.currency) + (x.incoterm ? ' <span style="color:var(--text-3);font-size:10px">' + E(x.incoterm) + '</span>' : '') : "—";
+      var hq = x.hqPrice != null ? '<b>' + _oPrice(x.hqPrice, x.currency) + '</b>' + (x.hqGap != null ? '<div style="font-size:10px;color:' + _oGapC(x.hqGap) + '">타겟 대비 ' + _oGapT(x.hqGap) + '</div>' : '') : '<span style="color:var(--text-3)">미입력</span>';
+      var stg = x.leadStage ? _oStage(x.leadStage) + '<div style="font-size:10px;color:var(--text-3)">' + (x.leadStage.idx + 1) + '/' + x.leadStage.total + ' 단계 · ' + E(x.cat.party || '업체') + ' ' + x.active + '/' + x.total + '</div>' : '<span style="color:var(--text-3)">' + E(x.cat.party || '업체') + ' 없음</span>';
+      return '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:7px 10px;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + E(x.cat.color) + ';margin-right:5px"></span>' + E(x.cat.name) + '</td>'
+        + '<td style="padding:7px 10px"><b>' + E(x.name) + '</b>' + (x.closedInWeek ? ' <span style="font-size:9px;background:#e5e7eb;border-radius:6px;padding:1px 6px">이번 주 종료</span>' : '') + '<div style="font-size:10px;color:var(--text-3)">' + E(x.client || '') + (x.item ? ' · ' + E(x.item) : '') + (x.owner ? ' · ' + E(x.owner) : '') + '</div></td>'
+        + '<td style="text-align:right;padding:7px 10px;font-family:var(--mono);white-space:nowrap">' + (x.qty ? x.qty.toLocaleString("en-US") + ' ' + E(x.unit || '') : '—') + '</td>'
+        + '<td style="text-align:right;padding:7px 10px;font-family:var(--mono);white-space:nowrap">' + tgt + '</td>'
+        + '<td style="text-align:right;padding:7px 10px;font-family:var(--mono);white-space:nowrap">' + hq + '</td>'
+        + '<td style="padding:7px 10px">' + stg + '</td>'
+        + '<td style="text-align:right;padding:7px 10px;white-space:nowrap;color:var(--text-2)">' + E(x.deadline || '—') + '</td></tr>';
+    }).join("");
+    h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface-2)">'
+      + th("분류 · Category") + th("프로젝트 · Project") + th("수량 · Qty", 1) + th("타겟 단가 · Target", 1) + th("보고 단가 · Reported price", 1) + th("진행 단계 · Stage") + th("마감 · Due", 1)
+      + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    h += '<div style="font-size:10px;color:var(--text-3);margin:5px 0 12px">※ 보고 단가 = 프로젝트별 ‘본사 보고용 단가’ 입력값 (단위 단가 · 표시 통화/인코텀즈 기준). 업체 견적·네고 단가는 포함하지 않음 · Reported price is the HQ-report price set per project; vendor quotes and negotiating prices are not shown.</div>';
+    // 이번 주 주요 내용
+    var items = ps.map(function (x) {
+      var bits = [];
+      if (x.hqNote) bits.push(E(x.hqNote).replace(/\n/g, '<br>'));
+      if (x.moves.length) bits.push('단계 이동 · Moved: ' + x.moves.map(function (m) { return E(m.vendor) + ' → ' + _oStage(m.to); }).join(', '));
+      if (x.weekLogs) bits.push('이번 주 연락 ' + x.weekLogs + '건');
+      if (x.nextDue && x.nextDue.text) bits.push('다음 · Next: ' + E(x.nextDue.text) + (x.nextDue.due ? ' <span style="color:' + (x.overdue ? '#b91c1c' : 'var(--text-3)') + '">(' + E(x.nextDue.due) + ')</span>' : ''));
+      if (x.overdue) bits.push('<span style="color:#b91c1c">기한 지난 액션 ' + x.overdue + '건</span>');
+      if (!bits.length) return '';
+      return '<li style="margin-bottom:6px"><b>' + E(x.name) + '</b>' + (x.hqAt ? ' <span style="font-size:10px;color:var(--text-3)">단가 갱신 ' + E(x.hqAt) + '</span>' : '') + '<div style="color:var(--text-2);margin-top:2px">' + bits.join(' · ') + '</div></li>';
+    }).filter(Boolean);
+    h += '<div style="font-size:13px;font-weight:700;margin:4px 0 6px">이번 주 주요 내용 · This week</div>';
+    h += items.length ? '<ul style="margin:0;padding-left:18px;font-size:12px;line-height:1.6">' + items.join("") + '</ul>' : '<div style="font-size:12px;color:var(--text-3)">이번 주 업데이트 없음.</div>';
     return h;
   }
 

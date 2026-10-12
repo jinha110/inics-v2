@@ -23,7 +23,7 @@
 
   var COLLECTIONS = ["docs","vendors","vendorRequests","cardExpenses","cardMerchants",
                      "products","quotes","projects","bankTxns","invoices","paymentRequests","tasks",
-                     "assets"];
+                     "assets","otherProjects"];   // otherProjects: 그 외 업무 (2026-10) — 레코드 단위 PATCH
   var _isColl = {}; COLLECTIONS.forEach(function(c){ _isColl[c]=1; });
   // 외부화 대상: 무거운 첨부를 가진 컬렉션만 (나머지 작은 것은 인라인 유지)
   var EXT = { docs:1, products:1, vendors:1, cardExpenses:1, assets:1, projects:1, invoices:1, quotes:1 };
