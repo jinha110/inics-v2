@@ -40,7 +40,7 @@
 <script src="js/contract.js?v=5"></script>
 <script src="js/qlock.js?v=2"></script>
 <script src="js/chasan.js?v=9"></script>
-<script src="js/cashflow.js?v=4"></script>
+<script src="js/cashflow.js?v=5"></script>
 <script src="js/export.js?v=1"></script>
 <script src="js/hqreport.js?v=16"></script>
 <script src="js/other.js?v=2"></script>
@@ -1328,6 +1328,7 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
       <select id="finCurrency" onchange="renderFinanceDashboard()" style="font-size:13px;font-weight:600;padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option>VND</option><option>USD</option><option>MXN</option></select>
       <select id="finOwner" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">담당자 전체 · All Owners</option></select>
+      <span style="position:relative;display:inline-flex;align-items:center"><i class="ti ti-search" style="position:absolute;left:9px;font-size:13px;color:var(--text-3)"></i><input type="search" id="finSearch" list="finSearchList" oninput="renderFinanceDashboard()" placeholder="업체·프로젝트·인보이스 번호 검색" autocomplete="off" style="width:240px;font-size:12px;padding:8px 10px 8px 28px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><datalist id="finSearchList"></datalist></span>
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap"><input type="checkbox" id="finUsd" onchange="renderFinanceDashboard()" style="width:auto;margin:0"> USD 환산</label>
       <input type="text" id="finFx" inputmode="decimal" onchange="_finFxSave()" oninput="renderFinanceDashboard()" placeholder="환율 VND/USD" style="width:110px;font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--mono);text-align:right">
       <select id="finMonth" onchange="renderFinanceDashboard()" style="font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"><option value="">전체 기간 · All periods</option></select>
@@ -7044,7 +7045,7 @@ function _projInvPayBadge(v){
   var settled=_invSettledCents(v), total=_invAmtCents(v), due=(typeof _invRemainingDueCents==='function')?_invRemainingDueCents(v):(total-settled);
   var paid=(typeof _invIsPaid==='function')?_invIsPaid(v):(total>0&&due<=100);
   var recv=(v.dir==='received');
-  if(total<0) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#7c3aed;white-space:nowrap" title="마이너스(감액·수정) 인보이스 — 같은 프로젝트의 원 인보이스와 상계"><i class="ti ti-receipt-refund"></i> 감액·Credit</span>';
+  if(total<0) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#7c3aed;white-space:nowrap" title="마이너스(감액·수정) 인보이스 — 원 인보이스와 상계"><i class="ti ti-receipt-refund"></i> '+((v.creditOffsetInvId!=null&&v.creditOffsetInvId!=='')?'감액·상계완료':'감액·상계 미지정')+'</span>';
   if(paid) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#15803d;white-space:nowrap" title="인보이스 모듈 은행 대사 기준"><i class="ti ti-check"></i> '+(recv?'지급완료·Paid':'입금완료·Collected')+'</span>';
   if(settled>0) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#92400e;white-space:nowrap" title="인보이스 모듈 은행 대사 기준"><i class="ti ti-progress-check"></i> 부분 '+fmtN(settled/100)+'/'+fmtN(total/100)+' · 잔여 '+fmtN(due/100)+'</span>';
   return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:'+(recv?'#991b1b':'#b45309')+';white-space:nowrap"><i class="ti ti-clock"></i> '+(recv?'미지급·Open A/P':'미수·Open A/R')+'</span>';
@@ -10052,6 +10053,19 @@ function _finRowStats(c){
            rUnb:_finPct(unb,T), rColl:_finPct(recI,inv) };
 }
 
+// ── 정산 검색: 고객사·매입처·프로젝트명·연결 인보이스(거래처/번호) ──
+function _finNorm(x){ return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'D').toUpperCase().replace(/\s+/g,' ').trim(); }
+function _finMatch(p,q){
+  var pu=p.purchase||{}, hay=[p.client,p.clientFull,p.projName,p.name,pu.vendor,'PJ-'+p.id];
+  (state.invoices||[]).forEach(function(v){ if(v && String(v.projectId||'')===String(p.id)) hay.push(v.vendor,v.buyer,v.invoiceNo); });
+  var h=_finNorm(hay.filter(Boolean).join(' | '));
+  return q.split(' ').every(function(t){ return !t || h.indexOf(t)>=0; });
+}
+function _finFillSearchList(){
+  var dl=document.getElementById('finSearchList'); if(!dl || dl._n===(state.projects||[]).length) return;
+  var names={}; (state.projects||[]).forEach(function(p){ if(!projWonPlus(p.stage)) return; [p.client,(p.purchase||{}).vendor].forEach(function(n){ n=String(n||'').trim(); if(n) names[n]=1; }); });
+  dl.innerHTML=Object.keys(names).sort().map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'; }).join(''); dl._n=(state.projects||[]).length;
+}
 function renderFinanceDashboard(){
   var cur=(document.getElementById('finCurrency')||{}).value||'VND';
   var ow=(document.getElementById('finOwner')||{}).value||'';
@@ -10064,9 +10078,12 @@ function renderFinanceDashboard(){
   var _conv=(_usdOn && _fx>0 && cur!=='USD');            // USD 환산 여부
   var dCur=_conv?'USD':cur;                              // 표시 통화
   var _fm=function(n){ return _conv?fmtN(Math.round(qNum(n)/_fx)):fmtN(n); };
+  var _q=_finNorm((document.getElementById('finSearch')||{}).value||'');
+  _finFillSearchList();
   var list=(state.projects||[]).filter(function(p){
     if(!projWonPlus(p.stage)) return false;
     if(ow && String(p.ownerId)!==String(ow)) return false;
+    if(_q && !_finMatch(p,_q)) return false;
     return true;
   });
   var tot={ sTotal:0, sRecv:0, sOut:0, sInvoiced:0, sUninvoiced:0, pTotal:0, pPaid:0, pOut:0, sSub:0, pSub:0, sInvSub:0 };
@@ -10078,7 +10095,7 @@ function renderFinanceDashboard(){
     if(!c.hasS && !c.hasP) return;
     if(!ym && uninvOnly && c.sUninvoiced<=0) return;   // 월별 모드는 정의상 전부 발행분
     if(_finIsAssetOnly(c)){ assetN++; assetP+=qNum(c.pTotal); return; }   // 자산 전용 — 정산 대상 아님
-    if(_finIsClosed(p,c)){ doneN++; doneS+=qNum(c.sTotal); if(hideDone) return; }
+    if(_finIsClosed(p,c)){ doneN++; doneS+=qNum(c.sTotal); if(hideDone && !_q) return; }   // 검색 중엔 완결 건도 표시
     tot.sTotal+=c.sTotal; tot.sRecv+=c.sRecv; tot.sOut+=c.sOut;
     tot.sInvoiced+=c.sInvoiced; tot.sUninvoiced+=c.sUninvoiced;
     tot.pTotal+=c.pTotal; tot.pPaid+=c.pPaid; tot.pOut+=c.pOut;
@@ -10737,9 +10754,44 @@ function bankUnlinkDangling(id){
   showToast('연결 해제 · 이제 인보이스 매칭 가능 · Unlinked');
 }
 // 인보이스 기준 충당/잔여 (모든 라인의 이 인보이스 몫 합산)
-function _invSettledCents(inv){ _invAllocMigrateOnce(); var id=String(inv&&inv.id), s=0; (state.bankTxns||[]).forEach(function(t){ (t.invAllocs||[]).forEach(function(a){ if(String(a.invId)===id) s+=(+a.cents||0); }); }); s+=(+(inv&&inv.feeWriteoffCents)||0); return s; }
+// ── 감액(마이너스) 인보이스 상계 · Credit-note offset ──
+//  감액 인보이스 c.creditOffsetInvId = 원 인보이스 id → 원 인보이스는 |감액|만큼 회수 처리, 감액 인보이스는 정산 완료.
+//  프로젝트·거래처 합계에서는 +|감액| / −|감액| 로 상쇄되어 순액 불변.
+function _invCreditOffsetCents(inv){ var id=String(inv&&inv.id), s=0; (state.invoices||[]).forEach(function(c){ if(c && c.creditOffsetInvId!=null && String(c.creditOffsetInvId)===id && qNum(c.total)<0) s+=Math.round(-qNum(c.total)*100); }); return s; }
+function _invCreditsOf(inv){ var id=String(inv&&inv.id); return (state.invoices||[]).filter(function(c){ return c && c.creditOffsetInvId!=null && String(c.creditOffsetInvId)===id && qNum(c.total)<0; }); }
+function _invSettledCents(inv){ _invAllocMigrateOnce(); if(inv && inv.creditOffsetInvId!=null && inv.creditOffsetInvId!=='' && qNum(inv.total)<0) return _invAmtCents(inv); var id=String(inv&&inv.id), s=0; (state.bankTxns||[]).forEach(function(t){ (t.invAllocs||[]).forEach(function(a){ if(String(a.invId)===id) s+=(+a.cents||0); }); }); s+=(+(inv&&inv.feeWriteoffCents)||0); s+=_invCreditOffsetCents(inv); return s; }
 function _invRemainingDueCents(inv){ return _invAmtCents(inv)-_invSettledCents(inv); }
-function _invIsPaid(inv){ return _invAmtCents(inv)>0 && _invRemainingDueCents(inv)<=100; }   // 완납(±1 VND)
+function _invIsPaid(inv){ if(_invAmtCents(inv)<0) return !!(inv && inv.creditOffsetInvId!=null && inv.creditOffsetInvId!==''); return _invAmtCents(inv)>0 && _invRemainingDueCents(inv)<=100; }   // 완납(±1 VND) · 감액은 상계 지정 시 정산
+function _invPartyKey(v){ return String((v&&(v.vendor||v.buyer))||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'D').toUpperCase().replace(/\s+/g,' ').trim(); }
+function _invCreditTargets(c){   // 상계 대상 후보: 같은 방향 · 양수 · 같은 거래처 또는 같은 프로젝트
+  var pk=_invPartyKey(c), pid=String(c.projectId||'');
+  return (state.invoices||[]).filter(function(v){ return v && v!==c && v.dir===c.dir && qNum(v.total)>0 && ((pk && _invPartyKey(v)===pk) || (pid && String(v.projectId||'')===pid)); })
+    .sort(function(a,b){ return String(b.date||'')<String(a.date||'')?-1:1; });
+}
+function creditOffsetInv(creditId, targetId){
+  var c=(state.invoices||[]).find(function(x){return String(x.id)===String(creditId);});
+  var t=(state.invoices||[]).find(function(x){return String(x.id)===String(targetId);});
+  if(!c||!t) return; var abs=Math.round(-qNum(c.total)*100); if(abs<=0) return;
+  var fee=+t.feeWriteoffCents||0, cut=Math.min(fee, abs);
+  var msg='감액 인보이스 ['+(c.invoiceNo||c.id)+'] '+fmtN(abs/100)+' 를\n원 인보이스 ['+(t.invoiceNo||t.id)+'] 에 상계합니다.';
+  if(cut>0) msg+='\n\n원 인보이스의 수수료 처리 '+fmtN(fee/100)+' 중 '+fmtN(cut/100)+' 를 취소하고 상계로 대체합니다.';
+  if(!confirm(msg+'\n\n진행할까요?')) return;
+  c.creditOffsetInvId=String(t.id); c.creditOffsetAt=(typeof nowStr==='function')?nowStr():new Date().toISOString(); _stampEdit(c);
+  if(cut>0){ t.feeWriteoffCents=(fee-cut)>0?(fee-cut):null; }
+  t.paidAmount=_invSettledCents(t)/100; t.paidFull=_invIsPaid(t); _stampEdit(t);
+  c.paidAmount=_invSettledCents(c)/100; c.paidFull=true;
+  _invReconRefresh();
+  var due=_invRemainingDueCents(t);
+  showToast(due>100?('상계 완료 · 원 인보이스 잔여 '+fmtN(due/100)):(due<-100?('상계 완료 · ⚠ 초과회수 '+fmtN(-due/100)):'상계 완료 · 원 인보이스 완납'));
+}
+function creditOffsetClear(creditId){
+  var c=(state.invoices||[]).find(function(x){return String(x.id)===String(creditId);}); if(!c||c.creditOffsetInvId==null) return;
+  if(!confirm('감액 상계를 해제할까요? (원 인보이스는 그만큼 미수로 돌아갑니다 · 수수료 처리는 자동 복원되지 않음)')) return;
+  var t=(state.invoices||[]).find(function(x){return String(x.id)===String(c.creditOffsetInvId);});
+  c.creditOffsetInvId=null; c.creditOffsetAt=null; c.paidFull=false; c.paidAmount=0; _stampEdit(c);
+  if(t){ t.paidAmount=_invSettledCents(t)/100; t.paidFull=_invIsPaid(t); _stampEdit(t); }
+  _invReconRefresh(); showToast('상계 해제 · Offset removed');
+}
 function _invPending(inv){ return !!(inv && _invAmtCents(inv)>0 && _invRemainingDueCents(inv)>100); }
 function _invTxns(inv){ _invAllocMigrateOnce(); var id=String(inv&&inv.id); return (state.bankTxns||[]).filter(function(t){ return (t.invAllocs||[]).some(function(a){return String(a.invId)===id;}); }); }
 // invoice → bank 후보 (방향·통화 일치 & 잔여 있는 라인 — 부분충당 허용, 금액 딱 맞을 필요 없음)
@@ -10920,6 +10972,18 @@ function _bankInvoiceCell(t){
 }
 // 인보이스 화면 결제 상태 셀
 function _invPayCell(v){
+  if(qNum(v.total)<0){   // 감액(마이너스) 인보이스 → 입금 매칭이 아니라 원 인보이스와 상계
+    if(v.creditOffsetInvId!=null && v.creditOffsetInvId!==''){
+      var _t=(state.invoices||[]).find(function(x){return String(x.id)===String(v.creditOffsetInvId);});
+      return '<div style="white-space:nowrap"><span class="badge" style="font-size:10px;background:#f5f3ff;color:#7c3aed"><i class="ti ti-arrows-exchange"></i> 상계 완료 → '+(_t?('['+String(_t.invoiceNo||_t.id).replace(/</g,'&lt;')+'] '+(_t.date||'')):'(원 인보이스 없음)')+'</span>'
+        +' <a href="javascript:void(0)" onclick="creditOffsetClear(\''+v.id+'\')" style="color:var(--danger);text-decoration:none;font-size:11px">해제</a></div>';
+    }
+    var _cands=_invCreditTargets(v);
+    return '<div style="white-space:nowrap"><span class="badge" style="font-size:10px;background:#f5f3ff;color:#7c3aed"><i class="ti ti-receipt-refund"></i> 감액 · 상계 대상 미지정</span>'
+      +(_cands.length?('<br><select onchange="if(this.value)creditOffsetInv(\''+v.id+'\',this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #c4b5fd;border-radius:6px;font-family:var(--sans);max-width:220px;margin-top:3px"><option value="">↔ 상계할 원 인보이스 선택…</option>'
+        +_cands.map(function(t){ var d=_invRemainingDueCents(t); return '<option value="'+t.id+'">['+String(t.invoiceNo||t.id).replace(/</g,'&lt;')+'] '+(t.date||'')+' · '+fmtN(qNum(t.total))+(t.feeWriteoffCents>0?' · 수수료처리 '+fmtN(t.feeWriteoffCents/100):(d>100?' · 잔여 '+fmtN(d/100):' · 완납'))+'</option>'; }).join('')+'</select>')
+        :'<br><span style="font-size:10px;color:var(--text-3)">같은 거래처·프로젝트의 원 인보이스 없음</span>')+'</div>';
+  }
   var side=_invBankSide(v);
   var info=_invMatchInfo(v);
   var linked=info.txns||[];
@@ -10932,6 +10996,8 @@ function _invPayCell(v){
         +'<i class="ti ti-calendar-event" style="font-size:10px"></i>'+(t.date||'')
         +' · <span style="font-family:var(--mono)">'+fmtN(alloc/100)+'</span>'
         +' <a href="javascript:void(0)" onclick="unmatchInvLine(\''+v.id+'\','+t.id+')" title="이 입금 연결 해제" style="color:var(--danger);text-decoration:none">✕</a></div>';
+    }).join('')+_invCreditsOf(v).map(function(c){
+      return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#7c3aed;margin-top:2px;white-space:nowrap"><i class="ti ti-arrows-exchange" style="font-size:10px"></i>감액 상계 ['+String(c.invoiceNo||c.id).replace(/</g,'&lt;')+'] · <span style="font-family:var(--mono)">−'+fmtN(-qNum(c.total))+'</span></div>';
     }).join('');
   }
   function addPicker(){
