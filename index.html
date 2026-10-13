@@ -40,6 +40,7 @@
 <script src="js/contract.js?v=5"></script>
 <script src="js/qlock.js?v=2"></script>
 <script src="js/chasan.js?v=9"></script>
+<script src="js/cashflow.js?v=2"></script>
 <script src="js/export.js?v=1"></script>
 <script src="js/hqreport.js?v=16"></script>
 <script src="js/other.js?v=2"></script>
@@ -607,6 +608,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="hub-card-icon" style="background:#ecfdf5;color:#047857"><i class="ti ti-report-money"></i></div>
         <div class="hub-card-title">매입/매출 정산 · Finance</div>
         <div class="hub-card-desc">매출·매입·마진·미수금<br>Sales · Purchase · Margin</div>
+      </div>
+
+      <div class="hub-card active-module" id="hubCard-cashflow" onclick="enterModule(&#39;cashflow&#39;)">
+        <div class="hub-card-badge" style="background:var(--surface-2);color:#0369a1">New</div>
+        <div class="hub-card-icon" style="background:#f0f9ff;color:#0369a1"><i class="ti ti-droplet"></i></div>
+        <div class="hub-card-title">현금흐름 예측 · Cash Flow</div>
+        <div class="hub-card-desc">13주·6개월 현금 예측 · 시나리오<br>Forecast · Scenarios · VND/USD</div>
       </div>
 
     </div>
@@ -6092,6 +6100,7 @@ var MODULE_DEFS=[
   {key:'chasan',   label:'채산',     def:true,  card:'chasan'},
   {key:'hqreport', label:'본사보고', def:true,  card:'hqreport'},
   {key:'finance',  label:'정산',     def:true,  card:'finance'},
+  {key:'cashflow', label:'현금흐름', def:true,  card:'cashflow'},
   {key:'bankstmt', label:'은행',     def:true,  card:'bankstmt'},
   {key:'contract', label:'계약',     def:true,  card:'contract'},
   {key:'invoice',  label:'인보이스', def:true,  card:'invoice'},
@@ -11653,6 +11662,8 @@ function enterModule(module) {
     showExportApp();
   } else if(module === 'finance') {
     showFinanceApp();
+  } else if(module === 'cashflow') {
+    if(typeof showCashflowApp==='function') showCashflowApp(); else { showToast('현금흐름 모듈 로드 실패 · js/cashflow.js'); if(typeof showHub==='function') showHub(); }
   } else if(module === 'report') {
     showReportApp();
   } else if(module === 'bankstmt') {
