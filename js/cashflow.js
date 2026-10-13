@@ -64,7 +64,7 @@
     var A = {   // 가정
       scenario: "base", fx: 26300, horizonW: 13, dsoDefault: 30, dpoDefault: 30,
       overdueDays: 90, includePipeline: true, pStageWon: 0.7, pStagePo: 0.9, pStageDelivered: 0.95,
-      vatMode: "auto", opexMonths: 3, minCash: 100000000, disp: "VND"
+      vatMode: "auto", opexMonths: 3, minCash: 100000000, disp: "VND", apVendors: "FURSYS"
     };
     var SCN = {
       base:         { lbl: "기준 · Base",         arDelay: 0,  pipe: 1.0, overdue: "w1",   opex: 1.00 },
@@ -165,10 +165,14 @@
       if (gDSO == null) gDSO = a.dsoDefault; if (gDPO == null) gDPO = a.dpoDefault;
 
       // ② 매출채권 / ③ 매입채무 (미결 잔액)
+      var apKeys = String(a.apVendors || "").split(",").map(function (x) { return norm(x); }).filter(Boolean);
+      var isApVendor = function (v) { if (!apKeys.length) return true; var n = norm(v.vendor) + " " + norm(v.vendorMst); return apKeys.some(function (k) { return n.indexOf(k) >= 0; }); };
+      var apSkip = { n: 0, amt: 0, names: {} };
       data.invoices.forEach(function (v) {
         if (v.dir !== "issued" && v.dir !== "received") return;
         var k = String(v.id), tot = num(v.total), rem = tot - (settled[k] || 0);
         if (Math.abs(rem) < 1000) return;
+        if (v.dir === "received" && !isApVendor(v)) { if (rem > 0) { apSkip.n++; apSkip.amt += vnd(rem, v.currency, v.fxRate); var nm = String(v.vendor || "").trim(); apSkip.names[nm] = (apSkip.names[nm] || 0) + 1; } return; }
         var d0 = dk(v.date) || start, who = v.dir === "issued" ? (v.buyer || v.vendor || "") : (v.vendor || "");
         var cur = String(v.currency || "VND").toUpperCase(), amtV = vnd(rem, cur, v.fxRate);
         if (cur !== "VND" && !(num(v.fxRate) > 0)) issues.push("환율 미입력 → 가정 환율 적용: " + (v.dir === "issued" ? "매출" : "매입") + " #" + (v.invoiceNo || v.id) + " " + who + " " + cur + " " + F(rem));
@@ -184,6 +188,9 @@
         push({ kind: v.dir === "issued" ? "ar" : "ap", sign: v.dir === "issued" ? 1 : -1, amt: amtV, date: exp,
           label: (v.dir === "issued" ? "매출 " : "매입 ") + "#" + (v.invoiceNo || v.id) + " · " + who, note: src + (age > 0 ? " · 연체 " + age + "일" : "") + (rem < tot - 1 ? " · 부분입금 후 잔액" : "") });
       });
+
+      if (apSkip.n) { var top = Object.keys(apSkip.names).sort(function (x, y) { return apSkip.names[y] - apSkip.names[x]; }).slice(0, 4).map(function (x) { return x.replace(/^CÔNG TY (TNHH|CỔ PHẦN)\s*/i, "") + " " + apSkip.names[x] + "건"; }).join(", ");
+        issues.push("매입채무 제외 " + apSkip.n + "건 · " + F(apSkip.amt) + " — 대상 업체(" + a.apVendors + ") 외 매입 인보이스는 카드·현금 기지급 영수증으로 간주 (" + top + (Object.keys(apSkip.names).length > 4 ? " 외" : "") + ")"); }
 
       // ④ 파이프라인: 수주·PO·납품 단계의 미청구 매출 / 미수취 매입
       if (a.includePipeline) {
@@ -331,14 +338,14 @@
       var f = [["scenario", "시나리오", "sel", Object.keys(SCN).map(function (k) { return [k, SCN[k].lbl]; })], ["fx", "USD→VND 환율", "n"], ["minCash", "최소 현금선 (VND)", "n"],
         ["dsoDefault", "기본 회수일 (실적 없을 때)", "n"], ["dpoDefault", "기본 지급일 (실적 없을 때)", "n"], ["overdueDays", "장기 미회수 기준 (일)", "n"],
         ["includePipeline", "파이프라인 포함", "sel", [["true", "포함"], ["false", "제외"]]], ["pStageWon", "확률 · 수주확정", "n"], ["pStagePo", "확률 · PO완료", "n"], ["pStageDelivered", "확률 · 납품완료", "n"],
-        ["vatMode", "부가세 신고", "sel", [["auto", "자동 판정"], ["monthly", "월"], ["quarterly", "분기"]]], ["opexMonths", "고정비 평균 개월수", "n"]];
+        ["apVendors", "매입채무 대상 업체 (쉼표 구분)", "t"], ["vatMode", "부가세 신고", "sel", [["auto", "자동 판정"], ["monthly", "월"], ["quarterly", "분기"]]], ["opexMonths", "고정비 평균 개월수", "n"]];
       var el = document.getElementById("cf_assume"); if (el.dataset.ok) return; el.dataset.ok = 1;
       el.innerHTML = f.map(function (x) {
         var v = A[x[0]];
         if (x[2] === "sel") return '<label>' + x[1] + '<select data-k="' + x[0] + '">' + x[3].map(function (o) { return '<option value="' + o[0] + '"' + (String(v) === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select></label>';
-        return '<label>' + x[1] + '<input data-k="' + x[0] + '" value="' + v + '"></label>';
+        return '<label>' + x[1] + '<input data-k="' + x[0] + '" value="' + esc(v) + '"' + (x[2] === "t" ? ' style="font-family:inherit"' : "") + '></label>';
       }).join("");
-      el.querySelectorAll("[data-k]").forEach(function (inp) { inp.onchange = function () { var k = inp.dataset.k, v = inp.value; if (k === "fx") A._fxTouched = 1; A[k] = (k === "scenario" || k === "vatMode") ? v : (k === "includePipeline" ? v === "true" : num(v)); run(); }; });
+      el.querySelectorAll("[data-k]").forEach(function (inp) { inp.onchange = function () { var k = inp.dataset.k, v = inp.value; if (k === "fx") A._fxTouched = 1; A[k] = (k === "scenario" || k === "vatMode" || k === "apVendors") ? v : (k === "includePipeline" ? v === "true" : num(v)); run(); }; });
     }
     function renderChart(alt) {
       if (typeof Chart === "undefined") {
@@ -382,7 +389,7 @@
     }
     function renderWarn() { var w = R.issues; document.getElementById("cf_warns").innerHTML = w.length ? w.slice(0, 80).map(function (s) { return "<div>" + esc(s) + "</div>"; }).join("") + (w.length > 80 ? "<div>… 외 " + (w.length - 80) + "건</div>" : "") : '<span class="sub">없음</span>'; }
     function renderMethod() {
-      document.getElementById("cf_method").innerHTML = "<b>산출 방식</b> · 기준일 = 은행 데이터 최종일(" + (R.lastBank || "—") + ") 다음날 · 매출 회수 = 만기일 또는 고객별 실적 회수일(전체 중앙값 " + Math.round(R.gDSO) + "일) · 매입 지급 = 만기일 또는 업체별 실적(전체 " + Math.round(R.gDPO) + "일) · 급여 = " + (R.lastPayM || "—") + " 확정대장 · 고정비 = 최근 " + A.opexMonths + "개월 은행 실적(인보이스 대사분·급여·세금·이체 제외) · 부가세 = " + (R.vatMode === "monthly" ? "월" : "분기") + " 신고 · 외화 = 인보이스 환율, 없으면 " + F(A.fx) + " · CIT·대출·자본거래는 미포함";
+      document.getElementById("cf_method").innerHTML = "<b>산출 방식</b> · 기준일 = 은행 데이터 최종일(" + (R.lastBank || "—") + ") 다음날 · 매출 회수 = 만기일 또는 고객별 실적 회수일(전체 중앙값 " + Math.round(R.gDSO) + "일) · 매입 지급 = 대상 업체(" + esc(A.apVendors || "전체") + ") 인보이스만 · 만기일 또는 업체별 실적(전체 " + Math.round(R.gDPO) + "일) · 급여 = " + (R.lastPayM || "—") + " 확정대장 · 고정비 = 최근 " + A.opexMonths + "개월 은행 실적(인보이스 대사분·급여·세금·이체 제외) · 부가세 = " + (R.vatMode === "monthly" ? "월" : "분기") + " 신고 · 외화 = 인보이스 환율, 없으면 " + F(A.fx) + " · CIT·대출·자본거래는 미포함";
     }
     function view(v) { VIEW = v; document.querySelectorAll("#cashflowApp .tab").forEach(function (t) { t.classList.toggle("on", t.dataset.v === v); }); renderTable(); }
     function exportXlsx() {
