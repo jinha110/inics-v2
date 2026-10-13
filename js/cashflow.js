@@ -133,10 +133,19 @@
       var start = lastBank ? addD(lastBank, 1) : data.today;
       if (lastBank && diffD(data.today, lastBank) > 7) issues.push("은행 데이터가 " + diffD(data.today, lastBank) + "일 전(" + lastBank + ")까지만 있음 — 그 이후 실제 입출금은 반영되지 않았습니다. 최신 명세서를 올리면 정확도↑");
       // 기초현금: 계좌별 최종 잔액
-      var accts = {}; txns.forEach(function (t) { var k = t.acctNo || "?"; var c = accts[k]; if (!c || t._d > c.d || (t._d === c.d && (+t.seq || 0) > (c.seq || 0))) accts[k] = { d: t._d, seq: +t.seq || 0, bal: num(t.balance), cur: t.currency || "VND" }; });
-      (data.bankAccounts || []).forEach(function (b) { if (!accts[b.acctNo]) accts[b.acctNo] = { d: "", bal: num(b.balance), cur: b.currency || "VND" }; });
+      // 계좌별 잔액 = 은행 명세서 모듈과 동일 규칙(bankAcctBalance: 최신일 + 같은 날이면 seq 작은 행 = 명세서상 최신)
+      var accts = {};
+      txns.forEach(function (t) { var k = t.acctNo || "?", c = accts[k], sq = +t.seq || 0;
+        if (!c || t._d > c.d || (t._d === c.d && sq < c.seq)) accts[k] = { d: t._d, seq: sq, bal: num(t.balance), cur: t.currency || "VND", src: "명세서" }; });
+      (data.bankAccounts || []).forEach(function (b) {
+        var c = accts[b.acctNo];
+        if (!c) accts[b.acctNo] = { d: "", bal: num(b.balance), cur: b.currency || "VND", src: "계좌 기본값(거래내역 없음)" };
+        else if (b.currency) c.cur = b.currency;
+      });
+      if (typeof bankAcctBalance === "function") Object.keys(accts).forEach(function (k) { try { var v = bankAcctBalance(k); if (typeof v === "number" && isFinite(v)) accts[k].bal = v; } catch (e) { } });
+      Object.keys(accts).forEach(function (k) { if (accts[k].src !== "명세서") issues.push("계좌 " + k + " 거래내역 없음 → 계좌 설정의 기본 잔액 " + F(accts[k].bal) + " " + accts[k].cur + " 사용 (명세서 업로드 필요)"); });
       var opening = 0, openRows = [];
-      Object.keys(accts).forEach(function (k) { var c = accts[k], v = vnd(c.bal, c.cur); opening += v; openRows.push({ acct: k, cur: c.cur, bal: c.bal, vnd: v, asof: c.d }); });
+      Object.keys(accts).forEach(function (k) { var c = accts[k], v = vnd(c.bal, c.cur); opening += v; openRows.push({ acct: k, cur: c.cur, bal: c.bal, vnd: v, asof: c.d, src: c.src }); });
       // 버킷
       var nW = a.horizonW, weeks = []; for (var i = 0; i < nW; i++) weeks.push({ from: addD(start, i * 7), to: addD(start, i * 7 + 6) });
       var endW = weeks[nW - 1].to, nM = 6, months = []; for (var j = 0; j < nM; j++) months.push(addM(ymOf(start), j));
@@ -309,7 +318,7 @@
     function renderKpi(alt) {
       var e = R.wk.close[R.wk.close.length - 1], under = R.wk.close.findIndex(function (v) { return v < A.minCash; });
       var k = [
-        ["기초 현금 · " + (R.lastBank || "—"), Fmd(R.opening), R.openRows.map(function (o) { return o.acct.slice(-6) + " " + o.cur; }).join(" · ")],
+        ["기초 현금 · " + (R.lastBank || "—"), Fmd(R.opening), R.openRows.map(function (o) { return o.acct.slice(-6) + " " + (o.cur === "VND" ? Fm(o.bal) : "$" + Math.round(o.bal).toLocaleString("en-US")) + (o.asof ? " (" + o.asof.slice(5) + ")" : " (기본값)"); }).join(" · ")],
         ["13주 후 현금", Fmd(e), "변동 " + (e - R.opening >= 0 ? "+" : "") + Fmd(e - R.opening), e < 0],
         ["최저 현금", Fmd(R.min.v), R.min.w.from + " 주", R.min.v < 0],
         ["월평균 지출 (향후 90일)", Fmd(R.burn), "현금 보유 " + (R.burn > 0 ? (R.opening / R.burn).toFixed(1) : "—") + "개월분"],
