@@ -128,6 +128,8 @@
         var al = Array.isArray(t.invAllocs) ? t.invAllocs : (Array.isArray(t.matchInvIds) ? t.matchInvIds : (t.matchInvId != null ? [t.matchInvId] : [])).map(function (id) { var v = invById[String(id)]; return { invId: String(id), cents: v ? Math.round(num(v.total) * 100) : 0 }; });
         al.forEach(function (x) { var k = String(x.invId); settled[k] = (settled[k] || 0) + (+x.cents || 0) / 100; if (!lastPay[k] || t._d > lastPay[k]) lastPay[k] = t._d; });
       });
+      // 앱의 정산 규칙(수수료 처리·감액 상계 포함)이 있으면 그대로 사용
+      if (typeof _invSettledCents === "function") data.invoices.forEach(function (v) { try { settled[String(v.id)] = _invSettledCents(v) / 100; } catch (e) { } });
       // 기준일 = 은행 데이터 최종일
       var lastBank = txns.reduce(function (m, t) { return t._d > m ? t._d : m; }, "");
       var start = lastBank ? addD(lastBank, 1) : data.today;
