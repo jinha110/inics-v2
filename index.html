@@ -1239,9 +1239,9 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
         <div class="fgrid">
           <div class="fg"><label>통화 · Currency</label><select id="salesCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
           <div class="fg"><label>VAT %</label><select id="salesVat" onchange="recalcProjFinance(&#39;salesVat&#39;)"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
-          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="salesSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesSubtotal&#39;)"></div>
+          <div class="fg"><label>매출 공급가 (VAT 제외) · Revenue <span>손익·마진 기준</span></label><input type="text" id="salesSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesSubtotal&#39;)"></div>
           <div class="fg"><label>부가세 · VAT <span>자동 · Auto</span></label><input type="text" id="salesVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>매출 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="salesTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesTotal&#39;)" style="font-weight:700"></div>
+          <div class="fg"><label>청구 총액 (VAT 포함) · Billed Total <span>미수·회수 기준 · 입력시 자동분리</span></label><input type="text" id="salesTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;salesTotal&#39;)" style="font-weight:700"></div>
           <div class="fg" style="grid-column:1/-1"><label>대금 지급 조건 · Payment Schedule <span>차수 · % · 시점</span></label>
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
               <select id="salesTermCount" disabled title="회차 편집은 계약서에서" style="font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);background:var(--surface-2);color:var(--text-2)"><option value="1">1차 (일시불)</option><option value="2">2차</option><option value="3">3차</option></select>
@@ -1259,9 +1259,9 @@ C0456DEFG 시공방" autocomplete="off" style="width:100%;font-family:var(--sans
           <div class="fg"><label>거래처 · Vendor</label><input type="text" id="purchaseVendor" list="projectClients" autocomplete="off"></div>
           <div class="fg"><label>통화 · Currency</label><select id="purchaseCurrency" onchange="projMarginRefresh()"><option>VND</option><option>USD</option><option>MXN</option></select></div>
           <div class="fg"><label>VAT %</label><select id="purchaseVat" onchange="recalcProjFinance(&#39;purchaseVat&#39;)"><option value="8">8%</option><option value="10">10%</option><option value="0">0% · 면세</option></select></div>
-          <div class="fg"><label>공급가액 · Subtotal <span>입력 가능 · editable</span></label><input type="text" id="purchaseSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseSubtotal&#39;)"></div>
+          <div class="fg"><label>매입 공급가 (VAT 제외) · Cost <span>손익·마진 기준</span></label><input type="text" id="purchaseSubtotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseSubtotal&#39;)"></div>
           <div class="fg"><label>부가세 · VAT <span>자동 · Auto</span></label><input type="text" id="purchaseVatAmt" readonly="" style="background:var(--surface-2);color:var(--text-2)"></div>
-          <div class="fg"><label>매입 합계 · Total <span>입력시 자동분리 · auto-split</span></label><input type="text" id="purchaseTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseTotal&#39;)" style="font-weight:700"></div>
+          <div class="fg"><label>지급 총액 (VAT 포함) · Billed Total <span>미지급 기준 · 입력시 자동분리</span></label><input type="text" id="purchaseTotal" inputmode="decimal" autocomplete="off" oninput="fmtAmtInput(this);recalcProjFinance(&#39;purchaseTotal&#39;)" style="font-weight:700"></div>
           <div class="fg" style="grid-column:1/-1"><label>매입 인보이스 · Purchase Invoice <span style="color:#b45309">(인보이스 모듈에서 연결)</span></label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="purchaseInvoiceSel" onchange="linkPurchaseInvoice(this.value)" style="flex:1;min-width:200px;font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans)"></select><button type="button" class="btn btn-outline" onclick="openInvoiceForm(null)" style="font-size:11px;padding:6px 10px;white-space:nowrap"><i class="ti ti-plus"></i> 새 인보이스</button></div><div id="purchaseInvoiceLinked" style="margin-top:6px"></div><input type="hidden" id="purchaseInvoiceId"></div>
         </div>
         <div class="line-preview" id="projMarginPreview" style="margin-top:10px">마진 —</div>
@@ -4172,7 +4172,7 @@ function buildVendorMap(){
       var v=ensure(p.client);
       if(v){
         var sd=p.sales||{};
-        var sAmt=qNum(sd.invoiceAmount)||qNum(sd.total)||(qNum(sd.deposit)+qNum(sd.balance))||((_projAmtParts(p)||{}).total||0);
+        var sAmt=Math.round(_projSalesNet(p));   // 공급가(VAT 제외)
         var sCur=sd.currency||p.currency||'';
         v.srcs.project=true;
         v.docs.push({src:'project', no:'PJ-'+p.id, title:'프로젝트 · '+(projStage(p.stage).label), id:p.id, cur:sCur, amt:sAmt, date:p.regDate||''});
@@ -4188,7 +4188,7 @@ function buildVendorMap(){
       var v2=ensure(p.purchase.vendor);
       if(v2){
         var pu=p.purchase;
-        var pAmt=qNum(pu.total)||(qNum(pu.deposit)+qNum(pu.balance));
+        var pAmt=Math.round(_projPurchNet(p));   // 공급가(VAT 제외)
         var pCur=pu.currency||'';
         v2.srcs.project=true;
         v2.docs.push({src:'project', no:'PJ-'+p.id, title:'프로젝트(매입) · '+(p.client||''), id:p.id, cur:pCur, amt:pAmt, date:p.regDate||''});
@@ -4317,7 +4317,7 @@ function renderVendorDB() {
     var _period=(v.firstDate||v.lastDate)?('<div style="font-size:11px;color:var(--text-3);margin-top:4px">거래기간 · Period: <b>'+(v.firstDate||'—')+'</b> ~ <b>'+(v.lastDate||'—')+'</b> · 프로젝트 '+((v.projects||[]).length)+'건 · 문서 '+(v.docs.length)+'건</div>'):'';
     var settleHtml=(_sk.length||_pk.length||_period)
       ? '<div class="ifield" style="margin-top:10px"><div class="lbl">Settlement · 총 매출/매입 (누계)</div><div class="val" style="font-size:12px;line-height:1.8">'
-        +(_sk.length?'<div>총 매출 · Total Sales: <b style="color:#1d4ed8">'+_sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')
+        +(_sk.length?'<div>총 매출 (공급가) · Revenue ex-VAT: <b style="color:#1d4ed8">'+_sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')
         +(_pk.length?'<div>총 매입 · Total Purchase: <b style="color:#b45309">'+_pk.map(function(c){return fmtN(v.purch[c])+' '+c;}).join(' · ')+'</b></div>':'')
         +_period
         +'</div></div>' : '';
@@ -5516,6 +5516,21 @@ function qEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g
 function qNum(v){ return parseFloat(String(v==null?'':v).replace(/,/g,''))||0; }
 // ── Ex-VAT 환산: subtotal 있으면 그대로, 없으면 총액/(1+VAT%) ──
 function _exVatN(tot,vatPct){ var t=qNum(tot), r=qNum(vatPct)/100; return r>0?(t/(1+r)):t; }
+// 프로젝트 매출/매입 공급가(VAT 제외) — 연결 인보이스 우선, 감액 포함 순액
+function _projSalesNet(p){
+  var sd=(p&&p.sales)||{}, ids=((sd.invoiceLinkIds&&sd.invoiceLinkIds.length)?sd.invoiceLinkIds:(sd.invoiceLinkId?[sd.invoiceLinkId]:[]));
+  var invs=ids.map(function(id){ return (state.invoices||[]).find(function(x){ return String(x.id)===String(id); }); }).filter(function(v){ return v && v.dir==='issued'; });
+  if(invs.length){ var s=0; invs.forEach(function(v){ var tt=qNum(v.total); s+=((v.subtotal!=null&&v.subtotal!=='')?qNum(v.subtotal):_exVatN(tt, v.vatPct)); }); return s; }
+  if(qNum(sd.invoiceAmount)) return _exVatN(sd.invoiceAmount, sd.vat);
+  if(qNum(sd.subtotal)) return qNum(sd.subtotal);
+  var tot=qNum(sd.total)||(qNum(sd.deposit)+qNum(sd.balance))||((typeof _projAmtParts==='function'?(_projAmtParts(p)||{}).total:0)||0);
+  return _exVatN(tot, sd.vat);
+}
+function _projPurchNet(p){
+  var pu=(p&&p.purchase)||{};
+  if(qNum(pu.subtotal)) return qNum(pu.subtotal);
+  return _exVatN(qNum(pu.total)||(qNum(pu.deposit)+qNum(pu.balance)), pu.vat);
+}
 function _exVatOf(tot,sub,vatPct){ var v=qNum(sub); return v>0?v:_exVatN(tot,vatPct); }
 function fmtN(n){ n=Math.round(qNum(n)); return isNaN(n)?'':n.toLocaleString('en-US'); }
 function imgToWhiteSquare(img, size){
@@ -7020,6 +7035,7 @@ function _projInvPayBadge(v){
   var settled=_invSettledCents(v), total=_invAmtCents(v), due=(typeof _invRemainingDueCents==='function')?_invRemainingDueCents(v):(total-settled);
   var paid=(typeof _invIsPaid==='function')?_invIsPaid(v):(total>0&&due<=100);
   var recv=(v.dir==='received');
+  if(total<0) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#7c3aed;white-space:nowrap" title="마이너스(감액·수정) 인보이스 — 같은 프로젝트의 원 인보이스와 상계"><i class="ti ti-receipt-refund"></i> 감액·Credit</span>';
   if(paid) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#15803d;white-space:nowrap" title="인보이스 모듈 은행 대사 기준"><i class="ti ti-check"></i> '+(recv?'지급완료·Paid':'입금완료·Collected')+'</span>';
   if(settled>0) return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#92400e;white-space:nowrap" title="인보이스 모듈 은행 대사 기준"><i class="ti ti-progress-check"></i> 부분 '+fmtN(settled/100)+'/'+fmtN(total/100)+' · 잔여 '+fmtN(due/100)+'</span>';
   return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:'+(recv?'#991b1b':'#b45309')+';white-space:nowrap"><i class="ti ti-clock"></i> '+(recv?'미지급·Open A/P':'미수·Open A/R')+'</span>';
@@ -7133,6 +7149,36 @@ function _setSalesInvoiceFieldsLocked(locked){
   var d=document.getElementById('salesInvoiceDate'); if(d){ d.disabled=!!locked; d.style.background=locked?'var(--surface-2)':''; }
 }
 // ── 매출: 연결 인보이스 합계로 필드 파생 ──
+// ── 매출 인보이스 합계 ↔ 청구 총액 동기화 (감액 인보이스 포함 순액) ──
+function _salesInvSums(invs){
+  var t=0, s=0, curs={};
+  (invs||[]).forEach(function(v){ var tt=qNum(v.total); t+=tt; s+=((v.subtotal!=null&&v.subtotal!=='')?qNum(v.subtotal):_exVatN(tt, v.vatPct)); curs[(v.currency||'VND').toUpperCase()]=1; });
+  return { total:Math.round(t), sub:Math.round(s), curs:Object.keys(curs) };
+}
+function _salesSameCur(x){ var c=String(((document.getElementById('salesCurrency')||{}).value)||'VND').toUpperCase(); return x.curs.length===1 && x.curs[0]===c; }
+function _salesTotalsInSync(){
+  var x=_salesInvSums(_projInvsByIds(_projIdList('salesInvoiceId')));
+  var tot=_pfV('salesTotal');
+  return tot<=0 || (x.curs.length>0 && _salesSameCur(x) && Math.abs(tot-x.total)<=1);
+}
+function salesApplyInvoiceTotals(silent){
+  var x=_salesInvSums(_projInvsByIds(_projIdList('salesInvoiceId')));
+  if(!x.curs.length) return;
+  if(!_salesSameCur(x)){ if(!silent) alert('연결 인보이스 통화가 매출 통화와 달라 자동 반영할 수 없습니다.'); return; }
+  _pfSet('salesTotal', x.total); _pfSet('salesSubtotal', x.sub); _pfSet('salesVatAmt', x.total-x.sub);
+  if(typeof renderSalesTerms==='function') try{ renderSalesTerms(); }catch(e){}
+  if(typeof projMarginRefresh==='function') projMarginRefresh();
+  if(!silent){ renderSalesInvoiceLink(); if(typeof showToast==='function') showToast('청구 총액·공급가 반영 — 프로젝트를 저장하세요'); }
+}
+function _salesMismatchHtml(linked){
+  var x=_salesInvSums(linked); if(!x.curs.length || !_salesSameCur(x)) return '';
+  var tot=_pfV('salesTotal'), sub=_pfV('salesSubtotal');
+  if(Math.abs(tot-x.total)<=1 && (sub<=0 || Math.abs(sub-x.sub)<=1)) return '';
+  var hasCredit=linked.some(function(v){ return qNum(v.total)<0; });
+  return '<div style="margin-top:6px;padding:6px 9px;border:1px solid #f59e0b;background:#fffbeb;border-radius:var(--radius);font-size:11px;color:#92400e;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<span style="flex:1;min-width:180px"><i class="ti ti-alert-triangle"></i> 인보이스 합계 <b>'+fmtN(x.total)+'</b> (공급가 '+fmtN(x.sub)+') ≠ 청구 총액 <b>'+fmtN(tot)+'</b>'+(hasCredit?' · 감액 인보이스 포함':'')+'</span>'
+    +'<button type="button" class="btn btn-outline" onclick="salesApplyInvoiceTotals(false)" style="font-size:11px;padding:4px 9px;white-space:nowrap">총액에 반영 · Apply</button></div>';
+}
 function _salesDeriveFromInvoices(){
   var invs=_projInvsByIds(_projIdList('salesInvoiceId'));
   var noEl=document.getElementById('salesInvoiceNo'), amEl=document.getElementById('salesInvoiceAmount'), dtEl=document.getElementById('salesInvoiceDate');
@@ -7189,7 +7235,7 @@ function renderSalesInvoiceLink(){
       }).join('');
       var totByCur={}; linked.forEach(function(v){ var c=v.currency||'VND'; totByCur[c]=(totByCur[c]||0)+qNum(v.total); });
       var totStr=Object.keys(totByCur).map(function(c){ return (typeof _invFmt==='function')?_invFmt(totByCur[c],c):(c+' '+totByCur[c]); }).join(' · ');
-      box.innerHTML='<div style="font-size:9px;font-weight:700;color:#15803d;margin-bottom:2px"><i class="ti ti-link"></i> 연결된 매출 인보이스 '+linked.length+'건 · 합계 '+totStr+'</div>'+rows;
+      box.innerHTML='<div style="font-size:9px;font-weight:700;color:#15803d;margin-bottom:2px"><i class="ti ti-link"></i> 연결된 매출 인보이스 '+linked.length+'건 · 합계 '+totStr+'</div>'+rows+_salesMismatchHtml(linked);
     } else {
       _setSalesInvoiceFieldsLocked(false);
       var iss0=document.getElementById('salesInvoiceIssued'); if(iss0){ iss0.disabled=false; }
@@ -7199,6 +7245,7 @@ function renderSalesInvoiceLink(){
 }
 function linkSalesInvoice(invId){
   if(!invId){ renderSalesInvoiceLink(); return; }
+  var _wasSync=_salesTotalsInSync();   // 연결 전 총액이 인보이스 합계(자동값)였으면 연결 후에도 자동 동기화
   var ids=_projIdList('salesInvoiceId');
   if(ids.indexOf(String(invId))<0){
     ids.push(String(invId));
@@ -7207,16 +7254,19 @@ function linkSalesInvoice(invId){
   }
   _projSetIdList('salesInvoiceId', ids);
   _salesDeriveFromInvoices();
+  if(_wasSync && _pfV('salesTotal')>0) salesApplyInvoiceTotals(true);
   if(typeof saveState==='function') saveState();
   renderSalesInvoiceLink();
   if(typeof projMarginRefresh==='function') projMarginRefresh();
 }
 function unlinkSalesInvoice(invId){
+  var _wasSync=_salesTotalsInSync();
   var ids=_projIdList('salesInvoiceId').filter(function(id){return String(id)!==String(invId);});
   var v=(state.invoices||[]).find(function(x){return String(x.id)===String(invId);});
   if(v && String(v.projectId||'')===String(_editingProjId)){ v.projectId=''; v.updatedAt=nowStr(); }
   _projSetIdList('salesInvoiceId', ids);
   _salesDeriveFromInvoices();
+  if(_wasSync && ids.length) salesApplyInvoiceTotals(true);
   if(typeof saveState==='function') saveState();
   renderSalesInvoiceLink();
   if(typeof projMarginRefresh==='function') projMarginRefresh();
@@ -9002,7 +9052,7 @@ function projCustomerInfoHTML(name){
   }).join('<br>') : '<span style="color:var(--text-3)">관련 문서 없음 · No related docs</span>';
   var sk=Object.keys(v.sales||{}).filter(function(c){return v.sales[c];});
   var pk=Object.keys(v.purch||{}).filter(function(c){return v.purch[c];});
-  var settle=(sk.length||pk.length)?'<div style="margin-top:8px;font-size:12px;line-height:1.7">'+(sk.length?'<div>매출 · Sales: <b style="color:#1d4ed8">'+sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')+(pk.length?'<div>매입 · Purchase: <b style="color:#b45309">'+pk.map(function(c){return fmtN(v.purch[c])+' '+c;}).join(' · ')+'</b></div>':'')+'</div>':'';
+  var settle=(sk.length||pk.length)?'<div style="margin-top:8px;font-size:12px;line-height:1.7">'+(sk.length?'<div>매출 (공급가) · Revenue ex-VAT: <b style="color:#1d4ed8">'+sk.map(function(c){return fmtN(v.sales[c])+' '+c;}).join(' · ')+'</b></div>':'')+(pk.length?'<div>매입 (공급가) · Cost ex-VAT: <b style="color:#b45309">'+pk.map(function(c){return fmtN(v.purch[c])+' '+c;}).join(' · ')+'</b></div>':'')+'</div>':'';
   var body=_projCustDBOpen?('<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
     +'<div style="font-size:10px;color:var(--text-3);margin-bottom:3px">은행정보 · Bank</div><div style="font-size:12px;margin-bottom:8px;word-break:break-all">'+bankInfo+'</div>'
     +(v.reg?'<div style="font-size:11px;color:var(--text-3);margin-bottom:8px">사업자 · '+v.reg+'</div>':'')
@@ -9022,9 +9072,9 @@ function renderProjectHistory(id){
   var _sib=(state.projects||[]).filter(function(x){ return (x.client||'').toLowerCase()===_cl; });
   var _tS={}, _tP={}, _dts=[];
   _sib.forEach(function(x){
-    var sd=x.sales||{}; var sa=qNum(sd.invoiceAmount)||qNum(sd.total)||((_projAmtParts(x)||{}).total||0); var sc=sd.currency||x.currency||'';
+    var sd=x.sales||{}; var sa=Math.round(_projSalesNet(x)); var sc=sd.currency||x.currency||'';
     if(sa) _tS[sc]=(_tS[sc]||0)+sa;
-    var pu=x.purchase||{}; var pa=qNum(pu.total)||(qNum(pu.deposit)+qNum(pu.balance)); var pc=pu.currency||'';
+    var pu=x.purchase||{}; var pa=Math.round(_projPurchNet(x)); var pc=pu.currency||'';
     if(pa) _tP[pc]=(_tP[pc]||0)+pa;
     if(x.regDate) _dts.push(x.regDate);
   });
@@ -9039,8 +9089,8 @@ function renderProjectHistory(id){
     +'<div>현재 단계 · Stage: <b style="color:'+projStage(p.stage).color+'">'+projStage(p.stage).label+'</b></div>'
     +'<div style="border-top:1px dashed var(--border);margin-top:6px;padding-top:6px">'
     +'<div>이 고객사 프로젝트 · Projects: <b>'+_sib.length+'건</b>'+(_dts.length?(' <span style="color:var(--text-3)">('+_dts[0]+' ~ '+_dts[_dts.length-1]+')</span>'):'')+'</div>'
-    +'<div>총 매출 · Total Sales: <b style="color:#1d4ed8">'+(_sKeys.length?_sKeys.map(function(c){return fmtN(_tS[c])+' '+c;}).join(' · '):'—')+'</b></div>'
-    +'<div>총 매입 · Total Purchase: <b style="color:#b45309">'+(_pKeys.length?_pKeys.map(function(c){return fmtN(_tP[c])+' '+c;}).join(' · '):'—')+'</b></div>'
+    +'<div>총 매출 (공급가) · Revenue ex-VAT: <b style="color:#1d4ed8">'+(_sKeys.length?_sKeys.map(function(c){return fmtN(_tS[c])+' '+c;}).join(' · '):'—')+'</b></div>'
+    +'<div>총 매입 (공급가) · Cost ex-VAT: <b style="color:#b45309">'+(_pKeys.length?_pKeys.map(function(c){return fmtN(_tP[c])+' '+c;}).join(' · '):'—')+'</b></div>'
     +(_sib.length>1?('<div style="margin-top:4px;color:var(--text-3)">'+_sib.map(function(x){ return '<a href="javascript:void(0)" onclick="editProject('+x.id+')" style="color:'+(x.id===p.id?'var(--text)':'#4338ca')+';text-decoration:none">'+(x.projName||('PJ-'+x.id))+'</a>'; }).join(' / ')+'</div>'):'')
     +'</div></div>';
   var hist=(p.stageHistory||[]);
