@@ -150,12 +150,14 @@
   window._filesWritten = {};
   window._fbSave = async function(state){
     try{ localStorage.setItem("inics_local", JSON.stringify(state)); }catch(_){}
+    // ⛔ 2026-11: 서버 읽기에 실패한 탭(로컬 모드)은 서버에 절대 쓰지 않는다.
+    if(window._fbReadOnly){ setSyncStatus('error','⛔ 읽기 전용 — 새로고침 필요 (저장 안 됨)'); return; }
     if(!window._lastSynced){
       try{
         var rr=await fetch(V2URL(".json"),{cache:'no-cache'});
         var dd=rr.ok?await rr.json():null;
         if(dd && dd.__v){ window._fbSnapshotFromState(_reassemble(dd)); }
-        else { await _migrate(state); setSyncStatus('ok','Synced · 동기화 완료'); return; }
+        else { window._fbReadOnly=true; setSyncStatus('error','⛔ 서버 확인 실패 — 저장 중단'); return; }   // 예전: _migrate(state)로 전체 PUT → 롤백 사고 원인
       }catch(e){ window._fbSnapshotFromState(state); setSyncStatus('error','Sync failed · 오프라인 (local 보관)'); return; }
     }
     var prev=window._lastSynced, writes=[], fileUploads={};
@@ -271,21 +273,27 @@
   window._fbLoad = async function(){
     try{
       var r=await fetch(V2URL(".json"),{mode:'cors',cache:'no-cache'});
-      var data=r.ok?await r.json():null;
+      // ⛔ 2026-11 사고 수정: 읽기 실패(401/5xx 등)를 '데이터 없음'으로 오인해
+      //    구버전 state.json으로 state2 전체를 PUT(롤백)하던 경로 차단.
+      //    읽기에 실패하면 절대 쓰지 않고 로컬 모드로만 떨어진다.
+      if(!r.ok) throw new Error("state2 read HTTP "+r.status+" — 자동 마이그레이션 차단");
+      var data=await r.json();
+      if(data && !data.__v) throw new Error("state2에 __v 없음 — 자동 마이그레이션 차단 (관리자 확인 필요)");
       if(data && data.__v){
         var st=_reassemble(data); window._fbSnapshotFromState(st);
         setSyncStatus('ok','Live sync · 실시간 동기화');
         if(!(data.meta && Number(data.meta.__filesV)>=FILES_V)) setTimeout(_migrateFilesBg, 2000);   // 미외부화/구버전이면 백그라운드 전환
         return st;
       }
-      var lr=await fetch(BASE+LEGACY,{mode:'cors',cache:'no-cache'});
-      var legacy=lr.ok?await lr.json():null;
-      var base=(legacy && legacy.docs!==undefined)?legacy:{docs:[]};
-      try{ await _migrate(base); }catch(e){ console.error("migrate fail",e); window._fbSnapshotFromState(base); }
-      setSyncStatus('ok', legacy?'Migrated · 구조 전환 완료':'Connected · Firebase 연결됨');
-      return base;
+      // state2가 확실히 비어 있을 때(200 + null)도 자동으로 덮어쓰지 않는다.
+      // 구조 전환이 정말 필요하면 콘솔에서 inicsMigrateLegacy() 를 수동 실행.
+      setSyncStatus('error','⛔ 서버 데이터 없음 — 저장 중단 (관리자 문의)');
+      try{ alert('서버(state2)에 데이터가 없습니다.\n데이터 보호를 위해 이 탭은 저장하지 않습니다.\n관리자에게 알려주세요.'); }catch(_){}
+      window._fbReadOnly = true;
+      throw new Error("state2 empty — 자동 마이그레이션 차단");
     }catch(e){
       console.error("Firebase load error:",e);
+      window._fbReadOnly = true;   // 서버를 못 읽은 탭은 저장 금지 (로컬 사본으로 서버 덮어쓰기 방지)
       try{ var s=localStorage.getItem('inics_local'); if(s){ var lo=JSON.parse(s); window._fbSnapshotFromState(lo); setSyncStatus('ok','Local mode · 로컬 모드'); return lo; } }catch(_){}
       return null;
     }
@@ -331,6 +339,14 @@
       await _backupTree(_assembleFull(state, null));         // 포인터형(가벼움)으로 백업
     }catch(_){}
   }
+
+  // ── 수동 구조 전환 (자동 실행 금지 — 필요할 때만 관리자가 콘솔에서) ──
+  window.inicsMigrateLegacy = async function(confirmWord){
+    if(confirmWord!=="I_UNDERSTAND_THIS_OVERWRITES_STATE2"){ console.log("⚠ state2 전체를 구버전 state.json으로 덮어씁니다. 실행: inicsMigrateLegacy('I_UNDERSTAND_THIS_OVERWRITES_STATE2')"); return; }
+    var lr=await fetch(BASE+LEGACY,{cache:'no-cache'}); var legacy=lr.ok?await lr.json():null;
+    if(!legacy||legacy.docs===undefined){ console.log("legacy 없음"); return; }
+    await _migrate(legacy); console.log("완료 — 새로고침");
+  };
 
   // ── 콘솔 복구 도구 ──
   window.inicsListBackups = async function(){
